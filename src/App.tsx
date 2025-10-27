@@ -2,7 +2,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { editImageWithPrompt } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { UploadIcon, SparklesIcon, ImageIcon, DownloadIcon } from './components/icons';
+import { UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon } from './components/icons';
+
+const loadingMessages = [
+  "Analyzing your product...",
+  "Brainstorming creative backgrounds...",
+  "Adjusting the virtual lighting...",
+  "Rendering a hyper-realistic scene...",
+  "Adding the final marketing polish...",
+  "Almost ready!",
+];
+
+type AspectRatio = '1:1' | '16:9' | '9:16';
 
 const App: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
@@ -10,7 +21,10 @@ const App: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (originalImage) {
@@ -22,6 +36,29 @@ const App: React.FC = () => {
         });
     }
   }, [originalImage]);
+
+  useEffect(() => {
+    if (isLoading) {
+      let messageIndex = 0;
+      setLoadingMessage(loadingMessages[messageIndex]);
+      
+      messageIntervalRef.current = window.setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        setLoadingMessage(loadingMessages[messageIndex]);
+      }, 2500);
+    } else {
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+      }
+    };
+  }, [isLoading]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -47,7 +84,7 @@ const App: React.FC = () => {
     setGeneratedImage(null);
 
     try {
-      const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType);
+      const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
       setGeneratedImage(`data:image/png;base64,${newBase64}`);
     } catch (err) {
       console.error(err);
@@ -55,7 +92,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [base64Data]);
+  }, [base64Data, aspectRatio]);
 
   const handleDownloadClick = useCallback(() => {
     if (!generatedImage) return;
@@ -95,6 +132,10 @@ const App: React.FC = () => {
               <div
                 className="relative border-2 border-dashed border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800 transition-colors duration-300 h-64 flex items-center justify-center"
                 onClick={triggerFileInput}
+                role="button"
+                tabIndex={0}
+                aria-label="Upload a product image"
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && triggerFileInput()}
               >
                 <input
                   type="file"
@@ -116,30 +157,51 @@ const App: React.FC = () => {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-3 text-cyan-400">2. Generate Your Image</h2>
-              <p className="text-sm text-slate-400 mb-4">
-                Our AI will analyze your product and automatically create a professional background and scene for it.
-              </p>
-              <button
-                onClick={handleGenerateClick}
-                disabled={isLoading || !originalImage}
-                className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100"
-              >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon className="w-6 h-6" />
-                    Generate Image
-                  </>
-                )}
-              </button>
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 text-cyan-400">2. Select Aspect Ratio</h2>
+                <div className="flex justify-center gap-3">
+                  {(['1:1', '16:9', '9:16'] as const).map((ratio) => (
+                    <button
+                      key={ratio}
+                      onClick={() => setAspectRatio(ratio)}
+                      className={`w-full px-4 py-3 rounded-lg font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                        aspectRatio === ratio
+                          ? 'bg-indigo-600 text-white shadow-lg'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      }`}
+                    >
+                      {ratio}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h2 className="text-xl font-semibold mb-3 text-cyan-400">3. Generate Your Image</h2>
+                <p className="text-sm text-slate-400 mb-4">
+                  Our AI will analyze your product and automatically create a professional background and scene for it.
+                </p>
+                <button
+                  onClick={handleGenerateClick}
+                  disabled={isLoading || !originalImage}
+                  className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="w-6 h-6" />
+                      Generate Image
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -151,14 +213,19 @@ const App: React.FC = () => {
             <div className="w-full flex-grow flex items-center justify-center">
               {isLoading && (
                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                    <div className="w-full max-w-sm aspect-square bg-slate-700 rounded-lg animate-pulse"></div>
-                    <p className="mt-4">Generating your masterpiece...</p>
+                    <div className="w-full max-w-sm aspect-square bg-slate-700/50 rounded-lg animate-pulse"></div>
+                    <div className="w-full max-w-sm mt-8">
+                        <div className="w-full bg-slate-700 rounded-full h-2.5 relative overflow-hidden">
+                            <div className="absolute top-0 h-full w-1/2 bg-gradient-to-r from-indigo-500 to-cyan-400 animate-progress-indeterminate"></div>
+                        </div>
+                        <p aria-live="polite" className="mt-4 text-center text-slate-300 font-medium transition-opacity duration-300">{loadingMessage}</p>
+                    </div>
                  </div>
               )}
 
               {!isLoading && generatedImage && (
                 <div className="w-full flex flex-col items-center justify-center gap-4">
-                    <img src={generatedImage} alt="Generated" className="max-h-[calc(100%-60px)] h-auto w-auto object-contain rounded-lg shadow-2xl shadow-black/50" />
+                    <img src={generatedImage} alt="Generated product photo" className="max-h-[calc(100%-60px)] h-auto w-auto object-contain rounded-lg shadow-2xl shadow-black/50" />
                     <button
                         onClick={handleDownloadClick}
                         className="w-full max-w-xs flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 mt-4"
@@ -174,6 +241,16 @@ const App: React.FC = () => {
                   <ImageIcon className="w-16 h-16 mx-auto mb-4" />
                   <p>Your generated image will appear here.</p>
                 </div>
+              )}
+
+              {!isLoading && error && (
+                <button
+                    onClick={handleGenerateClick}
+                    className="w-full max-w-xs flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105"
+                >
+                    <RetryIcon className="w-6 h-6" />
+                    Retry
+                </button>
               )}
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Modality } from "@google/genai";
 
 // Ensure the API key is available in the environment variables
@@ -10,10 +11,11 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const editImageWithPrompt = async (
   base64ImageData: string,
-  mimeType: string
+  mimeType: string,
+  aspectRatio: '1:1' | '16:9' | '9:16'
 ): Promise<string> => {
   try {
-    const prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. Place the product in an appealing, professional setting with appropriate lighting and background that complements the product. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity.`;
+    const prompt = `Edit the provided product image. Preserve the product exactly as it is. Replace the background with a professional and appealing setting that complements the product. Adjust the lighting to be professional. The final image should be hyper-realistic, marketing-ready, and have a ${aspectRatio} aspect ratio.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -35,22 +37,27 @@ export const editImageWithPrompt = async (
       },
     });
 
-    // Extract the first image part from the response candidates
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData?.data) {
-        return part.inlineData.data;
-      }
+    // Check for prompt feedback which indicates a block
+    if (response.promptFeedback?.blockReason) {
+        throw new Error(`Image generation was blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
     }
 
-    throw new Error("No image data was found in the API response. The prompt may have been blocked.");
+    // Extract the first image part from the response candidates
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+    if (imagePart?.inlineData?.data) {
+        return imagePart.inlineData.data;
+    }
+    
+    // If no image is found and it wasn't blocked, it's a different issue.
+    // Log the full response for better debugging.
+    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
 
   } catch (error) {
     console.error("Error editing image with Gemini:", error);
     if (error instanceof Error) {
-        // Provide a more user-friendly error message
-        if (error.message.includes('SAFETY')) {
-             throw new Error("Image generation failed due to safety settings. Please try a different prompt or image.");
-        }
+        // Re-throw a clear, user-facing error message.
         throw new Error(`Failed to generate image: ${error.message}`);
     }
     throw new Error("An unknown error occurred while communicating with the image generation service.");

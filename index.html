@@ -17,6 +17,19 @@
   }
 }
 </script>
+<style>
+  @keyframes progress-bar-indeterminate {
+    from {
+      left: -50%;
+    }
+    to {
+      left: 100%;
+    }
+  }
+  .animate-progress-indeterminate {
+    animation: progress-bar-indeterminate 2s linear infinite;
+  }
+</style>
 </head>
   <body class="bg-slate-900 text-slate-200">
     <div id="root"></div>
