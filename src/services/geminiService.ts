@@ -1,8 +1,8 @@
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
 // Ensure the API key is available in the environment variables
-if (!process.env.API_KEY) {
+// FIX: Added check for string "undefined" which can be injected by Vite.
+if (!process.env.API_KEY || process.env.API_KEY === 'undefined') {
   throw new Error("API_KEY environment variable not set.");
 }
 
