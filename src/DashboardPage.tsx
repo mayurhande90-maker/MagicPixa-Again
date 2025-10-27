@@ -196,7 +196,19 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
 
                              {/* State: Image Display */}
                              {(originalImage || generatedImage) && !error && (
-                                <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                <>
+                                    <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    {!isLoading && (
+                                        <button 
+                                            onClick={triggerFileInput}
+                                            title="Upload another image"
+                                            aria-label="Upload another image"
+                                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        >
+                                            <UploadIcon className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                </>
                              )}
 
                             {/* State: Loading Overlay */}
@@ -256,10 +268,29 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                         <DownloadIcon className="w-6 h-6" />
                                         Download Image
                                     </button>
-                                     <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-all">
-                                        <UploadIcon className="w-6 h-6" />
-                                        Upload Another
-                                    </button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            onClick={handleGenerateClick}
+                                            disabled={isLoading || credits < GENERATION_COST}
+                                            className="w-full flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Generate a new image using the same product photo"
+                                        >
+                                            <RetryIcon className="w-5 h-5" />
+                                            Regenerate
+                                        </button>
+                                        <button
+                                            onClick={handleStartOver}
+                                            disabled={isLoading}
+                                            className="w-full flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50"
+                                            title="Start over with a new image"
+                                        >
+                                            <UploadIcon className="w-5 h-5" />
+                                            New Image
+                                        </button>
+                                    </div>
+                                    <p className={`text-xs text-center transition-opacity duration-300 ${credits < GENERATION_COST ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                                        {credits < GENERATION_COST ? 'Insufficient credits to regenerate.' : `Regeneration costs ${GENERATION_COST} credits.`}
+                                    </p>
                                 </div>
                              ) : (
                                 <>
