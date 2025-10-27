@@ -1,18 +1,26 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Ensure the API key is available in the environment variables
-if (!process.env.API_KEY || process.env.API_KEY === 'undefined') {
-  throw new Error("API_KEY environment variable not set. Please configure it in your deployment settings.");
-}
+let ai: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize the AI client only if the API key is available.
+// This prevents the app from crashing on start if the key is not set.
+if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} else {
+  console.warn("API_KEY environment variable not set. The app will load, but Gemini API calls will fail.");
+}
 
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
   aspectRatio: '1:1' | '16:9' | '9:16'
 ): Promise<string> => {
+  // Now, check for the AI client at the time of the function call.
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+  }
+  
   try {
     const prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional. The final image must have a ${aspectRatio} aspect ratio.`;
     
