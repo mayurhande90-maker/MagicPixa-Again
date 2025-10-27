@@ -1,11 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Product Photo Studio</title>
+    <title>MagicPixa - Turn any image idea into magic</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -18,20 +22,43 @@
 }
 </script>
 <style>
-  @keyframes progress-bar-indeterminate {
+  body {
+    font-family: 'Poppins', sans-serif;
+    /* Base background/color is now controlled by the theme provider */
+  }
+  .dark body {
+    background-color: #0e0e0e;
+    color: #e5e7eb; /* gray-200 */
+  }
+  .light body {
+    background-color: #f9fafb; /* gray-50 */
+    color: #1f2937; /* gray-800 */
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .light .glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .glowing-dot {
+    animation: glow 2s infinite alternate;
+  }
+  @keyframes glow {
     from {
-      left: -50%;
+      box-shadow: 0 0 4px #00FFFF, 0 0 8px #00FFFF, 0 0 12px #00FFFF;
     }
     to {
-      left: 100%;
+      box-shadow: 0 0 8px #00FFFF, 0 0 16px #00FFFF, 0 0 24px #FF007A;
     }
-  }
-  .animate-progress-indeterminate {
-    animation: progress-bar-indeterminate 2s linear infinite;
   }
 </style>
 </head>
-  <body class="bg-slate-900 text-slate-200">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
