@@ -174,7 +174,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                     {/* Main Canvas Area */}
                     <div className="lg:col-span-2 bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                         <div
-                            className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center group"
+                            className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center"
                             onClick={!originalImage ? triggerFileInput : undefined}
                             role="button"
                             tabIndex={!originalImage ? 0 : -1}
@@ -203,7 +203,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                             onClick={triggerFileInput}
                                             title="Upload another image"
                                             aria-label="Upload another image"
-                                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-900/60 backdrop-blur-sm border border-white/20 text-white hover:bg-gray-900/80 transition-all duration-300"
                                         >
                                             <UploadIcon className="w-5 h-5" />
                                         </button>
