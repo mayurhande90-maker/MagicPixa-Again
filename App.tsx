@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { editImageWithPrompt } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { UploadIcon, SparklesIcon, ImageIcon } from './components/icons';
+import { UploadIcon, SparklesIcon, ImageIcon, DownloadIcon } from './components/icons';
 
 const App: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
@@ -56,6 +56,17 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   }, [base64Data]);
+
+  const handleDownloadClick = useCallback(() => {
+    if (!generatedImage) return;
+
+    const link = document.createElement('a');
+    link.href = generatedImage;
+    link.download = 'ai_product_photo.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [generatedImage]);
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
@@ -135,7 +146,7 @@ const App: React.FC = () => {
           {/* Result Panel */}
           <div className="bg-slate-800/50 rounded-2xl p-6 flex flex-col items-center justify-center border border-slate-700 min-h-[400px]">
              <h2 className="text-xl font-semibold mb-4 self-start text-cyan-400">AI Generated Result</h2>
-            {error && <div className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</div>}
+            {error && <div className="text-red-400 bg-red-900/50 p-4 rounded-lg w-full">{error}</div>}
             
             <div className="w-full flex-grow flex items-center justify-center">
               {isLoading && (
@@ -146,7 +157,16 @@ const App: React.FC = () => {
               )}
 
               {!isLoading && generatedImage && (
-                <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg shadow-2xl shadow-black/50" />
+                <div className="w-full flex flex-col items-center justify-center gap-4">
+                    <img src={generatedImage} alt="Generated" className="max-h-[calc(100%-60px)] h-auto w-auto object-contain rounded-lg shadow-2xl shadow-black/50" />
+                    <button
+                        onClick={handleDownloadClick}
+                        className="w-full max-w-xs flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 mt-4"
+                    >
+                        <DownloadIcon className="w-6 h-6" />
+                        Download Image
+                    </button>
+                </div>
               )}
               
               {!isLoading && !generatedImage && !error && (
