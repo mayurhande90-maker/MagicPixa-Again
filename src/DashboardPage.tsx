@@ -243,21 +243,21 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                         <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-cyan-500" /> Configuration</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Upload a clear, front-facing photo for best results.</p>
-                            <div className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-lg min-h-[80px] flex items-center justify-center text-center">
-                                {isAnalyzing ? (
-                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                        <SparklesIcon className="w-5 h-5 text-cyan-500 animate-pulse" />
-                                        <span className="font-medium animate-shimmer">Analyzing creative potential...</span>
-                                    </div>
-                                ) : imageDescription ? (
-                                    <div className="text-left w-full">
-                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">AI Insight:</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 italic">"{imageDescription}"</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Upload an image to get AI-powered insights.</p>
-                                )}
-                            </div>
+                            {(isAnalyzing || imageDescription) && (
+                                <div className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-lg min-h-[80px] flex items-center justify-center text-center">
+                                    {isAnalyzing ? (
+                                        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                                            <SparklesIcon className="w-5 h-5 text-cyan-500 animate-pulse" />
+                                            <span className="font-medium animate-shimmer">Analyzing creative potential...</span>
+                                        </div>
+                                    ) : imageDescription ? (
+                                        <div className="text-left w-full">
+                                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">AI Insight:</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 italic">"{imageDescription}"</p>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            )}
                         </div>
                         <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                              <h3 className="text-lg font-semibold mb-4">Actions</h3>
