@@ -1,0 +1,5 @@
+{
+  "name": "AI Product Photo Studio",
+  "description": "Upload a product photo and use text prompts to transform it into a hyper-realistic, marketing-ready image. AI enhances the background, lighting, and style while preserving the original product's packaging, logo, and text.",
+  "requestFramePermissions": []
+}
