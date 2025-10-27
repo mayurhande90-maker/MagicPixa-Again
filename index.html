@@ -55,6 +55,29 @@
       box-shadow: 0 0 8px #00FFFF, 0 0 16px #00FFFF, 0 0 24px #FF007A;
     }
   }
+
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(to right, #4b5563 40%, #9ca3af 50%, #4b5563 60%);
+    background-size: 2000px 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .dark .animate-shimmer {
+    background: linear-gradient(to right, #9ca3af 40%, #e5e7eb 50%, #9ca3af 60%);
+    background-size: 2000px 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
   @keyframes progress-bar-stripes {
     from { background-position: 1rem 0; }
     to { background-position: 0 0; }

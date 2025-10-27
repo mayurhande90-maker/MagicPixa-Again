@@ -243,19 +243,19 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                         <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-cyan-500" /> Configuration</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Upload a clear, front-facing photo for best results.</p>
-                            <div className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-lg min-h-[80px]">
-                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">AI Image Analysis</h4>
-                                {isAnalyzing && (
-                                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                        <div className="w-4 h-4 border-2 border-t-transparent border-gray-400 rounded-full animate-spin"></div>
-                                        <span>Analyzing...</span>
+                            <div className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-lg min-h-[80px] flex items-center justify-center text-center">
+                                {isAnalyzing ? (
+                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                                        <SparklesIcon className="w-5 h-5 text-cyan-500 animate-pulse" />
+                                        <span className="font-medium animate-shimmer">Analyzing creative potential...</span>
                                     </div>
-                                )}
-                                {!isAnalyzing && imageDescription && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">{imageDescription}</p>
-                                )}
-                                {!originalImage && (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Upload an image to see the AI analysis.</p>
+                                ) : imageDescription ? (
+                                    <div className="text-left w-full">
+                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">AI Insight:</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 italic">"{imageDescription}"</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Upload an image to get AI-powered insights.</p>
                                 )}
                             </div>
                         </div>

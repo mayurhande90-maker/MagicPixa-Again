@@ -19,7 +19,7 @@ export const analyzeImageContent = async (
   }
 
   try {
-    const prompt = "Analyze this image and provide a brief, one-sentence description of the main subject.";
+    const prompt = "Analyze the product in this image. Instead of a literal description, provide a single, creative sentence that captures its essence, mood, or a key selling point. Think like a marketer writing a tagline.";
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
