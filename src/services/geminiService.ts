@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
@@ -11,10 +10,51 @@ if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
   console.warn("API_KEY environment variable not set. The app will load, but Gemini API calls will fail.");
 }
 
+export const analyzeImageContent = async (
+  base64ImageData: string,
+  mimeType: string
+): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+  }
+
+  try {
+    const prompt = "Analyze this image and provide a brief, one-sentence description of the main subject.";
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64ImageData,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: prompt,
+          },
+        ],
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+        throw new Error(`Image analysis blocked due to: ${response.promptFeedback.blockReason}.`);
+    }
+
+    return response.text;
+  } catch (error) {
+    console.error("Error analyzing image with Gemini:", error);
+    if (error instanceof Error) {
+        throw new Error(`Failed to analyze image: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the image analysis service.");
+  }
+};
+
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
-  aspectRatio: '1:1' | '16:9' | '9:16'
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
@@ -22,7 +62,7 @@ export const editImageWithPrompt = async (
   }
   
   try {
-    const prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional. The final image must have a ${aspectRatio} aspect ratio.`;
+    const prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

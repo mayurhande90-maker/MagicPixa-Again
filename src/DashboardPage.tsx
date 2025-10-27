@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page } from './App';
-import { editImageWithPrompt } from './services/geminiService';
+import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
     UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, UserIcon, DashboardIcon, ProjectsIcon, HelpIcon,
@@ -21,30 +21,56 @@ const loadingMessages = [
   "Almost ready!",
 ];
 
-type AspectRatio = '1:1' | '16:9' | '9:16';
+interface MagicPhotoStudioProps {
+    credits: number;
+    setCredits: React.Dispatch<React.SetStateAction<number>>;
+}
 
 // This component contains the logic from the original App.tsx, but with a new layout
-const MagicPhotoStudio: React.FC = () => {
+const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
+    const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+    const [imageDescription, setImageDescription] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
+    const GENERATION_COST = 3;
 
     useEffect(() => {
         if (originalImage) {
-        fileToBase64(originalImage.file)
-            .then(setBase64Data)
-            .catch(err => {
-            console.error(err);
-            setError("Failed to read and convert the image file.");
-            });
+            setImageDescription(null);
+            setBase64Data(null);
+            setIsAnalyzing(true);
+            setError(null);
+
+            fileToBase64(originalImage.file)
+                .then(async (b64Data) => {
+                setBase64Data(b64Data);
+                try {
+                    const description = await analyzeImageContent(b64Data.base64, b64Data.mimeType);
+                    setImageDescription(description);
+                } catch (err) {
+                    console.error(err);
+                    setImageDescription("AI analysis failed. Please try another image.");
+                } finally {
+                    setIsAnalyzing(false);
+                }
+                })
+                .catch(err => {
+                    console.error(err);
+                    setError("Failed to read and convert the image file.");
+                    setIsAnalyzing(false);
+                });
+        } else {
+            setBase64Data(null);
+            setImageDescription(null);
         }
     }, [originalImage]);
+
 
     useEffect(() => {
         if (isLoading) {
@@ -82,30 +108,41 @@ const MagicPhotoStudio: React.FC = () => {
         }
     };
 
+    const handleStartOver = useCallback(() => {
+        setOriginalImage(null);
+        setGeneratedImage(null);
+        setBase64Data(null);
+        setError(null);
+        setImageDescription(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset file input to allow re-uploading the same file
+        }
+    }, []);
+
     const handleGenerateClick = useCallback(async () => {
         if (!base64Data) {
-        setError("Please upload an image first.");
-        return;
+            setError("Please upload an image first.");
+            return;
         }
+        if (credits < GENERATION_COST) return;
 
         setIsLoading(true);
         setError(null);
-        setGeneratedImage(null);
-
+        
         try {
-        const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
-        setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            setCredits(prev => prev - GENERATION_COST);
         } catch (err) {
-        console.error(err);
-        setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            console.error(err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
-        setIsLoading(false);
+            setIsLoading(false);
         }
-    }, [base64Data, aspectRatio]);
+    }, [base64Data, credits, setCredits]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
-
         const link = document.createElement('a');
         link.href = generatedImage;
         link.download = 'magicpixa_photo.png';
@@ -115,104 +152,10 @@ const MagicPhotoStudio: React.FC = () => {
     }, [generatedImage]);
 
     const triggerFileInput = () => {
+        if (isLoading) return;
         fileInputRef.current?.click();
     };
     
-    const renderContent = () => {
-        if(isLoading) {
-            return (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                    <div className="w-full max-w-sm aspect-square bg-gray-200 dark:bg-gray-800/50 rounded-lg animate-pulse"></div>
-                    <div className="w-full max-w-sm mt-8">
-                        <p aria-live="polite" className="mt-4 text-center text-gray-700 dark:text-gray-300 font-medium transition-opacity duration-300">{loadingMessage}</p>
-                    </div>
-                </div>
-            );
-        }
-        if(error) {
-            return (
-                <div className='w-full h-full flex flex-col items-center justify-center gap-4'>
-                     <div className="text-red-500 bg-red-100 dark:text-red-400 dark:bg-red-900/50 p-4 rounded-lg w-full max-w-md text-center">{error}</div>
-                     <button onClick={handleGenerateClick}
-                        className="w-full max-w-xs flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
-                            <RetryIcon className="w-6 h-6" />
-                            Retry
-                        </button>
-                </div>
-            );
-        }
-        if (generatedImage) {
-            return (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                    <img src={generatedImage} alt="Generated product photo" className="max-h-[calc(100%-80px)] h-auto w-auto object-contain rounded-lg shadow-2xl shadow-black/20" />
-                    <div className='flex items-center gap-4'>
-                        <button onClick={handleDownloadClick}
-                            className="flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 mt-4">
-                            <DownloadIcon className="w-6 h-6" />
-                            Download
-                        </button>
-                        <button onClick={() => setGeneratedImage(null)}
-                            className="flex items-center justify-center gap-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg transition-all duration-300 mt-4">
-                            Start Over
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        // Initial view
-        return (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Uploader */}
-                <div className="lg:col-span-2 bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
-                    <div
-                        className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center"
-                        onClick={triggerFileInput} role="button" tabIndex={0}
-                        aria-label="Upload a product image" onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && triggerFileInput()}>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                        {originalImage ? (
-                        <img src={originalImage.url} alt="Original product" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                        ) : (
-                        <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
-                            <UploadIcon className="w-12 h-12" />
-                            <span className='font-semibold text-lg text-gray-800 dark:text-gray-200'>Drop your product photo here</span>
-                            <span className="text-sm">or click to upload (JPG, PNG, max 5MB)</span>
-                        </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Side Panels */}
-                <div className="space-y-8">
-                    <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-cyan-500" /> Configuration</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Upload a clear, front-facing photo for best results.</p>
-                         <div className="flex justify-center gap-3">
-                            {(['1:1', '16:9', '9:16'] as const).map((ratio) => (
-                                <button key={ratio} onClick={() => setAspectRatio(ratio)}
-                                className={`w-full px-4 py-3 rounded-lg font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900 focus:ring-cyan-500 ${
-                                    aspectRatio === ratio
-                                    ? 'bg-cyan-500 text-black shadow-lg'
-                                    : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-300'
-                                }`}>
-                                {ratio}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
-                         <h3 className="text-lg font-semibold mb-4">Actions</h3>
-                         <button onClick={handleGenerateClick} disabled={isLoading || !originalImage}
-                            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-300 disabled:to-gray-400 dark:disabled:from-gray-700 dark:disabled:to-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100">
-                            Generate Image
-                         </button>
-                         <p className='text-xs text-center text-gray-400 dark:text-gray-500 mt-3'>This will cost 3 credits.</p>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full flex flex-col'>
             {/* Breadcrumbs */}
@@ -224,15 +167,131 @@ const MagicPhotoStudio: React.FC = () => {
                 <h2 className="text-3xl font-bold text-blue-500">AI Photo Studio</h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">Transform your raw product photo into a hyper-realistic image ready to post.</p>
             </div>
+            
             {/* Main Content Area */}
             <div className='flex-grow'>
-                {renderContent()}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Main Canvas Area */}
+                    <div className="lg:col-span-2 bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
+                        <div
+                            className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center group"
+                            onClick={!originalImage ? triggerFileInput : undefined}
+                            role="button"
+                            tabIndex={!originalImage ? 0 : -1}
+                            aria-label="Upload a product image"
+                            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !originalImage && triggerFileInput()}
+                        >
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                            
+                            {/* State: Initial Dropzone */}
+                            {!originalImage && !error && (
+                                <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                    <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400 cursor-pointer">
+                                        <UploadIcon className="w-12 h-12" />
+                                        <span className='font-semibold text-lg text-gray-800 dark:text-gray-200'>Drop your product photo here</span>
+                                        <span className="text-sm">or click to upload (JPG, PNG, max 5MB)</span>
+                                    </div>
+                                </div>
+                            )}
+
+                             {/* State: Image Display */}
+                             {(originalImage || generatedImage) && !error && (
+                                <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                             )}
+
+                            {/* State: Loading Overlay */}
+                            {isLoading && (
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl p-4 text-center">
+                                    <div className="w-full max-w-sm">
+                                        <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                            <div className="bg-cyan-400 h-2.5 rounded-full progress-bar-animated w-full"></div>
+                                        </div>
+                                        <p aria-live="polite" className="mt-4 text-white font-medium transition-opacity duration-300">
+                                            {loadingMessage}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* State: Error */}
+                            {error && (
+                                <div className='w-full h-full flex flex-col items-center justify-center gap-4 p-4'>
+                                    <div className="text-red-500 bg-red-100 dark:text-red-400 dark:bg-red-900/50 p-4 rounded-lg w-full max-w-md text-center">{error}</div>
+                                    <button onClick={handleStartOver}
+                                        className="w-full max-w-xs flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                                        <RetryIcon className="w-6 h-6" />
+                                        Try Again
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                     {/* Side Panels */}
+                     <div className="space-y-8">
+                        <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-cyan-500" /> Configuration</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Upload a clear, front-facing photo for best results.</p>
+                            <div className="bg-gray-100 dark:bg-gray-800/50 p-4 rounded-lg min-h-[80px]">
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">AI Image Analysis</h4>
+                                {isAnalyzing && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="w-4 h-4 border-2 border-t-transparent border-gray-400 rounded-full animate-spin"></div>
+                                        <span>Analyzing...</span>
+                                    </div>
+                                )}
+                                {!isAnalyzing && imageDescription && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">{imageDescription}</p>
+                                )}
+                                {!originalImage && (
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Upload an image to see the AI analysis.</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
+                             <h3 className="text-lg font-semibold mb-4">Actions</h3>
+                             
+                             {generatedImage ? (
+                                <div className="space-y-4">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                                        <DownloadIcon className="w-6 h-6" />
+                                        Download Image
+                                    </button>
+                                     <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-all">
+                                        <UploadIcon className="w-6 h-6" />
+                                        Upload Another
+                                    </button>
+                                </div>
+                             ) : (
+                                <>
+                                 <button onClick={handleGenerateClick} disabled={isLoading || !originalImage || credits < GENERATION_COST || isAnalyzing}
+                                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-300 disabled:to-gray-400 dark:disabled:from-gray-700 dark:disabled:to-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100">
+                                    {isAnalyzing ? 'Analyzing...' : 'Generate Image'}
+                                 </button>
+                                 <p className={`text-xs text-center mt-3 ${credits < GENERATION_COST && originalImage ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                                     {originalImage && credits < GENERATION_COST
+                                        ? 'Insufficient Credits'
+                                        : `This will cost ${GENERATION_COST} credits.`}
+                                 </p>
+                                </>
+                             )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     )
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo }) => {
+    const [credits, setCredits] = useState<number>(() => {
+        const savedCredits = localStorage.getItem('magicpixa-credits');
+        return savedCredits ? parseInt(savedCredits, 10) : 10;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('magicpixa-credits', credits.toString());
+    }, [credits]);
+
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
 
     const toggleCategory = (category: string) => {
@@ -325,7 +384,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo }) => {
                 <header className="flex items-center justify-end p-4 border-b border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-4">
                         <div className="text-right">
-                           <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: 10</p>
+                           <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {credits}</p>
                         </div>
                         <ThemeToggle />
                         <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-pointer">
@@ -334,7 +393,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo }) => {
                     </div>
                 </header>
                 <main className="flex-1">
-                    <MagicPhotoStudio />
+                    <MagicPhotoStudio credits={credits} setCredits={setCredits} />
                 </main>
             </div>
         </div>
