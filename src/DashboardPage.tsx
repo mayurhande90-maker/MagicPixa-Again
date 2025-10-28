@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Page } from './App';
+import { Page, AuthProps } from './App';
 import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
@@ -7,9 +8,11 @@ import {
     ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon,
 } from './components/icons';
 import ThemeToggle from './components/ThemeToggle';
+import UserMenu from './components/UserMenu';
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
+  auth: AuthProps;
 }
 
 const loadingMessages = [
@@ -313,7 +316,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
     )
 };
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const [credits, setCredits] = useState<number>(() => {
         const savedCredits = localStorage.getItem('magicpixa-credits');
         return savedCredits ? parseInt(savedCredits, 10) : 10;
@@ -418,9 +421,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo }) => {
                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {credits}</p>
                         </div>
                         <ThemeToggle />
-                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-pointer">
-                            <UserIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                        </div>
+                        {auth.isAuthenticated && auth.user && (
+                           <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
+                        )}
                     </div>
                 </header>
                 <main className="flex-1">

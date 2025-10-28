@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Page } from './App';
+import { Page, AuthProps } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
@@ -9,6 +9,7 @@ import {
 
 interface HomePageProps {
   navigateTo: (page: Page) => void;
+  auth: AuthProps;
 }
 
 const features = [
@@ -30,12 +31,12 @@ const reviews = [
     { name: "Jennifer Chen", role: "Real Estate Agent", text: "The interior design feature is unbelievable. I can show clients potential renovations in seconds. Highly recommended!", rating: 5, image: "https://randomuser.me/api/portraits/women/68.jpg" },
 ];
 
-const HomePage: React.FC<HomePageProps> = ({ navigateTo }) => {
+const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
   const [isYearly, setIsYearly] = useState(false);
   
   return (
     <>
-      <Header navigateTo={navigateTo} />
+      <Header navigateTo={navigateTo} auth={auth} />
       <main>
         {/* Hero Section */}
         <section className="relative text-center py-20 md:py-32 px-4 overflow-hidden">
@@ -110,7 +111,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo }) => {
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Watermarked images</li>
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Limited downloads</li>
                         </ul>
-                        <button className="w-full bg-gray-200 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 font-semibold py-3 px-6 rounded-lg transition-all hover:bg-gray-300 dark:hover:bg-gray-700">Sign Up for Free</button>
+                        <button onClick={auth.openAuthModal} className="w-full bg-gray-200 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 font-semibold py-3 px-6 rounded-lg transition-all hover:bg-gray-300 dark:hover:bg-gray-700">Sign Up for Free</button>
                     </div>
                     {/* Pro Plan */}
                     <div className="glass-card p-8 rounded-2xl border-2 border-cyan-500 dark:border-cyan-400 shadow-2xl shadow-cyan-500/20">
@@ -123,7 +124,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo }) => {
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> No watermark</li>
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Priority generation speed</li>
                         </ul>
-                        <button className="w-full bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Get Started with Pro</button>
+                        <button onClick={() => navigateTo('dashboard')} className="w-full bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Get Started with Pro</button>
                     </div>
                     {/* Business Plan */}
                     <div className="glass-card p-8 rounded-2xl">
@@ -172,7 +173,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo }) => {
             <div className="bg-gray-50 dark:bg-[#0e0e0e] p-12 rounded-xl">
               <h2 className="text-3xl font-bold mb-4">Ready to Create Magic?</h2>
               <p className="text-gray-600 dark:text-gray-300 mb-8">Sign up today and get started for free. No credit card required.</p>
-              <button className="w-full max-w-sm flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-700 font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
+              <button 
+                onClick={auth.openAuthModal}
+                className="w-full max-w-sm flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-700 font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
                 <GoogleIcon className="w-6 h-6" />
                 Sign Up with Google
               </button>
