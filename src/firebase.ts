@@ -1,6 +1,3 @@
-
-
-
 // FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
 // This also corrects the import for `FirebaseApp` to be consistent with other type imports.
 import { initializeApp, FirebaseApp } from "firebase/app";
@@ -145,23 +142,20 @@ export const deductCredits = async (uid: string, amount: number): Promise<Docume
  * Atomically adds credits to a user's account.
  * @param uid The user's unique ID.
  * @param amount The number of credits to add.
- * @returns The updated user profile data after the addition.
+ * @returns The updated user profile data after addition.
  */
 export const addCredits = async (uid: string, amount: number): Promise<DocumentData> => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const userRef = doc(db, "users", uid);
+  if (!db) throw new Error("Firestore is not initialized.");
+  
+  // First, ensure the profile exists and is up-to-date
+  const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName, auth?.currentUser?.email);
+  
+  const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    credits: increment(amount),
+  });
 
-    await updateDoc(userRef, {
-        credits: increment(amount),
-    });
-
-    const updatedDocSnap = await getDoc(userRef);
-    if (updatedDocSnap.exists()) {
-        return updatedDocSnap.data();
-    } else {
-        throw new Error("User profile not found after attempting to add credits.");
-    }
+  return { ...userProfile, credits: userProfile.credits + amount };
 };
-
 
 export { app, auth };

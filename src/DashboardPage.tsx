@@ -7,11 +7,10 @@ import { fileToBase64, Base64File } from './utils/imageUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import { 
     UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, DashboardIcon, ProjectsIcon, HelpIcon,
-    ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon, BillingIcon, PlusIcon
+    ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon
 } from './components/icons';
 import ThemeToggle from './components/ThemeToggle';
 import UserMenu from './components/UserMenu';
-import Billing from './components/Billing';
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
@@ -353,7 +352,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
-    const [activeView, setActiveView] = useState<'studio' | 'billing' | 'creations'>('studio');
+    const [activeView, setActiveView] = useState<'studio' | 'creations'>('studio');
     
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? undefined : auth.user?.credits;
@@ -369,7 +368,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const mainLinks = [
         { name: 'Dashboard', icon: DashboardIcon, view: 'studio' },
         { name: 'My Creations', icon: ProjectsIcon, view: 'creations' },
-        { name: 'Billing', icon: BillingIcon, view: 'billing' },
     ];
     
     const toolCategories = [
@@ -455,14 +453,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                                 <div className="text-right">
                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {currentCredits}</p>
                                 </div>
-                                <button onClick={() => setActiveView('billing')} className="flex items-center gap-2 text-sm font-semibold bg-cyan-500/10 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-400 px-3 py-1.5 rounded-lg hover:bg-cyan-500/20 transition-colors">
-                                    <PlusIcon className="w-4 h-4" /> Get More
-                                </button>
                             </div>
                         )}
                         <ThemeToggle />
                         {auth.isAuthenticated && auth.user ? (
-                           <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={setActiveView as any} />
+                           <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={setActiveView} />
                         ) : (
                            <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
                                Sign Up
@@ -472,18 +467,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 </header>
                 <main className="flex-1">
                     {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
-                    {activeView === 'billing' && !isGuest && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
-                    {activeView === 'billing' && isGuest && (
-                        <div className="p-8 text-center flex flex-col items-center justify-center h-full">
-                            <div className="max-w-md">
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Please Sign Up to Continue</h3>
-                                <p className="text-gray-500 dark:text-gray-400 mt-2 mb-6">Create an account to manage your credits, view your creation history, and access billing information.</p>
-                                <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-cyan-500 text-black px-6 py-3 rounded-lg hover:bg-cyan-600 transition-colors">
-                                    Sign Up
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </main>
             </div>
         </div>
