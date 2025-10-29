@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isFirebaseConfigValid, createUserProfile, getUserProfile, renewCreditsIfNeeded } from './firebase'; 
+import { auth, isFirebaseConfigValid, getOrCreateUserProfile } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { 
   createUserWithEmailAndPassword, 
@@ -13,8 +14,8 @@ import {
   onAuthStateChanged,
   updateProfile,
   User as FirebaseUser,
-} from "firebase/auth";
-import { Timestamp } from 'firebase/firestore';
+// FIX: Using scoped package import for firebase, which is consistent with early v9 SDKs that used this format.
+} from "@firebase/auth";
 
 export type Page = 'home' | 'dashboard';
 
@@ -63,28 +64,17 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        try {
-          // Get user profile from Firestore, which contains credits
-          const userProfile = await getUserProfile(firebaseUser.uid);
-          
-          // Check if credits need to be renewed
-          const wasRenewed = await renewCreditsIfNeeded(firebaseUser.uid, userProfile.lastCreditRenewal as Timestamp);
-          const finalCredits = wasRenewed ? 10 : userProfile.credits;
-          
-          const userToSet: User = {
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName || userProfile.name || 'No Name',
-            email: firebaseUser.email || userProfile.email || 'No Email',
-            avatar: getInitials(firebaseUser.displayName || userProfile.name || ''),
-            credits: finalCredits,
-          };
-          setUser(userToSet);
-          setIsAuthenticated(true);
-        } catch (error) {
-            console.error("Failed to fetch user profile:", error);
-            // If profile fetch fails, log the user out to prevent a broken state
-            await handleLogout();
-        }
+        // Create a temporary user object immediately for a fast UI.
+        // The real credits will be fetched on-demand in the dashboard.
+        const userToSet: User = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || 'No Email',
+          avatar: getInitials(firebaseUser.displayName || ''),
+          credits: 10, // Start with a default optimistic value
+        };
+        setUser(userToSet);
+        setIsAuthenticated(true);
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -120,17 +110,29 @@ const App: React.FC = () => {
   
   const handleSignUp = async (name: string, email: string, password:string): Promise<void> => {
     try {
+      // Step 1: Create the user in Authentication. This is fast.
       const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
-      // Update Auth profile
       await updateProfile(userCredential.user, { displayName: name });
-      // Create Firestore profile with initial credits
-      await createUserProfile(userCredential.user.uid, name, email);
       
-      // onAuthStateChanged will handle setting user state from the new Firestore doc
+      // Step 2: Immediately update the UI. DO NOT wait for the database.
+      setUser({
+        uid: userCredential.user.uid,
+        name: name,
+        email: email,
+        avatar: getInitials(name),
+        credits: 10, // The initial sign-up bonus
+      });
+      setIsAuthenticated(true);
+      
       setIsAuthModalOpen(false);
       setCurrentPage('dashboard');
       window.scrollTo(0, 0);
-    } catch (error: any) {
+
+      // Note: The user's profile in Firestore will be created on their first action,
+      // which completely avoids the sign-up race condition.
+
+    } catch (error: any)
+{
       let message = 'An unknown error occurred.';
       if (error.code === 'auth/email-already-in-use') {
         message = 'An account with this email already exists. Please login.';

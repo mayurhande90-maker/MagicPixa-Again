@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps } from './App';
 import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { deductCredits } from './firebase';
+import { deductCredits, getOrCreateUserProfile } from './firebase';
 import { 
     UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, UserIcon, DashboardIcon, ProjectsIcon, HelpIcon,
     ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon,
@@ -51,8 +51,18 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    
+    // Effect to fetch the real, persistent credits for an authenticated user when the component loads.
+    useEffect(() => {
+        if (!isGuest && auth.user) {
+            getOrCreateUserProfile(auth.user.uid, auth.user.name, auth.user.email)
+                .then(profile => {
+                    auth.setUser(prevUser => prevUser ? { ...prevUser, credits: profile.credits } : null);
+                })
+                .catch(err => console.error("Could not sync user credits:", err));
+        }
+    }, [isGuest, auth.user?.uid]); // Run only when user logs in
 
-    // Effect to sync guest credits with sessionStorage
     useEffect(() => {
         if (isGuest) {
             sessionStorage.setItem('magicpixa-guest-credits', guestCredits.toString());
@@ -153,11 +163,10 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
         setError(null);
         
         try {
-            // Deduct credits before calling the API
             if (!isGuest && auth.user) {
-                await deductCredits(auth.user.uid, GENERATION_COST);
-                // Update local state for immediate UI feedback
-                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: prevUser.credits - GENERATION_COST } : null);
+                // The new smart function handles everything: profile creation, renewal, and deduction
+                const updatedProfile = await deductCredits(auth.user.uid, GENERATION_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - GENERATION_COST);
             }
@@ -167,12 +176,8 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
-            // Optional: Refund credits on failure
-            if (!isGuest && auth.user) {
-                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: prevUser.credits + GENERATION_COST } : null);
-            } else {
-                setGuestCredits(prev => prev + GENERATION_COST);
-            }
+            // On failure, we don't need to refund because the optimistic update was removed.
+            // A page refresh would sync the correct credit count from the db if needed.
         } finally {
             setIsLoading(false);
         }

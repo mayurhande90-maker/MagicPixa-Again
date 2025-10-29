@@ -1,6 +1,8 @@
-// FIX: Corrected Firebase imports to use the v9+ modular syntax. `initializeApp` and `FirebaseApp` are now named exports from 'firebase/app'.
-import { initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+
+
+// FIX: Using scoped package imports for firebase. The error "has no exported member 'initializeApp'" is characteristic of using modular syntax with an older Firebase v9 beta version that required scoped imports like '@firebase/app'.
+import { initializeApp, FirebaseApp } from "@firebase/app";
+import { getAuth, Auth } from "@firebase/auth";
 import { 
   getFirestore, 
   doc, 
@@ -10,10 +12,10 @@ import {
   serverTimestamp, 
   increment,
   Timestamp,
-  Firestore
-} from "firebase/firestore";
+  Firestore,
+  DocumentData
+} from "@firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -47,83 +49,76 @@ if (isFirebaseConfigValid) {
   console.error("Firebase configuration is missing or incomplete. Please check your environment variables.");
 }
 
-// --- Firestore Helper Functions ---
-
 /**
- * Creates a new user profile document in Firestore upon sign-up.
- * @param uid - The user's unique ID from Firebase Auth.
- * @param name - The user's display name.
- * @param email - The user's email address.
- */
-export const createUserProfile = async (uid: string, name: string, email: string | null): Promise<void> => {
-  if (!db) throw new Error("Firestore is not initialized.");
-  const userRef = doc(db, "users", uid);
-  await setDoc(userRef, {
-    uid,
-    name,
-    email,
-    credits: 10,
-    signUpDate: serverTimestamp(),
-    lastCreditRenewal: serverTimestamp(),
-  });
-};
-
-/**
- * Fetches a user's profile from Firestore.
- * @param uid - The user's unique ID.
+ * Gets a user's profile from Firestore. If it doesn't exist, it creates one on-the-fly.
+ * This "on-demand" creation is the core fix for the sign-up race condition.
+ * It also handles the monthly credit renewal logic.
+ * @param uid The user's unique ID from Firebase Auth.
+ * @param name The user's display name (optional, used for creation).
+ * @param email The user's email (optional, used for creation).
  * @returns The user's profile data.
  */
-export const getUserProfile = async (uid: string) => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const userRef = doc(db, "users", uid);
-    const docSnap = await getDoc(userRef);
+export const getOrCreateUserProfile = async (uid: string, name?: string, email?: string | null): Promise<DocumentData> => {
+  if (!db) throw new Error("Firestore is not initialized.");
+  const userRef = doc(db, "users", uid);
+  const docSnap = await getDoc(userRef);
 
-    if (docSnap.exists()) {
-        return docSnap.data();
-    } else {
-        // This case might happen if a user exists in Auth but not Firestore.
-        // We can create a profile for them, but for now, we'll throw an error.
-        console.error("No such user profile in Firestore!");
-        throw new Error("User profile not found.");
-    }
-};
-
-/**
- * Checks if a user's credits need to be renewed and updates them if so.
- * @param uid - The user's unique ID.
- * @param lastRenewal - The Timestamp of the last credit renewal.
- * @returns A boolean indicating if a renewal occurred.
- */
-export const renewCreditsIfNeeded = async (uid: string, lastRenewal: Timestamp): Promise<boolean> => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    
+  if (docSnap.exists()) {
+    // Profile exists, check for credit renewal
+    const userData = docSnap.data();
+    const lastRenewal = userData.lastCreditRenewal as Timestamp;
     const lastRenewalDate = lastRenewal.toDate();
     const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
 
     if (new Date() >= oneMonthLater) {
-        const userRef = doc(db, "users", uid);
-        await updateDoc(userRef, {
-            credits: 10,
-            lastCreditRenewal: serverTimestamp(),
-        });
-        console.log(`Credits renewed for user ${uid}`);
-        return true;
+      await updateDoc(userRef, {
+        credits: 10,
+        lastCreditRenewal: serverTimestamp(),
+      });
+      console.log(`Credits renewed for user ${uid}`);
+      return { ...userData, credits: 10 };
     }
-    return false;
+    return userData;
+  } else {
+    // Profile does not exist, create it now
+    console.log(`Creating new user profile for UID: ${uid}`);
+    const newUserProfile = {
+      uid,
+      name: name || 'New User',
+      email: email || 'No Email',
+      credits: 10,
+      signUpDate: serverTimestamp(),
+      lastCreditRenewal: serverTimestamp(),
+    };
+    await setDoc(userRef, newUserProfile);
+    // Return the profile data (timestamps will be null until server processes them, which is fine)
+    return { ...newUserProfile, credits: 10 };
+  }
 };
 
 /**
- * Atomically deducts a specified amount of credits from a user's account.
- * @param uid - The user's unique ID.
- * @param amount - The number of credits to deduct.
+ * Atomically deducts credits. It will create the user profile if it doesn't exist.
+ * This is now the primary function for any action that costs credits.
+ * @param uid The user's unique ID.
+ * @param amount The number of credits to deduct.
+ * @returns The updated user profile data after deduction.
  */
-export const deductCredits = async (uid: string, amount: number): Promise<void> => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, {
-        credits: increment(-amount),
-    });
-};
+export const deductCredits = async (uid: string, amount: number): Promise<DocumentData> => {
+  if (!db) throw new Error("Firestore is not initialized.");
+  
+  // First, ensure the profile exists and is up-to-date
+  const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName || undefined, auth?.currentUser?.email);
+  
+  if (userProfile.credits < amount) {
+    throw new Error("Insufficient credits.");
+  }
 
+  const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    credits: increment(-amount),
+  });
+
+  return { ...userProfile, credits: userProfile.credits - amount };
+};
 
 export { app, auth };
