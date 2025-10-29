@@ -4,7 +4,7 @@ import { Page, AuthProps } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  ArrowRightIcon, SparklesIcon, BackgroundRemovalIcon, ColorizeIcon, InteriorIcon, ApparelIcon, MockupIcon, ScannerIcon, NotesIcon, CaptionIcon, FriendIcon, CheckIcon, StarIcon, GoogleIcon
+  ArrowRightIcon, SparklesIcon, BackgroundRemovalIcon, ColorizeIcon, InteriorIcon, ApparelIcon, MockupIcon, ScannerIcon, NotesIcon, CaptionIcon, FriendIcon, CheckIcon, StarIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -175,9 +175,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
               <p className="text-gray-600 dark:text-gray-300 mb-8">Sign up today and get started for free. No credit card required.</p>
               <button 
                 onClick={auth.openAuthModal}
-                className="w-full max-w-sm flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-700 font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
-                <GoogleIcon className="w-6 h-6" />
-                Sign Up with Google
+                className="w-full max-w-sm flex items-center justify-center gap-2 bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
+                <SparklesIcon className="w-5 h-5" />
+                Get Started for Free
               </button>
             </div>
           </div>
