@@ -1,8 +1,7 @@
 
-
-// FIX: Using scoped package imports for firebase. The error "has no exported member 'initializeApp'" is characteristic of using modular syntax with an older Firebase v9 beta version that required scoped imports like '@firebase/app'.
-import { initializeApp, FirebaseApp } from "@firebase/app";
-import { getAuth, Auth } from "@firebase/auth";
+// FIX: Use namespace import for firebase/app to resolve module loading issues.
+import * as firebaseApp from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
 import { 
   getFirestore, 
   doc, 
@@ -14,7 +13,7 @@ import {
   Timestamp,
   Firestore,
   DocumentData
-} from "@firebase/firestore";
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -33,13 +32,13 @@ export const isFirebaseConfigValid =
   firebaseConfig.messagingSenderId &&
   firebaseConfig.appId;
 
-let app: FirebaseApp | null = null;
+let app: firebaseApp.FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (isFirebaseConfigValid) {
   try {
-    app = initializeApp(firebaseConfig);
+    app = firebaseApp.initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {

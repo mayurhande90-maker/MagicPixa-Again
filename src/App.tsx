@@ -14,8 +14,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   User as FirebaseUser,
-// FIX: Using scoped package import for firebase, which is consistent with early v9 SDKs that used this format.
-} from "@firebase/auth";
+} from "firebase/auth";
 
 export type Page = 'home' | 'dashboard';
 
