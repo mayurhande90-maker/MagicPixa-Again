@@ -1,6 +1,7 @@
 
-// FIX: Use namespace import for firebase/app to resolve module loading issues.
-import * as firebaseApp from "firebase/app";
+
+// FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
+import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { 
   getFirestore, 
@@ -32,13 +33,13 @@ export const isFirebaseConfigValid =
   firebaseConfig.messagingSenderId &&
   firebaseConfig.appId;
 
-let app: firebaseApp.FirebaseApp | null = null;
+let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (isFirebaseConfigValid) {
   try {
-    app = firebaseApp.initializeApp(firebaseConfig);
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {

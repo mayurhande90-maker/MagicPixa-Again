@@ -52,7 +52,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     Your all-in-one AI studio for photos, products, interiors, notes, and more.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <button onClick={() => navigateTo('dashboard')} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
+                    <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal('signup')} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
                         <SparklesIcon className="w-5 h-5" />
                         Try Magic Studio
                     </button>
@@ -75,7 +75,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     <h3 className="text-xl font-semibold dark:text-white text-gray-900">{feature.title}</h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300 mb-6">{feature.description}</p>
-                  <button onClick={() => navigateTo('dashboard')} className="flex items-center gap-2 text-cyan-500 dark:text-cyan-400 font-semibold text-sm">
+                  <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal('signup')} className="flex items-center gap-2 text-cyan-500 dark:text-cyan-400 font-semibold text-sm">
                     Try Now <ArrowRightIcon className="w-4 h-4" />
                   </button>
                 </div>
@@ -111,7 +111,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Watermarked images</li>
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Limited downloads</li>
                         </ul>
-                        <button onClick={auth.openAuthModal} className="w-full bg-gray-200 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 font-semibold py-3 px-6 rounded-lg transition-all hover:bg-gray-300 dark:hover:bg-gray-700">Sign Up for Free</button>
+                        <button onClick={() => auth.openAuthModal('signup')} className="w-full bg-gray-200 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 font-semibold py-3 px-6 rounded-lg transition-all hover:bg-gray-300 dark:hover:bg-gray-700">Sign Up for Free</button>
                     </div>
                     {/* Pro Plan */}
                     <div className="glass-card p-8 rounded-2xl border-2 border-cyan-500 dark:border-cyan-400 shadow-2xl shadow-cyan-500/20">
@@ -124,7 +124,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> No watermark</li>
                             <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-cyan-500 dark:text-cyan-400" /> Priority generation speed</li>
                         </ul>
-                        <button onClick={() => navigateTo('dashboard')} className="w-full bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Get Started with Pro</button>
+                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal('signup')} className="w-full bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Get Started with Pro</button>
                     </div>
                     {/* Business Plan */}
                     <div className="glass-card p-8 rounded-2xl">
@@ -174,7 +174,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
               <h2 className="text-3xl font-bold mb-4">Ready to Create Magic?</h2>
               <p className="text-gray-600 dark:text-gray-300 mb-8">Sign up today and get started for free. No credit card required.</p>
               <button 
-                onClick={auth.openAuthModal}
+                onClick={() => auth.openAuthModal('signup')}
                 className="w-full max-w-sm flex items-center justify-center gap-2 bg-cyan-500 text-black font-semibold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">
                 <SparklesIcon className="w-5 h-5" />
                 Get Started for Free

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps } from './App';
 import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
@@ -155,7 +156,8 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
             return;
         }
         if (currentCredits < GENERATION_COST) {
-            if (isGuest) auth.openAuthModal(); // Prompt guest to sign up
+            // FIX: Pass 'signup' to openAuthModal to prompt guest to create an account.
+            if (isGuest) auth.openAuthModal('signup'); // Prompt guest to sign up
             return;
         };
 
@@ -459,7 +461,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                         {auth.isAuthenticated && auth.user ? (
                            <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
                         ) : (
-                           <button onClick={auth.openAuthModal} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+                           // FIX: Correctly call openAuthModal with the 'signup' view inside an arrow function.
+                           <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
                                Sign Up
                            </button>
                         )}

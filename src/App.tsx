@@ -5,7 +5,7 @@ import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isFirebaseConfigValid, getOrCreateUserProfile } from './firebase'; 
+import { auth, isFirebaseConfigValid } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { 
   createUserWithEmailAndPassword, 
@@ -17,6 +17,7 @@ import {
 } from "firebase/auth";
 
 export type Page = 'home' | 'dashboard';
+export type AuthView = 'login' | 'signup';
 
 export interface User {
   uid: string;
@@ -31,7 +32,7 @@ export interface AuthProps {
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   handleLogout: () => void;
-  openAuthModal: () => void;
+  openAuthModal: (view: AuthView) => void;
 }
 
 const App: React.FC = () => {
@@ -46,7 +47,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState<AuthView | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const getInitials = (name: string): string => {
@@ -63,14 +64,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Create a temporary user object immediately for a fast UI.
-        // The real credits will be fetched on-demand in the dashboard.
         const userToSet: User = {
           uid: firebaseUser.uid,
           name: firebaseUser.displayName || 'User',
           email: firebaseUser.email || 'No Email',
           avatar: getInitials(firebaseUser.displayName || ''),
-          credits: 10, // Start with a default optimistic value
+          credits: 10, 
         };
         setUser(userToSet);
         setIsAuthenticated(true);
@@ -85,7 +84,7 @@ const App: React.FC = () => {
 
   const navigateTo = (page: Page) => {
     if (page === 'dashboard' && !isAuthenticated) {
-      setIsAuthModalOpen(true);
+      setAuthModalView('login');
       return;
     }
     setCurrentPage(page);
@@ -95,7 +94,7 @@ const App: React.FC = () => {
   const handleLogin = async (email: string, password: string): Promise<void> => {
     try {
       await signInWithEmailAndPassword(auth!, email, password);
-      setIsAuthModalOpen(false);
+      // Success is handled in the modal, it will close itself
       setCurrentPage('dashboard');
       window.scrollTo(0, 0);
     } catch (error: any) {
@@ -109,29 +108,23 @@ const App: React.FC = () => {
   
   const handleSignUp = async (name: string, email: string, password:string): Promise<void> => {
     try {
-      // Step 1: Create the user in Authentication. This is fast.
       const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
       await updateProfile(userCredential.user, { displayName: name });
       
-      // Step 2: Immediately update the UI. DO NOT wait for the database.
       setUser({
         uid: userCredential.user.uid,
         name: name,
         email: email,
         avatar: getInitials(name),
-        credits: 10, // The initial sign-up bonus
+        credits: 10,
       });
       setIsAuthenticated(true);
       
-      setIsAuthModalOpen(false);
+      // Success is handled in the modal, it will close itself
       setCurrentPage('dashboard');
       window.scrollTo(0, 0);
 
-      // Note: The user's profile in Firestore will be created on their first action,
-      // which completely avoids the sign-up race condition.
-
-    } catch (error: any)
-{
+    } catch (error: any) {
       let message = 'An unknown error occurred.';
       if (error.code === 'auth/email-already-in-use') {
         message = 'An account with this email already exists. Please login.';
@@ -152,8 +145,8 @@ const App: React.FC = () => {
     }
   };
   
-  const openAuthModal = () => setIsAuthModalOpen(true);
-  const closeAuthModal = () => setIsAuthModalOpen(false);
+  const openAuthModal = (view: AuthView) => setAuthModalView(view);
+  const closeAuthModal = () => setAuthModalView(null);
 
   const authProps: AuthProps = {
     isAuthenticated,
@@ -180,7 +173,7 @@ const App: React.FC = () => {
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
         {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
       </div>
-      {isAuthModalOpen && <AuthModal onClose={closeAuthModal} onLogin={handleLogin} onSignUp={handleSignUp} />}
+      {authModalView && <AuthModal initialView={authModalView} onClose={closeAuthModal} onLogin={handleLogin} onSignUp={handleSignUp} />}
     </ThemeProvider>
   );
 };
