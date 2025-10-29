@@ -1,16 +1,18 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../App';
 import { Page } from '../App';
-import { LogoutIcon, DashboardIcon, ProjectsIcon } from './icons';
+import { LogoutIcon, DashboardIcon, ProjectsIcon, BillingIcon } from './icons';
 
 interface UserMenuProps {
   user: User;
   onLogout: () => void;
   navigateTo: (page: Page) => void;
+  setActiveView?: (view: string) => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -46,12 +48,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo }) => {
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate" title={user.email}>{user.email}</p>
           </div>
           <div className="py-2">
-            <button onClick={() => { navigateTo('dashboard'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50" role="menuitem">
+            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('studio'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>
             <button onClick={() => { /* Placeholder */ setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
             </button>
+            {setActiveView && (
+                <button onClick={() => { setActiveView('billing'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50" role="menuitem">
+                    <BillingIcon className="w-5 h-5" /> Billing & Credits
+                </button>
+            )}
           </div>
           <div className="py-2 border-t border-gray-200 dark:border-gray-700">
              <button onClick={onLogout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" role="menuitem">

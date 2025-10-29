@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 // Existing Icons
@@ -92,6 +93,12 @@ export const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.082,5.571l6.19,5.238C39.99,36.526,44,30.825,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
     </svg>
 );
+export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+);
+
 
 // Feature Icons
 export const BackgroundRemovalIcon: React.FC<{ className?: string }> = ({ className }) => (

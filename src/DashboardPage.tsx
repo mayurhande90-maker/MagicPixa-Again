@@ -6,11 +6,12 @@ import { editImageWithPrompt, analyzeImageContent } from './services/geminiServi
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import { 
-    UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, UserIcon, DashboardIcon, ProjectsIcon, HelpIcon,
-    ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon,
+    UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, DashboardIcon, ProjectsIcon, HelpIcon,
+    ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon, BillingIcon, PlusIcon
 } from './components/icons';
 import ThemeToggle from './components/ThemeToggle';
 import UserMenu from './components/UserMenu';
+import Billing from './components/Billing';
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
@@ -40,7 +41,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [imageDescription, setImageDescription] = useState<string | null>(null);
     
-    // Guest credit management using sessionStorage
     const [guestCredits, setGuestCredits] = useState<number>(() => {
         const saved = sessionStorage.getItem('magicpixa-guest-credits');
         return saved ? parseInt(saved, 10) : 2;
@@ -53,7 +53,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     
-    // Effect to fetch the real, persistent credits for an authenticated user when the component loads.
     useEffect(() => {
         if (!isGuest && auth.user) {
             getOrCreateUserProfile(auth.user.uid, auth.user.name, auth.user.email)
@@ -62,7 +61,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                 })
                 .catch(err => console.error("Could not sync user credits:", err));
         }
-    }, [isGuest, auth.user?.uid]); // Run only when user logs in
+    }, [isGuest, auth.user?.uid]);
 
     useEffect(() => {
         if (isGuest) {
@@ -156,8 +155,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
             return;
         }
         if (currentCredits < GENERATION_COST) {
-            // FIX: Pass 'signup' to openAuthModal to prompt guest to create an account.
-            if (isGuest) auth.openAuthModal('signup'); // Prompt guest to sign up
+            if (isGuest) auth.openAuthModal('signup');
             return;
         };
 
@@ -166,7 +164,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
         
         try {
             if (!isGuest && auth.user) {
-                // The new smart function handles everything: profile creation, renewal, and deduction
                 const updatedProfile = await deductCredits(auth.user.uid, GENERATION_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
@@ -178,8 +175,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
-            // On failure, we don't need to refund because the optimistic update was removed.
-            // A page refresh would sync the correct credit count from the db if needed.
         } finally {
             setIsLoading(false);
         }
@@ -210,11 +205,9 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full flex flex-col'>
-            {/* Breadcrumbs */}
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Home &nbsp;&gt;&nbsp; Dashboard &nbsp;&gt;&nbsp; <span className="text-gray-800 dark:text-gray-200">Photo Studio</span>
             </div>
-            {/* Title */}
             <div className='mb-8'>
                 <h2 className="text-3xl font-bold text-blue-500">AI Photo Studio</h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">Transform your raw product photo into a hyper-realistic image ready to post.</p>
@@ -360,9 +353,9 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
-    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [activeView, setActiveView] = useState<'studio' | 'billing' | 'creations'>('studio');
     
-    // Guest users don't have stored credits, this is handled inside MagicPhotoStudio
+    const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? undefined : auth.user?.credits;
 
     const toggleCategory = (category: string) => {
@@ -374,8 +367,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     };
 
     const mainLinks = [
-        { name: 'Dashboard', icon: DashboardIcon },
-        { name: 'My Creations', icon: ProjectsIcon },
+        { name: 'Dashboard', icon: DashboardIcon, view: 'studio' },
+        { name: 'My Creations', icon: ProjectsIcon, view: 'creations' },
+        { name: 'Billing', icon: BillingIcon, view: 'billing' },
     ];
     
     const toolCategories = [
@@ -391,7 +385,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
             name: 'Productivity & Content Tools',
             tools: [
                 { name: 'DocuScan Pro', icon: ScannerIcon },
-                { name: 'PDF Master Suite', icon: NotesIcon }, // Re-using icon
+                { name: 'PDF Master Suite', icon: NotesIcon },
                 { name: 'Smart Notes Generator', icon: NotesIcon },
                 { name: 'AutoCaption AI', icon: CaptionIcon },
             ]
@@ -412,9 +406,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                         <h3 className="px-3 text-xs font-semibold uppercase text-gray-400 dark:text-gray-500 tracking-wider">Main</h3>
                         <div className="space-y-1 mt-2">
                            {mainLinks.map(link => (
-                                <a key={link.name} href="#" className="flex items-center gap-3 px-3 py-2 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium">
+                                <button key={link.name} onClick={() => link.view !== 'creations' && setActiveView(link.view as any)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-medium text-left ${
+                                    activeView === link.view
+                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                } ${link.view === 'creations' ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     <link.icon className="w-5 h-5" /> {link.name}
-                                </a>
+                                </button>
                            ))}
                         </div>
                     </div>
@@ -453,15 +451,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 <header className="flex items-center justify-end p-4 border-b border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-4">
                         {!isGuest && (
-                            <div className="text-right">
-                               <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {currentCredits}</p>
+                             <div className="hidden sm:flex items-center gap-4">
+                                <div className="text-right">
+                                   <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {currentCredits}</p>
+                                </div>
+                                <button onClick={() => setActiveView('billing')} className="flex items-center gap-2 text-sm font-semibold bg-cyan-500/10 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-400 px-3 py-1.5 rounded-lg hover:bg-cyan-500/20 transition-colors">
+                                    <PlusIcon className="w-4 h-4" /> Get More
+                                </button>
                             </div>
                         )}
                         <ThemeToggle />
                         {auth.isAuthenticated && auth.user ? (
-                           <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
+                           <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={setActiveView as any} />
                         ) : (
-                           // FIX: Correctly call openAuthModal with the 'signup' view inside an arrow function.
                            <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
                                Sign Up
                            </button>
@@ -469,7 +471,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                     </div>
                 </header>
                 <main className="flex-1">
-                    <MagicPhotoStudio auth={auth} />
+                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
+                    {activeView === 'billing' && !isGuest && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
+                    {activeView === 'billing' && isGuest && (
+                        <div className="p-8 text-center flex flex-col items-center justify-center h-full">
+                            <div className="max-w-md">
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Please Sign Up to Continue</h3>
+                                <p className="text-gray-500 dark:text-gray-400 mt-2 mb-6">Create an account to manage your credits, view your creation history, and access billing information.</p>
+                                <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-cyan-500 text-black px-6 py-3 rounded-lg hover:bg-cyan-600 transition-colors">
+                                    Sign Up
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </main>
             </div>
         </div>

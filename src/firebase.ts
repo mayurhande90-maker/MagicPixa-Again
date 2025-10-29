@@ -141,4 +141,27 @@ export const deductCredits = async (uid: string, amount: number): Promise<Docume
   return { ...userProfile, credits: userProfile.credits - amount };
 };
 
+/**
+ * Atomically adds credits to a user's account.
+ * @param uid The user's unique ID.
+ * @param amount The number of credits to add.
+ * @returns The updated user profile data after the addition.
+ */
+export const addCredits = async (uid: string, amount: number): Promise<DocumentData> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const userRef = doc(db, "users", uid);
+
+    await updateDoc(userRef, {
+        credits: increment(amount),
+    });
+
+    const updatedDocSnap = await getDoc(userRef);
+    if (updatedDocSnap.exists()) {
+        return updatedDocSnap.data();
+    } else {
+        throw new Error("User profile not found after attempting to add credits.");
+    }
+};
+
+
 export { app, auth };
