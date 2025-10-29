@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps } from './App';
 import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
+import { deductCredits } from './firebase';
 import { 
     UploadIcon, SparklesIcon, ImageIcon, DownloadIcon, RetryIcon, UserIcon, DashboardIcon, ProjectsIcon, HelpIcon,
     ScannerIcon, NotesIcon, CaptionIcon, ChevronDownIcon, ScissorsIcon, PhotoStudioIcon,
@@ -25,12 +26,10 @@ const loadingMessages = [
 ];
 
 interface MagicPhotoStudioProps {
-    credits: number;
-    setCredits: React.Dispatch<React.SetStateAction<number>>;
+    auth: AuthProps;
 }
 
-// This component contains the logic from the original App.tsx, but with a new layout
-const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits }) => {
+const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -39,9 +38,27 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [imageDescription, setImageDescription] = useState<string | null>(null);
+    
+    // Guest credit management using sessionStorage
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits');
+        return saved ? parseInt(saved, 10) : 2;
+    });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
-    const GENERATION_COST = 3;
+    const GENERATION_COST = 2;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+
+    // Effect to sync guest credits with sessionStorage
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
 
     useEffect(() => {
         if (originalImage) {
@@ -118,7 +135,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
         setError(null);
         setImageDescription(null);
         if (fileInputRef.current) {
-            fileInputRef.current.value = ""; // Reset file input to allow re-uploading the same file
+            fileInputRef.current.value = ""; 
         }
     }, []);
 
@@ -127,22 +144,39 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
             setError("Please upload an image first.");
             return;
         }
-        if (credits < GENERATION_COST) return;
+        if (currentCredits < GENERATION_COST) {
+            if (isGuest) auth.openAuthModal(); // Prompt guest to sign up
+            return;
+        };
 
         setIsLoading(true);
         setError(null);
         
         try {
+            // Deduct credits before calling the API
+            if (!isGuest && auth.user) {
+                await deductCredits(auth.user.uid, GENERATION_COST);
+                // Update local state for immediate UI feedback
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: prevUser.credits - GENERATION_COST } : null);
+            } else {
+                setGuestCredits(prev => prev - GENERATION_COST);
+            }
+
             const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
-            setCredits(prev => prev - GENERATION_COST);
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            // Optional: Refund credits on failure
+            if (!isGuest && auth.user) {
+                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: prevUser.credits + GENERATION_COST } : null);
+            } else {
+                setGuestCredits(prev => prev + GENERATION_COST);
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, credits, setCredits]);
+    }, [base64Data, currentCredits, auth, isGuest, setGuestCredits]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -159,6 +193,14 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
         fileInputRef.current?.click();
     };
     
+    const hasInsufficientCredits = currentCredits < GENERATION_COST;
+
+    const getButtonText = () => {
+        if (isAnalyzing) return 'Analyzing...';
+        if (isGuest && hasInsufficientCredits && originalImage) return 'Sign Up for More';
+        return 'Generate Image';
+    };
+
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full flex flex-col'>
             {/* Breadcrumbs */}
@@ -171,10 +213,8 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                 <p className="text-gray-500 dark:text-gray-400 mt-1">Transform your raw product photo into a hyper-realistic image ready to post.</p>
             </div>
             
-            {/* Main Content Area */}
             <div className='flex-grow'>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Canvas Area */}
                     <div className="lg:col-span-2 bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                         <div
                             className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center"
@@ -186,7 +226,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                         >
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                             
-                            {/* State: Initial Dropzone */}
                             {!originalImage && !error && (
                                 <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                                     <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400 cursor-pointer">
@@ -197,7 +236,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                 </div>
                             )}
 
-                             {/* State: Image Display */}
                              {(originalImage || generatedImage) && !error && (
                                 <>
                                     <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -214,7 +252,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                 </>
                              )}
 
-                            {/* State: Loading Overlay */}
                             {isLoading && (
                                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl p-4 text-center">
                                     <div className="w-full max-w-sm">
@@ -228,7 +265,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                 </div>
                             )}
 
-                            {/* State: Error */}
                             {error && (
                                 <div className='w-full h-full flex flex-col items-center justify-center gap-4 p-4'>
                                     <div className="text-red-500 bg-red-100 dark:text-red-400 dark:bg-red-900/50 p-4 rounded-lg w-full max-w-md text-center">{error}</div>
@@ -241,7 +277,6 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                             )}
                         </div>
                     </div>
-                     {/* Side Panels */}
                      <div className="space-y-8">
                         <div className="bg-white/5 dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-800/70">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-cyan-500" /> Configuration</h3>
@@ -274,7 +309,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                     <div className="grid grid-cols-2 gap-4">
                                         <button
                                             onClick={handleGenerateClick}
-                                            disabled={isLoading || credits < GENERATION_COST}
+                                            disabled={isLoading || hasInsufficientCredits}
                                             className="w-full flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Generate a new image using the same product photo"
                                         >
@@ -291,19 +326,19 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
                                             New Image
                                         </button>
                                     </div>
-                                    <p className={`text-xs text-center transition-opacity duration-300 ${credits < GENERATION_COST ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
-                                        {credits < GENERATION_COST ? 'Insufficient credits to regenerate.' : `Regeneration costs ${GENERATION_COST} credits.`}
+                                    <p className={`text-xs text-center transition-opacity duration-300 ${hasInsufficientCredits ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                                        {hasInsufficientCredits ? 'Insufficient credits to regenerate.' : `Regeneration costs ${GENERATION_COST} credits.`}
                                     </p>
                                 </div>
                              ) : (
                                 <>
-                                 <button onClick={handleGenerateClick} disabled={isLoading || !originalImage || credits < GENERATION_COST || isAnalyzing}
+                                 <button onClick={handleGenerateClick} disabled={isLoading || !originalImage || hasInsufficientCredits || isAnalyzing}
                                     className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-300 disabled:to-gray-400 dark:disabled:from-gray-700 dark:disabled:to-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100">
-                                    {isAnalyzing ? 'Analyzing...' : 'Generate Image'}
+                                    {getButtonText()}
                                  </button>
-                                 <p className={`text-xs text-center mt-3 ${credits < GENERATION_COST && originalImage ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
-                                     {originalImage && credits < GENERATION_COST
-                                        ? 'Insufficient Credits'
+                                 <p className={`text-xs text-center mt-3 ${hasInsufficientCredits && originalImage ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                                     {originalImage && hasInsufficientCredits
+                                        ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient Credits')
                                         : `This will cost ${GENERATION_COST} credits.`}
                                  </p>
                                 </>
@@ -317,16 +352,11 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ credits, setCredits
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
-    const [credits, setCredits] = useState<number>(() => {
-        const savedCredits = localStorage.getItem('magicpixa-credits');
-        return savedCredits ? parseInt(savedCredits, 10) : 10;
-    });
-
-    useEffect(() => {
-        localStorage.setItem('magicpixa-credits', credits.toString());
-    }, [credits]);
-
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    
+    // Guest users don't have stored credits, this is handled inside MagicPhotoStudio
+    const currentCredits = isGuest ? undefined : auth.user?.credits;
 
     const toggleCategory = (category: string) => {
         setOpenCategories(prev => 
@@ -363,7 +393,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
 
     return (
         <div className="flex min-h-screen">
-            {/* Sidebar */}
             <aside className="w-72 bg-white dark:bg-black/30 border-r border-gray-200 dark:border-gray-800/50 p-6 hidden lg:flex flex-col">
                 <div className="flex items-center gap-2 mb-10">
                     <h1 onClick={() => navigateTo('home')} className="cursor-pointer text-2xl font-bold dark:text-white text-gray-900 flex items-center gap-2">
@@ -413,21 +442,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 </div>
             </aside>
 
-            {/* Main Content */}
             <div className="flex-1 flex flex-col bg-gray-50 dark:bg-[#0e0e0e]">
                 <header className="flex items-center justify-end p-4 border-b border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-4">
-                        <div className="text-right">
-                           <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {credits}</p>
-                        </div>
+                        {!isGuest && (
+                            <div className="text-right">
+                               <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">Credits: {currentCredits}</p>
+                            </div>
+                        )}
                         <ThemeToggle />
-                        {auth.isAuthenticated && auth.user && (
+                        {auth.isAuthenticated && auth.user ? (
                            <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
+                        ) : (
+                           <button onClick={auth.openAuthModal} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+                               Sign Up
+                           </button>
                         )}
                     </div>
                 </header>
                 <main className="flex-1">
-                    <MagicPhotoStudio credits={credits} setCredits={setCredits} />
+                    <MagicPhotoStudio auth={auth} />
                 </main>
             </div>
         </div>

@@ -4,7 +4,8 @@ import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth } from './firebase'; // Import Firebase auth instance
+import { auth, isFirebaseConfigValid, createUserProfile, getUserProfile, renewCreditsIfNeeded } from './firebase'; 
+import ConfigurationError from './components/ConfigurationError';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -13,28 +14,40 @@ import {
   updateProfile,
   User as FirebaseUser,
 } from "firebase/auth";
+import { Timestamp } from 'firebase/firestore';
 
 export type Page = 'home' | 'dashboard';
 
 export interface User {
+  uid: string;
   name: string;
   email: string;
   avatar: string;
+  credits: number;
 }
 
 export interface AuthProps {
   isAuthenticated: boolean;
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   handleLogout: () => void;
   openAuthModal: () => void;
 }
 
 const App: React.FC = () => {
+  if (!isFirebaseConfigValid) {
+    return (
+      <ThemeProvider>
+        <ConfigurationError />
+      </ThemeProvider>
+    );
+  }
+
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true); // To handle initial auth state loading
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -47,27 +60,37 @@ const App: React.FC = () => {
       .toUpperCase();
   };
 
-  // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in
-        const userToSet: User = {
-          name: firebaseUser.displayName || 'No Name',
-          email: firebaseUser.email || 'No Email',
-          avatar: getInitials(firebaseUser.displayName || ''),
-        };
-        setUser(userToSet);
-        setIsAuthenticated(true);
+        try {
+          // Get user profile from Firestore, which contains credits
+          const userProfile = await getUserProfile(firebaseUser.uid);
+          
+          // Check if credits need to be renewed
+          const wasRenewed = await renewCreditsIfNeeded(firebaseUser.uid, userProfile.lastCreditRenewal as Timestamp);
+          const finalCredits = wasRenewed ? 10 : userProfile.credits;
+          
+          const userToSet: User = {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || userProfile.name || 'No Name',
+            email: firebaseUser.email || userProfile.email || 'No Email',
+            avatar: getInitials(firebaseUser.displayName || userProfile.name || ''),
+            credits: finalCredits,
+          };
+          setUser(userToSet);
+          setIsAuthenticated(true);
+        } catch (error) {
+            console.error("Failed to fetch user profile:", error);
+            // If profile fetch fails, log the user out to prevent a broken state
+            await handleLogout();
+        }
       } else {
-        // User is signed out
         setUser(null);
         setIsAuthenticated(false);
       }
-      setIsLoadingAuth(false); // Finished checking auth state
+      setIsLoadingAuth(false);
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
@@ -82,13 +105,11 @@ const App: React.FC = () => {
 
   const handleLogin = async (email: string, password: string): Promise<void> => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle setting the user state
+      await signInWithEmailAndPassword(auth!, email, password);
       setIsAuthModalOpen(false);
       setCurrentPage('dashboard');
       window.scrollTo(0, 0);
     } catch (error: any) {
-      // Provide user-friendly error messages
       let message = 'An unknown error occurred.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         message = 'Invalid email or password. Please try again.';
@@ -97,22 +118,15 @@ const App: React.FC = () => {
     }
   };
   
-  const handleSignUp = async (name: string, email: string, password: string): Promise<void> => {
+  const handleSignUp = async (name: string, email: string, password:string): Promise<void> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // After creating the user, update their profile with the name
+      const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
+      // Update Auth profile
       await updateProfile(userCredential.user, { displayName: name });
-
-      // Manually set user for immediate UI update before onAuthStateChanged fires
-       const userToSet: User = {
-          name: name,
-          email: email,
-          avatar: getInitials(name),
-        };
-      setUser(userToSet);
-      setIsAuthenticated(true);
-
-      // onAuthStateChanged will also fire, but this ensures a smooth transition
+      // Create Firestore profile with initial credits
+      await createUserProfile(userCredential.user.uid, name, email);
+      
+      // onAuthStateChanged will handle setting user state from the new Firestore doc
       setIsAuthModalOpen(false);
       setCurrentPage('dashboard');
       window.scrollTo(0, 0);
@@ -129,13 +143,11 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      // onAuthStateChanged will handle clearing user state
+      if (auth) await signOut(auth);
       setCurrentPage('home');
       window.scrollTo(0, 0);
     } catch (error) {
       console.error("Error signing out: ", error);
-      // Handle logout error if necessary
     }
   };
   
@@ -145,11 +157,11 @@ const App: React.FC = () => {
   const authProps: AuthProps = {
     isAuthenticated,
     user,
+    setUser,
     handleLogout,
     openAuthModal,
   };
 
-  // Optional: Show a loading spinner while checking auth state
   if (isLoadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0e0e0e]">
@@ -165,7 +177,7 @@ const App: React.FC = () => {
     <ThemeProvider>
       <div className="min-h-screen transition-colors duration-300">
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-        {currentPage === 'dashboard' && isAuthenticated && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
+        {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
       </div>
       {isAuthModalOpen && <AuthModal onClose={closeAuthModal} onLogin={handleLogin} onSignUp={handleSignUp} />}
     </ThemeProvider>
