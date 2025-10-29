@@ -5,7 +5,7 @@ import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isFirebaseConfigValid } from './firebase'; 
+import { auth, isFirebaseConfigValid, signInWithGoogle } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { 
   createUserWithEmailAndPassword, 
@@ -15,6 +15,7 @@ import {
   updateProfile,
   User as FirebaseUser,
 } from "firebase/auth";
+import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
 export type AuthView = 'login' | 'signup';
@@ -64,12 +65,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
+        // Fetch the full user profile from Firestore, including credits
+        const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+        
         const userToSet: User = {
           uid: firebaseUser.uid,
-          name: firebaseUser.displayName || 'User',
-          email: firebaseUser.email || 'No Email',
-          avatar: getInitials(firebaseUser.displayName || ''),
-          credits: 10, 
+          name: userProfile.name || firebaseUser.displayName || 'User',
+          email: userProfile.email || firebaseUser.email || 'No Email',
+          avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
+          credits: userProfile.credits, 
         };
         setUser(userToSet);
         setIsAuthenticated(true);
@@ -111,14 +115,8 @@ const App: React.FC = () => {
       const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
       await updateProfile(userCredential.user, { displayName: name });
       
-      setUser({
-        uid: userCredential.user.uid,
-        name: name,
-        email: email,
-        avatar: getInitials(name),
-        credits: 10,
-      });
-      setIsAuthenticated(true);
+      // The onAuthStateChanged listener will now handle creating the Firestore profile.
+      // We no longer need to manually set the user state here.
       
       // Success is handled in the modal, it will close itself
       setCurrentPage('dashboard');
@@ -132,6 +130,22 @@ const App: React.FC = () => {
         message = 'Password is too weak. It should be at least 6 characters.';
       }
       throw new Error(message);
+    }
+  };
+
+  const handleGoogleSignIn = async (): Promise<void> => {
+    try {
+      await signInWithGoogle();
+      // onAuthStateChanged will handle the rest
+      setCurrentPage('dashboard');
+      window.scrollTo(0,0);
+    } catch (error: any) {
+       console.error("Google Sign-In Error:", error);
+       let message = "Failed to sign in with Google. Please try again.";
+       // You can check for specific error codes like 'auth/popup-closed-by-user'
+       if (error.code !== 'auth/popup-closed-by-user') {
+         throw new Error(message);
+       }
     }
   };
 
@@ -173,7 +187,15 @@ const App: React.FC = () => {
         {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
         {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
       </div>
-      {authModalView && <AuthModal initialView={authModalView} onClose={closeAuthModal} onLogin={handleLogin} onSignUp={handleSignUp} />}
+      {authModalView && (
+        <AuthModal 
+          initialView={authModalView} 
+          onClose={closeAuthModal} 
+          onLogin={handleLogin} 
+          onSignUp={handleSignUp}
+          onGoogleSignIn={handleGoogleSignIn} 
+        />
+      )}
     </ThemeProvider>
   );
 };

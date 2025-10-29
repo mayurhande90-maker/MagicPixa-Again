@@ -1,8 +1,10 @@
 
 
+
 // FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
-import { initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+// This also corrects the import for `FirebaseApp` to be consistent with other type imports.
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { 
   getFirestore, 
   doc, 
@@ -50,6 +52,24 @@ if (isFirebaseConfigValid) {
 }
 
 /**
+ * Signs in the user with Google and ensures their profile is created in Firestore.
+ * @returns A promise that resolves on successful sign-in.
+ */
+export const signInWithGoogle = async (): Promise<void> => {
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        // This function will either get the existing profile or create a new one with 10 credits.
+        await getOrCreateUserProfile(user.uid, user.displayName, user.email);
+    } catch (error) {
+        console.error("Error during Google Sign-In:", error);
+        throw error;
+    }
+};
+
+/**
  * Gets a user's profile from Firestore. If it doesn't exist, it creates one on-the-fly.
  * This "on-demand" creation is the core fix for the sign-up race condition.
  * It also handles the monthly credit renewal logic.
@@ -58,7 +78,7 @@ if (isFirebaseConfigValid) {
  * @param email The user's email (optional, used for creation).
  * @returns The user's profile data.
  */
-export const getOrCreateUserProfile = async (uid: string, name?: string, email?: string | null): Promise<DocumentData> => {
+export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null): Promise<DocumentData> => {
   if (!db) throw new Error("Firestore is not initialized.");
   const userRef = doc(db, "users", uid);
   const docSnap = await getDoc(userRef);
@@ -107,7 +127,7 @@ export const deductCredits = async (uid: string, amount: number): Promise<Docume
   if (!db) throw new Error("Firestore is not initialized.");
   
   // First, ensure the profile exists and is up-to-date
-  const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName || undefined, auth?.currentUser?.email);
+  const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName, auth?.currentUser?.email);
   
   if (userProfile.credits < amount) {
     throw new Error("Insufficient credits.");

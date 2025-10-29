@@ -1,16 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthView } from '../App';
-import { CheckIcon, EyeIcon, EyeSlashIcon } from './icons';
+import { CheckIcon, EyeIcon, EyeSlashIcon, GoogleIcon } from './icons';
 
 interface AuthModalProps {
   initialView: AuthView;
   onClose: () => void;
   onLogin: (email: string, password: string) => Promise<void>;
   onSignUp: (name: string, email: string, password: string) => Promise<void>;
+  onGoogleSignIn: () => Promise<void>;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ initialView, onClose, onLogin, onSignUp }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ initialView, onClose, onLogin, onSignUp, onGoogleSignIn }) => {
   const [currentView, setCurrentView] = useState(initialView);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ initialView, onClose, onLogin, on
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -46,6 +47,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ initialView, onClose, onLogin, on
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleClick = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await onGoogleSignIn();
+      setIsSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google.');
       setIsLoading(false);
     }
   };
@@ -90,11 +106,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ initialView, onClose, onLogin, on
                         <div className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 glowing-dot"></div>
                     </h1>
                 </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-8">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
                   {currentView === 'login' ? 'Welcome back! Sign in to continue.' : 'Create an account to get started.'}
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                <button
+                    onClick={handleGoogleClick}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-bold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
+                >
+                    <GoogleIcon className="w-5 h-5" />
+                    Continue with Google
+                </button>
+
+                <div className="my-4 flex items-center">
+                    <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                    <span className="flex-shrink mx-4 text-xs text-gray-400 dark:text-gray-500">OR</span>
+                    <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+
+                <form onSubmit={handleEmailSubmit} className="space-y-4 text-left">
                   {currentView === 'signup' && (
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
