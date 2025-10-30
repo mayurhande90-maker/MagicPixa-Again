@@ -1,6 +1,4 @@
 
-
-
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -16,20 +14,35 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID
 };
 
-export const isFirebaseConfigValid =
-  firebaseConfig.apiKey && firebaseConfig.apiKey !== 'undefined' &&
-  firebaseConfig.authDomain &&
-  firebaseConfig.projectId &&
-  firebaseConfig.storageBucket &&
-  firebaseConfig.messagingSenderId &&
-  firebaseConfig.appId;
+const checkConfigValue = (value: string | undefined): boolean => {
+    return !!value && value !== 'undefined';
+};
+
+const allConfigKeys = {
+    "API_KEY (for Gemini)": process.env.API_KEY,
+    "FIREBASE_API_KEY": firebaseConfig.apiKey,
+    "FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
+    "FIREBASE_PROJECT_ID": firebaseConfig.projectId,
+    "FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
+    "FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
+    "FIREBASE_APP_ID": firebaseConfig.appId
+};
+
+const missingKeys = Object.entries(allConfigKeys)
+    .filter(([_, value]) => !checkConfigValue(value))
+    .map(([key, _]) => key);
+
+export const isConfigValid = missingKeys.length === 0;
+
+export const getMissingConfigKeys = (): string[] => missingKeys;
+
 
 // FIX: Changed types to match the v8 compat SDK.
 let app: firebase.app.App | null = null;
 let auth: firebase.auth.Auth | null = null;
 let db: firebase.firestore.Firestore | null = null;
 
-if (isFirebaseConfigValid) {
+if (isConfigValid) {
   try {
     // FIX: Used compat initialization.
     app = firebase.initializeApp(firebaseConfig);
@@ -39,7 +52,7 @@ if (isFirebaseConfigValid) {
     console.error("Error initializing Firebase:", error);
   }
 } else {
-  console.error("Firebase configuration is missing or incomplete. Please check your environment variables.");
+  console.error("Configuration is missing or incomplete. Please check your environment variables. Missing:", missingKeys.join(', '));
 }
 
 const EMAIL_FOR_SIGN_IN = 'emailForSignIn';

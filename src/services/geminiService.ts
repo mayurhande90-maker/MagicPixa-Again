@@ -1,13 +1,12 @@
+
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
 // Initialize the AI client only if the API key is available.
-// This prevents the app from crashing on start if the key is not set.
+// The main app will not start if the key is missing, so the console warning here is redundant.
 if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
   ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-} else {
-  console.warn("API_KEY environment variable not set. The app will load, but Gemini API calls will fail.");
 }
 
 export const analyzeImageContent = async (

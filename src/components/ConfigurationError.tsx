@@ -1,6 +1,11 @@
+
 import React from 'react';
 
-const ConfigurationError: React.FC = () => (
+interface ConfigurationErrorProps {
+  missingKeys: string[];
+}
+
+const ConfigurationError: React.FC<ConfigurationErrorProps> = ({ missingKeys }) => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0e0e0e] p-4 text-center">
     <div>
       <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
@@ -24,8 +29,16 @@ const ConfigurationError: React.FC = () => (
       </h1>
       <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto">
         This application is not properly connected to its backend services.
-        If you are the administrator, please ensure that all required environment variables (e.g., Firebase and Gemini API keys) are correctly set up in your hosting provider's dashboard.
+        If you are the administrator, please ensure that all required environment variables are correctly set up in your hosting provider's dashboard.
       </p>
+      {missingKeys.length > 0 && (
+        <div className="mt-6 text-left max-w-md mx-auto bg-red-50 dark:bg-red-900/30 p-4 rounded-lg border border-red-200 dark:border-red-800/70">
+            <h3 className="font-semibold text-red-800 dark:text-red-300">The following keys appear to be missing:</h3>
+            <ul className="list-disc list-inside mt-2 text-sm text-red-700 dark:text-red-400 font-mono">
+                {missingKeys.map(key => <li key={key}>{key}</li>)}
+            </ul>
+        </div>
+      )}
     </div>
   </div>
 );

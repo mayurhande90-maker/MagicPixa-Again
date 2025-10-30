@@ -1,14 +1,13 @@
 
-
+// FIX: Corrected the React import statement. 'aistudio' is a global and should not be included here. This resolves errors related to useState and useEffect not being found.
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isFirebaseConfigValid, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 // FIX: Removed firebase/auth imports that were causing errors. The functionality is now accessed through the compat `auth` object.
-import type { User as FirebaseUser } from "firebase/auth";
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
@@ -30,10 +29,11 @@ export interface AuthProps {
 }
 
 const App: React.FC = () => {
-  if (!isFirebaseConfigValid) {
+  if (!isConfigValid) {
+    const missingKeys = getMissingConfigKeys();
     return (
       <ThemeProvider>
-        <ConfigurationError />
+        <ConfigurationError missingKeys={missingKeys} />
       </ThemeProvider>
     );
   }
@@ -68,7 +68,7 @@ const App: React.FC = () => {
 
     // FIX: Switched from the modular `onAuthStateChanged(auth, ...)` to the compat `auth.onAuthStateChanged(...)` method.
     // FIX: Removed the explicit type for firebaseUser to allow TypeScript to infer it from the compat SDK.
-    const unsubscribe = auth!.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = auth!.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         // Fetch the full user profile from Firestore, including credits
         const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
