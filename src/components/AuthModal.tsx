@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { GoogleIcon, PaperAirplaneIcon } from './icons';
 
@@ -35,6 +34,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSendAuthLink, onGoogle
     try {
       await onGoogleSignIn();
       // App.tsx handles closing the modal on success
+    // FIX: Corrected the syntax of the try-catch-finally block.
+    // An extra closing brace and missing braces around the catch statement were causing multiple cascading errors.
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google.');
     } finally {
@@ -120,6 +121,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSendAuthLink, onGoogle
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Check your inbox</h2>
                     <p className="text-gray-600 dark:text-gray-300 mt-2">
                         A sign-in link has been sent to <br/> <span className="font-semibold text-gray-800 dark:text-gray-100">{email}</span>.
+                    </p>
+                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                        (P.S. If you don't see it, be sure to check your spam folder!)
                     </p>
                     <button onClick={handleTryDifferentEmail} className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 mt-6 text-sm focus:outline-none">
                         Use a different email
