@@ -1,15 +1,17 @@
 
 
+
 // FIX: Corrected the React import statement. 'aistudio' is a global and should not be included here. This resolves errors related to useState and useEffect not being found.
 import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, sendAuthLink, completeSignInWithLink, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordReset } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, sendAuthLink, completeSignInWithLink, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordReset, setupRecaptcha, signInWithPhoneNumber as firebaseSignInWithPhoneNumber } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 // FIX: Removed firebase/auth imports that were causing errors. The functionality is now accessed through the compat `auth` object.
 import { getOrCreateUserProfile } from './firebase';
+import type firebase from 'firebase/compat/app';
 
 export type Page = 'home' | 'dashboard';
 
@@ -44,6 +46,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -170,6 +173,34 @@ const App: React.FC = () => {
     }
   };
 
+  const handlePhoneSignInRequest = async (phoneNumber: string): Promise<void> => {
+    try {
+      const verifier = setupRecaptcha('recaptcha-container');
+      const result = await firebaseSignInWithPhoneNumber(phoneNumber, verifier);
+      setConfirmationResult(result);
+    } catch (error: any) {
+      console.error("Phone Sign-In Request Error:", error);
+      throw new Error(error.message || "Failed to send verification code.");
+    }
+  };
+
+  const handlePhoneSignInVerify = async (otp: string): Promise<void> => {
+    if (!confirmationResult) {
+      throw new Error("No confirmation result found. Please request a new code.");
+    }
+    try {
+      await confirmationResult.confirm(otp);
+      // Success, onAuthStateChanged will handle the rest.
+    } catch (error: any) {
+      console.error("Phone Sign-In Verify Error:", error);
+      if (error.code === 'auth/invalid-verification-code') {
+        throw new Error("The code you entered is incorrect. Please try again.");
+      }
+      throw new Error(error.message || "Failed to verify code.");
+    }
+  };
+
+
   const handleLogout = async () => {
     try {
       // FIX: Switched from the modular `signOut(auth)` to the compat `auth.signOut()` method.
@@ -215,6 +246,8 @@ const App: React.FC = () => {
           onEmailPasswordSubmit={handleEmailPasswordSubmit}
           onGoogleSignIn={handleGoogleSignIn} 
           onPasswordReset={handlePasswordReset}
+          onPhoneSignInRequest={handlePhoneSignInRequest}
+          onPhoneSignInVerify={handlePhoneSignInVerify}
         />
       )}
     </ThemeProvider>

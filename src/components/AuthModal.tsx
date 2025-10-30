@@ -1,20 +1,31 @@
 
 import React, { useState } from 'react';
-import { GoogleIcon, PaperAirplaneIcon, EyeIcon, EyeSlashIcon, ArrowLeftIcon } from './icons';
+import { GoogleIcon, PaperAirplaneIcon, EyeIcon, EyeSlashIcon, ArrowLeftIcon, PhoneIcon } from './icons';
 
 interface AuthModalProps {
   onClose: () => void;
   onEmailPasswordSubmit: (email: string, password: string) => Promise<void>;
   onGoogleSignIn: () => Promise<void>;
   onPasswordReset: (email: string) => Promise<void>;
+  onPhoneSignInRequest: (phoneNumber: string) => Promise<void>;
+  onPhoneSignInVerify: (otp: string) => Promise<void>;
 }
 
-type View = 'options' | 'email' | 'forgotPassword' | 'resetSent';
+type View = 'options' | 'email' | 'forgotPassword' | 'resetSent' | 'phoneInput' | 'otpInput';
 
-const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, onGoogleSignIn, onPasswordReset }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ 
+  onClose, 
+  onEmailPasswordSubmit, 
+  onGoogleSignIn, 
+  onPasswordReset,
+  onPhoneSignInRequest,
+  onPhoneSignInVerify
+}) => {
   const [view, setView] = useState<View>('options');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,11 +72,40 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
     }
   };
   
+  const handlePhoneRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      await onPhoneSignInRequest(phoneNumber);
+      setView('otpInput');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      await onPhoneSignInVerify(otp);
+      // On success, App.tsx will handle closing the modal
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetFormState = (newView: View) => {
     setView(newView);
     setError(null);
     setPassword('');
     setShowPassword(false);
+    setOtp('');
   };
 
   const renderContent = () => {
@@ -77,7 +117,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
               Sign in or create an account to get started.
             </p>
             <div className="space-y-4">
-              <button
+               <button
                   onClick={handleGoogleClick}
                   disabled={isLoading}
                   className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-bold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
@@ -92,6 +132,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
               >
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                   Continue with Email
+              </button>
+               <button
+                  onClick={() => resetFormState('phoneInput')}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-bold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
+              >
+                  <PhoneIcon className="w-5 h-5" />
+                  Continue with Phone
               </button>
             </div>
           </>
@@ -135,21 +183,50 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
                 </button>
             </form>
         );
-        case 'resetSent':
-            return (
-                 <div className="text-center flex flex-col items-center justify-center min-h-[250px]">
-                    <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center mb-4">
-                        <PaperAirplaneIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Check your inbox</h2>
-                    <p className="text-gray-600 dark:text-gray-300 mt-2">
-                        If an account exists for <span className="font-semibold text-gray-800 dark:text-gray-100">{email}</span>, you will receive a password reset link.
-                    </p>
-                    <button onClick={() => resetFormState('email')} className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 mt-6 text-sm focus:outline-none">
-                        Back to Sign In
-                    </button>
+      case 'resetSent':
+        return (
+              <div className="text-center flex flex-col items-center justify-center min-h-[250px]">
+                <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center mb-4">
+                    <PaperAirplaneIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
                 </div>
-            );
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Check your inbox</h2>
+                <p className="text-gray-600 dark:text-gray-300 mt-2">
+                    If an account exists for <span className="font-semibold text-gray-800 dark:text-gray-100">{email}</span>, you will receive a password reset link.
+                </p>
+                <button onClick={() => resetFormState('email')} className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 mt-6 text-sm focus:outline-none">
+                    Back to Sign In
+                </button>
+            </div>
+        );
+      case 'phoneInput':
+        return (
+            <form onSubmit={handlePhoneRequestSubmit} className="space-y-4 text-left">
+                <p className="text-sm text-gray-600 dark:text-gray-300 text-center">Enter your mobile number to receive a verification code.</p>
+                <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+                    <input type="tel" id="phone" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500" placeholder="+1 123 456 7890" required />
+                </div>
+                {error && <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>}
+                <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-black bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-400 transition-colors">
+                    {isLoading ? <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : 'Send Code'}
+                </button>
+            </form>
+        );
+      case 'otpInput':
+        return (
+            <form onSubmit={handleOtpVerifySubmit} className="space-y-4 text-left">
+                <p className="text-sm text-gray-600 dark:text-gray-300 text-center">We've sent a 6-digit code to <span className="font-semibold text-gray-800 dark:text-gray-100">{phoneNumber}</span>. Enter it below.</p>
+                <div>
+                    <label htmlFor="otp" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Verification Code</label>
+                    <input type="text" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 text-center text-lg tracking-[0.5em]" placeholder="______" required />
+                </div>
+                {error && <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>}
+                <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-black bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-400 transition-colors">
+                    {isLoading ? <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : 'Verify & Sign In'}
+                </button>
+                <button type="button" onClick={() => resetFormState('phoneInput')} className="w-full text-center text-sm font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300">Resend Code</button>
+            </form>
+        );
     }
   };
 
@@ -166,6 +243,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
         className="relative bg-white dark:bg-gray-900 w-full max-w-md m-4 p-8 rounded-2xl shadow-2xl glass-card"
         onClick={e => e.stopPropagation()}
       >
+        <div id="recaptcha-container"></div>
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors z-20"
@@ -197,6 +275,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onEmailPasswordSubmit, o
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        /* Style for the invisible reCAPTCHA badge */
+        .grecaptcha-badge { 
+            visibility: hidden;
+        }
       `}</style>
     </div>
   );

@@ -1,12 +1,12 @@
-// FIX: Add reference to vite/client to make TypeScript aware of import.meta.env
-/// <reference types="vite/client" />
+// FIX: Removed vite/client reference as import.meta.env is no longer used.
+// No reference needed for process.env with standard Vite/React setups.
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
-// FIX: Use Vite's standard import.meta.env for the API key
-const apiKey = import.meta.env.VITE_API_KEY;
+// FIX: Switched from import.meta.env.VITE_API_KEY to process.env.API_KEY to align with guidelines and resolve build errors.
+const apiKey = process.env.API_KEY;
 
 // Initialize the AI client only if the API key is available.
 if (apiKey && apiKey !== 'undefined') {
@@ -18,7 +18,8 @@ export const analyzeImageContent = async (
   mimeType: string
 ): Promise<string> => {
   if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    // FIX: Updated error message to reference the correct environment variable name, API_KEY.
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -61,7 +62,8 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    // FIX: Updated error message to reference the correct environment variable name, API_KEY.
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
   }
   
   try {
