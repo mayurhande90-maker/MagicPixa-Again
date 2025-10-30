@@ -61,7 +61,8 @@ const EMAIL_FOR_SIGN_IN = 'emailForSignIn';
 export const sendAuthLink = async (email: string): Promise<void> => {
   if (!auth) throw new Error("Firebase Auth is not initialized.");
   const actionCodeSettings = {
-    url: window.location.href,
+    // FIX: Using window.location.origin provides a cleaner base URL and is more reliable.
+    url: window.location.origin,
     handleCodeInApp: true,
   };
 
