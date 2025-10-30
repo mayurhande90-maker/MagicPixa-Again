@@ -4,10 +4,10 @@ let ai: GoogleGenAI | null = null;
 
 // Initialize the AI client only if the API key is available.
 // This prevents the app from crashing on start if the key is not set.
-if (process.env.VITE_API_KEY && process.env.VITE_API_KEY !== 'undefined') {
-  ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
+if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 } else {
-  console.warn("VITE_API_KEY environment variable not set. The app will load, but Gemini API calls will fail.");
+  console.warn("API_KEY environment variable not set. The app will load, but Gemini API calls will fail.");
 }
 
 export const analyzeImageContent = async (
@@ -15,7 +15,7 @@ export const analyzeImageContent = async (
   mimeType: string
 ): Promise<string> => {
   if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -58,7 +58,7 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
   }
   
   try {

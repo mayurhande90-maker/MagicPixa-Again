@@ -1,7 +1,15 @@
 // FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
 // This also corrects the import for `FirebaseApp` to be consistent with other type imports.
 import { initializeApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { 
+  getAuth, 
+  Auth, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink
+} from "firebase/auth";
 import { 
   getFirestore, 
   doc, 
@@ -16,12 +24,12 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID
 };
 
 export const isFirebaseConfigValid =
@@ -47,6 +55,45 @@ if (isFirebaseConfigValid) {
 } else {
   console.error("Firebase configuration is missing or incomplete. Please check your environment variables.");
 }
+
+const EMAIL_FOR_SIGN_IN = 'emailForSignIn';
+
+export const sendAuthLink = async (email: string): Promise<void> => {
+  if (!auth) throw new Error("Firebase Auth is not initialized.");
+  const actionCodeSettings = {
+    url: window.location.href,
+    handleCodeInApp: true,
+  };
+
+  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  window.localStorage.setItem(EMAIL_FOR_SIGN_IN, email);
+};
+
+export const completeSignInWithLink = async (): Promise<boolean> => {
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
+    
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+        let email = window.localStorage.getItem(EMAIL_FOR_SIGN_IN);
+        if (!email) {
+            email = window.prompt('Please provide your email for confirmation');
+            if (!email) {
+                return false;
+            }
+        }
+        
+        try {
+            await signInWithEmailLink(auth, email, window.location.href);
+            window.localStorage.removeItem(EMAIL_FOR_SIGN_IN);
+            return true;
+        } catch (error) {
+            console.error("Error signing in with email link:", error);
+            window.localStorage.removeItem(EMAIL_FOR_SIGN_IN);
+            return false;
+        }
+    }
+    return false;
+};
+
 
 /**
  * Signs in the user with Google and ensures their profile is created in Firestore.

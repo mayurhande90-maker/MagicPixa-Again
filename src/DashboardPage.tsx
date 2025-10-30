@@ -154,7 +154,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
             return;
         }
         if (currentCredits < GENERATION_COST) {
-            if (isGuest) auth.openAuthModal('signup');
+            if (isGuest) auth.openAuthModal();
             return;
         };
 
@@ -459,8 +459,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                         {auth.isAuthenticated && auth.user ? (
                            <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={setActiveView} />
                         ) : (
-                           <button onClick={() => auth.openAuthModal('signup')} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
-                               Sign Up
+                           <button onClick={() => auth.openAuthModal()} className="text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+                               Sign In
                            </button>
                         )}
                     </div>
