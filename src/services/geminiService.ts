@@ -1,12 +1,12 @@
-// FIX: Removed vite/client reference as import.meta.env is no longer used.
-// No reference needed for process.env with standard Vite/React setups.
+// FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
-// FIX: Switched from import.meta.env.VITE_API_KEY to process.env.API_KEY to align with guidelines and resolve build errors.
-const apiKey = process.env.API_KEY;
+// Use import.meta.env for client-side variables in Vite
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
+const apiKey = (import.meta as any).env.VITE_API_KEY;
 
 // Initialize the AI client only if the API key is available.
 if (apiKey && apiKey !== 'undefined') {
@@ -18,8 +18,8 @@ export const analyzeImageContent = async (
   mimeType: string
 ): Promise<string> => {
   if (!ai) {
-    // FIX: Updated error message to reference the correct environment variable name, API_KEY.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    // Update error message to reflect the correct Vite environment variable name
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -62,8 +62,8 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
-    // FIX: Updated error message to reference the correct environment variable name, API_KEY.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    // Update error message to reflect the correct Vite environment variable name
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
   
   try {

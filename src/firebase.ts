@@ -1,5 +1,4 @@
-// FIX: Removed vite/client reference as import.meta.env is no longer used.
-// No reference needed for process.env with standard Vite/React setups.
+// FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
@@ -7,29 +6,31 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { DocumentData } from "firebase/firestore";
 
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
+// Use import.meta.env for Vite environment variables
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors and used API_KEY for Gemini as per guidelines.
+// Check the correct Vite variables and use keys that will clearly guide the user.
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
 const allConfigKeys = {
-    "API_KEY (for Gemini)": process.env.API_KEY,
-    "FIREBASE_API_KEY": firebaseConfig.apiKey,
-    "FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
-    "FIREBASE_PROJECT_ID": firebaseConfig.projectId,
-    "FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
-    "FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
-    "FIREBASE_APP_ID": firebaseConfig.appId
+    "VITE_API_KEY (for Gemini)": (import.meta as any).env.VITE_API_KEY,
+    "VITE_FIREBASE_API_KEY": firebaseConfig.apiKey,
+    "VITE_FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
+    "VITE_FIREBASE_PROJECT_ID": firebaseConfig.projectId,
+    "VITE_FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
+    "VITE_FIREBASE_APP_ID": firebaseConfig.appId
 };
 
 const missingKeys = Object.entries(allConfigKeys)
