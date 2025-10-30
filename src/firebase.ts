@@ -2,7 +2,8 @@
 // FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
 // This also corrects the import for `FirebaseApp` to be consistent with other type imports.
 import { initializeApp, FirebaseApp } from "firebase/app";
-// FIX: Changed import path to 'firebase/auth/browser' to ensure the browser-specific version of the auth module is used, resolving export errors.
+// FIX: Changed import path from 'firebase/auth/browser' back to 'firebase/auth' to resolve the Vercel build error.
+// FIX: Reverted import path to 'firebase/auth/browser' to correct the module export errors.
 import { 
   getAuth, 
   Auth, 

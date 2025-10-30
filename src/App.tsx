@@ -6,7 +6,8 @@ import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import { auth, isFirebaseConfigValid, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-// FIX: Changed import path to 'firebase/auth/browser' to ensure the browser-specific version of the auth module is used, resolving export errors.
+// FIX: Changed import path from 'firebase/auth/browser' back to 'firebase/auth' to resolve the Vercel build error.
+// FIX: Reverted import path to 'firebase/auth/browser' to correct the module export errors.
 import { 
   signOut, 
   onAuthStateChanged,
