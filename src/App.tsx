@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
@@ -6,13 +7,14 @@ import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import { auth, isFirebaseConfigValid, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-// FIX: Changed import path from 'firebase/auth/browser' back to 'firebase/auth' to resolve the Vercel build error.
-// FIX: Reverted import path to 'firebase/auth/browser' to correct the module export errors.
+// FIX: The module 'firebase/auth' has no exported members 'signOut', 'onAuthStateChanged', or 'User'.
+// This can be caused by a dependency or build tool configuration issue.
+// Trying to import from '@firebase/auth' as a potential workaround.
 import { 
   signOut, 
   onAuthStateChanged,
   User as FirebaseUser,
-} from "firebase/auth/browser";
+} from "@firebase/auth";
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';

@@ -14,5 +14,10 @@ export default defineConfig({
     'process.env.FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET),
     'process.env.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.FIREBASE_MESSAGING_SENDER_ID),
     'process.env.FIREBASE_APP_ID': JSON.stringify(process.env.FIREBASE_APP_ID),
+  },
+  optimizeDeps: {
+    // Exclude firebase packages from optimization to prevent build errors on Vercel.
+    // This is a common solution for Vite/Firebase compatibility issues.
+    exclude: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
   }
 })
