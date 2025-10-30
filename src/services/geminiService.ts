@@ -1,12 +1,3 @@
-// FIX: Manually define types for import.meta.env as a workaround for issue where vite/client types are not being found by TypeScript.
-interface ImportMetaEnv {
-  readonly VITE_API_KEY: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;

@@ -105,22 +105,30 @@ const App: React.FC = () => {
       await signInWithEmailPassword(email, password);
       // Success, onAuthStateChanged will handle the rest.
     } catch (error: any) {
-        // If user not found, try to sign them up instead.
-        if (error.code === 'auth/user-not-found') {
+        // If user not found, or credential is just invalid (could be a new user), try to sign them up instead.
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
                 await signUpWithEmailPassword(email, password);
+                // Sign up successful, onAuthStateChanged will handle the rest.
             } catch (signUpError: any) {
-                // Handle sign-up specific errors (e.g., weak password)
+                // If sign up fails because the email is already in use, it means the original
+                // sign-in attempt failed due to a wrong password.
+                if (signUpError.code === 'auth/email-already-in-use') {
+                    throw new Error('Incorrect password. Please try again or use the "Forgot Password" link.');
+                }
+                // Handle other sign-up specific errors (e.g., weak password)
                  if (signUpError.code === 'auth/weak-password') {
                     throw new Error('Password is too weak. It should be at least 6 characters long.');
                 }
+                // Handle other sign up errors
                 throw new Error(`Sign-up failed: ${signUpError.message}`);
             }
         } else if (error.code === 'auth/wrong-password') {
             throw new Error('Incorrect password. Please try again or use the "Forgot Password" link.');
         } else {
             // Handle other sign-in errors
-            throw new Error(`An error occurred: ${error.message}`);
+            console.error("Sign-in error:", error);
+            throw new Error(`An error occurred during sign-in. Please try again.`);
         }
     }
   };
