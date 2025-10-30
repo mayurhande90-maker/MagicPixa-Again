@@ -1,5 +1,17 @@
-// FIX: Add a triple-slash directive to include Vite's client types, which defines `import.meta.env` for TypeScript and resolves all related errors in this file.
-/// <reference types="vite/client" />
+// FIX: Manually define types for import.meta.env as a workaround for issue where vite/client types are not being found by TypeScript.
+interface ImportMetaEnv {
+  readonly VITE_API_KEY: string;
+  readonly VITE_FIREBASE_API_KEY: string;
+  readonly VITE_FIREBASE_AUTH_DOMAIN: string;
+  readonly VITE_FIREBASE_PROJECT_ID: string;
+  readonly VITE_FIREBASE_STORAGE_BUCKET: string;
+  readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string;
+  readonly VITE_FIREBASE_APP_ID: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
 
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
@@ -103,6 +115,38 @@ export const completeSignInWithLink = async (): Promise<boolean> => {
         }
     }
     return false;
+};
+
+export const signUpWithEmailPassword = async (email: string, password: string): Promise<void> => {
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
+    try {
+        const result = await auth.createUserWithEmailAndPassword(email, password);
+        const user = result.user;
+        await getOrCreateUserProfile(user!.uid, 'New User', user!.email);
+    } catch (error) {
+        console.error("Error signing up:", error);
+        throw error;
+    }
+};
+
+export const signInWithEmailPassword = async (email: string, password: string): Promise<void> => {
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        console.error("Error signing in:", error);
+        throw error;
+    }
+};
+
+export const sendPasswordReset = async (email: string): Promise<void> => {
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
+    try {
+        await auth.sendPasswordResetEmail(email);
+    } catch (error) {
+        console.error("Error sending password reset email:", error);
+        throw error;
+    }
 };
 
 

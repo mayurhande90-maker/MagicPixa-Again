@@ -5,7 +5,7 @@ import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, sendAuthLink, completeSignInWithLink, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordReset } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 // FIX: Removed firebase/auth imports that were causing errors. The functionality is now accessed through the compat `auth` object.
 import { getOrCreateUserProfile } from './firebase';
@@ -100,23 +100,42 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleSendAuthLink = async (email: string): Promise<void> => {
+  const handleEmailPasswordSubmit = async (email: string, password: string): Promise<void> => {
     try {
-      await sendAuthLink(email);
+      await signInWithEmailPassword(email, password);
+      // Success, onAuthStateChanged will handle the rest.
     } catch (error: any) {
-       console.error("Send auth link error:", error);
-       let message;
-       // Provide more specific feedback for common configuration errors.
-       if (error.code === 'auth/unauthorized-continue-uri') {
-            message = `This domain is not authorized for sign-in. The URL that failed was: ${window.location.origin}. Please go to your Firebase Authentication settings and add this exact domain to the 'Authorized domains' list.`;
-       } else if (error.code === 'auth/operation-not-allowed') {
-           message = 'Email sign-in is not enabled. Please go to your Firebase console -> Authentication -> Sign-in method, and enable the "Email/Password" provider.';
-       } else {
-           // For any other error, show the actual message from Firebase for better debugging.
-           message = `An unexpected error occurred: ${error.message} (Code: ${error.code || 'N/A'})`;
-       }
-       throw new Error(message);
+        // If user not found, try to sign them up instead.
+        if (error.code === 'auth/user-not-found') {
+            try {
+                await signUpWithEmailPassword(email, password);
+            } catch (signUpError: any) {
+                // Handle sign-up specific errors (e.g., weak password)
+                 if (signUpError.code === 'auth/weak-password') {
+                    throw new Error('Password is too weak. It should be at least 6 characters long.');
+                }
+                throw new Error(`Sign-up failed: ${signUpError.message}`);
+            }
+        } else if (error.code === 'auth/wrong-password') {
+            throw new Error('Incorrect password. Please try again or use the "Forgot Password" link.');
+        } else {
+            // Handle other sign-in errors
+            throw new Error(`An error occurred: ${error.message}`);
+        }
     }
+  };
+
+  const handlePasswordReset = async (email: string): Promise<void> => {
+      try {
+          await sendPasswordReset(email);
+      } catch (error: any) {
+          if (error.code === 'auth/user-not-found') {
+              // Don't reveal if an email exists or not for security.
+              // Just let the user know the email was sent (if it was valid).
+              return;
+          }
+          throw new Error(`Failed to send password reset email: ${error.message}`);
+      }
   };
 
   const handleGoogleSignIn = async (): Promise<void> => {
@@ -176,8 +195,9 @@ const App: React.FC = () => {
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 
-          onSendAuthLink={handleSendAuthLink}
+          onEmailPasswordSubmit={handleEmailPasswordSubmit}
           onGoogleSignIn={handleGoogleSignIn} 
+          onPasswordReset={handlePasswordReset}
         />
       )}
     </ThemeProvider>
