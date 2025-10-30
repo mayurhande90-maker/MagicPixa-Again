@@ -6,11 +6,12 @@ import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import { auth, isFirebaseConfigValid, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
+// FIX: Changed import path to 'firebase/auth/browser' to ensure the browser-specific version of the auth module is used, resolving export errors.
 import { 
   signOut, 
   onAuthStateChanged,
   User as FirebaseUser,
-} from "firebase/auth";
+} from "firebase/auth/browser";
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
