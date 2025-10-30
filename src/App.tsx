@@ -7,14 +7,8 @@ import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import { auth, isFirebaseConfigValid, signInWithGoogle, sendAuthLink, completeSignInWithLink } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-// FIX: The module 'firebase/auth' has no exported members 'signOut', 'onAuthStateChanged', or 'User'.
-// This can be caused by a dependency or build tool configuration issue.
-// Trying to import from '@firebase/auth' as a potential workaround.
-import { 
-  signOut, 
-  onAuthStateChanged,
-  User as FirebaseUser,
-} from "@firebase/auth";
+// FIX: Removed firebase/auth imports that were causing errors. The functionality is now accessed through the compat `auth` object.
+import type { User as FirebaseUser } from "firebase/auth";
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
@@ -72,7 +66,9 @@ const App: React.FC = () => {
     };
     checkSignInLink();
 
-    const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser: FirebaseUser | null) => {
+    // FIX: Switched from the modular `onAuthStateChanged(auth, ...)` to the compat `auth.onAuthStateChanged(...)` method.
+    // FIX: Removed the explicit type for firebaseUser to allow TypeScript to infer it from the compat SDK.
+    const unsubscribe = auth!.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         // Fetch the full user profile from Firestore, including credits
         const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
@@ -131,7 +127,8 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      if (auth) await signOut(auth);
+      // FIX: Switched from the modular `signOut(auth)` to the compat `auth.signOut()` method.
+      if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
     } catch (error) {

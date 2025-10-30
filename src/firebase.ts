@@ -1,32 +1,11 @@
 
 
-// FIX: Use named imports for firebase/app for compatibility with Firebase v9 modular SDK.
-// This also corrects the import for `FirebaseApp` to be consistent with other type imports.
-import { initializeApp, FirebaseApp } from "firebase/app";
-// FIX: The module 'firebase/auth' has no exported members for auth functions.
-// This can be caused by a dependency or build tool configuration issue.
-// Trying to import from '@firebase/auth' as a potential workaround.
-import { 
-  getAuth, 
-  Auth, 
-  GoogleAuthProvider, 
-  signInWithPopup,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink
-} from "@firebase/auth";
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  serverTimestamp, 
-  increment,
-  Timestamp,
-  Firestore,
-  DocumentData
-} from "firebase/firestore";
+
+// FIX: Switched to Firebase compat imports to resolve module resolution errors.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import { DocumentData } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -45,15 +24,17 @@ export const isFirebaseConfigValid =
   firebaseConfig.messagingSenderId &&
   firebaseConfig.appId;
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+// FIX: Changed types to match the v8 compat SDK.
+let app: firebase.app.App | null = null;
+let auth: firebase.auth.Auth | null = null;
+let db: firebase.firestore.Firestore | null = null;
 
 if (isFirebaseConfigValid) {
   try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+    // FIX: Used compat initialization.
+    app = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
@@ -70,14 +51,16 @@ export const sendAuthLink = async (email: string): Promise<void> => {
     handleCodeInApp: true,
   };
 
-  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  // FIX: Switched to compat method on the auth instance.
+  await auth.sendSignInLinkToEmail(email, actionCodeSettings);
   window.localStorage.setItem(EMAIL_FOR_SIGN_IN, email);
 };
 
 export const completeSignInWithLink = async (): Promise<boolean> => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     
-    if (isSignInWithEmailLink(auth, window.location.href)) {
+    // FIX: Switched to compat method on the auth instance.
+    if (auth.isSignInWithEmailLink(window.location.href)) {
         let email = window.localStorage.getItem(EMAIL_FOR_SIGN_IN);
         if (!email) {
             email = window.prompt('Please provide your email for confirmation');
@@ -87,7 +70,8 @@ export const completeSignInWithLink = async (): Promise<boolean> => {
         }
         
         try {
-            await signInWithEmailLink(auth, email, window.location.href);
+            // FIX: Switched to compat method on the auth instance.
+            await auth.signInWithEmailLink(email, window.location.href);
             window.localStorage.removeItem(EMAIL_FOR_SIGN_IN);
             return true;
         } catch (error) {
@@ -106,12 +90,14 @@ export const completeSignInWithLink = async (): Promise<boolean> => {
  */
 export const signInWithGoogle = async (): Promise<void> => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    const provider = new GoogleAuthProvider();
+    // FIX: Switched to compat syntax for GoogleAuthProvider.
+    const provider = new firebase.auth.GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
+        // FIX: Switched to compat method on the auth instance.
+        const result = await auth.signInWithPopup(provider);
         const user = result.user;
         // This function will either get the existing profile or create a new one with 10 credits.
-        await getOrCreateUserProfile(user.uid, user.displayName, user.email);
+        await getOrCreateUserProfile(user!.uid, user!.displayName, user!.email);
     } catch (error) {
         console.error("Error during Google Sign-In:", error);
         throw error;
@@ -129,20 +115,24 @@ export const signInWithGoogle = async (): Promise<void> => {
  */
 export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null): Promise<DocumentData> => {
   if (!db) throw new Error("Firestore is not initialized.");
-  const userRef = doc(db, "users", uid);
-  const docSnap = await getDoc(userRef);
+  // FIX: Switched to compat syntax for document reference.
+  const userRef = db.collection("users").doc(uid);
+  // FIX: Switched to compat syntax for getting a document.
+  const docSnap = await userRef.get();
 
-  if (docSnap.exists()) {
+  if (docSnap.exists) {
     // Profile exists, check for credit renewal
-    const userData = docSnap.data();
-    const lastRenewal = userData.lastCreditRenewal as Timestamp;
+    const userData = docSnap.data()!;
+    // FIX: Use compat Timestamp type.
+    const lastRenewal = userData.lastCreditRenewal as firebase.firestore.Timestamp;
     const lastRenewalDate = lastRenewal.toDate();
     const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
 
     if (new Date() >= oneMonthLater) {
-      await updateDoc(userRef, {
+      // FIX: Switched to compat syntax for updating a document and serverTimestamp.
+      await userRef.update({
         credits: 10,
-        lastCreditRenewal: serverTimestamp(),
+        lastCreditRenewal: firebase.firestore.FieldValue.serverTimestamp(),
       });
       console.log(`Credits renewed for user ${uid}`);
       return { ...userData, credits: 10 };
@@ -156,10 +146,12 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       name: name || 'New User',
       email: email || 'No Email',
       credits: 10,
-      signUpDate: serverTimestamp(),
-      lastCreditRenewal: serverTimestamp(),
+      // FIX: Use compat serverTimestamp.
+      signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
+      lastCreditRenewal: firebase.firestore.FieldValue.serverTimestamp(),
     };
-    await setDoc(userRef, newUserProfile);
+    // FIX: Switched to compat syntax for setting a document.
+    await userRef.set(newUserProfile);
     // Return the profile data (timestamps will be null until server processes them, which is fine)
     return { ...newUserProfile, credits: 10 };
   }
@@ -182,9 +174,11 @@ export const deductCredits = async (uid: string, amount: number): Promise<Docume
     throw new Error("Insufficient credits.");
   }
 
-  const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
-    credits: increment(-amount),
+  // FIX: Switched to compat syntax for document reference.
+  const userRef = db.collection("users").doc(uid);
+  // FIX: Switched to compat syntax for updating a document and increment.
+  await userRef.update({
+    credits: firebase.firestore.FieldValue.increment(-amount),
   });
 
   return { ...userProfile, credits: userProfile.credits - amount };
@@ -202,9 +196,11 @@ export const addCredits = async (uid: string, amount: number): Promise<DocumentD
   // First, ensure the profile exists and is up-to-date
   const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName, auth?.currentUser?.email);
   
-  const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
-    credits: increment(amount),
+  // FIX: Switched to compat syntax for document reference.
+  const userRef = db.collection("users").doc(uid);
+  // FIX: Switched to compat syntax for updating a document and increment.
+  await userRef.update({
+    credits: firebase.firestore.FieldValue.increment(amount),
   });
 
   return { ...userProfile, credits: userProfile.credits + amount };
