@@ -3,10 +3,12 @@ import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
+// FIX: Use Vite's standard import.meta.env for the API key
+const apiKey = import.meta.env.VITE_API_KEY;
+
 // Initialize the AI client only if the API key is available.
-// The main app will not start if the key is missing, so the console warning here is redundant.
-if (process.env.API_KEY && process.env.API_KEY !== 'undefined') {
-  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+if (apiKey && apiKey !== 'undefined') {
+  ai = new GoogleGenAI({ apiKey: apiKey });
 }
 
 export const analyzeImageContent = async (
@@ -14,7 +16,7 @@ export const analyzeImageContent = async (
   mimeType: string
 ): Promise<string> => {
   if (!ai) {
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -57,7 +59,7 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
   
   try {

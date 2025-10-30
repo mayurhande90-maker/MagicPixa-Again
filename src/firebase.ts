@@ -1,25 +1,26 @@
-
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { DocumentData } from "firebase/firestore";
 
+// FIX: Use Vite's standard import.meta.env for environment variables
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
+// FIX: Use Vite's standard import.meta.env for environment variables
 const allConfigKeys = {
-    "API_KEY (for Gemini)": process.env.API_KEY,
+    "API_KEY (for Gemini)": import.meta.env.VITE_API_KEY,
     "FIREBASE_API_KEY": firebaseConfig.apiKey,
     "FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
     "FIREBASE_PROJECT_ID": firebaseConfig.projectId,
