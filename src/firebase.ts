@@ -1,3 +1,6 @@
+// FIX: Add a triple-slash directive to include Vite's client types, which defines `import.meta.env` for TypeScript and resolves all related errors in this file.
+/// <reference types="vite/client" />
+
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -60,9 +63,13 @@ const EMAIL_FOR_SIGN_IN = 'emailForSignIn';
 
 export const sendAuthLink = async (email: string): Promise<void> => {
   if (!auth) throw new Error("Firebase Auth is not initialized.");
+  // Construct a clean URL by combining origin and pathname. This ensures the user is
+  // redirected to the exact page they initiated the sign-in from, which is more
+  // robust for apps hosted in a subdirectory.
+  const continueUrl = `${window.location.origin}${window.location.pathname}`;
+
   const actionCodeSettings = {
-    // FIX: Using window.location.origin provides a cleaner base URL and is more reliable.
-    url: window.location.origin,
+    url: continueUrl,
     handleCodeInApp: true,
   };
 
