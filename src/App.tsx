@@ -105,12 +105,13 @@ const App: React.FC = () => {
       await sendAuthLink(email);
     } catch (error: any) {
        console.error("Send auth link error:", error);
-       let message = "Failed to send sign-in link. Please check the email and try again.";
-       // Check for specific Firebase error codes to provide better feedback
+       let message;
+       // Provide more specific feedback for the most common error.
        if (error.code === 'auth/unauthorized-continue-uri') {
-            message = `Domain not authorized. The app tried to use "${window.location.origin}", but this domain is not on your Firebase project's "Authorized domains" list. Please add it to fix this issue.`;
-       } else if (error.code === 'auth/invalid-email') {
-           message = "The email address is not valid. Please check and try again.";
+            message = `This domain is not authorized for sign-in. The URL that failed was: ${window.location.origin}. Please go to your Firebase Authentication settings and add this exact domain to the 'Authorized domains' list.`;
+       } else {
+           // For any other error, show the actual message from Firebase for better debugging.
+           message = `An unexpected error occurred: ${error.message} (Code: ${error.code || 'N/A'})`;
        }
        throw new Error(message);
     }
