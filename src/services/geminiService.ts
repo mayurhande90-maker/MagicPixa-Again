@@ -1,3 +1,6 @@
+// FIX: Add reference to vite/client to make TypeScript aware of import.meta.env
+/// <reference types="vite/client" />
+
 import { GoogleGenAI, Modality } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;

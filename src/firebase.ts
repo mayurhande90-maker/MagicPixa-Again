@@ -1,3 +1,6 @@
+// FIX: Add reference to vite/client to make TypeScript aware of import.meta.env
+/// <reference types="vite/client" />
+
 // FIX: Switched to Firebase compat imports to resolve module resolution errors.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';

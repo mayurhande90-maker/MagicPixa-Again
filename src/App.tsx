@@ -1,6 +1,7 @@
 
+
 // FIX: Corrected the React import statement. 'aistudio' is a global and should not be included here. This resolves errors related to useState and useEffect not being found.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
@@ -91,14 +92,22 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const navigateTo = (page: Page) => {
+  const navigateTo = useCallback((page: Page) => {
     if (page === 'dashboard' && !isAuthenticated) {
       setAuthModalOpen(true);
       return;
     }
     setCurrentPage(page);
     window.scrollTo(0, 0);
-  };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && authModalOpen) {
+      setAuthModalOpen(false);
+      navigateTo('dashboard');
+    }
+  }, [isAuthenticated, authModalOpen, navigateTo]);
+
 
   const handleEmailPasswordSubmit = async (email: string, password: string): Promise<void> => {
     try {
