@@ -13,13 +13,13 @@ const ThemeToggle: React.FC = () => {
   ];
 
   return (
-    <div className="flex items-center p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
+    <div className="flex items-center p-1 bg-slate-200 dark:bg-slate-800 rounded-lg">
       {themes.map((t) => (
         <button
           key={t.name}
           onClick={() => setTheme(t.name as 'light' | 'dark' | 'system')}
           className={`p-1.5 rounded-md transition-colors ${
-            theme === t.name ? 'bg-white dark:bg-gray-600/70 text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            theme === t.name ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
           aria-label={`Switch to ${t.name} theme`}
         >
