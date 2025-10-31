@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GoogleIcon } from './icons';
+import { GoogleIcon, MagicPixaLogo } from './icons';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -47,9 +47,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="text-center">
             <div className="flex justify-center items-center gap-2 mb-2">
-                 <h1 id="auth-modal-title" className="text-2xl font-bold text-[#1E1E1E] flex items-center gap-2">
-                    Magic<span className="text-[#0079F2]">Pixa</span>
-                </h1>
+                 <MagicPixaLogo className="h-8 w-auto" />
             </div>
               <p className="text-[#5F6368] mb-6">
                 Sign in or create an account to get started.

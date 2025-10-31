@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Page, AuthProps } from '../App';
 import UserMenu from './UserMenu';
 import { View } from '../DashboardPage';
-import { SparklesIcon } from './icons';
+import { SparklesIcon, MagicPixaLogo } from './icons';
 
 // Add `setActiveView` to AuthProps for the dashboard context
 interface DashboardAuthProps extends AuthProps {
@@ -36,9 +35,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-10">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
-                <h1 className="text-2xl font-bold text-[#1E1E1E] flex items-center gap-2">
-                    Magic<span className="text-[#0079F2]">Pixa</span>
-                </h1>
+                <MagicPixaLogo className="h-8 w-auto" />
             </div>
             <nav className="hidden md:flex items-center gap-6">
                  <button onClick={() => scrollToSection('home')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Home</button>

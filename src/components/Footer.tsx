@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { MagicPixaLogo } from './icons';
 
 const Footer: React.FC = () => {
     const scrollToSection = (id: string) => {
@@ -11,9 +11,7 @@ const Footer: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="md:col-span-1">
-                        <h1 className="text-2xl font-bold text-[#1E1E1E] flex items-center gap-2">
-                           Magic<span className="text-[#0079F2]">Pixa</span>
-                        </h1>
+                        <MagicPixaLogo className="h-8 w-auto" />
                         <p className="mt-2 text-sm">Create, No Prompt Required.</p>
                     </div>
                     <div className="md:col-span-3">
