@@ -82,6 +82,12 @@ export const HelpIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+export const CreditCardIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+);
+
 // FIX: Added SunIcon, MoonIcon, and SystemIcon for ThemeToggle component.
 export const SunIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -128,7 +134,7 @@ export const CaptionIcon: React.FC<{ className?: string }> = ({ className }) => 
 );
 export const ScissorsIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839V12.75a3 3 0 00.51 1.658l2.108 3.651m-3.706-6.387a2.165 2.165 0 00-1.083-1.839m1.083 1.839L10.5 9.375m-2.652-.875a3 3 0 115.196 3 3 3 0 01-5.196-3zM16.152 8.25l-1.536.887m1.536-.887a3 3 0 10-5.196 3 3 3 0 005.196-3zm-1.536.887a2.165 2.165 0 00-1.083 1.839V12.75a3 3 0 01-.51 1.658l-2.108 3.651m3.706-6.387a2.165 2.165 0 011.083-1.839m-1.083 1.839L13.5 9.375" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839V12.75a3 3 0 00.51 1.658l2.108 3.651m-3.706-6.387a2.165 2.165 0 00-1.083-1.839m1.083 1.839L10.5 9.375m-2.652-.875a3 3 0 115.196 3 3 3 0 01-5.196-3zM16.152 8.25l-1.536.887m1.536-.887a3 3 0 10-5.196 3 3 3 0 005.196-3zm-1.536.887a2.165 2.165 0 00-1.083 1.839V12.75a3 3 0 01-.51 1.658l-2.108 3.651m3.706-6.387a2.165 2.165 0 011.083 1.839m-1.083 1.839L13.5 9.375" />
     </svg>
 );
 export const PhotoStudioIcon: React.FC<{ className?: string }> = ({ className }) => (

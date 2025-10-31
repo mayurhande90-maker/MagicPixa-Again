@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../App';
 import { Page } from '../App';
-import { LogoutIcon, DashboardIcon, ProjectsIcon } from './icons';
+import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon } from './icons';
+import { View } from '../DashboardPage';
 
 interface UserMenuProps {
   user: User;
   onLogout: () => void;
   navigateTo: (page: Page) => void;
-  setActiveView?: (view: 'studio' | 'creations') => void;
+  setActiveView?: (view: View) => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {
@@ -49,8 +50,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <button onClick={() => { navigateTo('dashboard'); setActiveView?.('studio'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>
-            <button onClick={() => { /* Placeholder */ setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
+            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('creations'); setIsOpen(false); }} disabled className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
+            </button>
+            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('billing'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
+              <CreditCardIcon className="w-5 h-5" /> Billing
             </button>
           </div>
           <div className="py-2 border-t border-gray-200/80">

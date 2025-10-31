@@ -1,11 +1,16 @@
-
 import React from 'react';
 import { Page, AuthProps } from '../App';
 import UserMenu from './UserMenu';
+import { View } from '../DashboardPage';
+
+// Add `setActiveView` to AuthProps for the dashboard context
+interface DashboardAuthProps extends AuthProps {
+    setActiveView?: (view: View) => void;
+}
 
 interface HeaderProps {
     navigateTo: (page: Page) => void;
-    auth: AuthProps;
+    auth: DashboardAuthProps;
 }
 
 const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
@@ -19,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
         </div>
         <div className="flex items-center gap-4">
             {auth.isAuthenticated && auth.user ? (
-              <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
+              <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
             ) : (
               <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-white text-[#0079F2] px-4 py-2 rounded-xl border-2 border-[#0079F2] hover:bg-blue-50 transition-colors">
                 Sign In

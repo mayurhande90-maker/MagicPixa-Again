@@ -1,18 +1,21 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps } from './App';
-import { editImageWithPrompt, analyzeImageContent } from './services/geminiService';
+import { editImageWithPrompt } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, AspectRatioOneOne, AspectRatioNineSixteen, AspectRatioSixteenNine
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, AspectRatioOneOne, AspectRatioNineSixteen, AspectRatioSixteenNine, ProjectsIcon
 } from './components/icons';
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
   auth: AuthProps;
 }
+
+export type View = 'studio' | 'creations' | 'billing';
 
 const loadingMessages = [
   "Mixing some virtual paint...",
@@ -294,13 +297,37 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     );
 };
 
+const Creations: React.FC = () => (
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col items-center justify-center text-center">
+        <ProjectsIcon className="w-16 h-16 text-gray-300 mb-4" />
+        <h2 className="text-2xl font-bold text-[#1E1E1E]">My Creations</h2>
+        <p className="text-[#5F6368] mt-2 max-w-md">
+            This is where your generated images will be stored. This feature is coming soon!
+        </p>
+    </div>
+);
+
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
+    const [activeView, setActiveView] = useState<View>('studio');
+
+    // Pass `setActiveView` down to the header and user menu
+    const extendedAuthProps = {
+      ...auth,
+      setActiveView,
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
-            <Header navigateTo={navigateTo} auth={auth} />
-            <main className="flex-1">
-                <MagicPhotoStudio auth={auth} />
-            </main>
+            <Header navigateTo={navigateTo} auth={extendedAuthProps} />
+            <div className="flex flex-1" style={{ height: 'calc(100vh - 69px)' }}>
+                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} />
+                <main className="flex-1 overflow-y-auto">
+                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
+                    {activeView === 'creations' && <Creations />}
+                    {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
+                </main>
+            </div>
         </div>
     );
 };
