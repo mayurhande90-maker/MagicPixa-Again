@@ -145,38 +145,8 @@ export const PhotoStudioIcon: React.FC<{ className?: string }> = ({ className })
 );
 
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) => (
-    <svg
-      aria-label="MagicPixa Logo"
-      className={className}
-      viewBox="0 0 184 40"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id="magicpixa-gradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#A855F7" />
-          <stop offset="100%" stopColor="#6366F1" />
-        </linearGradient>
-      </defs>
-      <g>
-        {/* Icon Background */}
-        <rect width="40" height="40" rx="10" fill="#1e293b" />
-        {/* Icon Petals */}
-        <g transform="translate(2, 2)">
-          <path d="M19.1 31.5C27.2 21.1 19.3 14 17.4 6.1L21.4 6.8C22.2 16.3 29.7 22.8 22.5 32.1L19.1 31.5Z" fill="url(#magicpixa-gradient)" opacity="0.6"/>
-          <path d="M23.1 32.5C31.2 22.1 23.3 15 21.4 7.1L25.4 7.8C26.2 17.3 33.7 23.8 26.5 33.1L23.1 32.5Z" fill="url(#magicpixa-gradient)" opacity="0.8"/>
-          <path d="M27.1 33.5C35.2 23.1 27.3 16 25.4 8.1L29.4 8.8C30.2 18.3 37.7 24.8 30.5 34.1L27.1 33.5Z" fill="url(#magicpixa-gradient)"/>
-        </g>
-      </g>
-      {/* Text */}
-      <text
-        x="52"
-        y="29"
-        fontFamily="Poppins, sans-serif"
-        fontSize="24"
-        fontWeight="bold"
-        fill="#1e293b"
-      >
-        MagicPixa
-      </text>
-    </svg>
+  <div className={`font-bold text-3xl select-none ${className}`}>
+    <span className="text-[#1E1E1E]">Magic</span>
+    <span style={{ color: '#ffae00' }}>Pixa</span>
+  </div>
 );

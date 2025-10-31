@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-10">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
-                <MagicPixaLogo className="h-8 w-auto" />
+                <MagicPixaLogo />
             </div>
             <nav className="hidden md:flex items-center gap-6">
                  <button onClick={() => scrollToSection('home')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Home</button>

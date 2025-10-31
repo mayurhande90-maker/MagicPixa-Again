@@ -47,7 +47,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="text-center">
             <div className="flex justify-center items-center gap-2 mb-2">
-                 <MagicPixaLogo className="h-8 w-auto" />
+                 <MagicPixaLogo />
             </div>
               <p className="text-[#5F6368] mb-6">
                 Sign in or create an account to get started.
