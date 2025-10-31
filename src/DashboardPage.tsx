@@ -192,14 +192,27 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                         ) : (
                              <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                                 <div
-                                    className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50"
+                                    className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                     onClick={!originalImage ? triggerFileInput : undefined}
-                                    role="button" tabIndex={!originalImage ? 0 : -1} aria-label="Upload an image"
+                                    role="button" tabIndex={!originalImage ? 0 : -1} aria-label={!originalImage ? "Upload an image" : ""}
                                 >
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                                    {originalImage && <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />}
-                                    {!originalImage && (
-                                        <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                    
+                                    {originalImage ? (
+                                        <>
+                                            <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                            <button
+                                                onClick={triggerFileInput}
+                                                disabled={isLoading}
+                                                className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md disabled:opacity-50"
+                                                aria-label="Change photo"
+                                                title="Change photo"
+                                            >
+                                                <RetryIcon className="w-5 h-5" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                         <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                                             <div className="flex flex-col items-center gap-2 text-[#5F6368]">
                                                 <UploadIcon className="w-12 h-12" />
                                                 <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
@@ -207,6 +220,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                             </div>
                                         </div>
                                     )}
+
                                     {isLoading && (
                                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
                                             <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
