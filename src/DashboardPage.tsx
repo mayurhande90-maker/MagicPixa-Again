@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, AspectRatioOneOne, AspectRatioNineSixteen, AspectRatioSixteenNine, ProjectsIcon
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -25,35 +25,6 @@ const loadingMessages = [
   "Just a moment...",
 ];
 
-const AspectRatioSelector: React.FC<{ selected: string; onSelect: (ratio: string) => void; }> = ({ selected, onSelect }) => {
-    const ratios = [
-        { id: '1:1', icon: <AspectRatioOneOne className="w-6 h-6" />, style: 'bg-white border-[#0079F2] text-[#0079F2]' },
-        { id: '9:16', icon: <AspectRatioNineSixteen className="w-6 h-6" />, style: 'bg-white border-gray-300 text-gray-500' },
-        { id: '16:9', icon: <AspectRatioSixteenNine className="w-6 h-6" />, style: 'bg-[#FFD84D] border-[#FFD84D] text-[#1E1E1E]' },
-    ];
-
-    return (
-        <div className="flex justify-center items-center gap-4 bg-white p-2 rounded-xl shadow-md border border-gray-200/80">
-            {ratios.map(ratio => {
-                const isSelected = selected === ratio.id;
-                return (
-                    <button 
-                        key={ratio.id} 
-                        onClick={() => onSelect(ratio.id)}
-                        className={`p-3 rounded-lg border-2 transition-all duration-200 transform hover:scale-105 ${
-                            isSelected ? ratio.style : 'bg-gray-100 border-transparent text-gray-400'
-                        }`}
-                        aria-label={`Select aspect ratio ${ratio.id}`}
-                    >
-                        {ratio.icon}
-                    </button>
-                );
-            })}
-        </div>
-    );
-};
-
-
 const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -61,7 +32,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [aspectRatio, setAspectRatio] = useState<string>('1:1');
     
     const [guestCredits, setGuestCredits] = useState<number>(() => {
         const saved = sessionStorage.getItem('magicpixa-guest-credits');
@@ -175,11 +145,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         if (!generatedImage) return;
         const link = document.createElement('a');
         link.href = generatedImage;
-        link.download = `magicpixa_${aspectRatio}.png`;
+        link.download = `magicpixa_image.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }, [generatedImage, aspectRatio]);
+    }, [generatedImage]);
 
     const triggerFileInput = () => {
         if (isLoading) return;
@@ -202,8 +172,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
                 
                 <div className="flex flex-col items-center gap-8">
-                    <AspectRatioSelector selected={aspectRatio} onSelect={setAspectRatio} />
-                    
                     <div className="w-full max-w-lg aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div
                             className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center cursor-pointer"
