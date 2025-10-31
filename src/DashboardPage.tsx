@@ -11,7 +11,7 @@ import {
 } from './components/icons';
 import ThemeToggle from './components/ThemeToggle';
 import UserMenu from './components/UserMenu';
-import Billing from './components/Billing';
+
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
@@ -353,7 +353,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
-    const [activeView, setActiveView] = useState<'studio' | 'creations' | 'billing'>('studio');
+    const [activeView, setActiveView] = useState<'studio' | 'creations'>('studio');
     
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? undefined : auth.user?.credits;
@@ -453,9 +453,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                                 <div className="text-right">
                                    <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">Credits: {currentCredits}</p>
                                 </div>
-                                <button onClick={() => setActiveView('billing')} className="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                    Get Credits
-                                </button>
                             </div>
                         )}
                         <ThemeToggle />
@@ -470,7 +467,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 </header>
                 <main className="flex-1">
                     {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
-                    {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>
             </div>
         </div>

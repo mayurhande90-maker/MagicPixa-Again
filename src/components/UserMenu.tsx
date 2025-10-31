@@ -8,7 +8,7 @@ interface UserMenuProps {
   onLogout: () => void;
   navigateTo: (page: Page) => void;
   // FIX: Changed the type of `setActiveView` to be more specific, matching the state in DashboardPage.
-  setActiveView?: (view: 'studio' | 'creations' | 'billing') => void;
+  setActiveView?: (view: 'studio' | 'creations') => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {

@@ -169,9 +169,9 @@ export const deductCredits = async (uid: string, amount: number): Promise<Docume
 export const addCredits = async (uid: string, amount: number): Promise<DocumentData> => {
   if (!db) throw new Error("Firestore is not initialized.");
   
-  // First, ensure the profile exists and is up-to-date
+  // Ensure the user profile exists.
   const userProfile = await getOrCreateUserProfile(uid, auth?.currentUser?.displayName, auth?.currentUser?.email);
-  
+
   // FIX: Switched to compat syntax for document reference.
   const userRef = db.collection("users").doc(uid);
   // FIX: Switched to compat syntax for updating a document and increment.
@@ -179,6 +179,7 @@ export const addCredits = async (uid: string, amount: number): Promise<DocumentD
     credits: firebase.firestore.FieldValue.increment(amount),
   });
 
+  // Return the new profile state
   return { ...userProfile, credits: userProfile.credits + amount };
 };
 
