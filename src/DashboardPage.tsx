@@ -209,7 +209,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                     )}
                                     {isLoading && (
                                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                            <SparklesIcon className="w-12 h-12 text-[#ffae00] animate-pulse" />
+                                            <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
                                             <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
                                         </div>
                                     )}
@@ -232,7 +232,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
                             {generatedImage ? (
                                 <div className="space-y-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#ffae00] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
                                         <DownloadIcon className="w-6 h-6" />
                                         Download Image
                                     </button>
@@ -255,7 +255,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                     <button 
                                         onClick={handleGenerateClick} 
                                         disabled={!originalImage || isLoading || hasInsufficientCredits} 
-                                        className="w-full flex items-center justify-center gap-3 bg-[#ffae00] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                                        className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                                     >
                                         <SparklesIcon className="w-6 h-6" />
                                         Generate

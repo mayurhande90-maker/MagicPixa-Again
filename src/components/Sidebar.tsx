@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) =>
           <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits}</p>
           <button 
             onClick={() => setActiveView('billing')}
-            className="w-full mt-3 bg-[#FFD84D] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
+            className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
           >
             Get More Credits
           </button>

@@ -147,6 +147,6 @@ export const PhotoStudioIcon: React.FC<{ className?: string }> = ({ className })
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`font-bold text-3xl select-none ${className}`}>
     <span className="text-[#1E1E1E]">Magic</span>
-    <span style={{ color: '#ffae00' }}>Pixa</span>
+    <span style={{ color: '#f9d230' }}>Pixa</span>
   </div>
 );

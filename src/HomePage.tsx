@@ -115,7 +115,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     </p>
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                      className="bg-[#FFD84D] text-[#1E1E1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/20"
+                      className="bg-[#f9d230] text-[#1E1E1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-[#f9d230]/40"
                     >
                         Start Creating for Free
                     </button>
