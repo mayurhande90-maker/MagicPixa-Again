@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Page, AuthProps } from './App';
 import Header from './components/Header';
@@ -124,7 +125,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
 
         {/* Features Section */}
         <section id="features" className="py-20 px-4 bg-[#F9FAFB]">
-            <div className="max-w-6xl mx-auto text-center">
+            <div className="max-w-6xl mx-auto text-center bg-white p-12 md:p-16 rounded-3xl shadow-sm border border-gray-200/80">
                 <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Everything You Need to Create</h2>
                 <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
