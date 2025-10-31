@@ -15,12 +15,13 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
-  const isHomePage = window.location.pathname === '/' || window.location.hash.startsWith('#');
-
   const scrollToSection = (id: string) => {
-    if (window.location.pathname !== '/') {
+    // Check if we are on the home page by looking for a unique home page element.
+    const isHomePage = !!document.getElementById('pricing'); 
+
+    if (!isHomePage) {
         navigateTo('home');
-        // Need a slight delay for the page to switch before scrolling
+        // Need a slight delay for React to render the home page before we can scroll.
         setTimeout(() => {
             document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
         }, 100);

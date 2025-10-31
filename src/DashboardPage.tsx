@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -170,66 +170,47 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     {/* Left Panel: Image Canvas */}
                     <div className="lg:col-span-3">
-                        {generatedImage && originalImage ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <div className="flex justify-between items-center pb-2">
-                                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Before</span>
-                                    </div>
-                                    <div className="aspect-square bg-white rounded-lg overflow-hidden border border-gray-200/80 shadow-sm">
-                                        <img src={originalImage.url} alt="Original" className="w-full h-full object-contain" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between items-center pb-2">
-                                        <span className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">After</span>
-                                    </div>
-                                    <div className="aspect-square bg-white rounded-lg overflow-hidden border border-emerald-500/50 shadow-sm">
-                                        <img src={generatedImage} alt="Generated" className="w-full h-full object-contain" />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                             <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                                <div
-                                    className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
-                                    onClick={!originalImage ? triggerFileInput : undefined}
-                                    role="button" tabIndex={!originalImage ? 0 : -1} aria-label={!originalImage ? "Upload an image" : ""}
-                                >
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                                    
-                                    {originalImage ? (
-                                        <>
-                                            <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                            <button
-                                                onClick={triggerFileInput}
-                                                disabled={isLoading}
-                                                className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md disabled:opacity-50"
-                                                aria-label="Change photo"
-                                                title="Change photo"
-                                            >
-                                                <ArrowUpCircleIcon className="w-6 h-6" />
-                                            </button>
-                                        </>
-                                    ) : (
-                                         <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                            <div className="flex flex-col items-center gap-2 text-[#5F6368]">
-                                                <UploadIcon className="w-12 h-12" />
-                                                <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
-                                                <span className="text-sm">or click to upload</span>
-                                            </div>
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage && !generatedImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!originalImage && !generatedImage ? triggerFileInput : undefined}
+                                role="button" tabIndex={!originalImage && !generatedImage ? 0 : -1} aria-label={!originalImage ? "Upload an image" : ""}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                
+                                {generatedImage ? (
+                                    <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : originalImage ? (
+                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <UploadIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                            <span className="text-sm">or click to upload</span>
                                         </div>
-                                    )}
+                                    </div>
+                                )}
 
-                                    {isLoading && (
-                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                            <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                                            <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
-                                        </div>
-                                    )}
-                                </div>
+                                {(originalImage || generatedImage) && !isLoading && (
+                                     <button
+                                        onClick={triggerFileInput}
+                                        className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                        aria-label="Change photo"
+                                        title="Change photo"
+                                    >
+                                        <ArrowUpCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                     
                     {/* Right Panel: Controls */}
@@ -238,9 +219,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                            <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
                            <p className='text-sm text-[#5F6368]'>Your creative cockpit</p>
                         </div>
-                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
-                            <p className="font-bold text-sm text-blue-800 mb-1">Pro Tip</p>
-                            <p className="text-xs text-blue-700">For best results, upload a clear, well-lit photo where the subject is facing forward.</p>
+                         <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                <p className="text-xs text-yellow-700">For best results, upload a clear, well-lit photo where the subject is facing forward.</p>
+                            </div>
                         </div>
 
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
@@ -257,7 +241,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                         </button>
                                         <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
                                             <UploadIcon className="w-5 h-5" />
-                                            New Image
+                                            Upload New
                                         </button>
                                     </div>
                                     <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
