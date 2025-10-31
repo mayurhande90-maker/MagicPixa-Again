@@ -8,7 +8,7 @@ interface UserMenuProps {
   onLogout: () => void;
   navigateTo: (page: Page) => void;
   // FIX: Changed the type of `setActiveView` to be more specific, matching the state in DashboardPage.
-  setActiveView?: (view: 'studio' | 'creations') => void;
+  setActiveView?: (view: 'studio' | 'creations' | 'billing') => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {
@@ -39,7 +39,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-20"
+          className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20"
           role="menu"
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-700">
@@ -50,7 +50,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <button onClick={() => { navigateTo('dashboard'); setActiveView?.('studio'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>
-            <button onClick={() => { /* Placeholder */ setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50" role="menuitem">
+            <button onClick={() => { /* Placeholder */ setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
             </button>
           </div>

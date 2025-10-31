@@ -48,7 +48,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {creditPackages.map((pkg, index) => (
-          <div key={index} className={`relative bg-white dark:bg-slate-900/50 p-8 rounded-2xl border-2 transition-all ${pkg.bestValue ? 'border-blue-600' : 'border-slate-200 dark:border-slate-800'}`}>
+          <div key={index} className={`relative bg-white dark:bg-slate-900 p-8 rounded-xl border-2 transition-colors ${pkg.bestValue ? 'border-blue-600' : 'border-slate-200 dark:border-slate-800'}`}>
             {pkg.bestValue && (
               <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 Best Value
@@ -61,12 +61,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
               <button
                 onClick={() => handlePurchase(pkg.credits, index)}
                 disabled={loadingPackage !== null}
-                className={`w-full font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:scale-100 disabled:opacity-50 disabled:cursor-wait ${
+                className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait ${
                   purchasedPackage === index
                     ? 'bg-green-500 text-white'
                     : pkg.bestValue
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
                 }`}
               >
                 {loadingPackage === index ? (

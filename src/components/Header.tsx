@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
             {auth.isAuthenticated && auth.user ? (
               <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
             ) : (
-              <button onClick={() => auth.openAuthModal()} className="text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors">
+              <button onClick={() => auth.openAuthModal()} className="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 Sign In
               </button>
             )}

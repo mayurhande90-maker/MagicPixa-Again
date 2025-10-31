@@ -11,6 +11,7 @@ import {
 } from './components/icons';
 import ThemeToggle from './components/ThemeToggle';
 import UserMenu from './components/UserMenu';
+import Billing from './components/Billing';
 
 interface DashboardPageProps {
   navigateTo: (page: Page) => void;
@@ -214,9 +215,9 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
             
             <div className='flex-grow'>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                         <div
-                            className="relative border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center"
+                            className="relative border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-black/20 transition-colors duration-300 h-full min-h-[400px] flex items-center justify-center"
                             onClick={!originalImage ? triggerFileInput : undefined}
                             role="button"
                             tabIndex={!originalImage ? 0 : -1}
@@ -237,7 +238,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
                              {(originalImage || generatedImage) && !error && (
                                 <>
-                                    <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated product" : "Original product"} className="max-h-full h-auto w-auto object-contain rounded-md" />
                                     {!isLoading && (
                                         <button 
                                             onClick={triggerFileInput}
@@ -252,7 +253,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                              )}
 
                             {isLoading && (
-                                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl p-4 text-center">
+                                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center">
                                     <div className="w-full max-w-sm">
                                         <div className="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
                                             <div className="bg-blue-500 h-2.5 rounded-full progress-bar-animated w-full"></div>
@@ -268,7 +269,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                                 <div className='w-full h-full flex flex-col items-center justify-center gap-4 p-4'>
                                     <div className="text-red-500 bg-red-100 dark:text-red-400 dark:bg-red-900/50 p-4 rounded-lg w-full max-w-md text-center">{error}</div>
                                     <button onClick={handleStartOver}
-                                        className="w-full max-w-xs flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                                        className="w-full max-w-xs flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
                                         <RetryIcon className="w-6 h-6" />
                                         Try Again
                                     </button>
@@ -277,7 +278,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                         </div>
                     </div>
                      <div className="space-y-8">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-900 dark:text-white"><SparklesIcon className="w-5 h-5 text-blue-500" /> Configuration</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Upload a clear, front-facing photo for best results.</p>
                             {(isAnalyzing || imageDescription) && (
@@ -296,12 +297,12 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                              <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Actions</h3>
                              
                              {generatedImage ? (
                                 <div className="space-y-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
                                         <DownloadIcon className="w-6 h-6" />
                                         Download Image
                                     </button>
@@ -309,7 +310,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                                         <button
                                             onClick={handleGenerateClick}
                                             disabled={isLoading || hasInsufficientCredits}
-                                            className="w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Generate a new image using the same product photo"
                                         >
                                             <RetryIcon className="w-5 h-5" />
@@ -318,7 +319,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                                         <button
                                             onClick={handleStartOver}
                                             disabled={isLoading}
-                                            className="w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50"
+                                            className="w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
                                             title="Start over with a new image"
                                         >
                                             <UploadIcon className="w-5 h-5" />
@@ -332,7 +333,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
                              ) : (
                                 <>
                                  <button onClick={handleGenerateClick} disabled={isLoading || !originalImage || hasInsufficientCredits || isAnalyzing}
-                                    className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100">
+                                    className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors">
                                     {getButtonText()}
                                  </button>
                                  <p className={`text-xs text-center mt-3 ${hasInsufficientCredits && originalImage ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
@@ -352,7 +353,7 @@ const MagicPhotoStudio: React.FC<MagicPhotoStudioProps> = ({ auth }) => {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
     const [openCategories, setOpenCategories] = useState<string[]>(['AI Photo Enhancements']);
-    const [activeView, setActiveView] = useState<'studio' | 'creations'>('studio');
+    const [activeView, setActiveView] = useState<'studio' | 'creations' | 'billing'>('studio');
     
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? undefined : auth.user?.credits;
@@ -374,18 +375,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
         {
             name: 'AI Photo Enhancements',
             tools: [
-                { name: 'Magic Enhance', icon: SparklesIcon },
-                { name: 'Background Eraser', icon: ScissorsIcon },
-                { name: 'AI Photo Studio', icon: PhotoStudioIcon },
+                { name: 'Magic Enhance', icon: SparklesIcon, comingSoon: true },
+                { name: 'Background Eraser', icon: ScissorsIcon, comingSoon: true },
+                { name: 'AI Photo Studio', icon: PhotoStudioIcon, active: true },
             ]
         },
         {
-            name: 'Productivity & Content Tools',
+            name: 'Productivity & Content',
             tools: [
-                { name: 'DocuScan Pro', icon: ScannerIcon },
-                { name: 'PDF Master Suite', icon: NotesIcon },
-                { name: 'Smart Notes Generator', icon: NotesIcon },
-                { name: 'AutoCaption AI', icon: CaptionIcon },
+                { name: 'DocuScan Pro', icon: ScannerIcon, comingSoon: true },
+                { name: 'PDF Master Suite', icon: NotesIcon, comingSoon: true },
+                { name: 'AutoCaption AI', icon: CaptionIcon, comingSoon: true },
             ]
         },
     ];
@@ -415,7 +415,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                     </div>
 
                     <div>
-                         <h3 className="px-3 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wider">AI Tools</h3>
+                         <h3 className="px-3 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wider mt-4">AI Tools</h3>
                          <div className="space-y-1 mt-2">
                             {toolCategories.map(category => (
                                 <div key={category.name}>
@@ -428,8 +428,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                                     {openCategories.includes(category.name) && (
                                         <div className="mt-1 ml-4 pl-4 border-l border-slate-200 dark:border-slate-700 space-y-1">
                                             {category.tools.map(tool => (
-                                                <a key={tool.name} href="#" className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${tool.name === 'AI Photo Studio' ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'}`}>
-                                                    <tool.icon className="w-4 h-4" /> {tool.name}
+                                                <a key={tool.name} href="#" className={`flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${tool.active ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'} ${tool.comingSoon ? 'cursor-not-allowed' : ''}`}>
+                                                    <span className="flex items-center gap-3"><tool.icon className="w-4 h-4" /> {tool.name}</span>
+                                                    {tool.comingSoon && <span className="text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full">Soon</span>}
                                                 </a>
                                             ))}
                                         </div>
@@ -452,13 +453,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                                 <div className="text-right">
                                    <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">Credits: {currentCredits}</p>
                                 </div>
+                                <button onClick={() => setActiveView('billing')} className="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Get Credits
+                                </button>
                             </div>
                         )}
                         <ThemeToggle />
                         {auth.isAuthenticated && auth.user ? (
                            <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={setActiveView} />
                         ) : (
-                           <button onClick={() => auth.openAuthModal()} className="text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors">
+                           <button onClick={() => auth.openAuthModal()} className="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                Sign In
                            </button>
                         )}
@@ -466,6 +470,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 </header>
                 <main className="flex-1">
                     {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
+                    {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>
             </div>
         </div>
