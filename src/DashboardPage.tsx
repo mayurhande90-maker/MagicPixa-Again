@@ -159,12 +159,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
     
     const hasInsufficientCredits = currentCredits < GENERATION_COST;
 
-    const getButtonText = () => {
-        if (isGuest && hasInsufficientCredits && originalImage) return 'Sign Up for More';
-        if (!isGuest && hasInsufficientCredits && originalImage) return 'Get More Credits';
-        return 'Generate Image';
-    };
-
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
              <div className='w-full max-w-7xl mx-auto'>
@@ -196,7 +190,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                 </div>
                             </div>
                         ) : (
-                             <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                             <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                                 <div
                                     className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50"
                                     onClick={!originalImage ? triggerFileInput : undefined}
@@ -215,7 +209,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                     )}
                                     {isLoading && (
                                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                            <SparklesIcon className="w-12 h-12 text-[#FFD84D] animate-pulse" />
+                                            <SparklesIcon className="w-12 h-12 text-[#ffae00] animate-pulse" />
                                             <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
                                         </div>
                                     )}
@@ -230,37 +224,15 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                            <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
                            <p className='text-sm text-[#5F6368]'>Your creative cockpit</p>
                         </div>
-                         <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-center">
-                            <p className="text-sm text-yellow-700 mb-1">Credits Remaining</p>
-                            <p className="text-3xl font-bold text-yellow-900">{currentCredits}</p>
+                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
+                            <p className="font-bold text-sm text-blue-800 mb-1">Pro Tip</p>
+                            <p className="text-xs text-blue-700">For best results, upload a clear, well-lit photo where the subject is facing forward.</p>
                         </div>
 
-                        <div className="space-y-4">
-                           {!originalImage && (
-                                <button onClick={triggerFileInput} className="w-full flex items-center justify-center gap-3 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors">
-                                    <UploadIcon className="w-6 h-6" />
-                                    Upload Your Image
-                                </button>
-                           )}
-
-                           {originalImage && !generatedImage && (
-                               <>
-                                <button onClick={handleGenerateClick} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                    <SparklesIcon className="w-6 h-6" />
-                                    {getButtonText()}
-                                </button>
-                                <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
-                                    {hasInsufficientCredits
-                                        ? (isGuest ? 'Sign up for 10 free credits!' : 'Insufficient Credits')
-                                        : `This action will cost ${GENERATION_COST} credits.`}
-                                </p>
-                                <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                               </>
-                           )}
-
-                           {generatedImage && (
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            {generatedImage ? (
                                 <div className="space-y-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#ffae00] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
                                         <DownloadIcon className="w-6 h-6" />
                                         Download Image
                                     </button>
@@ -278,7 +250,32 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                        Regeneration costs {GENERATION_COST} credits.
                                     </p>
                                 </div>
-                           )}
+                            ) : (
+                                <>
+                                    <button 
+                                        onClick={handleGenerateClick} 
+                                        disabled={!originalImage || isLoading || hasInsufficientCredits} 
+                                        className="w-full flex items-center justify-center gap-3 bg-[#ffae00] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                                    >
+                                        <SparklesIcon className="w-6 h-6" />
+                                        Generate
+                                    </button>
+                                    {originalImage ? (
+                                        <>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
+                                                {hasInsufficientCredits
+                                                    ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.')
+                                                    : `This generation will cost ${GENERATION_COST} credits.`}
+                                            </p>
+                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
+                                        </>
+                                    ) : (
+                                        <p className="text-xs text-center text-[#5F6368]">
+                                            Click the canvas on the left to upload a photo.
+                                        </p>
+                                    )}
+                                </>
+                            )}
                         </div>
 
                         {error && (
