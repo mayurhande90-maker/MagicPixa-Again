@@ -25,7 +25,7 @@ const loadingMessages = [
   "Just a moment...",
 ];
 
-const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) => void; }> = ({ auth, setActiveView }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -118,6 +118,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
         if (currentCredits < GENERATION_COST) {
             if (isGuest) auth.openAuthModal();
+            else setActiveView('billing');
             return;
         }
 
@@ -139,7 +140,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, currentCredits, auth, isGuest, setGuestCredits]);
+    }, [base64Data, currentCredits, auth, isGuest, setGuestCredits, setActiveView]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -160,104 +161,135 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const getButtonText = () => {
         if (isGuest && hasInsufficientCredits && originalImage) return 'Sign Up for More';
+        if (!isGuest && hasInsufficientCredits && originalImage) return 'Get More Credits';
         return 'Generate Image';
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full flex flex-col items-center'>
-            <div className='w-full max-w-4xl mx-auto'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-12 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
-                    <p className="text-[#5F6368] mt-2">Transform your photo into a masterpiece.</p>
+                    <p className="text-[#5F6368] mt-2">Transform your photo into a masterpiece in one click.</p>
                 </div>
                 
-                <div className="flex flex-col items-center gap-8">
-                    <div className="w-full max-w-lg aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div
-                            className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center cursor-pointer"
-                            onClick={!originalImage ? triggerFileInput : undefined}
-                            role="button"
-                            tabIndex={!originalImage ? 0 : -1}
-                            aria-label="Upload a product image"
-                        >
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                            
-                            {!originalImage && !error && (
-                                <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                    <div className="flex flex-col items-center gap-2 text-[#5F6368]">
-                                        <UploadIcon className="w-12 h-12" />
-                                        <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
-                                        <span className="text-sm">or click to upload</span>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Left Panel: Image Canvas */}
+                    <div className="lg:col-span-3">
+                        {generatedImage && originalImage ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <div className="flex justify-between items-center pb-2">
+                                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Before</span>
+                                    </div>
+                                    <div className="aspect-square bg-white rounded-lg overflow-hidden border border-gray-200/80 shadow-sm">
+                                        <img src={originalImage.url} alt="Original" className="w-full h-full object-contain" />
                                     </div>
                                 </div>
-                            )}
-
-                             {(originalImage || generatedImage) && !error && (
-                                <img src={generatedImage || originalImage?.url} alt={generatedImage ? "Generated" : "Original"} className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                             )}
-
-                            {isLoading && (
-                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center">
-                                    <SparklesIcon className="w-12 h-12 text-[#FFD84D] animate-pulse" />
-                                    <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">
-                                        {loadingMessage}
-                                    </p>
-                                </div>
-                            )}
-
-                            {error && (
-                                <div className='w-full h-full flex flex-col items-center justify-center gap-4 p-4'>
-                                    <div className="text-red-600 bg-red-100 p-4 rounded-lg w-full max-w-md text-center">{error}</div>
-                                    <button onClick={handleStartOver}
-                                        className="flex items-center justify-center gap-3 bg-[#0079F2] hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl transition-colors">
-                                        <RetryIcon className="w-6 h-6" />
-                                        Try Again
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="w-full max-w-sm">
-                        {generatedImage ? (
-                            <div className="space-y-4">
-                                <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                    <DownloadIcon className="w-6 h-6" />
-                                    Download Image
-                                </button>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button
-                                        onClick={handleGenerateClick}
-                                        disabled={isLoading || hasInsufficientCredits}
-                                        className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <RetryIcon className="w-5 h-5" />
-                                        Regenerate
-                                    </button>
-                                    <button
-                                        onClick={handleStartOver}
-                                        disabled={isLoading}
-                                        className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
-                                    >
-                                        <UploadIcon className="w-5 h-5" />
-                                        New Image
-                                    </button>
+                                <div>
+                                    <div className="flex justify-between items-center pb-2">
+                                        <span className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">After</span>
+                                    </div>
+                                    <div className="aspect-square bg-white rounded-lg overflow-hidden border border-emerald-500/50 shadow-sm">
+                                        <img src={generatedImage} alt="Generated" className="w-full h-full object-contain" />
+                                    </div>
                                 </div>
                             </div>
                         ) : (
-                            <button 
-                                onClick={handleGenerateClick} 
-                                disabled={isLoading || !originalImage || hasInsufficientCredits}
-                                className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-                            >
-                                {getButtonText()}
-                            </button>
+                             <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                                <div
+                                    className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50"
+                                    onClick={!originalImage ? triggerFileInput : undefined}
+                                    role="button" tabIndex={!originalImage ? 0 : -1} aria-label="Upload an image"
+                                >
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                    {originalImage && <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />}
+                                    {!originalImage && (
+                                        <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                            <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                                <UploadIcon className="w-12 h-12" />
+                                                <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                                <span className="text-sm">or click to upload</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {isLoading && (
+                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                            <SparklesIcon className="w-12 h-12 text-[#FFD84D] animate-pulse" />
+                                            <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
-                        <p className={`text-xs text-center mt-3 ${hasInsufficientCredits && originalImage ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
-                            {originalImage && hasInsufficientCredits
-                                ? (isGuest ? 'Sign up for 10 free credits!' : 'Insufficient Credits')
-                                : originalImage ? `This costs ${GENERATION_COST} credits.` : `You have ${currentCredits} credits.`}
-                        </p>
+                    </div>
+                    
+                    {/* Right Panel: Controls */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                           <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
+                           <p className='text-sm text-[#5F6368]'>Your creative cockpit</p>
+                        </div>
+                         <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-center">
+                            <p className="text-sm text-yellow-700 mb-1">Credits Remaining</p>
+                            <p className="text-3xl font-bold text-yellow-900">{currentCredits}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                           {!originalImage && (
+                                <button onClick={triggerFileInput} className="w-full flex items-center justify-center gap-3 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors">
+                                    <UploadIcon className="w-6 h-6" />
+                                    Upload Your Image
+                                </button>
+                           )}
+
+                           {originalImage && !generatedImage && (
+                               <>
+                                <button onClick={handleGenerateClick} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                    <SparklesIcon className="w-6 h-6" />
+                                    {getButtonText()}
+                                </button>
+                                <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
+                                    {hasInsufficientCredits
+                                        ? (isGuest ? 'Sign up for 10 free credits!' : 'Insufficient Credits')
+                                        : `This action will cost ${GENERATION_COST} credits.`}
+                                </p>
+                                <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
+                               </>
+                           )}
+
+                           {generatedImage && (
+                                <div className="space-y-4">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#FFD84D] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                        <DownloadIcon className="w-6 h-6" />
+                                        Download Image
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={handleGenerateClick} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <RetryIcon className="w-5 h-5" />
+                                            Regenerate
+                                        </button>
+                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                            <UploadIcon className="w-5 h-5" />
+                                            New Image
+                                        </button>
+                                    </div>
+                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
+                                       Regeneration costs {GENERATION_COST} credits.
+                                    </p>
+                                </div>
+                           )}
+                        </div>
+
+                        {error && (
+                            <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'>
+                                <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>
+                                <button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800">
+                                    <RetryIcon className="w-4 h-4" />
+                                    Try Again
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -291,7 +323,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
             <div className="flex flex-1" style={{ height: 'calc(100vh - 69px)' }}>
                 <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} />
                 <main className="flex-1 overflow-y-auto">
-                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} />}
+                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} setActiveView={setActiveView} />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>
