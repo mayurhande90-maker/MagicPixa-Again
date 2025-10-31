@@ -1,12 +1,9 @@
-// FIX: Corrected the React import statement. 'aistudio' is a global and should not be included here. This resolves errors related to useState and useEffect not being found.
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThemeProvider } from './theme';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-// FIX: Removed firebase/auth imports that were causing errors. The functionality is now accessed through the compat `auth` object.
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
@@ -30,11 +27,7 @@ export interface AuthProps {
 const App: React.FC = () => {
   if (!isConfigValid) {
     const missingKeys = getMissingConfigKeys();
-    return (
-      <ThemeProvider>
-        <ConfigurationError missingKeys={missingKeys} />
-      </ThemeProvider>
-    );
+    return <ConfigurationError missingKeys={missingKeys} />;
   }
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -55,11 +48,8 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // FIX: Switched from the modular `onAuthStateChanged(auth, ...)` to the compat `auth.onAuthStateChanged(...)` method.
-    // FIX: Removed the explicit type for firebaseUser to allow TypeScript to infer it from the compat SDK.
     const unsubscribe = auth!.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch the full user profile from Firestore, including credits
         const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
         
         const userToSet: User = {
@@ -100,7 +90,7 @@ const App: React.FC = () => {
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
       await signInWithGoogle();
-      setAuthModalOpen(false); // Close modal on success
+      setAuthModalOpen(false);
       setCurrentPage('dashboard');
       window.scrollTo(0,0);
     } catch (error: any) {
@@ -114,7 +104,6 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // FIX: Switched from the modular `signOut(auth)` to the compat `auth.signOut()` method.
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
@@ -136,8 +125,8 @@ const App: React.FC = () => {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
-        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
+        <svg className="animate-spin h-8 w-8 text-[#0079F2]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -146,18 +135,16 @@ const App: React.FC = () => {
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen transition-colors duration-300">
-        {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-        {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
-      </div>
+    <div className="min-h-screen">
+      {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
+      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 
           onGoogleSignIn={handleGoogleSignIn} 
         />
       )}
-    </ThemeProvider>
+    </div>
   );
 };
 

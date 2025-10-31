@@ -2,39 +2,9 @@ import React from 'react';
 
 const Footer: React.FC = () => {
     return (
-        <footer className="bg-white dark:bg-black border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        Magic<span className="text-blue-600 dark:text-blue-400">Pixa</span>
-                    </h1>
-                    <p className="mt-4 text-sm">Instant image generation, zero typing.</p>
-                </div>
-                <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white tracking-wider">Product</h3>
-                    <ul className="mt-4 space-y-2">
-                        <li><a href="#features" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">Features</a></li>
-                        <li><a href="#pricing" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</a></li>
-                         <li><a href="#how-it-works" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">How it works</a></li>
-                    </ul>
-                </div>
-                 <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white tracking-wider">Company</h3>
-                    <ul className="mt-4 space-y-2">
-                        <li><a href="#" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">About Us</a></li>
-                        <li><a href="#" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">Contact</a></li>
-                    </ul>
-                </div>
-                 <div>
-                     <h3 className="font-semibold text-slate-900 dark:text-white tracking-wider">Legal</h3>
-                     <ul className="mt-4 space-y-2">
-                        <li><a href="#" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" className="text-sm hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div className="mt-12 border-t border-slate-200 dark:border-slate-800 pt-8 text-center text-sm">
-                <p>&copy; {new Date().getFullYear()} MagicPixa. All rights reserved.</p>
+        <footer className="bg-[#F9FAFB] text-[#5F6368] py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto text-center border-t border-gray-200/80 pt-8">
+                <p className="text-sm">&copy; {new Date().getFullYear()} MagicPixa. All rights reserved.</p>
             </div>
         </footer>
     );
