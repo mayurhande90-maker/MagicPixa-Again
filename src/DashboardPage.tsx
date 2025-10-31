@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -208,7 +208,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                                 aria-label="Change photo"
                                                 title="Change photo"
                                             >
-                                                <RetryIcon className="w-5 h-5" />
+                                                <ArrowUpCircleIcon className="w-6 h-6" />
                                             </button>
                                         </>
                                     ) : (
