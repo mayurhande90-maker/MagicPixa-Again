@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page, AuthProps } from '../App';
 import UserMenu from './UserMenu';
@@ -7,4 +8,27 @@ interface HeaderProps {
     auth: AuthProps;
 }
 
-const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaUAAABDCAMAAACD+fblAAAAclBMVEUAAABAPz9MS0pFRUVCQkI+Pj4zMzMvLi4qKCgnJiYgHx8aGRkWEhIQDw8MDAsJCAcGAwMCARYnJSUfHx8tLCwpJycjIiIfHR0bGRkYFhYWExMREREPDw8NDQwLCgoJBwcFAwMBAAABYI3pAAAAG3RSTlMAoN/v/O/f39/Xz83Mx8e/v7+/vr29vby8l74qLAAAA/VJREFUeNrt3dly2zAYBlBCWzYJaWyExMAwSxA4mP//pw1J21q1dF3X1e6fA08hWc+qXQ02s8KKiogI/uMQtpEpe9dCVlKiKOUmIyElpShlJiMhJaUoZSYjISWlKGUmIyElpShlJiMhJaUoZSYjISWlKGUmI9/eUaISUnQ3hV/s0c2XlO23XqWUIWlS6t5x2d6WvjylrO0x/O+V2j1q1bU1pXpB0qDUnRpaU9L4pNR/clqSlq0s1d6u6pLSP59qUvFJWlv4WlFSXt/1m/dE5XpU19dUtX9h3j9B6t7B1tT846T+900p+7S2pKXvH47U4xP6/G0pSclL3s2VpC1P63ZSyJ3VvJ+3xHq2p+5LSt6V2T6tLyXrY4z1aW6pLSH+H0P6m3F8a4D9yKSUfqd/bE1pT9+NPyv2O0L6kvL+ltGNL7S8tLSl5+59aWnFS6p6WJ2VfKXtfGlJS94W2P6X9S/s9pe9JqY8oaf0P274npa3t2f7nUvql5P3AofRbaU+K0s/u0tKSlr0v/X1N6bM6pTSl3N2Tsvu/bf1cStnL7tP7e0v7lPT5/v2a9ldpL0o/V5f2zUu7e/r0t1JK6bO9L01pS999/p62tKVs+zHtb5b2+P8s/R1tef8/KXXv2X/u/VLa8//39F9S+qS0/VvaW1La3bPS+qH0H3eP2v2m9HPbS3/7m3pPSn3x+T/0vjql1B+u6P9E+n/o/dF/Sf+89Iu0X+g//fV+V/r56X2t/f5D6cO2P6X9Hq3l+6H0b1L655S+tKftH+l/1P6g/ZPS/tP9p/SftL+kvR/aP63lS9L+R+1LSt9T+t+1f6b9qfSftP+n/W/a/9P+p/RHpP2l/en0h6T9qPS/an/s63O6pX2v9n+s/SHt/9P+rPS/a/+/9ge2P2R/XPtb6c+k/XHpz0t/SvpP25/U/qP256T/Sfs/1l6t/Wn7L6U/pf2/tP8h/Wn7r6X/XPs9pR/t9p+0v6f9T+uvVPur9p+lvyH9Qe1/Wn+29p+s/Sn9Qesf2r6n9dvaP7H9Z+0Pa//U/k77u6T9qfX32T8q/UXtP1V6VvuftL6o/ZPSn9P+t/QHa38r/Xn7O6Xf0v5c+pvSv7b9ndLPa//O9h/U/qv1n6P/bftza/9d+0+1/0v7Q+0/rX299k+1/1v7R9u/Uvt79l9L/0H7d1r/n/Yvtn+k/Xf7L9u+3v6F9r/rP7H9H+vP1/7F9r/rn7L9h9q/1v7vtf9M+/P2z9t/rf2V2/+s/fWtf9v+u/Yftv9Z+0vb/6v9b9v/WfuD9n+t/VH7+9U/av+/9l9v/0P7O+0/b/++9h9p/9P6z9l/u/Y/af+u/Vv7h9S/V/+I9q+qf1b9q8of1f6L6l9V/6z6F5X/U/0n1f+t+hfVvyv/lfV/rv5L9T+s/V/lf9H+i+rfUv+/9j+r/k31b6/+TfUvqv9b/ZfqP1X/rfovVv+3+hfVf6r+WfVvq39Z/ZfqP7X+S/Xfrf5vVf+j+j/V/4P6F1X/rfofVP+/+nfWf139j9R/X/0z6z9d/X/Wfl/999R/Xf3/1n5//U/Wf1H9n9r/x/Yf2X+u/Qv2D9t/Qv179m9T/9L9+9T/tP2b1L9q/wf771L/Xv3PqH8/+3dC/RvsX2r/Xvuf0D9C/Uv2D9P/iv0f1f9K/UP676t/Uv0D9a9G/QP176x/Qf1L9W+pfz/91+qfoP7P6l+hf2/9K+vfpX9J/Uv2v1H/ivpH9T+ifyn9v/Qf0H+q/pv1L65/Xv379B+hf7z+i/Tfrn8B/b/rf6b+T+u/pv4N9a9T/576V6h/Xv3L69+h/jv1L6p/Qv2v6l+lfs36N6B+Qf2L6p9X/zL6T6l/Wf2r6F+vfsX6F9K/Yv1L6Z+ufoP6N9W/Rv0b9a9P/576t9A/Zf3v6D+o/ov6T+i/rf5d9f+tf6P6n1F/U//b67+i/h31L9V/Qv97+o/Wv6X+BfUfVv+e+m+p/6P6L6F/Tf1f6r+m/mX1H9R/Sf1r69+q/ov1X6h/m/Y/o3+0/T/1L65/bf2z6n+j/ovqX9H+N+lfrn6L+q+t/zH1X1b/gvq/Wf+R+i+s/pv6r6n/UfWfUP+e+vfU/9L9T+ufW/+h+s/UP1b92+gfrn5p/ZfUf1r9G+vfqX6V+hfWf6n+pfs3179S/cvqn1j/mvpvrn+1+lfVv7L+59Z/Wf0L619Q/9r6L6h/ff0v17+6/gX1z6x/ef3v6p9e/0L6Z9S/sv7p9a9Y/5r6V9a/sf6l9c+tf6n90+tfVv+K+tfo/6r6L6Z/rf6P67+y/p3q/6z+nertX69+d+tfU/8t9c+sfxX999b/W/2P6j9O/dvqP6f+x+vfrf4D9D+p/qX1n9r+FfV/VP+m+rfX/476P6b+Dfo/
+const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
+  return (
+    <header className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#F9FAFB]/80 backdrop-blur-lg border-b border-gray-200/80">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigateTo('home')}>
+            <h1 className="text-2xl font-bold text-[#1E1E1E] flex items-center gap-2">
+                Magic<span className="text-[#0079F2]">Pixa</span>
+            </h1>
+        </div>
+        <div className="flex items-center gap-4">
+            {auth.isAuthenticated && auth.user ? (
+              <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} />
+            ) : (
+              <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-white text-[#0079F2] px-4 py-2 rounded-xl border-2 border-[#0079F2] hover:bg-blue-50 transition-colors">
+                Sign In
+              </button>
+            )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;
