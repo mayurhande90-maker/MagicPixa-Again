@@ -98,25 +98,27 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
       <Header navigateTo={navigateTo} auth={auth} />
       <main className="bg-[#F9FAFB]">
         {/* Hero Section */}
-        <section id="home" className="relative text-center py-24 md:py-40 px-4 overflow-hidden bg-white">
-            <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-yellow-200/50 rounded-full blur-3xl animate-blob"></div>
-            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-pink-200/50 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
-            
-            <div className="relative z-10 max-w-4xl mx-auto">
-                <h1 className="text-4xl md:text-6xl font-bold text-[#1E1E1E] mb-4 leading-tight">
-                    Create Stunning Visuals, <span className="text-[#0079F2]">No Prompt Required</span>
-                </h1>
-                <p className="text-lg md:text-xl text-[#5F6368] max-w-2xl mx-auto mb-10">
-                    MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
-                </p>
-                <button 
-                  onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                  className="bg-[#FFD84D] text-[#1E1E1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/20"
-                >
-                    Start Creating for Free
-                </button>
+        <section id="home" className="text-center py-20 px-4">
+            <div className="relative max-w-5xl mx-auto bg-white p-12 md:p-20 rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden">
+                <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
+                <div className="absolute -top-40 -left-40 w-96 h-96 bg-yellow-200/50 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-pink-200/50 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+                
+                <div className="relative z-10 max-w-4xl mx-auto">
+                    <h1 className="text-4xl md:text-6xl font-bold text-[#1E1E1E] mb-4 leading-tight">
+                        Create Stunning Visuals, <span className="text-[#0079F2]">No Prompt Required</span>
+                    </h1>
+                    <p className="text-lg md:text-xl text-[#5F6368] max-w-2xl mx-auto mb-10">
+                        MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
+                    </p>
+                    <button 
+                      onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
+                      className="bg-[#FFD84D] text-[#1E1E1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/20"
+                    >
+                        Start Creating for Free
+                    </button>
+                </div>
             </div>
         </section>
 
