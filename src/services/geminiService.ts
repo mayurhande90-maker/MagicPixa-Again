@@ -246,6 +246,67 @@ export const editImageWithPrompt = async (
   }
 };
 
+export const colourizeImage = async (
+  base64ImageData: string,
+  mimeType: string,
+  mode: 'restore' | 'colourize_only'
+): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
+  try {
+    let basePrompt = `Colourize the provided vintage photograph.
+Maintain the original composition, lighting, and emotional tone while bringing it to life in full colour.
+Recreate skin tones, clothes, environment, and background elements in realistic, natural colours — as if the photo was taken recently using a modern camera.
+Preserve every person’s facial features, age, emotion, and body posture exactly as in the original.
+Do not alter identity, proportions, or composition.
+Style: photo-realistic restoration with gentle film warmth.
+Lighting should remain consistent with the original vintage exposure.
+Avoid artificial brightness or cartoonish tones.
+The result should feel emotionally authentic — like reliving a precious memory in perfect clarity.
+Focus on nostalgia, warmth, and realism.`;
+
+    if (mode === 'restore') {
+      basePrompt = `Restore and ${basePrompt.toLowerCase()}`;
+      basePrompt += `\n\nRepair any visible damage such as cracks, dust, spots, blurs, or faded patches. Enhance clarity, texture, and fine details (eyes, hair strands, fabrics, background patterns).`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: basePrompt },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE],
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
+    }
+
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+    if (imagePart?.inlineData?.data) {
+      return imagePart.inlineData.data;
+    }
+
+    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
+
+  } catch (error) {
+    console.error("Error colourizing image with Gemini:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate image: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the image generation service.");
+  }
+};
+
 const homeStylePrompts: { [key: string]: string } = {
     'Japanese': 'Incorporate traditional and modern Japanese interior aesthetics: minimalism, tatami mats, shōji sliding panels, natural wood finishes (light warm wood tones), clean lines, low-profile furniture, hidden storage, soft diffused natural light. Use neutral and muted color palette — beige, off-white, muted greens — with accent touches of charcoal or black. Include houseplants like bonsai or bamboo. Emphasize harmony, simplicity, and nature in the design.',
     'American': 'Reflect American interior style blending traditional comfort and modern elements: open floor plan, cozy seating (sectional sofas, armchairs), warm hardwood floors, trim molding, large windows with curtains, recessed lighting, built-in cabinetry. Palette: neutrals (ivory, taupe, gray), accent colors like navy, maroon, forest green. Decor: throw pillows, area rugs, framed artwork, bookshelves, indoor plants. Blend functional with aesthetic touches.',

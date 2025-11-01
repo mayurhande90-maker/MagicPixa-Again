@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'background-removal', label: 'Magic Background Removal', icon: ScissorsIcon, disabled: true },
-    { id: 'photo-colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: true },
+    { id: 'colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: false },
     { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, disabled: false },
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'mockup', label: 'Magic Mockup', icon: TshirtIcon, disabled: true },

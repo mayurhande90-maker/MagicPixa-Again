@@ -31,12 +31,12 @@ const features = [
         disabled: true,
     },
     {
-        id: null,
+        id: 'colour',
         icon: <PaletteIcon className="w-10 h-10 text-white" />,
         title: "Magic Photo Colour",
         description: "Breathe new life into vintage photos. Convert old black and white images into spotless, high-resolution color.",
         color: "bg-rose-500",
-        disabled: true,
+        disabled: false,
     },
     {
         id: 'caption',
