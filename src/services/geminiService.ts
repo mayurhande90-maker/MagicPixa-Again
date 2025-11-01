@@ -307,6 +307,58 @@ Focus on nostalgia, warmth, and realism.`;
   }
 };
 
+export const removeImageBackground = async (
+  base64ImageData: string,
+  mimeType: string
+): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
+  try {
+    const prompt = `You are an expert photo editor. Your task is to accurately identify the main subject (person, object, animal, etc.) in the provided image and completely remove the background.
+
+CRITICAL INSTRUCTIONS:
+1.  The final output MUST be an image of ONLY the subject on a perfectly transparent background.
+2.  Preserve all details of the subject with high fidelity, especially fine details like hair, fur, and semi-transparent edges.
+3.  Do not add any shadows, borders, or effects.
+4.  The output image must have an alpha channel for transparency (i.e., be a transparent PNG).`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE],
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
+    }
+
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+    if (imagePart?.inlineData?.data) {
+      return imagePart.inlineData.data;
+    }
+
+    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
+
+  } catch (error) {
+    console.error("Error removing background with Gemini:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate image: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the image generation service.");
+  }
+};
+
 const homeStylePrompts: { [key: string]: string } = {
     'Japanese': 'Incorporate traditional and modern Japanese interior aesthetics: minimalism, tatami mats, shōji sliding panels, natural wood finishes (light warm wood tones), clean lines, low-profile furniture, hidden storage, soft diffused natural light. Use neutral and muted color palette — beige, off-white, muted greens — with accent touches of charcoal or black. Include houseplants like bonsai or bamboo. Emphasize harmony, simplicity, and nature in the design.',
     'American': 'Reflect American interior style blending traditional comfort and modern elements: open floor plan, cozy seating (sectional sofas, armchairs), warm hardwood floors, trim molding, large windows with curtains, recessed lighting, built-in cabinetry. Palette: neutrals (ivory, taupe, gray), accent colors like navy, maroon, forest green. Decor: throw pillows, area rugs, framed artwork, bookshelves, indoor plants. Blend functional with aesthetic touches.',

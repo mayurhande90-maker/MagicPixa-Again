@@ -23,12 +23,12 @@ const features = [
         disabled: false,
     },
     {
-        id: null,
+        id: 'eraser',
         icon: <ScissorsIcon className="w-10 h-10 text-white" />,
-        title: "Magic Background Removal",
+        title: "Magic Background Eraser",
         description: "Remove the background of any image and receive a transparent PNG, ready for any project.",
         color: "bg-emerald-500",
-        disabled: true,
+        disabled: false,
     },
     {
         id: 'colour',
