@@ -3,11 +3,15 @@
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set.");
+// FIX: Use import.meta.env for Vite environment variables, consistent with firebase.ts. `process.env` is not available in the client-side build and was causing the application to crash.
+const apiKey = (import.meta as any).env.VITE_API_KEY;
+
+if (!apiKey) {
+  throw new Error("VITE_API_KEY environment variable not set.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Initialize with the correct API key from Vite environment variables.
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
@@ -545,7 +549,7 @@ ROOM-SPECIFIC REQUIREMENTS:
 - ${specificInstruction}
 
 CRITICAL ARCHITECTURAL PRESERVATION:
-- You MUST preserve the existing structural layout with absolute precision. This includes the exact position, size, and shape of all windows, doors, walls, and the original ceiling height.
+- You MUST preserve the existing structural layout with absolute precision. This includes the exact position, size, and shape of all walls, windows, doors, and the original ceiling height.
 - Do NOT alter the core architecture in any way.
 
 PHOTOREALISM DIRECTIVES:
