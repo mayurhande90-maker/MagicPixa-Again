@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { editImageWithPrompt, generateInteriorDesign } from './services/geminiService';
+import { editImageWithPrompt, generateInteriorDesign, generateCaptions } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
@@ -8,7 +8,7 @@ import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
-    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon
+    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -711,6 +711,243 @@ const Creations: React.FC = () => (
     </div>
 );
 
+const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedText, setGeneratedText] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    const [copied, setCopied] = useState(false);
+
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-caption');
+        return saved ? parseInt(saved, 10) : 2;
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 1;
+    const currentCost = EDIT_COST;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedText(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedText(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (currentCredits < currentCost) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - currentCost);
+            }
+
+            const newText = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setGeneratedText(newText);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, currentCredits, auth, isGuest, navigateTo, currentCost]);
+
+    const copyToClipboard = () => {
+        if (!generatedText) return;
+        navigator.clipboard.writeText(generatedText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+
+    const hasInsufficientCredits = currentCredits < currentCost;
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate engaging, platform-ready captions from any photo.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!originalImage ? triggerFileInput : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {originalImage ? (
+                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <UploadIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                            <span className="text-sm">or click to upload</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {originalImage && !isLoading && (
+                                    <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo">
+                                        <ArrowUpCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                         {generatedText && !isLoading ? (
+                            <>
+                                <div className='text-center'>
+                                    <h3 className="text-xl font-bold text-[#1E1E1E]">Generated Captions</h3>
+                                    <p className='text-sm text-[#5F6368]'>Ready to copy and paste!</p>
+                                </div>
+                                <div className="relative p-4 bg-gray-50 rounded-lg border" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto' }}>
+                                    <button onClick={copyToClipboard} className="sticky top-2 right-2 float-right bg-white px-2 py-1 text-xs font-semibold text-gray-700 rounded border hover:bg-gray-100 z-10">
+                                        {copied ? 'Copied!' : 'Copy All'}
+                                    </button>
+                                    <pre className="text-sm whitespace-pre-wrap font-sans text-gray-800">{generatedText}</pre>
+                                </div>
+                                <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <RetryIcon className="w-5 h-5" /> Regenerate
+                                        </button>
+                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                            <UploadIcon className="w-5 h-5" /> Upload New
+                                        </button>
+                                    </div>
+                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credit.</p>
+                                </div>
+                            </>
+                        ) : (
+                             <>
+                                <div className='text-center'>
+                                   <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
+                                   <p className='text-sm text-[#5F6368]'>Your creative cockpit</p>
+                                </div>
+                                 <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                                    <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                        <p className="text-xs text-yellow-700">
+                                            For best results, upload a clear photo. Works great for products, people, places, and more!
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                                    {!originalImage && !isLoading && (
+                                        <p className="text-xs text-center text-[#5F6368]">Click the canvas on the left to upload a photo.</p>
+                                    )}
+
+                                    {originalImage && (
+                                        <>
+                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                                <SparklesIcon className="w-6 h-6" /> Generate
+                                            </button>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credit.`}</p>
+                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {error && (
+                            <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'>
+                                <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>
+                                <button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800">
+                                    <RetryIcon className="w-4 h-4" /> Try Again
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal }) => {
     const extendedAuthProps = {
@@ -727,6 +964,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
                     {activeView === 'dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />}
                     {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'interior' && <MagicInterior auth={auth} navigateTo={navigateTo} />}
+                    {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>
