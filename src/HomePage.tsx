@@ -47,6 +47,14 @@ const features = [
         disabled: false,
     },
     {
+        id: 'interior',
+        icon: <HomeIcon className="w-10 h-10 text-white" />,
+        title: "Magic Interior",
+        description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
+        color: "bg-orange-500",
+        disabled: false,
+    },
+    {
         id: null,
         icon: <ScannerIcon className="w-10 h-10 text-white" />,
         title: "Magic Scanner",
@@ -61,22 +69,6 @@ const features = [
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",
         disabled: true,
-    },
-    {
-        id: 'live',
-        icon: <AudioWaveIcon className="w-10 h-10 text-white" />,
-        title: "Magic Conversation",
-        description: "Have a real-time voice conversation with our AI. Ask questions, get answers, and more.",
-        color: "bg-pink-500",
-        disabled: false,
-    },
-    {
-        id: 'interior',
-        icon: <HomeIcon className="w-10 h-10 text-white" />,
-        title: "Magic Interior",
-        description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
-        color: "bg-orange-500",
-        disabled: false,
     },
     {
         id: null,

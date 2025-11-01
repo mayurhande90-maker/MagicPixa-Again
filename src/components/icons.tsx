@@ -207,4 +207,10 @@ export const AudioWaveIcon: React.FC<{ className?: string }> = ({ className }) =
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5V16.5m1.5-7.5V15m1.5-4.5v3m1.5-1.5v-1.5m1.5 4.5v-3m1.5-1.5v1.5m-9-3.75h.008v.008H8.25v-.008zm1.5 0h.008v.008H9.75v-.008zm1.5 0h.008v.008H11.25v-.008zm1.5 0h.008v.008H12.75v-.008zm1.5 0h.008v.008H14.25v-.008zm1.5 0h.008v.008H15.75v-.008z" />
     </svg>
 );
+
+export const XIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
 // Minor change for commit.

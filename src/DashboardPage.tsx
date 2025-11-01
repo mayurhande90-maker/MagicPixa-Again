@@ -10,7 +10,7 @@ import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
-    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon
+    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -21,6 +21,8 @@ interface DashboardPageProps {
   activeView: View;
   setActiveView: (view: View) => void;
   openEditProfileModal: () => void;
+  isConversationOpen: boolean;
+  setIsConversationOpen: (isOpen: boolean) => void;
 }
 
 const loadingMessages = [
@@ -1498,13 +1500,16 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     );
 };
 
-const LiveConversation: React.FC = () => {
-    const [isSessionActive, setIsSessionActive] = useState(false);
+const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    type SessionState = 'inactive' | 'connecting' | 'active' | 'error';
+    type AIState = 'idle' | 'speaking';
+
+    const [sessionState, setSessionState] = useState<SessionState>('inactive');
+    const [aiState, setAiState] = useState<AIState>('idle');
     const [transcriptHistory, setTranscriptHistory] = useState<{ speaker: 'user' | 'model'; text: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const transcriptEndRef = useRef<HTMLDivElement>(null);
 
-    // FIX: Used `ReturnType` to infer the session promise type from the `startLiveSession` function.
     const sessionPromiseRef = useRef<ReturnType<typeof startLiveSession> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
@@ -1512,14 +1517,11 @@ const LiveConversation: React.FC = () => {
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
     const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-    
-    // Using a ref for nextStartTime to ensure its value persists across re-renders and callbacks
     const nextStartTimeRef = useRef(0);
 
     const createBlob = (data: Float32Array): Blob => {
-        const l = data.length;
-        const int16 = new Int16Array(l);
-        for (let i = 0; i < l; i++) {
+        const int16 = new Int16Array(data.length);
+        for (let i = 0; i < data.length; i++) {
             int16[i] = data[i] * 32768;
         }
         return {
@@ -1528,73 +1530,68 @@ const LiveConversation: React.FC = () => {
         };
     };
 
+    const stopSession = useCallback(() => {
+        setSessionState('inactive');
+        setAiState('idle');
+        nextStartTimeRef.current = 0;
+        outputSourcesRef.current.forEach(source => source.stop());
+        outputSourcesRef.current.clear();
+        scriptProcessorRef.current?.disconnect();
+        mediaStreamSourceRef.current?.disconnect();
+        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+        sessionPromiseRef.current?.then(session => session.close());
+        sessionPromiseRef.current = null;
+    }, []);
+
     const startSession = async () => {
         setError(null);
         setTranscriptHistory([]);
+        setSessionState('connecting');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaStreamRef.current = stream;
             
-            // Lazy-initialize AudioContexts only when needed
-            if (!inputAudioContextRef.current) {
-                inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            }
-             if (!outputAudioContextRef.current) {
-                outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-            }
+            inputAudioContextRef.current ||= new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current ||= new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
             let currentInputTranscription = '';
             let currentOutputTranscription = '';
 
             sessionPromiseRef.current = startLiveSession({
                 onopen: () => {
-                    console.log('Live session opened.');
-                    setIsSessionActive(true);
-
-                    // Ensure contexts are active
+                    setSessionState('active');
                     inputAudioContextRef.current?.resume();
                     outputAudioContextRef.current?.resume();
-
                     const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
                     mediaStreamSourceRef.current = source;
-
                     const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
                     scriptProcessorRef.current = scriptProcessor;
-
                     scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
                         const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                        const pcmBlob = createBlob(inputData);
                         sessionPromiseRef.current?.then((session) => {
-                            session.sendRealtimeInput({ media: pcmBlob });
+                            session.sendRealtimeInput({ media: createBlob(inputData) });
                         });
                     };
                     source.connect(scriptProcessor);
                     scriptProcessor.connect(inputAudioContextRef.current!.destination);
                 },
                 onmessage: async (message: LiveServerMessage) => {
-                     if (message.serverContent?.inputTranscription) {
-                        currentInputTranscription += message.serverContent.inputTranscription.text;
-                    }
-                    if (message.serverContent?.outputTranscription) {
-                        currentOutputTranscription += message.serverContent.outputTranscription.text;
-                    }
+                    if (message.serverContent?.inputTranscription) currentInputTranscription += message.serverContent.inputTranscription.text;
+                    if (message.serverContent?.outputTranscription) currentOutputTranscription += message.serverContent.outputTranscription.text;
                     
                     if (message.serverContent?.turnComplete) {
-                        if (currentInputTranscription.trim()) {
-                            setTranscriptHistory(prev => [...prev, { speaker: 'user', text: currentInputTranscription.trim() }]);
-                        }
-                        if (currentOutputTranscription.trim()) {
-                           setTranscriptHistory(prev => [...prev, { speaker: 'model', text: currentOutputTranscription.trim() }]);
-                        }
+                        if (currentInputTranscription.trim()) setTranscriptHistory(p => [...p, { speaker: 'user', text: currentInputTranscription.trim() }]);
+                        if (currentOutputTranscription.trim()) setTranscriptHistory(p => [...p, { speaker: 'model', text: currentOutputTranscription.trim() }]);
                         currentInputTranscription = '';
                         currentOutputTranscription = '';
                     }
 
                     const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
                     if (base64Audio && outputAudioContextRef.current) {
+                        setAiState('speaking');
                         const outputCtx = outputAudioContextRef.current;
                         nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-                        
                         const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
                         const source = outputCtx.createBufferSource();
                         source.buffer = audioBuffer;
@@ -1602,6 +1599,9 @@ const LiveConversation: React.FC = () => {
                         
                         source.addEventListener('ended', () => {
                             outputSourcesRef.current.delete(source);
+                            if (outputSourcesRef.current.size === 0) {
+                                setAiState('idle');
+                            }
                         });
 
                         source.start(nextStartTimeRef.current);
@@ -1611,108 +1611,108 @@ const LiveConversation: React.FC = () => {
                 },
                 onerror: (e: ErrorEvent) => {
                     console.error('Live session error:', e);
-                    setError('An error occurred during the session. Please try again.');
+                    setError('An error occurred. Please try again.');
+                    setSessionState('error');
                     stopSession();
                 },
                 onclose: (e: CloseEvent) => {
-                    console.log('Live session closed.');
                     stopSession();
+                    onClose();
                 },
             });
-
         } catch (err) {
             console.error('Failed to start session:', err);
-            setError('Could not access microphone. Please grant permission and try again.');
+            setError('Could not access microphone. Please grant permission.');
+            setSessionState('error');
         }
     };
     
-    const stopSession = () => {
-        setIsSessionActive(false);
-        nextStartTimeRef.current = 0;
-
-        // Stop all playing audio sources
-        outputSourcesRef.current.forEach(source => source.stop());
-        outputSourcesRef.current.clear();
-
-        // Disconnect audio processing
-        scriptProcessorRef.current?.disconnect();
-        mediaStreamSourceRef.current?.disconnect();
-
-        // Stop microphone track
-        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-        
-        // Close the session
-        sessionPromiseRef.current?.then(session => session.close());
-        sessionPromiseRef.current = null;
-    };
-
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcriptHistory]);
 
-    // Cleanup on component unmount
-    useEffect(() => {
-        return () => {
-            stopSession();
-        };
-    }, []);
+    useEffect(() => () => stopSession(), [stopSession]);
+    
+    const PixaAvatar = () => (
+        <div className="relative w-32 h-32">
+             <div className={`absolute inset-0 rounded-full bg-blue-100 transition-all duration-300 ${aiState === 'speaking' ? 'animate-pulse scale-110' : ''}`}></div>
+            <div className={`absolute inset-1 rounded-full bg-white flex items-center justify-center`}>
+                <SparklesIcon className={`w-12 h-12 text-blue-500 transition-transform duration-500 ${sessionState === 'active' ? 'scale-110' : ''}`} />
+            </div>
+             {sessionState === 'active' && <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-spin-slow"></div>}
+        </div>
+    );
+    
+    const getStatusText = () => {
+        switch (sessionState) {
+            case 'connecting': return 'Connecting...';
+            case 'active':
+                return aiState === 'speaking' ? 'Pixa is speaking...' : 'Listening...';
+            case 'error': return error;
+            default: return 'Talk with Pixa, your AI assistant.';
+        }
+    };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
-            <div className='w-full max-w-4xl mx-auto flex flex-col h-full'>
-                <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Conversation</h2>
-                    <p className="text-[#5F6368] mt-2">Have a real-time voice conversation with our AI assistant, Pixa.</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white w-full max-w-2xl h-[90vh] max-h-[700px] m-4 rounded-2xl shadow-xl border border-gray-200/80 flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex-shrink-0 p-4 border-b border-gray-200/80 flex justify-between items-center">
+                    <h3 className="font-bold text-lg text-gray-800">Magic Conversation</h3>
+                    <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                        <XIcon className="w-6 h-6"/>
+                    </button>
                 </div>
-
-                {!isSessionActive ? (
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        <button
-                            onClick={startSession}
-                            className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-4 px-8 rounded-full shadow-lg"
-                        >
-                            <MicrophoneIcon className="w-6 h-6" /> Start Conversation
-                        </button>
-                        {error && <p className="text-red-500 mt-4">{error}</p>}
-                    </div>
-                ) : (
-                    <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-lg border border-gray-200/80 overflow-hidden">
-                        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-                            {transcriptHistory.map((entry, index) => (
-                                <div key={index} className={`flex items-start gap-3 ${entry.speaker === 'user' ? 'justify-end' : ''}`}>
-                                    {entry.speaker === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-600"/></div>}
-                                    <div className={`max-w-md p-3 rounded-lg ${entry.speaker === 'user' ? 'bg-gray-200 text-gray-800' : 'bg-blue-50 text-blue-900'}`}>
-                                        <p className="text-sm">{entry.text}</p>
-                                    </div>
-                                    {entry.speaker === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><AvatarUserIcon className="w-5 h-5 text-gray-600"/></div>}
-                                </div>
-                            ))}
-                            <div ref={transcriptEndRef} />
+                
+                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                    {transcriptHistory.length === 0 && sessionState !== 'active' && (
+                         <div className="flex flex-col items-center justify-center h-full text-center">
+                            <PixaAvatar />
+                            <p className="mt-4 font-semibold text-gray-700">{getStatusText()}</p>
                         </div>
-                        <div className="p-4 border-t border-gray-200/80 flex flex-col items-center justify-center">
-                             <div className="flex items-center gap-2 text-gray-500 mb-4">
-                                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                <span>Listening...</span>
+                    )}
+                    {transcriptHistory.map((entry, index) => (
+                        <div key={index} className={`flex items-start gap-3 ${entry.speaker === 'user' ? 'justify-end' : ''}`}>
+                            {entry.speaker === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-600"/></div>}
+                            <div className={`max-w-md p-3 rounded-lg ${entry.speaker === 'user' ? 'bg-gray-200 text-gray-800' : 'bg-blue-50 text-blue-900'}`}>
+                                <p className="text-sm">{entry.text}</p>
                             </div>
-                            <button
-                                onClick={stopSession}
-                                className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-colors text-white font-semibold py-2 px-6 rounded-full shadow-md"
-                            >
+                            {entry.speaker === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><AvatarUserIcon className="w-5 h-5 text-gray-600"/></div>}
+                        </div>
+                    ))}
+                    <div ref={transcriptEndRef} />
+                </div>
+                
+                <div className="flex-shrink-0 p-6 border-t border-gray-200/80 flex flex-col items-center justify-center">
+                    {sessionState !== 'active' && (
+                         <button onClick={startSession} disabled={sessionState === 'connecting'} className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-6 rounded-full shadow-lg disabled:opacity-50">
+                            <MicrophoneIcon className="w-6 h-6" /> {sessionState === 'connecting' ? 'Starting...' : 'Tap to Speak'}
+                        </button>
+                    )}
+                     {sessionState === 'active' && (
+                        <>
+                            <div className="flex items-center gap-2 text-gray-500 mb-4">
+                               <div className={`w-3 h-3 rounded-full animate-pulse ${aiState === 'speaking' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+                               <span>{getStatusText()}</span>
+                            </div>
+                            <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-colors text-white font-semibold py-2 px-6 rounded-full shadow-md">
                                 <StopIcon className="w-5 h-5" /> Stop
                             </button>
-                        </div>
-                    </div>
-                )}
+                        </>
+                     )}
+                     {sessionState === 'error' && <p className="text-red-500 mt-4">{error}</p>}
+                </div>
             </div>
         </div>
     );
 };
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal }) => {
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
     const extendedAuthProps = {
       ...auth,
       setActiveView,
+      openConversation: () => setIsConversationOpen(true),
+      isDashboard: true,
     };
 
     return (
@@ -1727,11 +1727,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
                     {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'colour' && <MagicPhotoColour auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'eraser' && <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'live' && <LiveConversation />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>
             </div>
+            {isConversationOpen && <LiveConversation onClose={() => setIsConversationOpen(false)} />}
         </div>
     );
 };

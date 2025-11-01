@@ -8,7 +8,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'caption' | 'colour' | 'eraser' | 'live';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'caption' | 'colour' | 'eraser';
 
 export interface User {
   uid: string;
@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
+  const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const getInitials = (name: string): string => {
@@ -189,7 +190,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)}/>}
+      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} />}
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 

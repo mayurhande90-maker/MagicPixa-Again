@@ -2,11 +2,13 @@ import React from 'react';
 // FIX: Import `View` from `../App` where it is defined, instead of `../DashboardPage` which does not export it.
 import { Page, AuthProps, View } from '../App';
 import UserMenu from './UserMenu';
-import { SparklesIcon, MagicPixaLogo } from './icons';
+import { SparklesIcon, MagicPixaLogo, AudioWaveIcon } from './icons';
 
 // Add `setActiveView` to AuthProps for the dashboard context
 interface DashboardAuthProps extends AuthProps {
     setActiveView?: (view: View) => void;
+    openConversation?: () => void;
+    isDashboard?: boolean;
 }
 
 interface HeaderProps {
@@ -37,6 +39,15 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
         <div className="flex items-center gap-4">
             {auth.isAuthenticated && auth.user ? (
               <>
+                 {auth.isDashboard && (
+                    <button 
+                        onClick={auth.openConversation}
+                        className="hidden sm:flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    >
+                        <AudioWaveIcon className="w-4 h-4" />
+                        <span>Magic Conversation</span>
+                    </button>
+                )}
                 <div className="hidden sm:flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
                     <SparklesIcon className="w-4 h-4 text-yellow-600" />
                     <span>{auth.user.credits} Credits</span>
