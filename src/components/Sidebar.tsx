@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from '../App';
-import { PhotoStudioIcon, ProjectsIcon, CreditCardIcon } from './icons';
+import { PhotoStudioIcon, ProjectsIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, TshirtIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
 import { View } from '../DashboardPage';
 
 interface SidebarProps {
@@ -11,8 +11,16 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) => {
   const navItems = [
-    { id: 'studio', label: 'Photo Studio', icon: PhotoStudioIcon, disabled: false },
-    { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: true },
+    { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
+    { id: 'background-removal', label: 'Magic Background Removal', icon: ScissorsIcon, disabled: true },
+    { id: 'photo-colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: true },
+    { id: 'caption-ai', label: 'CaptionAI', icon: CaptionIcon, disabled: true },
+    { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
+    { id: 'mockup', label: 'Magic Mockup', icon: TshirtIcon, disabled: true },
+    { id: 'friends', label: 'Magic with Friends', icon: UsersIcon, disabled: true },
+    { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: true },
+    { id: 'apparel', label: 'Magic Apparel', icon: TshirtIcon, disabled: true },
+    { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
     { id: 'billing', label: 'Billing', icon: CreditCardIcon, disabled: false },
   ];
 

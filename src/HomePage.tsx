@@ -5,7 +5,7 @@ import { Page, AuthProps } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -22,33 +22,57 @@ const features = [
     },
     {
         icon: <ScissorsIcon className="w-10 h-10 text-white" />,
-        title: "AI Background Remover",
-        description: "Instantly remove backgrounds with surgical precision. Perfect for creating clean cutouts.",
+        title: "Magic Background Removal",
+        description: "Remove the background of any image and receive a transparent PNG, ready for any project.",
         color: "bg-emerald-500"
     },
     {
-        icon: <SparklesIcon className="w-10 h-10 text-white" />,
-        title: "Image Upscaler",
-        description: "Enhance your images to 2x or 4x resolution without losing any quality. Say hello to crisp details.",
-        color: "bg-purple-500"
-    },
-    {
         icon: <PaletteIcon className="w-10 h-10 text-white" />,
-        title: "Color Palette Generator",
-        description: "Extract beautiful color schemes from your images to create cohesive brand assets.",
-        color: "bg-pink-500"
-    },
-    {
-        icon: <NotesIcon className="w-10 h-10 text-white" />,
-        title: "Text-to-Image",
-        description: "Bring your wildest ideas to life. Describe what you want, and let our AI create it for you.",
-        color: "bg-amber-500"
+        title: "Magic Photo Colour",
+        description: "Breathe new life into vintage photos. Convert old black and white images into spotless, high-resolution color.",
+        color: "bg-rose-500"
     },
     {
         icon: <CaptionIcon className="w-10 h-10 text-white" />,
-        title: "AI Caption Writer",
-        description: "Generate engaging and creative captions for your social media posts in seconds.",
-        color: "bg-rose-500"
+        title: "CaptionAI",
+        description: "Upload a photo and instantly get engaging, copy-paste-ready captions and hashtags for social media.",
+        color: "bg-amber-500"
+    },
+    {
+        icon: <ScannerIcon className="w-10 h-10 text-white" />,
+        title: "Magic Scanner",
+        description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
+        color: "bg-sky-500"
+    },
+    {
+        icon: <TshirtIcon className="w-10 h-10 text-white" />,
+        title: "Magic Mockup",
+        description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
+        color: "bg-indigo-500"
+    },
+    {
+        icon: <UsersIcon className="w-10 h-10 text-white" />,
+        title: "Magic with Friends",
+        description: "Upload your photo and a friend's, and our AI will generate a new photo of you both together in fun settings.",
+        color: "bg-pink-500"
+    },
+    {
+        icon: <HomeIcon className="w-10 h-10 text-white" />,
+        title: "Magic Interior",
+        description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
+        color: "bg-orange-500"
+    },
+    {
+        icon: <TshirtIcon className="w-10 h-10 text-white" />,
+        title: "Magic Apparel",
+        description: "Upload your photo and an item of clothing to see how it looks on you before you buy.",
+        color: "bg-teal-500"
+    },
+    {
+        icon: <NotesIcon className="w-10 h-10 text-white" />,
+        title: "Magic Notes",
+        description: "Upload a textbook or long PDF and our AI will generate key points and notes to help you study smarter.",
+        color: "bg-purple-500"
     }
 ];
 

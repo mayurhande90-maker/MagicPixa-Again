@@ -157,6 +157,27 @@ export const LightbulbIcon: React.FC<{ className?: string }> = ({ className }) =
     </svg>
 );
 
+export const HomeIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" />
+    </svg>
+);
+
+export const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM3.375 19.5a3 3 0 012.25-2.653 4.498 4.498 0 011.741-3.239 4.5 4.5 0 011.275-1.126M18 15a3 3 0 01-6 0v-1.5a3 3 0 016 0v1.5z" />
+    </svg>
+);
+
+export const TshirtIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3L3 9M15 3l6 6M9 21l-6-6M15 21l6-6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9a3 3 0 100-6 3 3 0 000 6z" transform="rotate(45 12 6)"/>
+        <path d="M15.536 12.464a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+        <path d="M6 12h12v9H6z" />
+    </svg>
+);
 
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`font-bold text-3xl select-none ${className}`}>
