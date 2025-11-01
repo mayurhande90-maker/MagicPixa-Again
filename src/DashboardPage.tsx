@@ -918,15 +918,15 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                     <p className='text-sm text-[#5F6368]'>Ready to copy and paste!</p>
                                 </div>
                                 <div className="space-y-3 py-2 pr-2 -mr-2" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                    {parsedCaptions.notes && (
+                                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border text-left">
+                                            <p><strong className='font-semibold'>⚙️ Auto Notes:</strong> {parsedCaptions.notes}</p>
+                                        </div>
+                                    )}
                                     <ResultCard title="🪶 Caption (Short)" content={parsedCaptions.short} />
                                     <ResultCard title="💬 Caption (Medium)" content={parsedCaptions.medium} />
                                     <ResultCard title="📝 Caption (Long)" content={parsedCaptions.long} />
                                     <ResultCard title="🏷️ Hashtags (Recommended)" content={parsedCaptions.hashtags} />
-                                    {parsedCaptions.notes && (
-                                        <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border text-left">
-                                            <p><strong className='font-semibold'>⚙️ Auto Notes:</strong> {parsedCaptions.notes}</p>
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="space-y-4 pt-4 border-t border-gray-200/80">
                                     <div className="grid grid-cols-2 gap-4">
