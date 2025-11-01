@@ -90,7 +90,7 @@ After the visual analysis:
 
 - Maintain a professional layout and readability:
   - Add line breaks, spacing, and emojis only where contextually natural.
-  - Captions should feel real and human — no robotic tone.
+  - **CRITICAL:** Captions MUST be written in simple, conversational, everyday English. They must sound completely natural and human. Avoid complex vocabulary or robotic phrasing.
   - Avoid generic filler lines like “A beautiful day!” unless contextually correct.
 
 Output must be **ready to post** directly on platforms like Instagram, YouTube Community, or Facebook.
@@ -117,7 +117,7 @@ FORMAT THE OUTPUT EXACTLY LIKE THIS:
 -----------------------------------------
 ADDITIONAL INSTRUCTIONS
 -----------------------------------------
-- The captions must sound human and contextual to the image.
+- The top priority is that captions sound authentic and human. Use simple language that people use in their daily lives.
 - If the image contains a person, describe the vibe or emotion — never identify who they are.
 - If it’s a product or object, mention features or purpose naturally.
 - If it’s travel/nature — highlight place, vibe, and mood.
