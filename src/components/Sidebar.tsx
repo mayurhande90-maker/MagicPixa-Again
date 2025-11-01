@@ -46,8 +46,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'friends', label: 'Magic with Friends', icon: UsersIcon, disabled: true },
     { id: 'apparel', label: 'Magic Apparel', icon: TshirtIcon, disabled: true },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
-    { type: 'divider' },
-    { id: 'billing', label: 'Billing', icon: CreditCardIcon, disabled: false },
   ];
 
   return (
