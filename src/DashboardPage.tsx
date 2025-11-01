@@ -712,24 +712,27 @@ const Creations: React.FC = () => (
 );
 
 interface ParsedCaptions {
+  notes: string;
+  recommended: string;
   short: string;
   medium: string;
   long: string;
   hashtags: string;
-  notes: string;
 }
 
 const parseGeneratedText = (text: string): ParsedCaptions => {
     const getText = (regex: RegExp) => (text.match(regex) || [])[1]?.trim() || '';
 
+    const notes = getText(/⚙️ \*\*Auto Notes:\*\*\s*\n([\s\S]*?)(?=\n\n🌟|$)/);
+    const recommended = getText(/🌟 \*\*Recommended Caption:\*\*\s*\n([\s\S]*?)(?=\n\n---|---\n\n🪶|$)/);
     const short = getText(/🪶 \*\*Caption \(Short\):\*\*\s*\n([\s\S]*?)(?=\n\n💬|$)/);
     const medium = getText(/💬 \*\*Caption \(Medium\):\*\*\s*\n([\s\S]*?)(?=\n\n📝|$)/);
     const long = getText(/📝 \*\*Caption \(Long\):\*\*\s*\n([\s\S]*?)(?=\n\n🏷️|$)/);
-    const hashtags = getText(/🏷️ \*\*Hashtags \(Recommended\):\*\*\s*\n([\s\S]*?)(?=\n\n⚙️|$)/);
-    const notes = getText(/⚙️ \*\*Auto Notes:\*\*\s*\n([\s\S]*?)$/);
+    const hashtags = getText(/🏷️ \*\*Hashtags \(Recommended\):\*\*\s*\n([\s\S]*?)$/);
 
-    return { short, medium, long, hashtags, notes };
+    return { notes, recommended, short, medium, long, hashtags };
 };
+
 
 const ResultCard: React.FC<{ title: string; content: string; }> = ({ title, content }) => {
     const [copied, setCopied] = useState(false);
@@ -919,10 +922,13 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                 </div>
                                 <div className="space-y-3 py-2 pr-2 -mr-2" style={{ maxHeight: '350px', overflowY: 'auto' }}>
                                     {parsedCaptions.notes && (
-                                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border text-left">
-                                            <p><strong className='font-semibold'>⚙️ Auto Notes:</strong> {parsedCaptions.notes}</p>
+                                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200/80">
+                                            <h4 className="text-sm font-bold text-blue-800 mb-1">⚙️ Auto Notes</h4>
+                                            <p className="text-sm text-blue-900">{parsedCaptions.notes}</p>
                                         </div>
                                     )}
+                                    <ResultCard title="🌟 Recommended Caption" content={parsedCaptions.recommended} />
+                                    <hr className="border-gray-200/80 my-2" />
                                     <ResultCard title="🪶 Caption (Short)" content={parsedCaptions.short} />
                                     <ResultCard title="💬 Caption (Medium)" content={parsedCaptions.medium} />
                                     <ResultCard title="📝 Caption (Long)" content={parsedCaptions.long} />

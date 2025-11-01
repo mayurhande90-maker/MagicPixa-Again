@@ -77,12 +77,13 @@ Analyze the following:
 6. Scene composition — indoor, outdoor, studio, natural light, crowd, etc.
 
 After the visual analysis:
-- Write **3 caption options** (Short, Medium, Long).
+- First, write one **Recommended Caption**. This should be the single best, most engaging caption for the image, complete with 3-5 of the most important hashtags integrated naturally at the end. It should be instantly postable.
+- Then, write **3 separate caption options** (Short, Medium, Long).
   - The short caption should be punchy and expressive (ideal for Reels or YouTube Shorts).
   - The medium caption should tell a short story or context (Instagram posts).
   - The long caption should include context + a strong CTA line (LinkedIn or Facebook).
 
-- Generate **hashtags** that are:
+- Finally, generate a separate list of **hashtags** that are:
   - 100% relevant to what’s visible in the photo.
   - Trending, clean, and ad-safe.
   - Include both broad and niche tags.
@@ -99,6 +100,14 @@ Output must be **ready to post** directly on platforms like Instagram, YouTube C
 FORMAT THE OUTPUT EXACTLY LIKE THIS:
 -----------------------------------------
 
+⚙️ **Auto Notes:**
+<one-line explanation of what the image contains>
+
+🌟 **Recommended Caption:**
+<The single best caption, ready to post, with 3-5 integrated hashtags>
+
+---
+
 🪶 **Caption (Short):**
 <short caption text>
 
@@ -110,9 +119,6 @@ FORMAT THE OUTPUT EXACTLY LIKE THIS:
 
 🏷️ **Hashtags (Recommended):**
 #hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5 #hashtag6 ...
-
-⚙️ **Auto Notes:**
-<one-line explanation of what the image contains>
 
 -----------------------------------------
 ADDITIONAL INSTRUCTIONS
@@ -134,7 +140,7 @@ NEGATIVE PROMPT
 Do not invent objects or events.
 Do not include any names of people.
 Do not generate hashtags that are irrelevant or spammy.
-Avoid overused hashtags like #instagood or #photooftheday unless contextually fitting.
+Avoid overused hashtags like #instagood or #photooftay unless contextually fitting.
 Do not use repeated emojis or symbols excessively."`;
 
     const response = await ai.models.generateContent({
