@@ -239,8 +239,13 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
 
         setIsLoading(true);
         setError(null);
+        setGeneratedImage(null);
         
         try {
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            
+            // Deduct credits only on successful generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
@@ -248,8 +253,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                 setGuestCredits(prev => prev - EDIT_COST);
             }
 
-            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
@@ -518,17 +521,19 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 
         setIsLoading(true);
         setError(null);
+        setGeneratedImage(null);
         
         try {
+            const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style, spaceType, roomType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+
+            // Deduct credits only on successful generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
             }
-
-            const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style, spaceType, roomType);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
@@ -802,17 +807,19 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
 
         setIsLoading(true);
         setError(null);
+        setGeneratedImage(null);
 
         try {
+            const newBase64 = await colourizeImage(base64Data.base64, base64Data.mimeType, mode);
+            setGeneratedImage(`data:image/jpeg;base64,${newBase64}`);
+            
+            // Deduct credits only on successful generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, currentCost);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - currentCost);
             }
-
-            const newBase64 = await colourizeImage(base64Data.base64, base64Data.mimeType, mode);
-            setGeneratedImage(`data:image/jpeg;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
@@ -1102,17 +1109,19 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
         setIsLoading(true);
         setError(null);
+        setParsedCaptions(null);
 
         try {
+            const newText = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setParsedCaptions(parseGeneratedText(newText));
+
+            // Deduct credits only on successful generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, currentCost);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - currentCost);
             }
-
-            const newText = await generateCaptions(base64Data.base64, base64Data.mimeType);
-            setParsedCaptions(parseGeneratedText(newText));
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
@@ -1339,17 +1348,19 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
 
         setIsLoading(true);
         setError(null);
+        setGeneratedImage(null);
 
         try {
+            const newBase64 = await removeImageBackground(base64Data.base64, base64Data.mimeType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            
+            // Deduct credits only on successful generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, currentCost);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - currentCost);
             }
-
-            const newBase64 = await removeImageBackground(base64Data.base64, base64Data.mimeType);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
