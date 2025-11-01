@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from '../App';
-import { PhotoStudioIcon, ProjectsIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, TshirtIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, ProjectsIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, TshirtIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
 import { View } from '../App';
 
 interface SidebarProps {
@@ -11,6 +11,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) => {
   const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
     { id: 'background-removal', label: 'Magic Background Removal', icon: ScissorsIcon, disabled: true },
     { id: 'photo-colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: true },
@@ -62,4 +63,3 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) =>
 };
 
 export default Sidebar;
-// Minor change for commit.

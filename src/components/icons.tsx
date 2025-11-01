@@ -94,7 +94,6 @@ export const CreditCardIcon: React.FC<{ className?: string }> = ({ className }) 
     </svg>
 );
 
-// FIX: Added SunIcon, MoonIcon, and SystemIcon for ThemeToggle component.
 export const SunIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -111,7 +110,6 @@ export const SystemIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-// New Icons for Redesign
 export const PaletteIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125V4.125C21 3.504 20.496 3 19.875 3H12" />
@@ -179,10 +177,15 @@ export const TshirtIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+export const PencilIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    </svg>
+);
+
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`font-bold text-3xl select-none ${className}`}>
     <span className="text-[#1E1E1E]">Magic</span>
     <span style={{ color: '#f9d230' }}>Pixa</span>
   </div>
 );
-// Minor change for commit.

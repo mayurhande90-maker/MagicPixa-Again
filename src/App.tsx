@@ -7,7 +7,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
-export type View = 'studio' | 'interior' | 'creations' | 'billing';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing';
 
 export interface User {
   uid: string;
@@ -32,7 +32,7 @@ const App: React.FC = () => {
   }
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [activeView, setActiveView] = useState<View>('studio');
+  const [activeView, setActiveView] = useState<View>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -79,6 +79,8 @@ const App: React.FC = () => {
     }
     if (view) {
       setActiveView(view);
+    } else if (page === 'dashboard') {
+      setActiveView('dashboard'); // Default to dashboard view
     }
     setCurrentPage(page);
     window.scrollTo(0, 0);
@@ -154,4 +156,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-// Minor change for commit.

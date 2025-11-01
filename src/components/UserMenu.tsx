@@ -6,7 +6,7 @@ import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon } from './icons
 interface UserMenuProps {
   user: User;
   onLogout: () => void;
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, view?: View) => void;
   setActiveView?: (view: View) => void;
 }
 
@@ -23,6 +23,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleNavigation = (view: View) => {
+    navigateTo('dashboard', view);
+    setIsOpen(false);
+  };
 
   return (
     <div className="relative" ref={menuRef}>
@@ -46,13 +51,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <p className="text-sm text-[#5F6368] truncate" title={user.email}>{user.email}</p>
           </div>
           <div className="py-2">
-            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('studio'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
+            <button onClick={() => handleNavigation('dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>
-            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('creations'); setIsOpen(false); }} disabled className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
+            <button onClick={() => handleNavigation('creations')} disabled className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
             </button>
-            <button onClick={() => { navigateTo('dashboard'); setActiveView?.('billing'); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
+            <button onClick={() => handleNavigation('billing')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <CreditCardIcon className="w-5 h-5" /> Billing
             </button>
           </div>
@@ -68,4 +73,3 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
 };
 
 export default UserMenu;
-// Minor change for commit.
