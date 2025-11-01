@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'video', label: 'Magic Video Insights', icon: VideoIcon, disabled: false },
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
-    { id: 'mockup', label: 'Magic Mockup', icon: TshirtIcon, disabled: true },
+    { id: 'mockup', label: 'Magic Mockup', icon: TshirtIcon, disabled: false },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
   ];
 

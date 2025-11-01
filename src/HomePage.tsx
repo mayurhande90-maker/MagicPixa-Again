@@ -69,12 +69,12 @@ const features = [
         disabled: true,
     },
     {
-        id: null,
+        id: 'mockup',
         icon: <TshirtIcon className="w-10 h-10 text-white" />,
         title: "Magic Mockup",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",
-        disabled: true,
+        disabled: false,
     },
     {
         id: null,

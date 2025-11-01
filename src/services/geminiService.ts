@@ -394,6 +394,69 @@ The only change to the original image should be the removal of its background, m
   }
 };
 
+export const generateMockup = async (
+  base64ImageData: string,
+  mimeType: string,
+  mockupType: string
+): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
+  try {
+    const prompt = `Create a photo-realistic product mockup image based on the following inputs:
+
+Uploaded Image (Logo/Product/Element): Insert this image as-is — do not edit, redraw, recolor, upscale, or alter any part of it. The uploaded content must appear exactly as in the source image, with no text distortion, color change, or visual smoothing.
+
+Mockup Type (User Selection): ${mockupType}
+
+Place the uploaded image naturally and proportionally on the selected mockup item.
+Use realistic materials, reflections, and lighting conditions appropriate for that product.
+Ensure correct perspective and soft shadowing so the mockup looks real but minimalistic.
+
+The scene should be clean and well-lit, with a neutral or softly blurred background to highlight the product.
+Maintain MagicPixa’s design aesthetic — elegant, minimal, user-friendly visuals.
+
+Do not add watermarks, additional text, or any other logos.
+Do not stylize or change the design of the uploaded image — preserve its original color, proportions, and clarity.
+
+Output format: square image (1:1 aspect ratio), high resolution, suitable for export and download.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE],
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
+    }
+
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+    if (imagePart?.inlineData?.data) {
+      return imagePart.inlineData.data;
+    }
+
+    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
+
+  } catch (error) {
+    console.error("Error generating mockup with Gemini:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate image: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the image generation service.");
+  }
+};
+
 const homeStylePrompts: { [key: string]: string } = {
     'Japanese': 'Incorporate traditional and modern Japanese interior aesthetics: minimalism, tatami mats, shōji sliding panels, natural wood finishes (light warm wood tones), clean lines, low-profile furniture, hidden storage, soft diffused natural light. Use neutral and muted color palette — beige, off-white, muted greens — with accent touches of charcoal or black. Include houseplants like bonsai or bamboo. Emphasize harmony, simplicity, and nature in the design.',
     'American': 'Reflect American interior style blending traditional comfort and modern elements: open floor plan, cozy seating (sectional sofas, armchairs), warm hardwood floors, trim molding, large windows with curtains, recessed lighting, built-in cabinetry. Palette: neutrals (ivory, taupe, gray), accent colors like navy, maroon, forest green. Decor: throw pillows, area rugs, framed artwork, bookshelves, indoor plants. Blend functional with aesthetic touches.',
