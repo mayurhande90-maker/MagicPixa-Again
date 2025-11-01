@@ -46,6 +46,26 @@ const interiorStyles = [
     { key: 'African', label: 'African' },
 ];
 
+const homeRoomTypes = [
+    { key: 'Living Room', label: 'Living Room' },
+    { key: 'Kitchen', label: 'Kitchen' },
+    { key: 'Master Bedroom', label: 'Master Bed' },
+    { key: 'Kids Bedroom', label: 'Kids Bed' },
+    { key: 'Guest Bedroom', label: 'Guest Bed' },
+    { key: 'Balcony', label: 'Balcony' },
+    { key: 'Washroom', label: 'Washroom' },
+];
+
+const officeRoomTypes = [
+    { key: 'Cabin', label: 'Cabin' },
+    { key: 'Work Area', label: 'Work Area' },
+    { key: 'Pantry', label: 'Pantry' },
+    { key: 'Conference Room', label: 'Conference' },
+    { key: 'Reception Area', label: 'Reception' },
+    { key: 'Restroom', label: 'Restroom' },
+];
+
+
 const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; }> = ({ user, navigateTo, openEditProfileModal }) => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
         <div className="max-w-7xl mx-auto">
@@ -381,6 +401,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [spaceType, setSpaceType] = useState<'home' | 'office' | null>(null);
+    const [roomType, setRoomType] = useState<string | null>(null);
     const [style, setStyle] = useState<string>('Modern');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -451,12 +473,18 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setOriginalImage(null);
         setBase64Data(null);
         setStyle('Modern');
+        setSpaceType(null);
+        setRoomType(null);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
 
     const handleGenerate = useCallback(async () => {
         if (!base64Data) {
             setError("Please upload a photo of your room first.");
+            return;
+        }
+        if (!spaceType || !roomType) {
+            setError("Please select the space and room type before generating.");
             return;
         }
         if (currentCredits < EDIT_COST) {
@@ -476,14 +504,14 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                 setGuestCredits(prev => prev - EDIT_COST);
             }
 
-            const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style);
+            const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style, spaceType, roomType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, style, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, style, spaceType, roomType, currentCredits, auth, isGuest, navigateTo]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -501,6 +529,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     };
     
     const hasInsufficientCredits = currentCredits < currentCost;
+    const canGenerate = originalImage && spaceType && roomType && style;
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
@@ -562,14 +591,37 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         </div>
                         
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                             <div className="space-y-4">
-                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Choose a Style</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {interiorStyles.map(s => (
-                                        <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
-                                            {s.label}
-                                        </button>
-                                    ))}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Space Type</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={() => { setSpaceType('home'); setRoomType(null); }} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'home' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Home</button>
+                                        <button onClick={() => { setSpaceType('office'); setRoomType(null); }} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'office' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Office</button>
+                                    </div>
+                                </div>
+
+                                {spaceType && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Room Type</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {(spaceType === 'home' ? homeRoomTypes : officeRoomTypes).map(rt => (
+                                                <button key={rt.key} onClick={() => setRoomType(rt.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${roomType === rt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                                    {rt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className={`${!spaceType || !roomType ? 'opacity-50' : ''}`}>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">3. Design Style</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {interiorStyles.map(s => (
+                                            <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage || !spaceType || !roomType} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                                {s.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
@@ -581,7 +633,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                                 <DownloadIcon className="w-6 h-6" /> Download Image
                                             </button>
                                             <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                                     <RetryIcon className="w-5 h-5" /> Regenerate
                                                 </button>
                                                 <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
@@ -592,7 +644,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                         </div>
                                     ) : (
                                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                                 <SparklesIcon className="w-6 h-6" /> Generate
                                             </button>
                                             <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>

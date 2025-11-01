@@ -143,13 +143,15 @@ export const generateInteriorDesign = async (
     base64ImageData: string,
     mimeType: string,
     style: string,
+    spaceType: string,
+    roomType: string,
 ): Promise<string> => {
     if (!ai) {
         throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
     }
 
     try {
-        const basePrompt = "You are an expert interior designer. Redesign the interior of this room photo to be hyper-realistic. CRITICAL: You must preserve the existing structural layout, including the position and size of windows, doors, walls, and ceiling height. Only change the furniture, wall color, flooring, lighting, and decor. Do not alter the core architecture.";
+        const basePrompt = `You are an expert interior designer. Redesign the interior of this photo of a ${roomType.toLowerCase()} in a ${spaceType.toLowerCase()} to be hyper-realistic. CRITICAL: You must preserve the existing structural layout, including the position and size of windows, doors, walls, and ceiling height. Only change the furniture, wall color, flooring, lighting, and decor. Do not alter the core architecture.`;
         
         const stylePrompt = stylePrompts[style] || 'Create a beautiful and modern interior design.';
 
