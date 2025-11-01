@@ -492,32 +492,32 @@ const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => 
                            <h3 className="text-xl font-bold text-[#1E1E1E]">Design Controls</h3>
                            <p className='text-sm text-[#5F6368]'>Select your desired style</p>
                         </div>
-                        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200/80 text-left">
-                            <LightbulbIcon className="w-8 h-8 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-bold text-sm text-blue-800">Pro Tip</p>
-                                <p className="text-xs text-blue-700">
+                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                <p className="text-xs text-yellow-700">
                                   For best results, use a wide-angle shot of your room in good lighting. Empty rooms work great!
                                 </p>
                             </div>
                         </div>
                         
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                             <div className="space-y-4">
+                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Choose a Style</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {interiorStyles.map(s => (
+                                        <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {originalImage && (
                                 <>
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Choose a Style</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {interiorStyles.map(s => (
-                                                <button key={s.key} onClick={() => setStyle(s.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
-                                                    {s.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
                                     {generatedImage ? (
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
                                             <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
                                                 <DownloadIcon className="w-6 h-6" /> Download Image
                                             </button>
@@ -532,18 +532,18 @@ const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => 
                                             <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
                                         </div>
                                     ) : (
-                                        <>
+                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
                                             <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                                 <SparklesIcon className="w-6 h-6" /> Generate
                                             </button>
                                             <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.') : `This generation will cost ${EDIT_COST} credits.`}</p>
                                             <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </>
+                                        </div>
                                     )}
                                 </>
                             )}
                              {!originalImage && !isLoading && (
-                                <p className="text-xs text-center text-[#5F6368]">Upload a photo to get started.</p>
+                                <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload a photo to get started and select a style.</p>
                             )}
                         </div>
 
@@ -598,3 +598,4 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
 };
 
 export default DashboardPage;
+// Minor change for commit.
