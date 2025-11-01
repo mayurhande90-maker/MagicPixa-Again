@@ -1,11 +1,9 @@
-
-
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon, AudioWaveIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon, VideoIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -55,6 +53,14 @@ const features = [
         disabled: false,
     },
     {
+        id: 'video',
+        icon: <VideoIcon className="w-10 h-10 text-white" />,
+        title: "Magic Video Insights",
+        description: "Paste a video link to get an AI-powered summary, key topics, and actionable takeaways in seconds.",
+        color: "bg-fuchsia-500",
+        disabled: false,
+    },
+    {
         id: null,
         icon: <ScannerIcon className="w-10 h-10 text-white" />,
         title: "Magic Scanner",
@@ -68,14 +74,6 @@ const features = [
         title: "Magic Mockup",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",
-        disabled: true,
-    },
-    {
-        id: null,
-        icon: <TshirtIcon className="w-10 h-10 text-white" />,
-        title: "Magic Apparel",
-        description: "Upload your photo and an item of clothing to see how it looks on you before you buy.",
-        color: "bg-teal-500",
         disabled: true,
     },
     {

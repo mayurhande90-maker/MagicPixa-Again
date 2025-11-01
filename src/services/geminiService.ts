@@ -40,46 +40,50 @@ export const startLiveSession = (callbacks: {
     });
 };
 
-export const analyzeImageContent = async (
-  base64ImageData: string,
-  mimeType: string
-): Promise<string> => {
+export const analyzeVideoTranscript = async (transcript: string): Promise<string> => {
   if (!ai) {
-    // Update error message to reflect the correct Vite environment variable name
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
-    const prompt = "Analyze the product in this image. Instead of a literal description, provide a single, creative sentence that captures its essence, mood, or a key selling point. Think like a marketer writing a tagline.";
+    const prompt = `You are an expert video analyst and content strategist. You will be provided with the full transcript of a video. Your task is to deeply analyze this transcript and generate a structured set of insights. The video's language could be English or any Indian local language, with any accent; you must understand it perfectly.
+
+**Your output must be structured in the following format, using Markdown for formatting:**
+
+**📝 Summary**
+<A concise, one-paragraph summary of the entire video.>
+
+**🕒 Key Topics**
+- **[Timestamp]** - <Topic 1>
+- **[Timestamp]** - <Topic 2>
+- **[Timestamp]** - <Topic 3>
+...
+
+**📊 Video Details**
+- **Language:** <Detected language and accent>
+- **Tone:** <e.g., Educational, Humorous, Formal>
+- **Key Quote 1:** "<Memorable quote from the transcript>"
+- **Key Quote 2:** "<Another memorable quote>"
+
+**🚀 Actionable Takeaways**
+- <A bulleted list of the main action items or key lessons a viewer should take away from the video.>`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64ImageData,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: prompt,
-          },
-        ],
-      },
+      contents: `Video Transcript: """${transcript}"""`,
     });
 
     if (response.promptFeedback?.blockReason) {
-        throw new Error(`Image analysis blocked due to: ${response.promptFeedback.blockReason}.`);
+        throw new Error(`Video analysis blocked due to: ${response.promptFeedback.blockReason}.`);
     }
 
     return response.text;
   } catch (error) {
-    console.error("Error analyzing image with Gemini:", error);
+    console.error("Error analyzing video with Gemini:", error);
     if (error instanceof Error) {
-        throw new Error(`Failed to analyze image: ${error.message}`);
+        throw new Error(`Failed to analyze video: ${error.message}`);
     }
-    throw new Error("An unknown error occurred while communicating with the image analysis service.");
+    throw new Error("An unknown error occurred while communicating with the video analysis service.");
   }
 };
 

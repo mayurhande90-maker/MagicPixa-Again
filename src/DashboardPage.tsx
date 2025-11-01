@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground, analyzeVideoTranscript } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -10,7 +10,7 @@ import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
-    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon
+    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, VideoIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -1500,6 +1500,117 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     );
 };
 
+const MagicVideoInsights: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [videoUrl, setVideoUrl] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+    
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-video');
+        return saved ? parseInt(saved, 10) : 2;
+    });
+
+    const EDIT_COST = 2;
+    const currentCost = EDIT_COST;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-video', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    const handleGenerate = async () => {
+        if (!videoUrl.trim()) {
+            setError("Please enter a video URL.");
+            return;
+        }
+        if (currentCredits < currentCost) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        setAnalysisResult(null);
+
+        try {
+            // NOTE: For this demo, we use a sample transcript because a live transcript
+            // extraction service is beyond the scope of this frontend-only application.
+            const sampleTranscript = `(0:01) Hello everyone and welcome to our channel! Today we are unboxing the brand new Gadget Pro X. (0:15) As you can see, the packaging is very sleek, minimalist design. (0:30) Inside the box, you get the device itself, a USB-C charging cable, and a quick start guide. (1:05) The build quality feels really premium, it has an aluminum frame and a matte glass back which doesn't attract fingerprints. (1:45) The screen is a 6.7 inch OLED panel, it's incredibly bright and the colors just pop. (2:30) Let's turn it on. The setup process is very straightforward. (3:10) One of its key features is the new AI-powered camera system. It promises to take amazing photos even in low light. (4:00) We'll be testing that out in our full review, so make sure you subscribe so you don't miss it. (4:15) Overall, my first impressions are very positive. This feels like a solid device. Thanks for watching!`;
+            
+            const result = await analyzeVideoTranscript(sampleTranscript);
+            setAnalysisResult(result);
+            
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - currentCost);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const hasInsufficientCredits = currentCredits < currentCost;
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Video Insights</h2>
+                    <p className="text-[#5F6368] mt-2">Get an AI-powered summary and analysis from any video link.</p>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                        <input
+                            type="text"
+                            value={videoUrl}
+                            onChange={(e) => setVideoUrl(e.target.value)}
+                            placeholder="Paste your video URL here (e.g., YouTube)"
+                            className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0079F2]"
+                            disabled={isLoading}
+                        />
+                        <button 
+                            onClick={handleGenerate} 
+                            disabled={isLoading || hasInsufficientCredits}
+                            className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-6 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                        >
+                            <SparklesIcon className="w-6 h-6" /> Generate
+                        </button>
+                    </div>
+                     <p className={`text-xs text-center sm:text-right ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This analysis will cost ${currentCost} credits.`}</p>
+                     <div className="mt-4 text-center text-sm p-3 bg-blue-50 text-blue-800 rounded-lg border border-blue-200/80">
+                         <strong>Demo Note:</strong> This feature uses a sample video transcript to demonstrate the AI's analysis capabilities.
+                     </div>
+                     {error && <div className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
+                </div>
+                
+                {isLoading && (
+                    <div className="mt-8 flex flex-col items-center justify-center text-center">
+                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                        <p className="mt-4 text-[#1E1E1E] font-medium">Analyzing video... this might take a moment.</p>
+                    </div>
+                )}
+                
+                {analysisResult && !isLoading && (
+                     <div className="mt-8 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
+                        <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Analysis Results</h3>
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}></div>
+                     </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     type SessionState = 'inactive' | 'connecting' | 'active' | 'error';
     type AIState = 'idle' | 'speaking';
@@ -1727,6 +1838,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
                     {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'colour' && <MagicPhotoColour auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'eraser' && <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />}
+                    {activeView === 'video' && <MagicVideoInsights auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>

@@ -8,7 +8,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'caption' | 'colour' | 'eraser';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'caption' | 'colour' | 'eraser' | 'video';
 
 export interface User {
   uid: string;
