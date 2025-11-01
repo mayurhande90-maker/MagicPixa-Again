@@ -1928,7 +1928,6 @@ const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const createBlob = (data: Float32Array): Blob => {
         const int16 = new Int16Array(data.length);
         for (let i = 0; i < data.length; i++) {
-// FIX: The component was truncated here. This completes the function and the component.
             int16[i] = data[i] * 32768;
         }
         return {
