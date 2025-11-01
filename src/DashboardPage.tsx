@@ -711,14 +711,57 @@ const Creations: React.FC = () => (
     </div>
 );
 
+interface ParsedCaptions {
+  short: string;
+  medium: string;
+  long: string;
+  hashtags: string;
+  notes: string;
+}
+
+const parseGeneratedText = (text: string): ParsedCaptions => {
+    const getText = (regex: RegExp) => (text.match(regex) || [])[1]?.trim() || '';
+
+    const short = getText(/🪶 \*\*Caption \(Short\):\*\*\s*\n([\s\S]*?)(?=\n\n💬|$)/);
+    const medium = getText(/💬 \*\*Caption \(Medium\):\*\*\s*\n([\s\S]*?)(?=\n\n📝|$)/);
+    const long = getText(/📝 \*\*Caption \(Long\):\*\*\s*\n([\s\S]*?)(?=\n\n🏷️|$)/);
+    const hashtags = getText(/🏷️ \*\*Hashtags \(Recommended\):\*\*\s*\n([\s\S]*?)(?=\n\n⚙️|$)/);
+    const notes = getText(/⚙️ \*\*Auto Notes:\*\*\s*\n([\s\S]*?)$/);
+
+    return { short, medium, long, hashtags, notes };
+};
+
+const ResultCard: React.FC<{ title: string; content: string; }> = ({ title, content }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        if (!content) return;
+        navigator.clipboard.writeText(content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (!content) return null;
+
+    return (
+        <div className="relative p-4 bg-gray-50 rounded-lg border border-gray-200/80">
+            <h4 className="text-sm font-bold text-gray-800 mb-2">{title}</h4>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{content}</p>
+            <button onClick={handleCopy} className="absolute top-3 right-3 bg-white px-2 py-1 text-xs font-semibold text-gray-700 rounded border hover:bg-gray-100">
+                {copied ? 'Copied!' : 'Copy'}
+            </button>
+        </div>
+    );
+};
+
+
 const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
-    const [generatedText, setGeneratedText] = useState<string | null>(null);
+    const [parsedCaptions, setParsedCaptions] = useState<ParsedCaptions | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [copied, setCopied] = useState(false);
 
     const [guestCredits, setGuestCredits] = useState<number>(() => {
         const saved = sessionStorage.getItem('magicpixa-guest-credits-caption');
@@ -774,13 +817,13 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                 return;
             }
             setOriginalImage({ file, url: URL.createObjectURL(file) });
-            setGeneratedText(null);
+            setParsedCaptions(null);
             setError(null);
         }
     };
 
     const handleStartOver = useCallback(() => {
-        setGeneratedText(null);
+        setParsedCaptions(null);
         setError(null);
         setOriginalImage(null);
         setBase64Data(null);
@@ -810,20 +853,13 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             }
 
             const newText = await generateCaptions(base64Data.base64, base64Data.mimeType);
-            setGeneratedText(newText);
+            setParsedCaptions(parseGeneratedText(newText));
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
         }
     }, [base64Data, currentCredits, auth, isGuest, navigateTo, currentCost]);
-
-    const copyToClipboard = () => {
-        if (!generatedText) return;
-        navigator.clipboard.writeText(generatedText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     const triggerFileInput = () => {
         if (isLoading) return;
@@ -875,17 +911,22 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     </div>
 
                     <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                         {generatedText && !isLoading ? (
+                         {parsedCaptions && !isLoading ? (
                             <>
                                 <div className='text-center'>
                                     <h3 className="text-xl font-bold text-[#1E1E1E]">Generated Captions</h3>
                                     <p className='text-sm text-[#5F6368]'>Ready to copy and paste!</p>
                                 </div>
-                                <div className="relative p-4 bg-gray-50 rounded-lg border" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto' }}>
-                                    <button onClick={copyToClipboard} className="sticky top-2 right-2 float-right bg-white px-2 py-1 text-xs font-semibold text-gray-700 rounded border hover:bg-gray-100 z-10">
-                                        {copied ? 'Copied!' : 'Copy All'}
-                                    </button>
-                                    <pre className="text-sm whitespace-pre-wrap font-sans text-gray-800">{generatedText}</pre>
+                                <div className="space-y-3 py-2 pr-2 -mr-2" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                    <ResultCard title="🪶 Caption (Short)" content={parsedCaptions.short} />
+                                    <ResultCard title="💬 Caption (Medium)" content={parsedCaptions.medium} />
+                                    <ResultCard title="📝 Caption (Long)" content={parsedCaptions.long} />
+                                    <ResultCard title="🏷️ Hashtags (Recommended)" content={parsedCaptions.hashtags} />
+                                    {parsedCaptions.notes && (
+                                        <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border text-left">
+                                            <p><strong className='font-semibold'>⚙️ Auto Notes:</strong> {parsedCaptions.notes}</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-4 pt-4 border-t border-gray-200/80">
                                     <div className="grid grid-cols-2 gap-4">
