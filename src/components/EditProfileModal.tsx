@@ -104,3 +104,4 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose, onSa
 };
 
 export default EditProfileModal;
+// Minor change for commit.

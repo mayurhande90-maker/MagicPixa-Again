@@ -277,3 +277,4 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
 };
 
 export default HomePage;
+// Minor change for commit.

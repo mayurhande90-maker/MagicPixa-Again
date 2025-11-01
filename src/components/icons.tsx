@@ -189,3 +189,4 @@ export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) =
     <span style={{ color: '#f9d230' }}>Pixa</span>
   </div>
 );
+// Minor change for commit.

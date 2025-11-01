@@ -55,3 +55,4 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
 };
 
 export default Header;
+// Minor change for commit.

@@ -29,3 +29,4 @@ export const fileToBase64 = (file: File): Promise<Base64File> => {
     };
   });
 };
+// Minor change for commit.

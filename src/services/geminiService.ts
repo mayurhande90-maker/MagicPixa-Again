@@ -151,11 +151,24 @@ export const generateInteriorDesign = async (
     }
 
     try {
-        const basePrompt = `You are an expert interior designer. Redesign the interior of this photo of a ${roomType.toLowerCase()} in a ${spaceType.toLowerCase()} to be hyper-realistic. CRITICAL: You must preserve the existing structural layout, including the position and size of windows, doors, walls, and ceiling height. Only change the furniture, wall color, flooring, lighting, and decor. Do not alter the core architecture.`;
+        const basePrompt = `You are an expert interior designer and a master of photorealism. Your primary goal is to generate an image that is indistinguishable from a high-quality photograph. Redesign the interior of this photo of a ${roomType.toLowerCase()} in a ${spaceType.toLowerCase()}.
+
+CRITICAL ARCHITECTURAL PRESERVATION:
+- You MUST preserve the existing structural layout with absolute precision. This includes the exact position, size, and shape of all windows, doors, walls, and the original ceiling height.
+- Do NOT alter the core architecture in any way.
+
+PHOTOREALISM DIRECTIVES:
+- SPATIAL ANALYSIS: Meticulously analyze the photo's perspective, depth, and scale. All new furniture and decor must be realistically proportioned to fit the room's dimensions and adhere to the established perspective. Avoid any spatial inconsistencies.
+- LIGHTING & SHADOWS: Create natural, believable lighting based on the visible light sources (e.g., windows). All objects must cast soft, realistic shadows that ground them in the scene.
+- TEXTURES & MATERIALS: Render all materials with high-fidelity textures. Wood should have grain, fabrics should have weaves, and surfaces should have subtle, realistic imperfections. Avoid flat, artificial, or "plastic-looking" surfaces.
+
+DESIGN INSTRUCTIONS:
+- Only change the furniture, wall color/treatment, flooring, lighting fixtures, and decorative elements.
+- The desired style for this redesign is ${style}.`;
         
         const stylePrompt = stylePrompts[style] || 'Create a beautiful and modern interior design.';
 
-        const fullPrompt = `${basePrompt} The desired style is ${style}. ${stylePrompt}`;
+        const fullPrompt = `${basePrompt} ${stylePrompt}`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
@@ -191,3 +204,4 @@ export const generateInteriorDesign = async (
         throw new Error("An unknown error occurred while communicating with the image generation service.");
     }
 };
+// Minor change for commit.

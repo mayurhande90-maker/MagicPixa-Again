@@ -73,3 +73,4 @@ const AuthModal: React.FC<AuthModalProps> = ({
 };
 
 export default AuthModal;
+// Minor change for commit.

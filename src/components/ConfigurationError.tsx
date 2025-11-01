@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 interface ConfigurationErrorProps {
@@ -44,3 +45,4 @@ const ConfigurationError: React.FC<ConfigurationErrorProps> = ({ missingKeys }) 
 );
 
 export default ConfigurationError;
+// Minor change for commit.

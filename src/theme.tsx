@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -68,3 +69,4 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+// Minor change for commit.

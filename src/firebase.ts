@@ -195,3 +195,4 @@ export const addCredits = async (uid: string, amount: number): Promise<DocumentD
 };
 
 export { app, auth };
+// Minor change for commit.

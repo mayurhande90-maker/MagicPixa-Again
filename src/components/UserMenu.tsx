@@ -73,3 +73,4 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
 };
 
 export default UserMenu;
+// Minor change for commit.

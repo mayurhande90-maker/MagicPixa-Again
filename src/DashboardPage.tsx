@@ -709,3 +709,4 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
 };
 
 export default DashboardPage;
+// Minor change for commit.
