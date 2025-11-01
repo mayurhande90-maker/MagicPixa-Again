@@ -34,7 +34,7 @@ const aspectRatios = [
     { key: '9:16', label: '9:16 (Portrait)' },
 ];
 
-const interiorStyles = [
+const homeInteriorStyles = [
     { key: 'Modern', label: 'Modern' },
     { key: 'Japanese', label: 'Japanese' },
     { key: 'American', label: 'American' },
@@ -44,6 +44,18 @@ const interiorStyles = [
     { key: 'Arabic', label: 'Arabic' },
     { key: 'Futuristic', label: 'Futuristic' },
     { key: 'African', label: 'African' },
+];
+
+const officeInteriorStyles = [
+    { key: 'Modern Corporate', label: 'Corporate' },
+    { key: 'Minimalist', label: 'Minimalist' },
+    { key: 'Industrial', label: 'Industrial' },
+    { key: 'Luxury Executive', label: 'Executive' },
+    { key: 'Contemporary', label: 'Contemporary' },
+    { key: 'Creative / Artistic', label: 'Creative' },
+    { key: 'Biophilic / Nature-Inspired', label: 'Biophilic' },
+    { key: 'Traditional Indian', label: 'Indian' },
+    { key: 'Tech Futuristic', label: 'Futuristic' },
 ];
 
 const homeRoomTypes = [
@@ -403,7 +415,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [spaceType, setSpaceType] = useState<'home' | 'office' | null>(null);
     const [roomType, setRoomType] = useState<string | null>(null);
-    const [style, setStyle] = useState<string>('Modern');
+    const [style, setStyle] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
@@ -421,6 +433,17 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    
+    const handleSpaceTypeChange = (type: 'home' | 'office') => {
+        setSpaceType(type);
+        setRoomType(null); // Reset room type
+        // Set a logical default style
+        if (type === 'home') {
+            setStyle('Modern');
+        } else {
+            setStyle('Modern Corporate');
+        }
+    };
     
     useEffect(() => {
         if (isGuest) {
@@ -472,7 +495,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setError(null);
         setOriginalImage(null);
         setBase64Data(null);
-        setStyle('Modern');
+        setStyle(null);
         setSpaceType(null);
         setRoomType(null);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
@@ -483,8 +506,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             setError("Please upload a photo of your room first.");
             return;
         }
-        if (!spaceType || !roomType) {
-            setError("Please select the space and room type before generating.");
+        if (!spaceType || !roomType || !style) {
+            setError("Please select the space, room type, and style before generating.");
             return;
         }
         if (currentCredits < EDIT_COST) {
@@ -514,7 +537,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     }, [base64Data, style, spaceType, roomType, currentCredits, auth, isGuest, navigateTo]);
 
     const handleDownloadClick = useCallback(() => {
-        if (!generatedImage) return;
+        if (!generatedImage || !style) return;
         const link = document.createElement('a');
         link.href = generatedImage;
         link.download = `magicpixa_interior_${style.toLowerCase().replace(' ','_')}_${Date.now()}.png`;
@@ -530,6 +553,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     
     const hasInsufficientCredits = currentCredits < currentCost;
     const canGenerate = originalImage && spaceType && roomType && style;
+
+    const currentStyles = spaceType === 'office' ? officeInteriorStyles : homeInteriorStyles;
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
@@ -595,8 +620,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                 <div>
                                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Space Type</label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => { setSpaceType('home'); setRoomType(null); }} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'home' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Home</button>
-                                        <button onClick={() => { setSpaceType('office'); setRoomType(null); }} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'office' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Office</button>
+                                        <button onClick={() => handleSpaceTypeChange('home')} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'home' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Home</button>
+                                        <button onClick={() => handleSpaceTypeChange('office')} disabled={!originalImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${spaceType === 'office' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>Office</button>
                                     </div>
                                 </div>
 
@@ -616,7 +641,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                 <div className={`${!spaceType || !roomType ? 'opacity-50' : ''}`}>
                                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">3. Design Style</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {interiorStyles.map(s => (
+                                        {currentStyles.map(s => (
                                             <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage || !spaceType || !roomType} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
                                                 {s.label}
                                             </button>
