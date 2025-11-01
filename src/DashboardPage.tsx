@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground, analyzeVideoTranscript, generateMockup, generateMockupPrompts } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground, analyzeVideoTranscript, generateMockup } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -82,6 +82,23 @@ const officeRoomTypes = [
     { key: 'Reception Area', label: 'Reception' },
     { key: 'Restroom', label: 'Restroom' },
 ];
+
+const mockupTypes = [
+    { key: 'T-shirt', label: 'T-shirt' },
+    { key: 'Hoodie', label: 'Hoodie' },
+    { key: 'Coffee Mug', label: 'Coffee Mug' },
+    { key: 'Bottle', label: 'Bottle' },
+    { key: 'Visiting Card', label: 'Visiting Card' },
+    { key: 'Billboard', label: 'Billboard' },
+    { key: 'Frame / Poster', label: 'Frame/Poster' },
+    { key: 'Laptop Screen', label: 'Laptop' },
+    { key: 'Mobile Case', label: 'Mobile Case' },
+    { key: 'Shopping Bag', label: 'Shopping Bag' },
+    { key: 'Box Packaging', label: 'Box' },
+    { key: 'Vehicle Branding (Car / Van side)', label: 'Vehicle' },
+    { key: 'Cap / Hat', label: 'Cap/Hat' },
+];
+
 
 const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; }> = ({ user, navigateTo, openEditProfileModal }) => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
@@ -1614,12 +1631,10 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [mockupType, setMockupType] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
-    const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
     const [guestCredits, setGuestCredits] = useState<number>(() => {
         const saved = sessionStorage.getItem('magicpixa-guest-credits-mockup');
@@ -1629,39 +1644,11 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
 
-    const EDIT_COST = 2; // Generation cost
-    const ANALYSIS_COST = 1; // Prompt suggestion cost
-    const currentCost = EDIT_COST + ANALYSIS_COST;
+    const EDIT_COST = 2;
+    const currentCost = EDIT_COST;
 
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-
-    const analyzeImageForPrompts = useCallback(async (b64Data: Base64File) => {
-        if (currentCredits < ANALYSIS_COST) {
-            setError("Insufficient credits to generate mockup ideas.");
-            if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
-            return;
-        }
-
-        setIsAnalyzing(true);
-        setError(null);
-        setSuggestedPrompts([]);
-        setSelectedPrompt(null);
-
-        try {
-            const prompts = await generateMockupPrompts(b64Data.base64, b64Data.mimeType);
-            setSuggestedPrompts(prompts);
-            if (prompts.length > 0) {
-                setSelectedPrompt(prompts[0]);
-            }
-            // We can deduct analysis cost here, or bundle it with generation
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to get mockup ideas from AI.");
-        } finally {
-            setIsAnalyzing(false);
-        }
-    }, [currentCredits, isGuest, auth, navigateTo]);
 
     useEffect(() => {
         if (isGuest) {
@@ -1671,18 +1658,13 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 
     useEffect(() => {
         if (originalImage) {
+            setBase64Data(null);
             setError(null);
-            setGeneratedImage(null);
-            setSuggestedPrompts([]);
-            setSelectedPrompt(null);
-            fileToBase64(originalImage.file).then(b64 => {
-                setBase64Data(b64);
-                analyzeImageForPrompts(b64);
-            });
+            fileToBase64(originalImage.file).then(setBase64Data);
         } else {
             setBase64Data(null);
         }
-    }, [originalImage, analyzeImageForPrompts]);
+    }, [originalImage]);
 
     useEffect(() => {
         if (isLoading) {
@@ -1708,6 +1690,8 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                 return;
             }
             setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedImage(null);
+            setError(null);
         }
     };
 
@@ -1716,8 +1700,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
         setError(null);
         setOriginalImage(null);
         setBase64Data(null);
-        setSuggestedPrompts([]);
-        setSelectedPrompt(null);
+        setMockupType(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     }, []);
 
@@ -1726,11 +1709,11 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             setError("Please upload a logo or design first.");
             return;
         }
-        if (!selectedPrompt) {
-            setError("Please select a mockup idea.");
+        if (!mockupType) {
+            setError("Please select a mockup type.");
             return;
         }
-        if (currentCredits < EDIT_COST) {
+        if (currentCredits < currentCost) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
             return;
@@ -1741,46 +1724,46 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
         setGeneratedImage(null);
 
         try {
-            const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, selectedPrompt);
+            const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, mockupType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
 
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
-                setGuestCredits(prev => prev - EDIT_COST);
+                setGuestCredits(prev => prev - currentCost);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, selectedPrompt, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, mockupType, currentCredits, auth, isGuest, navigateTo, currentCost]);
 
     const handleDownloadClick = useCallback(() => {
-        if (!generatedImage || !selectedPrompt) return;
+        if (!generatedImage || !mockupType) return;
         const link = document.createElement('a');
         link.href = generatedImage;
-        link.download = `magicpixa_mockup_${Date.now()}.png`;
+        link.download = `magicpixa_mockup_${mockupType.toLowerCase().replace(/ /g, '_')}_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }, [generatedImage, selectedPrompt]);
+    }, [generatedImage, mockupType]);
 
     const triggerFileInput = () => {
-        if (isLoading || isAnalyzing) return;
+        if (isLoading) return;
         fileInputRef.current?.click();
     };
 
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const canGenerate = originalImage && selectedPrompt;
+    const hasInsufficientCredits = currentCredits < currentCost;
+    const canGenerate = originalImage && mockupType;
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
-                    <p className="text-[#5F6368] mt-2">Create photo-realistic mockups with AI-powered ideas.</p>
+                    <p className="text-[#5F6368] mt-2">Create photo-realistic mockups in seconds.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -1796,7 +1779,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original Design" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                                 ) : (
-                                    <div className="text-center">
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                                         <div className="flex flex-col items-center gap-2 text-[#5F6368]">
                                             <UploadIcon className="w-12 h-12" />
                                             <span className='font-semibold text-lg text-[#1E1E1E]'>Upload your logo or design</span>
@@ -1804,17 +1787,15 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                         </div>
                                     </div>
                                 )}
-                                {(originalImage || generatedImage) && !isLoading && !isAnalyzing && (
+                                {(originalImage || generatedImage) && !isLoading && (
                                      <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change design">
                                         <ArrowUpCircleIcon className="w-6 h-6" />
                                     </button>
                                 )}
-                                {(isLoading || isAnalyzing) && (
+                                {isLoading && (
                                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
                                         <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">
-                                            {isLoading ? loadingMessage : 'Analyzing your design...'}
-                                        </p>
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
                                     </div>
                                 )}
                             </div>
@@ -1824,40 +1805,30 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                     <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
                         <div className='text-center'>
                            <h3 className="text-xl font-bold text-[#1E1E1E]">Mockup Controls</h3>
-                           <p className='text-sm text-[#5F6368]'>Let our AI inspire you</p>
+                           <p className='text-sm text-[#5F6368]'>Select a mockup type</p>
                         </div>
                         <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
                             <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
                                 <p className="text-xs text-yellow-700">
-                                  Upload your design, then choose one of our AI's creative ideas to generate a unique mockup.
+                                  For the best results, upload a logo or design as a transparent PNG file.
                                 </p>
                             </div>
                         </div>
                         
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                            {isAnalyzing ? (
-                                <div className="text-center text-sm text-gray-500">Generating creative ideas...</div>
-                            ) : suggestedPrompts.length > 0 ? (
-                                <div>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. AI-Suggested Mockups</label>
-                                    <div className="space-y-2">
-                                        {suggestedPrompts.map((prompt, index) => (
-                                            <button 
-                                                key={index} 
-                                                onClick={() => setSelectedPrompt(prompt)}
-                                                className={`w-full text-left p-3 text-xs font-medium rounded-lg border-2 transition-colors ${selectedPrompt === prompt ? 'bg-blue-50 border-blue-500 text-blue-900' : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'}`}
-                                            >
-                                                {prompt}
-                                            </button>
-                                        ))}
-                                    </div>
+                            <div>
+                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Select Mockup Type</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {mockupTypes.map(mt => (
+                                        <button key={mt.key} onClick={() => setMockupType(mt.key)} disabled={!originalImage} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${mockupType === mt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                            {mt.label}
+                                        </button>
+                                    ))}
                                 </div>
-                            ) : originalImage && !error && (
-                                <div className="text-center text-sm text-gray-500">No suggestions found. Try another image.</div>
-                            )}
-
+                            </div>
+                            
                             {originalImage && (
                                 <>
                                     {generatedImage ? (
@@ -1873,15 +1844,15 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                                     <UploadIcon className="w-5 h-5" /> Upload New
                                                 </button>
                                             </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleGenerate} disabled={isLoading || isAnalyzing || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                                 <SparklesIcon className="w-6 h-6" /> Generate
                                             </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${EDIT_COST} credits.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading || isAnalyzing} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
+                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
                                         </div>
                                     )}
                                 </>
@@ -1928,6 +1899,7 @@ const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const createBlob = (data: Float32Array): Blob => {
         const int16 = new Int16Array(data.length);
         for (let i = 0; i < data.length; i++) {
+// FIX: The component was truncated here. This completes the function and the component.
             int16[i] = data[i] * 32768;
         }
         return {

@@ -1,17 +1,18 @@
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
-import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 
-// FIX: Use import.meta.env for Vite environment variables, consistent with firebase.ts. `process.env` is not available in the client-side build and was causing the application to crash.
+let ai: GoogleGenAI | null = null;
+
+// Use import.meta.env for client-side variables in Vite
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
 const apiKey = (import.meta as any).env.VITE_API_KEY;
 
-if (!apiKey) {
-  throw new Error("VITE_API_KEY environment variable not set.");
+// Initialize the AI client only if the API key is available.
+if (apiKey && apiKey !== 'undefined') {
+  ai = new GoogleGenAI({ apiKey: apiKey });
 }
-
-// FIX: Initialize with the correct API key from Vite environment variables.
-const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
@@ -20,6 +21,10 @@ export const startLiveSession = (callbacks: {
     onerror: (e: ErrorEvent) => void;
     onclose: (e: CloseEvent) => void;
 }) => {
+    if (!ai) {
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+
     return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks,
@@ -36,6 +41,10 @@ export const startLiveSession = (callbacks: {
 };
 
 export const analyzeVideoTranscript = async (transcript: string): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
   try {
     const prompt = `You are an expert video analyst and content strategist. You will be provided with the full transcript of a video. Your task is to deeply analyze this transcript and generate a structured set of insights. The video's language could be English or any Indian local language, with any accent; you must understand it perfectly.
 
@@ -82,6 +91,10 @@ export const generateCaptions = async (
   base64ImageData: string,
   mimeType: string
 ): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
   try {
     const prompt = `You are a professional social media strategist and caption writer.
 You will receive an uploaded image. First, perform a detailed visual analysis of this photo before generating any caption or hashtags.
@@ -198,6 +211,12 @@ export const editImageWithPrompt = async (
   mimeType: string,
   aspectRatio: string,
 ): Promise<string> => {
+  // Now, check for the AI client at the time of the function call.
+  if (!ai) {
+    // Update error message to reflect the correct Vite environment variable name
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+  
   try {
     let prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
     
@@ -263,6 +282,10 @@ export const colourizeImage = async (
   mimeType: string,
   mode: 'restore' | 'colourize_only'
 ): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
   try {
     let basePrompt = `Colourize the provided vintage photograph.
 Maintain the original composition, lighting, and emotional tone while bringing it to life in full colour.
@@ -319,6 +342,10 @@ export const removeImageBackground = async (
   base64ImageData: string,
   mimeType: string
 ): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
   try {
     const prompt = `Your single and most important task is to remove the background from this image, resulting in a transparent PNG.
 
@@ -367,94 +394,33 @@ The only change to the original image should be the removal of its background, m
   }
 };
 
-export const generateMockupPrompts = async (
-  base64ImageData: string,
-  mimeType: string,
-): Promise<string[]> => {
-    try {
-        const prompt = `Analyze the provided image, which could be a logo, text, or a graphic design. Based on its content, style, and subject matter, generate 4 diverse and creative photo-realistic mockup scene descriptions.
-
-CRITICAL INSTRUCTIONS:
-1.  **Analyze First:** Identify the core elements of the image (e.g., "a minimalist mountain logo," "bold text saying 'Velocity'," "a colorful abstract illustration").
-2.  **Generate Diverse Ideas:** Create 4 distinct mockup concepts that would be a good fit for the design. The ideas should span different products and settings.
-3.  **Be Descriptive:** Each suggestion should be a full sentence describing a complete, photo-realistic scene.
-4.  **JSON Output:** Return the suggestions as a JSON array of strings.
-
-Example Input: An image of a coffee bean logo.
-Example Output:
-[
-  "The coffee bean logo elegantly printed on a matte black, reusable coffee mug held by a person in a cozy cafe.",
-  "A rustic, stamped version of the logo on a brown paper coffee bag, placed on a wooden counter with scattered coffee beans.",
-  "The logo embroidered in white thread on a dark green barista apron.",
-  "The logo featured on a modern, clean business card lying on a sunlit cafe table."
-]`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
-                    { text: prompt },
-                ],
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.STRING
-                    }
-                }
-            }
-        });
-
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`Prompt generation blocked due to: ${response.promptFeedback.blockReason}.`);
-        }
-
-        const jsonString = response.text.trim();
-        const prompts = JSON.parse(jsonString);
-        
-        if (Array.isArray(prompts) && prompts.every(p => typeof p === 'string')) {
-            return prompts;
-        }
-
-        throw new Error("The model returned an invalid format for mockup prompts.");
-
-    } catch (error) {
-        console.error("Error generating mockup prompts with Gemini:", error);
-        if (error instanceof Error) {
-            throw new Error(`Failed to generate mockup ideas: ${error.message}`);
-        }
-        throw new Error("An unknown error occurred while generating mockup ideas.");
-    }
-};
-
 export const generateMockup = async (
   base64ImageData: string,
   mimeType: string,
-  mockupPrompt: string
+  mockupType: string
 ): Promise<string> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
   try {
-    const prompt = `Create a photo-realistic product mockup image based on the following instructions:
+    const prompt = `Create a photo-realistic product mockup image based on the following inputs:
 
-**Uploaded Design:**
-You are provided with an image. This image is the user's design (logo, text, or graphic). You MUST insert this design as-is into the scene.
-- CRITICAL: Do not edit, redraw, recolor, upscale, or alter any part of the uploaded design. It must appear exactly as in the source image, with no distortion, color change, or visual smoothing.
+Uploaded Image (Logo/Product/Element): Insert this image as-is — do not edit, redraw, recolor, upscale, or alter any part of it. The uploaded content must appear exactly as in the source image, with no text distortion, color change, or visual smoothing.
 
-**Mockup Scene Description:**
-- ${mockupPrompt}
+Mockup Type (User Selection): ${mockupType}
 
-**Execution Guidelines:**
-- Place the uploaded design naturally and proportionally onto the item described in the scene.
-- Use realistic materials, reflections, and lighting conditions appropriate for the environment.
-- Ensure correct perspective and soft shadowing so the mockup looks real but minimalistic.
-- The overall scene should be clean, well-lit, and aesthetically pleasing to highlight the product.
-- Do not add any watermarks, additional text, or any other logos.
-- Do not stylize or change the design of the uploaded image — preserve its original color, proportions, and clarity.
+Place the uploaded image naturally and proportionally on the selected mockup item.
+Use realistic materials, reflections, and lighting conditions appropriate for that product.
+Ensure correct perspective and soft shadowing so the mockup looks real but minimalistic.
 
-**Output Format:**
-- A high-resolution, square image (1:1 aspect ratio), suitable for export and download.`;
+The scene should be clean and well-lit, with a neutral or softly blurred background to highlight the product.
+Maintain MagicPixa’s design aesthetic — elegant, minimal, user-friendly visuals.
+
+Do not add watermarks, additional text, or any other logos.
+Do not stylize or change the design of the uploaded image — preserve its original color, proportions, and clarity.
+
+Output format: square image (1:1 aspect ratio), high resolution, suitable for export and download.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -540,6 +506,10 @@ export const generateInteriorDesign = async (
     spaceType: string,
     roomType: string,
 ): Promise<string> => {
+    if (!ai) {
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+
     try {
         const specificInstruction = roomTypeSpecifics[roomType] || '';
 
@@ -549,7 +519,7 @@ ROOM-SPECIFIC REQUIREMENTS:
 - ${specificInstruction}
 
 CRITICAL ARCHITECTURAL PRESERVATION:
-- You MUST preserve the existing structural layout with absolute precision. This includes the exact position, size, and shape of all walls, windows, doors, and the original ceiling height.
+- You MUST preserve the existing structural layout with absolute precision. This includes the exact position, size, and shape of all windows, doors, walls, and the original ceiling height.
 - Do NOT alter the core architecture in any way.
 
 PHOTOREALISM DIRECTIVES:
