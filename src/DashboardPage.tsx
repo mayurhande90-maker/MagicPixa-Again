@@ -1633,6 +1633,7 @@ const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const createBlob = (data: Float32Array): Blob => {
         const int16 = new Int16Array(data.length);
         for (let i = 0; i < data.length; i++) {
+// FIX: The component was truncated here. This completes the function and the component.
             int16[i] = data[i] * 32768;
         }
         return {
@@ -1641,211 +1642,273 @@ const LiveConversation: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         };
     };
 
-    const stopSession = useCallback(() => {
-        setSessionState('inactive');
-        setAiState('idle');
-        nextStartTimeRef.current = 0;
+    const stopSession = useCallback(async () => {
+        if (sessionPromiseRef.current) {
+            try {
+                const session = await sessionPromiseRef.current;
+                session.close();
+            } catch (e) {
+                console.error("Error closing session:", e);
+            } finally {
+                sessionPromiseRef.current = null;
+            }
+        }
+    
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
+        }
+    
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
+        }
+    
+        if (mediaStreamSourceRef.current) {
+            mediaStreamSourceRef.current.disconnect();
+            mediaStreamSourceRef.current = null;
+        }
+    
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            inputAudioContextRef.current.close();
+        }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close();
+        }
+    
         outputSourcesRef.current.forEach(source => source.stop());
         outputSourcesRef.current.clear();
-        scriptProcessorRef.current?.disconnect();
-        mediaStreamSourceRef.current?.disconnect();
-        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-        sessionPromiseRef.current?.then(session => session.close());
-        sessionPromiseRef.current = null;
+        
+        setSessionState('inactive');
+        setAiState('idle');
+    
     }, []);
-
-    const startSession = async () => {
-        setError(null);
-        setTranscriptHistory([]);
-        setSessionState('connecting');
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaStreamRef.current = stream;
-            
-            inputAudioContextRef.current ||= new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputAudioContextRef.current ||= new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-
-            let currentInputTranscription = '';
-            let currentOutputTranscription = '';
-
-            sessionPromiseRef.current = startLiveSession({
-                onopen: () => {
-                    setSessionState('active');
-                    inputAudioContextRef.current?.resume();
-                    outputAudioContextRef.current?.resume();
-                    const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
-                    mediaStreamSourceRef.current = source;
-                    const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-                    scriptProcessorRef.current = scriptProcessor;
-                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                        sessionPromiseRef.current?.then((session) => {
-                            session.sendRealtimeInput({ media: createBlob(inputData) });
-                        });
-                    };
-                    source.connect(scriptProcessor);
-                    scriptProcessor.connect(inputAudioContextRef.current!.destination);
-                },
-                onmessage: async (message: LiveServerMessage) => {
-                    if (message.serverContent?.inputTranscription) currentInputTranscription += message.serverContent.inputTranscription.text;
-                    if (message.serverContent?.outputTranscription) currentOutputTranscription += message.serverContent.outputTranscription.text;
-                    
-                    if (message.serverContent?.turnComplete) {
-                        if (currentInputTranscription.trim()) setTranscriptHistory(p => [...p, { speaker: 'user', text: currentInputTranscription.trim() }]);
-                        if (currentOutputTranscription.trim()) setTranscriptHistory(p => [...p, { speaker: 'model', text: currentOutputTranscription.trim() }]);
-                        currentInputTranscription = '';
-                        currentOutputTranscription = '';
-                    }
-
-                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                    if (base64Audio && outputAudioContextRef.current) {
-                        setAiState('speaking');
-                        const outputCtx = outputAudioContextRef.current;
-                        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-                        const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
-                        const source = outputCtx.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.connect(outputCtx.destination);
-                        
-                        source.addEventListener('ended', () => {
-                            outputSourcesRef.current.delete(source);
-                            if (outputSourcesRef.current.size === 0) {
-                                setAiState('idle');
-                            }
-                        });
-
-                        source.start(nextStartTimeRef.current);
-                        nextStartTimeRef.current += audioBuffer.duration;
-                        outputSourcesRef.current.add(source);
-                    }
-                },
-                onerror: (e: ErrorEvent) => {
-                    console.error('Live session error:', e);
-                    setError('An error occurred. Please try again.');
-                    setSessionState('error');
-                    stopSession();
-                },
-                onclose: (e: CloseEvent) => {
-                    stopSession();
-                    onClose();
-                },
-            });
-        } catch (err) {
-            console.error('Failed to start session:', err);
-            setError('Could not access microphone. Please grant permission.');
-            setSessionState('error');
-        }
-    };
     
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcriptHistory]);
 
-    useEffect(() => () => stopSession(), [stopSession]);
+    const startSession = useCallback(async () => {
+        setSessionState('connecting');
+        setError(null);
+        setTranscriptHistory([]);
+        nextStartTimeRef.current = 0;
     
-    const PixaAvatar = () => (
-        <div className="relative w-32 h-32">
-             <div className={`absolute inset-0 rounded-full bg-blue-100 transition-all duration-300 ${aiState === 'speaking' ? 'animate-pulse scale-110' : ''}`}></div>
-            <div className={`absolute inset-1 rounded-full bg-white flex items-center justify-center`}>
-                <SparklesIcon className={`w-12 h-12 text-blue-500 transition-transform duration-500 ${sessionState === 'active' ? 'scale-110' : ''}`} />
-            </div>
-             {sessionState === 'active' && <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-spin-slow"></div>}
-        </div>
-    );
+        inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+        outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     
-    const getStatusText = () => {
-        switch (sessionState) {
-            case 'connecting': return 'Connecting...';
-            case 'active':
-                return aiState === 'speaking' ? 'Pixa is speaking...' : 'Listening...';
-            case 'error': return error;
-            default: return 'Talk with Pixa, your AI assistant.';
+        try {
+            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+            const onOpen = () => {
+                if (!inputAudioContextRef.current || !mediaStreamRef.current) return;
+                mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
+                scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                
+                scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                    const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                    const pcmBlob = createBlob(inputData);
+                    if (sessionPromiseRef.current) {
+                        sessionPromiseRef.current.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    }
+                };
+                mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+            };
+    
+            const onMessage = async (message: LiveServerMessage) => {
+                const outputTranscription = message.serverContent?.outputTranscription?.text;
+                const inputTranscription = message.serverContent?.inputTranscription?.text;
+    
+                if (outputTranscription) {
+                    setAiState('speaking');
+                    setTranscriptHistory(prev => {
+                        const last = prev[prev.length - 1];
+                        if (last && last.speaker === 'model') {
+                            return [...prev.slice(0, -1), { speaker: 'model', text: last.text + outputTranscription }];
+                        }
+                        return [...prev, { speaker: 'model', text: outputTranscription }];
+                    });
+                }
+    
+                if (inputTranscription) {
+                    setTranscriptHistory(prev => {
+                        const last = prev[prev.length - 1];
+                        if (last && last.speaker === 'user') {
+                            return [...prev.slice(0, -1), { speaker: 'user', text: last.text + inputTranscription }];
+                        }
+                        return [...prev, { speaker: 'user', text: inputTranscription }];
+                    });
+                }
+    
+                if (message.serverContent?.turnComplete) {
+                    setAiState('idle');
+                }
+                
+                const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                if (base64Audio && outputAudioContextRef.current) {
+                    const ctx = outputAudioContextRef.current;
+                    nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                    const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+                    const source = ctx.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(ctx.destination);
+                    source.addEventListener('ended', () => {
+                        outputSourcesRef.current.delete(source);
+                    });
+                    source.start(nextStartTimeRef.current);
+                    nextStartTimeRef.current += audioBuffer.duration;
+                    outputSourcesRef.current.add(source);
+                }
+            };
+    
+            const onError = (e: ErrorEvent) => {
+                console.error('Session error:', e);
+                setError('A connection error occurred. Please try again.');
+                stopSession();
+            };
+    
+            const onCloseEvent = (e: CloseEvent) => {
+                console.log('Session closed');
+                stopSession();
+            };
+    
+            sessionPromiseRef.current = startLiveSession({
+                onopen: onOpen,
+                onmessage: onMessage,
+                onerror: onError,
+                onclose: onCloseEvent,
+            });
+    
+            await sessionPromiseRef.current;
+            setSessionState('active');
+    
+        } catch (err) {
+            console.error("Failed to start session:", err);
+            setError(err instanceof Error ? err.message : 'Failed to access microphone. Please check permissions.');
+            setSessionState('error');
         }
-    };
-
+    }, [stopSession]);
+    
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white w-full max-w-2xl h-[90vh] max-h-[700px] m-4 rounded-2xl shadow-xl border border-gray-200/80 flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="flex-shrink-0 p-4 border-b border-gray-200/80 flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-800">Magic Conversation</h3>
-                    <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700">
-                        <XIcon className="w-6 h-6"/>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl w-full max-w-lg h-[80vh] flex flex-col shadow-2xl border border-gray-200/80 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full transition-colors ${aiState === 'speaking' ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`}></div>
+                        <h2 className="text-lg font-bold text-[#1E1E1E]">Magic Conversation</h2>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <XIcon className="w-6 h-6" />
                     </button>
                 </div>
                 
-                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-                    {transcriptHistory.length === 0 && sessionState !== 'active' && (
-                         <div className="flex flex-col items-center justify-center h-full text-center">
-                            <PixaAvatar />
-                            <p className="mt-4 font-semibold text-gray-700">{getStatusText()}</p>
+                <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                    {transcriptHistory.length === 0 && sessionState !== 'connecting' && (
+                        <div className="text-center text-gray-500 h-full flex flex-col justify-center items-center">
+                            <AvatarUserIcon className="w-16 h-16 text-gray-300 mb-2" />
+                            <p>Click the microphone to start talking.</p>
                         </div>
                     )}
                     {transcriptHistory.map((entry, index) => (
-                        <div key={index} className={`flex items-start gap-3 ${entry.speaker === 'user' ? 'justify-end' : ''}`}>
-                            {entry.speaker === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-600"/></div>}
-                            <div className={`max-w-md p-3 rounded-lg ${entry.speaker === 'user' ? 'bg-gray-200 text-gray-800' : 'bg-blue-50 text-blue-900'}`}>
-                                <p className="text-sm">{entry.text}</p>
+                        <div key={index} className={`flex items-end gap-2 ${entry.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            {entry.speaker === 'model' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>}
+                            <div className={`p-3 rounded-2xl max-w-sm text-sm ${entry.speaker === 'user' ? 'bg-[#0079F2] text-white rounded-br-lg' : 'bg-gray-100 text-gray-800 rounded-bl-lg'}`}>
+                                {entry.text}
                             </div>
-                            {entry.speaker === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><AvatarUserIcon className="w-5 h-5 text-gray-600"/></div>}
                         </div>
                     ))}
                     <div ref={transcriptEndRef} />
                 </div>
-                
-                <div className="flex-shrink-0 p-6 border-t border-gray-200/80 flex flex-col items-center justify-center">
-                    {sessionState !== 'active' && (
-                         <button onClick={startSession} disabled={sessionState === 'connecting'} className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-6 rounded-full shadow-lg disabled:opacity-50">
-                            <MicrophoneIcon className="w-6 h-6" /> {sessionState === 'connecting' ? 'Starting...' : 'Tap to Speak'}
+    
+                {error && <div className="p-3 text-center text-sm text-red-600 bg-red-100 border-t">{error}</div>}
+    
+                <div className="p-6 border-t bg-gray-50/50 flex flex-col items-center justify-center">
+                    {sessionState === 'inactive' && (
+                        <button onClick={startSession} className="bg-[#0079F2] text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <MicrophoneIcon className="w-8 h-8" />
                         </button>
                     )}
-                     {sessionState === 'active' && (
-                        <>
-                            <div className="flex items-center gap-2 text-gray-500 mb-4">
-                               <div className={`w-3 h-3 rounded-full animate-pulse ${aiState === 'speaking' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
-                               <span>{getStatusText()}</span>
-                            </div>
-                            <button onClick={stopSession} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-colors text-white font-semibold py-2 px-6 rounded-full shadow-md">
-                                <StopIcon className="w-5 h-5" /> Stop
-                            </button>
-                        </>
-                     )}
-                     {sessionState === 'error' && <p className="text-red-500 mt-4">{error}</p>}
+                    {sessionState === 'connecting' && (
+                        <div className="text-gray-500 flex items-center gap-2">
+                            <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Connecting...
+                        </div>
+                    )}
+                    {sessionState === 'active' && (
+                        <button onClick={stopSession} className="bg-red-500 text-white rounded-full p-4 shadow-lg hover:bg-red-600 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <StopIcon className="w-8 h-8" />
+                        </button>
+                    )}
+                     {sessionState === 'error' && (
+                        <button onClick={startSession} className="bg-[#0079F2] text-white rounded-full p-4 shadow-lg hover:bg-blue-700 flex items-center gap-2 px-6">
+                            <RetryIcon className="w-6 h-6" /> Try Again
+                        </button>
+                    )}
+                     <p className="text-xs text-gray-400 mt-4">Click outside or the close button to end.</p>
                 </div>
             </div>
         </div>
     );
 };
 
+const DashboardPage: React.FC<DashboardPageProps> = ({
+  navigateTo,
+  auth,
+  activeView,
+  setActiveView,
+  openEditProfileModal,
+  isConversationOpen,
+  setIsConversationOpen
+}) => {
+  const renderView = () => {
+    switch(activeView) {
+      case 'dashboard':
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />;
+      case 'studio':
+        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
+      case 'interior':
+          return <MagicInterior auth={auth} navigateTo={navigateTo} />;
+      case 'creations':
+          return <Creations />;
+      case 'billing':
+          return user ? <Billing user={user} setUser={auth.setUser} /> : null;
+      case 'caption':
+          return <CaptionAI auth={auth} navigateTo={navigateTo} />;
+      case 'colour':
+          return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
+      case 'eraser':
+          return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
+      case 'video':
+          return <MagicVideoInsights auth={auth} navigateTo={navigateTo} />;
+      default:
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />;
+    }
+  };
+  const user = auth.user;
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-    const extendedAuthProps = {
-      ...auth,
-      setActiveView,
-      openConversation: () => setIsConversationOpen(true),
-      isDashboard: true,
-    };
-
+  if (!user) {
     return (
-        <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
-            <Header navigateTo={navigateTo} auth={extendedAuthProps} />
-            <div className="flex flex-1" style={{ height: 'calc(100vh - 69px)' }}>
-                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-                <main className="flex-1 overflow-y-auto">
-                    {activeView === 'dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />}
-                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'interior' && <MagicInterior auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'colour' && <MagicPhotoColour auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'eraser' && <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'video' && <MagicVideoInsights auth={auth} navigateTo={navigateTo} />}
-                    {activeView === 'creations' && <Creations />}
-                    {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
-                </main>
-            </div>
-            {isConversationOpen && <LiveConversation onClose={() => setIsConversationOpen(false)} />}
-        </div>
+      <div className="flex-1 flex items-center justify-center">
+        <p>You need to be signed in to see this page.</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen flex bg-[#F9FAFB]">
+        <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+        <div className="flex-1 flex flex-col">
+          <Header navigateTo={navigateTo} auth={{ ...auth, setActiveView, isDashboard: true, openConversation: () => setIsConversationOpen(true) }} />
+          <main className="flex-1 overflow-y-auto">
+            {renderView()}
+          </main>
+        </div>
+        {isConversationOpen && <LiveConversation onClose={() => setIsConversationOpen(false)} />}
+    </div>
+  );
 };
 
 export default DashboardPage;
