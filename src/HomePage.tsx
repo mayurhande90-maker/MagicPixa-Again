@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { Page, AuthProps } from './App';
+import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
@@ -9,70 +9,90 @@ import {
 } from './components/icons';
 
 interface HomePageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, view?: View) => void;
   auth: AuthProps;
 }
 
 const features = [
     {
+        id: 'studio',
         icon: <PhotoStudioIcon className="w-10 h-10 text-white" />,
         title: "Magic Photo Studio",
         description: "Transform simple photos into professional, studio-quality product shots in one click.",
-        color: "bg-blue-500"
+        color: "bg-blue-500",
+        disabled: false,
     },
     {
+        id: null,
         icon: <ScissorsIcon className="w-10 h-10 text-white" />,
         title: "Magic Background Removal",
         description: "Remove the background of any image and receive a transparent PNG, ready for any project.",
-        color: "bg-emerald-500"
+        color: "bg-emerald-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <PaletteIcon className="w-10 h-10 text-white" />,
         title: "Magic Photo Colour",
         description: "Breathe new life into vintage photos. Convert old black and white images into spotless, high-resolution color.",
-        color: "bg-rose-500"
+        color: "bg-rose-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <CaptionIcon className="w-10 h-10 text-white" />,
         title: "CaptionAI",
         description: "Upload a photo and instantly get engaging, copy-paste-ready captions and hashtags for social media.",
-        color: "bg-amber-500"
+        color: "bg-amber-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <ScannerIcon className="w-10 h-10 text-white" />,
         title: "Magic Scanner",
         description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
-        color: "bg-sky-500"
+        color: "bg-sky-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <TshirtIcon className="w-10 h-10 text-white" />,
         title: "Magic Mockup",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
-        color: "bg-indigo-500"
+        color: "bg-indigo-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <UsersIcon className="w-10 h-10 text-white" />,
         title: "Magic with Friends",
         description: "Upload your photo and a friend's, and our AI will generate a new photo of you both together in fun settings.",
-        color: "bg-pink-500"
+        color: "bg-pink-500",
+        disabled: true,
     },
     {
+        id: 'interior',
         icon: <HomeIcon className="w-10 h-10 text-white" />,
         title: "Magic Interior",
         description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
-        color: "bg-orange-500"
+        color: "bg-orange-500",
+        disabled: false,
     },
     {
+        id: null,
         icon: <TshirtIcon className="w-10 h-10 text-white" />,
         title: "Magic Apparel",
         description: "Upload your photo and an item of clothing to see how it looks on you before you buy.",
-        color: "bg-teal-500"
+        color: "bg-teal-500",
+        disabled: true,
     },
     {
+        id: null,
         icon: <NotesIcon className="w-10 h-10 text-white" />,
         title: "Magic Notes",
         description: "Upload a textbook or long PDF and our AI will generate key points and notes to help you study smarter.",
-        color: "bg-purple-500"
+        color: "bg-purple-500",
+        disabled: true,
     }
 ];
 
@@ -154,7 +174,16 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                 <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {features.map((feature, index) => (
-                        <div key={index} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left transform hover:-translate-y-2 transition-transform duration-300">
+                        <div 
+                            key={index} 
+                            onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
+                            className={`relative bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left transition-transform duration-300 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : 'transform hover:-translate-y-2 cursor-pointer'}`}
+                        >
+                            {feature.disabled && (
+                                <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                    Coming Soon
+                                </div>
+                            )}
                             <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}>
                                 {feature.icon}
                             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Page, AuthProps } from '../App';
+// FIX: Import `View` from `../App` where it is defined, instead of `../DashboardPage` which does not export it.
+import { Page, AuthProps, View } from '../App';
 import UserMenu from './UserMenu';
-import { View } from '../DashboardPage';
 import { SparklesIcon, MagicPixaLogo } from './icons';
 
 // Add `setActiveView` to AuthProps for the dashboard context

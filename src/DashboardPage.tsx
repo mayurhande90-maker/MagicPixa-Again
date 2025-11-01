@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, AuthProps } from './App';
-import { editImageWithPrompt } from './services/geminiService';
+import { Page, AuthProps, View } from './App';
+import { editImageWithPrompt, generateInteriorDesign } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
-    PhotoStudioIcon
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon
 } from './components/icons';
 
 interface DashboardPageProps {
-  navigateTo: (page: Page) => void;
+  navigateTo: (page: Page, view?: View) => void;
   auth: AuthProps;
+  activeView: View;
+  setActiveView: (view: View) => void;
 }
-
-export type View = 'studio' | 'creations' | 'billing';
 
 const loadingMessages = [
   "Mixing some virtual paint...",
@@ -31,6 +30,18 @@ const aspectRatios = [
     { key: '1:1', label: '1:1 (Square)' },
     { key: '16:9', label: '16:9 (Landscape)' },
     { key: '9:16', label: '9:16 (Portrait)' },
+];
+
+const interiorStyles = [
+    { key: 'Modern', label: 'Modern' },
+    { key: 'Japanese', label: 'Japanese' },
+    { key: 'American', label: 'American' },
+    { key: 'Chinese', label: 'Chinese' },
+    { key: 'Traditional Indian', label: 'Indian' },
+    { key: 'Coastal', label: 'Coastal' },
+    { key: 'Arabic', label: 'Arabic' },
+    { key: 'Futuristic', label: 'Futuristic' },
+    { key: 'African', label: 'African' },
 ];
 
 
@@ -307,6 +318,251 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
     );
 };
 
+const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => void; }> = ({ auth, setActiveView }) => {
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [style, setStyle] = useState<string>('Modern');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-interior');
+        return saved ? parseInt(saved, 10) : 2;
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+    
+    const EDIT_COST = 2;
+    const currentCost = EDIT_COST;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-interior', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        setStyle('Modern');
+        if (fileInputRef.current) fileInputRef.current.value = ""; 
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload a photo of your room first.");
+            return;
+        }
+        if (currentCredits < EDIT_COST) {
+            if (isGuest) auth.openAuthModal();
+            else setActiveView('billing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+
+            const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, style, currentCredits, auth, isGuest, setActiveView]);
+
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_interior_${style.toLowerCase().replace(' ','_')}_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage, style]);
+
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+    
+    const hasInsufficientCredits = currentCredits < currentCost;
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+             <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
+                    <p className="text-[#5F6368] mt-2">Redesign any room with the power of AI.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage && !generatedImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!originalImage && !generatedImage ? triggerFileInput : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {generatedImage ? (
+                                    <img src={generatedImage} alt="Generated Interior" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : originalImage ? (
+                                    <img src={originalImage.url} alt="Original Room" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <UploadIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Upload a photo of your room</span>
+                                            <span className="text-sm">or click to select a file</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {(originalImage || generatedImage) && !isLoading && (
+                                     <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo">
+                                        <ArrowUpCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                           <h3 className="text-xl font-bold text-[#1E1E1E]">Design Controls</h3>
+                           <p className='text-sm text-[#5F6368]'>Select your desired style</p>
+                        </div>
+                        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm text-blue-800">Pro Tip</p>
+                                <p className="text-xs text-blue-700">
+                                  For best results, use a wide-angle shot of your room in good lighting. Empty rooms work great!
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            {originalImage && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Choose a Style</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {interiorStyles.map(s => (
+                                                <button key={s.key} onClick={() => setStyle(s.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                                    {s.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {generatedImage ? (
+                                        <div className="space-y-4">
+                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                                <DownloadIcon className="w-6 h-6" /> Download Image
+                                            </button>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <RetryIcon className="w-5 h-5" /> Regenerate
+                                                </button>
+                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                                    <UploadIcon className="w-5 h-5" /> Upload New
+                                                </button>
+                                            </div>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                                <SparklesIcon className="w-6 h-6" /> Generate
+                                            </button>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                             {!originalImage && !isLoading && (
+                                <p className="text-xs text-center text-[#5F6368]">Upload a photo to get started.</p>
+                            )}
+                        </div>
+
+                        {error && (
+                            <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'>
+                                <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>
+                                <button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800">
+                                    <RetryIcon className="w-4 h-4" /> Try Again
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const Creations: React.FC = () => (
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col items-center justify-center text-center">
         <ProjectsIcon className="w-16 h-16 text-gray-300 mb-4" />
@@ -318,9 +574,7 @@ const Creations: React.FC = () => (
 );
 
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
-    const [activeView, setActiveView] = useState<View>('studio');
-
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView }) => {
     // Pass `setActiveView` down to the header and user menu
     const extendedAuthProps = {
       ...auth,
@@ -334,6 +588,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth }) => {
                 <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} />
                 <main className="flex-1 overflow-y-auto">
                     {activeView === 'studio' && <MagicPhotoStudio auth={auth} setActiveView={setActiveView} />}
+                    {activeView === 'interior' && <MagicInterior auth={auth} setActiveView={setActiveView} />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>

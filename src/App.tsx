@@ -7,6 +7,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
+export type View = 'studio' | 'interior' | 'creations' | 'billing';
 
 export interface User {
   uid: string;
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   }
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [activeView, setActiveView] = useState<View>('studio');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -70,10 +72,13 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const navigateTo = useCallback((page: Page) => {
+  const navigateTo = useCallback((page: Page, view?: View) => {
     if (page === 'dashboard' && !isAuthenticated) {
       setAuthModalOpen(true);
       return;
+    }
+    if (view) {
+      setActiveView(view);
     }
     setCurrentPage(page);
     window.scrollTo(0, 0);
@@ -137,7 +142,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} />}
+      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} />}
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 

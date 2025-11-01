@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User } from '../App';
-import { Page } from '../App';
+// FIX: Import `View` from `../App` where it is defined, instead of `../DashboardPage` which does not export it.
+import { User, Page, View } from '../App';
 import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon } from './icons';
-import { View } from '../DashboardPage';
 
 interface UserMenuProps {
   user: User;

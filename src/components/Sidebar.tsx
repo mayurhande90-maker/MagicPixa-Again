@@ -1,7 +1,7 @@
 import React from 'react';
 import { User } from '../App';
 import { PhotoStudioIcon, ProjectsIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, TshirtIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
-import { View } from '../DashboardPage';
+import { View } from '../App';
 
 interface SidebarProps {
   user: User | null;
@@ -18,7 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) =>
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'mockup', label: 'Magic Mockup', icon: TshirtIcon, disabled: true },
     { id: 'friends', label: 'Magic with Friends', icon: UsersIcon, disabled: true },
-    { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: true },
+    { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'apparel', label: 'Magic Apparel', icon: TshirtIcon, disabled: true },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
     { id: 'billing', label: 'Billing', icon: CreditCardIcon, disabled: false },
