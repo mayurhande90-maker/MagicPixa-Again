@@ -3,16 +3,11 @@
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 
-let ai: GoogleGenAI | null = null;
-
-// Use import.meta.env for client-side variables in Vite
-// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
-const apiKey = (import.meta as any).env.VITE_API_KEY;
-
-// Initialize the AI client only if the API key is available.
-if (apiKey && apiKey !== 'undefined') {
-  ai = new GoogleGenAI({ apiKey: apiKey });
+if (!process.env.API_KEY) {
+  throw new Error("API_KEY environment variable not set.");
 }
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
@@ -21,10 +16,6 @@ export const startLiveSession = (callbacks: {
     onerror: (e: ErrorEvent) => void;
     onclose: (e: CloseEvent) => void;
 }) => {
-    if (!ai) {
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
     return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks,
@@ -41,10 +32,6 @@ export const startLiveSession = (callbacks: {
 };
 
 export const analyzeVideoTranscript = async (transcript: string): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
   try {
     const prompt = `You are an expert video analyst and content strategist. You will be provided with the full transcript of a video. Your task is to deeply analyze this transcript and generate a structured set of insights. The video's language could be English or any Indian local language, with any accent; you must understand it perfectly.
 
@@ -91,10 +78,6 @@ export const generateCaptions = async (
   base64ImageData: string,
   mimeType: string
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
   try {
     const prompt = `You are a professional social media strategist and caption writer.
 You will receive an uploaded image. First, perform a detailed visual analysis of this photo before generating any caption or hashtags.
@@ -211,12 +194,6 @@ export const editImageWithPrompt = async (
   mimeType: string,
   aspectRatio: string,
 ): Promise<string> => {
-  // Now, check for the AI client at the time of the function call.
-  if (!ai) {
-    // Update error message to reflect the correct Vite environment variable name
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-  
   try {
     let prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
     
@@ -282,10 +259,6 @@ export const colourizeImage = async (
   mimeType: string,
   mode: 'restore' | 'colourize_only'
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
   try {
     let basePrompt = `Colourize the provided vintage photograph.
 Maintain the original composition, lighting, and emotional tone while bringing it to life in full colour.
@@ -342,10 +315,6 @@ export const removeImageBackground = async (
   base64ImageData: string,
   mimeType: string
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
   try {
     const prompt = `Your single and most important task is to remove the background from this image, resulting in a transparent PNG.
 
@@ -398,10 +367,6 @@ export const generateMockupPrompts = async (
   base64ImageData: string,
   mimeType: string,
 ): Promise<string[]> => {
-    if (!ai) {
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-    
     try {
         const prompt = `Analyze the provided image, which could be a logo, text, or a graphic design. Based on its content, style, and subject matter, generate 4 diverse and creative photo-realistic mockup scene descriptions.
 
@@ -466,10 +431,6 @@ export const generateMockup = async (
   mimeType: string,
   mockupPrompt: string
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
   try {
     const prompt = `Create a photo-realistic product mockup image based on the following instructions:
 
@@ -575,10 +536,6 @@ export const generateInteriorDesign = async (
     spaceType: string,
     roomType: string,
 ): Promise<string> => {
-    if (!ai) {
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
     try {
         const specificInstruction = roomTypeSpecifics[roomType] || '';
 
