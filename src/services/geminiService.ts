@@ -316,13 +316,17 @@ export const removeImageBackground = async (
   }
 
   try {
-    const prompt = `You are an expert photo editor. Your task is to accurately identify the main subject (person, object, animal, etc.) in the provided image and completely remove the background.
+    const prompt = `Your single and most important task is to remove the background from this image, resulting in a transparent PNG.
+
+You are an expert photo editing AI. You will receive an image and you MUST return the same image with the background completely removed.
 
 CRITICAL INSTRUCTIONS:
-1.  The final output MUST be an image of ONLY the subject on a perfectly transparent background.
-2.  Preserve all details of the subject with high fidelity, especially fine details like hair, fur, and semi-transparent edges.
-3.  Do not add any shadows, borders, or effects.
-4.  The output image must have an alpha channel for transparency (i.e., be a transparent PNG).`;
+1.  **TRANSPARENT BACKGROUND ONLY:** The output image's background must be 100% transparent. Do NOT add any color, especially not white. The background must be pure alpha transparency.
+2.  **PRESERVE SUBJECT:** The main subject (person, product, etc.) must be perfectly preserved. Do not alter the subject in any way.
+3.  **HIGH-QUALITY MASKING:** Create a precise, clean mask around the subject. Pay special attention to fine details like hair, fur, and semi-transparent edges. The edge quality must be professional.
+4.  **NO ADDITIONS:** Do not add any shadows, outlines, borders, or any other visual effects.
+
+The only change to the original image should be the removal of its background, making it transparent. The final output must have a valid alpha channel for transparency.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
