@@ -5,7 +5,7 @@ import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon, AudioWaveIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -63,12 +63,12 @@ const features = [
         disabled: true,
     },
     {
-        id: null,
-        icon: <UsersIcon className="w-10 h-10 text-white" />,
-        title: "Magic with Friends",
-        description: "Upload your photo and a friend's, and our AI will generate a new photo of you both together in fun settings.",
+        id: 'live',
+        icon: <AudioWaveIcon className="w-10 h-10 text-white" />,
+        title: "Magic Conversation",
+        description: "Have a real-time voice conversation with our AI. Ask questions, get answers, and more.",
         color: "bg-pink-500",
-        disabled: true,
+        disabled: false,
     },
     {
         id: 'interior',

@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
+import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
-    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon
+    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
+    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon
 } from './components/icons';
+// FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
+import { Blob, LiveServerMessage } from '@google/genai';
 
 interface DashboardPageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -1494,6 +1498,217 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     );
 };
 
+const LiveConversation: React.FC = () => {
+    const [isSessionActive, setIsSessionActive] = useState(false);
+    const [transcriptHistory, setTranscriptHistory] = useState<{ speaker: 'user' | 'model'; text: string }[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+    // FIX: Used `ReturnType` to infer the session promise type from the `startLiveSession` function.
+    const sessionPromiseRef = useRef<ReturnType<typeof startLiveSession> | null>(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+    
+    // Using a ref for nextStartTime to ensure its value persists across re-renders and callbacks
+    const nextStartTimeRef = useRef(0);
+
+    const createBlob = (data: Float32Array): Blob => {
+        const l = data.length;
+        const int16 = new Int16Array(l);
+        for (let i = 0; i < l; i++) {
+            int16[i] = data[i] * 32768;
+        }
+        return {
+            data: encode(new Uint8Array(int16.buffer)),
+            mimeType: 'audio/pcm;rate=16000',
+        };
+    };
+
+    const startSession = async () => {
+        setError(null);
+        setTranscriptHistory([]);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStreamRef.current = stream;
+            
+            // Lazy-initialize AudioContexts only when needed
+            if (!inputAudioContextRef.current) {
+                inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            }
+             if (!outputAudioContextRef.current) {
+                outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            }
+
+            let currentInputTranscription = '';
+            let currentOutputTranscription = '';
+
+            sessionPromiseRef.current = startLiveSession({
+                onopen: () => {
+                    console.log('Live session opened.');
+                    setIsSessionActive(true);
+
+                    // Ensure contexts are active
+                    inputAudioContextRef.current?.resume();
+                    outputAudioContextRef.current?.resume();
+
+                    const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
+                    mediaStreamSourceRef.current = source;
+
+                    const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                    scriptProcessorRef.current = scriptProcessor;
+
+                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob = createBlob(inputData);
+                        sessionPromiseRef.current?.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    };
+                    source.connect(scriptProcessor);
+                    scriptProcessor.connect(inputAudioContextRef.current!.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                     if (message.serverContent?.inputTranscription) {
+                        currentInputTranscription += message.serverContent.inputTranscription.text;
+                    }
+                    if (message.serverContent?.outputTranscription) {
+                        currentOutputTranscription += message.serverContent.outputTranscription.text;
+                    }
+                    
+                    if (message.serverContent?.turnComplete) {
+                        if (currentInputTranscription.trim()) {
+                            setTranscriptHistory(prev => [...prev, { speaker: 'user', text: currentInputTranscription.trim() }]);
+                        }
+                        if (currentOutputTranscription.trim()) {
+                           setTranscriptHistory(prev => [...prev, { speaker: 'model', text: currentOutputTranscription.trim() }]);
+                        }
+                        currentInputTranscription = '';
+                        currentOutputTranscription = '';
+                    }
+
+                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (base64Audio && outputAudioContextRef.current) {
+                        const outputCtx = outputAudioContextRef.current;
+                        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+                        
+                        const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
+                        const source = outputCtx.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputCtx.destination);
+                        
+                        source.addEventListener('ended', () => {
+                            outputSourcesRef.current.delete(source);
+                        });
+
+                        source.start(nextStartTimeRef.current);
+                        nextStartTimeRef.current += audioBuffer.duration;
+                        outputSourcesRef.current.add(source);
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error('Live session error:', e);
+                    setError('An error occurred during the session. Please try again.');
+                    stopSession();
+                },
+                onclose: (e: CloseEvent) => {
+                    console.log('Live session closed.');
+                    stopSession();
+                },
+            });
+
+        } catch (err) {
+            console.error('Failed to start session:', err);
+            setError('Could not access microphone. Please grant permission and try again.');
+        }
+    };
+    
+    const stopSession = () => {
+        setIsSessionActive(false);
+        nextStartTimeRef.current = 0;
+
+        // Stop all playing audio sources
+        outputSourcesRef.current.forEach(source => source.stop());
+        outputSourcesRef.current.clear();
+
+        // Disconnect audio processing
+        scriptProcessorRef.current?.disconnect();
+        mediaStreamSourceRef.current?.disconnect();
+
+        // Stop microphone track
+        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+        
+        // Close the session
+        sessionPromiseRef.current?.then(session => session.close());
+        sessionPromiseRef.current = null;
+    };
+
+    useEffect(() => {
+        transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [transcriptHistory]);
+
+    // Cleanup on component unmount
+    useEffect(() => {
+        return () => {
+            stopSession();
+        };
+    }, []);
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-4xl mx-auto flex flex-col h-full'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Conversation</h2>
+                    <p className="text-[#5F6368] mt-2">Have a real-time voice conversation with our AI assistant, Pixa.</p>
+                </div>
+
+                {!isSessionActive ? (
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        <button
+                            onClick={startSession}
+                            className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-4 px-8 rounded-full shadow-lg"
+                        >
+                            <MicrophoneIcon className="w-6 h-6" /> Start Conversation
+                        </button>
+                        {error && <p className="text-red-500 mt-4">{error}</p>}
+                    </div>
+                ) : (
+                    <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-lg border border-gray-200/80 overflow-hidden">
+                        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                            {transcriptHistory.map((entry, index) => (
+                                <div key={index} className={`flex items-start gap-3 ${entry.speaker === 'user' ? 'justify-end' : ''}`}>
+                                    {entry.speaker === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-600"/></div>}
+                                    <div className={`max-w-md p-3 rounded-lg ${entry.speaker === 'user' ? 'bg-gray-200 text-gray-800' : 'bg-blue-50 text-blue-900'}`}>
+                                        <p className="text-sm">{entry.text}</p>
+                                    </div>
+                                    {entry.speaker === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><AvatarUserIcon className="w-5 h-5 text-gray-600"/></div>}
+                                </div>
+                            ))}
+                            <div ref={transcriptEndRef} />
+                        </div>
+                        <div className="p-4 border-t border-gray-200/80 flex flex-col items-center justify-center">
+                             <div className="flex items-center gap-2 text-gray-500 mb-4">
+                                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                <span>Listening...</span>
+                            </div>
+                            <button
+                                onClick={stopSession}
+                                className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-colors text-white font-semibold py-2 px-6 rounded-full shadow-md"
+                            >
+                                <StopIcon className="w-5 h-5" /> Stop
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal }) => {
     const extendedAuthProps = {
       ...auth,
@@ -1512,6 +1727,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
                     {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'colour' && <MagicPhotoColour auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'eraser' && <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />}
+                    {activeView === 'live' && <LiveConversation />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>

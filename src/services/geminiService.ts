@@ -1,6 +1,7 @@
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
-import { GoogleGenAI, Modality } from "@google/genai";
+// FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
@@ -12,6 +13,32 @@ const apiKey = (import.meta as any).env.VITE_API_KEY;
 if (apiKey && apiKey !== 'undefined') {
   ai = new GoogleGenAI({ apiKey: apiKey });
 }
+
+// FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
+export const startLiveSession = (callbacks: {
+    onopen: () => void;
+    onmessage: (message: LiveServerMessage) => Promise<void>;
+    onerror: (e: ErrorEvent) => void;
+    onclose: (e: CloseEvent) => void;
+}) => {
+    if (!ai) {
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+
+    return ai.live.connect({
+        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        callbacks,
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+            },
+            outputAudioTranscription: {},
+            inputAudioTranscription: {},
+            systemInstruction: 'You are a friendly and helpful conversational AI named Pixa. Keep your responses concise and engaging.',
+        },
+    });
+};
 
 export const analyzeImageContent = async (
   base64ImageData: string,
