@@ -626,28 +626,30 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                 </div>
 
                                 {spaceType && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Room Type</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {(spaceType === 'home' ? homeRoomTypes : officeRoomTypes).map(rt => (
-                                                <button key={rt.key} onClick={() => setRoomType(rt.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${roomType === rt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
-                                                    {rt.label}
-                                                </button>
-                                            ))}
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Room Type</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {(spaceType === 'home' ? homeRoomTypes : officeRoomTypes).map(rt => (
+                                                    <button key={rt.key} onClick={() => setRoomType(rt.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${roomType === rt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                                        {rt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
+                                        
+                                        <div className={`${!roomType ? 'opacity-50' : ''}`}>
+                                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">3. Design Style</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {currentStyles.map(s => (
+                                                    <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage || !spaceType || !roomType} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                                        {s.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
-                                
-                                <div className={`${!spaceType || !roomType ? 'opacity-50' : ''}`}>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">3. Design Style</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {currentStyles.map(s => (
-                                            <button key={s.key} onClick={() => setStyle(s.key)} disabled={!originalImage || !spaceType || !roomType} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
-                                                {s.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
 
                             {originalImage && (
@@ -734,4 +736,3 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
 };
 
 export default DashboardPage;
-// Minor change for commit.
