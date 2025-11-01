@@ -59,6 +59,7 @@ export const analyzeImageContent = async (
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
+  aspectRatio: string,
 ): Promise<string> => {
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
@@ -67,8 +68,12 @@ export const editImageWithPrompt = async (
   }
   
   try {
-    const prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
+    let prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
     
+    if (aspectRatio !== 'original') {
+        prompt += ` The final output image MUST have a strict aspect ratio of ${aspectRatio}. Adjust the framing and background composition as needed, but do not stretch or distort the original product.`;
+    }
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {

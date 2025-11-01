@@ -7,7 +7,8 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import { 
-    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon
+    UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
+    PhotoStudioIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -25,10 +26,19 @@ const loadingMessages = [
   "Just a moment...",
 ];
 
+const aspectRatios = [
+    { key: 'original', label: 'Same as Input' },
+    { key: '1:1', label: '1:1' },
+    { key: '16:9', label: '16:9' },
+    { key: '9:16', label: '9:16' },
+];
+
+
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) => void; }> = ({ auth, setActiveView }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
-    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [aspectRatio, setAspectRatio] = useState<string>('original');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
@@ -40,7 +50,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
-    const GENERATION_COST = 2;
+    
+    const EDIT_COST = 2;
+    const currentCost = EDIT_COST;
 
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -104,19 +116,20 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
     };
 
     const handleStartOver = useCallback(() => {
-        setOriginalImage(null);
         setGeneratedImage(null);
-        setBase64Data(null);
         setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        setAspectRatio('original');
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
 
-    const handleGenerateClick = useCallback(async () => {
+    const handleImageEdit = useCallback(async () => {
         if (!base64Data) {
             setError("Please upload an image first.");
             return;
         }
-        if (currentCredits < GENERATION_COST) {
+        if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
             else setActiveView('billing');
             return;
@@ -127,26 +140,27 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
         
         try {
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, GENERATION_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
-                setGuestCredits(prev => prev - GENERATION_COST);
+                setGuestCredits(prev => prev - EDIT_COST);
             }
 
-            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType);
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, currentCredits, auth, isGuest, setGuestCredits, setActiveView]);
+    }, [base64Data, aspectRatio, currentCredits, auth, isGuest, setActiveView]);
+
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
         const link = document.createElement('a');
         link.href = generatedImage;
-        link.download = `magicpixa_image.png`;
+        link.download = `magicpixa_image_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -157,14 +171,14 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
         fileInputRef.current?.click();
     };
     
-    const hasInsufficientCredits = currentCredits < GENERATION_COST;
+    const hasInsufficientCredits = currentCredits < currentCost;
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
              <div className='w-full max-w-7xl mx-auto'>
-                <div className='mb-12 text-center'>
+                <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
-                    <p className="text-[#5F6368] mt-2">Transform your photo into a masterpiece in one click.</p>
+                    <p className="text-[#5F6368] mt-2">Transform your product photos into studio-quality images.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -174,7 +188,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!originalImage && !generatedImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!originalImage && !generatedImage ? triggerFileInput : undefined}
-                                role="button" tabIndex={!originalImage && !generatedImage ? 0 : -1} aria-label={!originalImage ? "Upload an image" : ""}
+                                role={!originalImage && !generatedImage ? 'button' : undefined} 
+                                tabIndex={!originalImage && !generatedImage ? 0 : -1} 
+                                aria-label={!originalImage ? "Upload an image" : ""}
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
@@ -223,54 +239,53 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                             <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
-                                <p className="text-xs text-yellow-700">For best results, upload a clear, well-lit photo where the subject is facing forward.</p>
+                                <p className="text-xs text-yellow-700">
+                                    For best results, upload a clear, well-lit photo where the subject is facing forward.
+                                </p>
                             </div>
                         </div>
-
+                        
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                            {generatedImage ? (
-                                <div className="space-y-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                        <DownloadIcon className="w-6 h-6" />
-                                        Download Image
-                                    </button>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={handleGenerateClick} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <RetryIcon className="w-5 h-5" />
-                                            Regenerate
-                                        </button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <UploadIcon className="w-5 h-5" />
-                                            Upload New
-                                        </button>
-                                    </div>
-                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
-                                       Regeneration costs {GENERATION_COST} credits.
-                                    </p>
-                                </div>
-                            ) : (
+                            {!originalImage && !isLoading && (
+                                <p className="text-xs text-center text-[#5F6368]">Click the canvas on the left to upload a photo.</p>
+                            )}
+
+                            {originalImage && (
                                 <>
-                                    <button 
-                                        onClick={handleGenerateClick} 
-                                        disabled={!originalImage || isLoading || hasInsufficientCredits} 
-                                        className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-                                    >
-                                        <SparklesIcon className="w-6 h-6" />
-                                        Generate
-                                    </button>
-                                    {originalImage ? (
+                                    <div>
+                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {aspectRatios.map(ar => (
+                                                <button key={ar.key} onClick={() => setAspectRatio(ar.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                                    {ar.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {generatedImage ? (
+                                        <div className="space-y-4">
+                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                                <DownloadIcon className="w-6 h-6" /> Download Image
+                                            </button>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <RetryIcon className="w-5 h-5" /> Regenerate
+                                                </button>
+                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                                    <UploadIcon className="w-5 h-5" /> Upload New
+                                                </button>
+                                            </div>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
+                                        </div>
+                                    ) : (
                                         <>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>
-                                                {hasInsufficientCredits
-                                                    ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.')
-                                                    : `This generation will cost ${GENERATION_COST} credits.`}
-                                            </p>
+                                            <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                                <SparklesIcon className="w-6 h-6" /> Generate
+                                            </button>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.') : `This generation will cost ${EDIT_COST} credits.`}</p>
                                             <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
                                         </>
-                                    ) : (
-                                        <p className="text-xs text-center text-[#5F6368]">
-                                            Click the canvas on the left to upload a photo.
-                                        </p>
                                     )}
                                 </>
                             )}
