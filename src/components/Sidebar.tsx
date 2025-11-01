@@ -64,3 +64,4 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
 };
 
 export default Sidebar;
+// Minor change for commit.
