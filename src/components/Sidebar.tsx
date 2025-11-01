@@ -1,5 +1,5 @@
 import React from 'react';
-import { User } from '../App';
+import { User, Page } from '../App';
 import { DashboardIcon, PhotoStudioIcon, ProjectsIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, TshirtIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
 import { View } from '../App';
 
@@ -7,9 +7,10 @@ interface SidebarProps {
   user: User | null;
   activeView: View;
   setActiveView: (view: View) => void;
+  navigateTo: (page: Page, view?: View, sectionId?: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
@@ -51,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) =>
           <p className="text-sm text-[#5F6368] mb-1">Credits</p>
           <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits}</p>
           <button 
-            onClick={() => setActiveView('billing')}
+            onClick={() => navigateTo('home', undefined, 'pricing')}
             className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
           >
             Get More Credits

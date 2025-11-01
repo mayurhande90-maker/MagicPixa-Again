@@ -12,10 +12,11 @@ import {
 } from './components/icons';
 
 interface DashboardPageProps {
-  navigateTo: (page: Page, view?: View) => void;
+  navigateTo: (page: Page, view?: View, sectionId?: string) => void;
   auth: AuthProps;
   activeView: View;
   setActiveView: (view: View) => void;
+  openEditProfileModal: () => void;
 }
 
 const loadingMessages = [
@@ -45,7 +46,7 @@ const interiorStyles = [
     { key: 'African', label: 'African' },
 ];
 
-const Dashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => (
+const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; }> = ({ user, navigateTo, openEditProfileModal }) => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
         <div className="max-w-7xl mx-auto">
             <div className="mb-8">
@@ -53,46 +54,10 @@ const Dashboard: React.FC<{ user: User | null; setActiveView: (view: View) => vo
                 <p className="text-[#5F6368] mt-1">Ready to create something amazing today?</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-8">
-                    {/* Quick Actions */}
-                    <div>
-                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Quick Actions</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <button onClick={() => setActiveView('studio')} className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 text-left hover:border-[#0079F2] hover:-translate-y-1 transition-all">
-                                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
-                                    <PhotoStudioIcon className="w-7 h-7 text-blue-600" />
-                                </div>
-                                <h3 className="font-bold text-[#1E1E1E]">Magic Photo Studio</h3>
-                                <p className="text-sm text-[#5F6368]">Create professional product shots.</p>
-                            </button>
-                            <button onClick={() => setActiveView('interior')} className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 text-left hover:border-orange-500 hover:-translate-y-1 transition-all">
-                                 <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-4">
-                                    <HomeIcon className="w-7 h-7 text-orange-600" />
-                                </div>
-                                <h3 className="font-bold text-[#1E1E1E]">Magic Interior</h3>
-                                <p className="text-sm text-[#5F6368]">Redesign your space instantly.</p>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* My Creations Hub */}
-                    <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">My Creations</h2>
-                        <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                             <ProjectsIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                             <p className="text-sm text-[#5F6368]">Your future creations will appear here.</p>
-                             <button disabled className="mt-4 bg-gray-200 text-gray-500 text-sm font-semibold px-4 py-2 rounded-lg cursor-not-allowed">
-                                View All (Coming Soon)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sidebar Cards */}
-                <div className="lg:col-span-1 space-y-8">
-                     {/* Profile Card */}
+            <div className="space-y-8">
+                 {/* Top Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Profile Card */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
@@ -103,8 +68,8 @@ const Dashboard: React.FC<{ user: User | null; setActiveView: (view: View) => vo
                                 <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
                             </div>
                         </div>
-                        <button disabled className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed">
-                           <PencilIcon className="w-4 h-4" /> Edit Profile (Soon)
+                        <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                           <PencilIcon className="w-4 h-4" /> Edit Profile
                         </button>
                     </div>
 
@@ -116,8 +81,20 @@ const Dashboard: React.FC<{ user: User | null; setActiveView: (view: View) => vo
                         </div>
                         <p className="text-4xl font-bold text-[#1E1E1E]">{user?.credits}</p>
                         <p className="text-sm text-[#5F6368] mb-4">Free Plan</p>
-                         <button onClick={() => setActiveView('billing')} className="w-full bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2.5 rounded-lg hover:scale-105 transform transition-transform">
+                         <button onClick={() => navigateTo('home', undefined, 'pricing')} className="w-full bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2.5 rounded-lg hover:scale-105 transform transition-transform">
                             Get More Credits
+                        </button>
+                    </div>
+                </div>
+
+                {/* My Creations Hub */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                    <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">My Creations</h2>
+                    <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                         <ProjectsIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                         <p className="text-sm text-[#5F6368]">Your future creations will appear here.</p>
+                         <button disabled className="mt-4 bg-gray-200 text-gray-500 text-sm font-semibold px-4 py-2 rounded-lg cursor-not-allowed">
+                            View All (Coming Soon)
                         </button>
                     </div>
                 </div>
@@ -127,7 +104,7 @@ const Dashboard: React.FC<{ user: User | null; setActiveView: (view: View) => vo
 );
 
 
-const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) => void; }> = ({ auth, setActiveView }) => {
+const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -224,7 +201,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
         }
         if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
-            else setActiveView('billing');
+            else navigateTo('home', undefined, 'pricing');
             return;
         }
 
@@ -246,7 +223,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, aspectRatio, currentCredits, auth, isGuest, setActiveView]);
+    }, [base64Data, aspectRatio, currentCredits, auth, isGuest, navigateTo]);
 
 
     const handleDownloadClick = useCallback(() => {
@@ -376,7 +353,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
                                             <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                                 <SparklesIcon className="w-6 h-6" /> Generate
                                             </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
                                             <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
                                         </>
                                     )}
@@ -400,7 +377,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; setActiveView: (view: View) 
     );
 };
 
-const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => void; }> = ({ auth, setActiveView }) => {
+const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -484,7 +461,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => 
         }
         if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
-            else setActiveView('billing');
+            else navigateTo('home', undefined, 'pricing');
             return;
         }
 
@@ -506,7 +483,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => 
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, style, currentCredits, auth, isGuest, setActiveView]);
+    }, [base64Data, style, currentCredits, auth, isGuest, navigateTo]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -618,7 +595,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; setActiveView: (view: View) => 
                                             <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                                 <SparklesIcon className="w-6 h-6" /> Generate
                                             </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up in Billing.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
                                             <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
                                         </div>
                                     )}
@@ -656,7 +633,7 @@ const Creations: React.FC = () => (
 );
 
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal }) => {
     const extendedAuthProps = {
       ...auth,
       setActiveView,
@@ -666,11 +643,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
         <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
             <Header navigateTo={navigateTo} auth={extendedAuthProps} />
             <div className="flex flex-1" style={{ height: 'calc(100vh - 69px)' }}>
-                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} />
+                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
                 <main className="flex-1 overflow-y-auto">
-                    {activeView === 'dashboard' && <Dashboard user={auth.user} setActiveView={setActiveView} />}
-                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} setActiveView={setActiveView} />}
-                    {activeView === 'interior' && <MagicInterior auth={auth} setActiveView={setActiveView} />}
+                    {activeView === 'dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />}
+                    {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />}
+                    {activeView === 'interior' && <MagicInterior auth={auth} navigateTo={navigateTo} />}
                     {activeView === 'creations' && <Creations />}
                     {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
                 </main>

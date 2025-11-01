@@ -134,6 +134,17 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 };
 
 /**
+ * Updates a user's profile information in Firestore.
+ * @param uid The user's unique ID.
+ * @param data An object containing the fields to update (e.g., { name: 'New Name' }).
+ */
+export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const userRef = db.collection("users").doc(uid);
+    await userRef.update(data);
+};
+
+/**
  * Atomically deducts credits. It will create the user profile if it doesn't exist.
  * This is now the primary function for any action that costs credits.
  * @param uid The user's unique ID.

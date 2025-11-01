@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle } from './firebase'; 
+import EditProfileModal from './components/EditProfileModal';
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const getInitials = (name: string): string => {
@@ -72,19 +74,42 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const navigateTo = useCallback((page: Page, view?: View) => {
+  const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
     if (page === 'dashboard' && !isAuthenticated) {
       setAuthModalOpen(true);
       return;
     }
-    if (view) {
-      setActiveView(view);
-    } else if (page === 'dashboard') {
-      setActiveView('dashboard'); // Default to dashboard view
+
+    const performNavigation = () => {
+        if (view) {
+            setActiveView(view);
+        } else if (page === 'dashboard') {
+            setActiveView('dashboard');
+        }
+        setCurrentPage(page);
+
+        if (sectionId) {
+            setTimeout(() => {
+                document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        } else {
+            window.scrollTo(0, 0);
+        }
+    };
+    
+    if (currentPage !== page) {
+        performNavigation();
+    } else {
+        // If we are already on the page, just scroll.
+        if (sectionId) {
+            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+        } else {
+             window.scrollTo(0, 0);
+        }
+        if (view) setActiveView(view);
     }
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentPage]);
+
 
   useEffect(() => {
     if (isAuthenticated && authModalOpen) {
@@ -119,6 +144,26 @@ const App: React.FC = () => {
     }
   };
   
+  const handleSaveProfile = async (newName: string) => {
+    if (user && newName.trim() && user.name !== newName) {
+      try {
+        await updateUserProfile(user.uid, { name: newName });
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            name: newName,
+            avatar: getInitials(newName),
+          };
+        });
+        setEditProfileModalOpen(false);
+      } catch (error) {
+        console.error("Failed to update profile:", error);
+        // Optionally, show an error message in the modal
+      }
+    }
+  };
+  
   const openAuthModal = () => setAuthModalOpen(true);
   const closeAuthModal = () => setAuthModalOpen(false);
 
@@ -144,11 +189,18 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} />}
+      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)}/>}
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 
           onGoogleSignIn={handleGoogleSignIn} 
+        />
+      )}
+      {editProfileModalOpen && user && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setEditProfileModalOpen(false)}
+          onSave={handleSaveProfile}
         />
       )}
     </div>
