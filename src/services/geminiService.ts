@@ -71,7 +71,15 @@ export const editImageWithPrompt = async (
     let prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
     
     if (aspectRatio !== 'original') {
-        prompt += ` The final output image MUST have a strict aspect ratio of ${aspectRatio}. Adjust the framing and background composition as needed, but do not stretch or distort the original product.`;
+        let aspectRatioDescription = aspectRatio;
+        if (aspectRatio === '16:9') {
+            aspectRatioDescription = '16:9 landscape';
+        } else if (aspectRatio === '9:16') {
+            aspectRatioDescription = '9:16 portrait';
+        } else if (aspectRatio === '1:1') {
+            aspectRatioDescription = '1:1 square';
+        }
+        prompt += ` The final output image MUST have a strict aspect ratio of ${aspectRatioDescription}. Adjust the framing and background composition as needed, but do not stretch or distort the original product.`;
     }
 
     const response = await ai.models.generateContent({

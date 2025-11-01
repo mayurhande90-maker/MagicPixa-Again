@@ -28,9 +28,9 @@ const loadingMessages = [
 
 const aspectRatios = [
     { key: 'original', label: 'Same as Input' },
-    { key: '1:1', label: '1:1' },
-    { key: '16:9', label: '16:9' },
-    { key: '9:16', label: '9:16' },
+    { key: '1:1', label: '1:1 (Square)' },
+    { key: '16:9', label: '16:9 (Landscape)' },
+    { key: '9:16', label: '9:16 (Portrait)' },
 ];
 
 
