@@ -51,61 +51,19 @@ export const generateApparelTryOn = async (
 
   try {
     const parts: any[] = [];
-    let prompt: string;
+    
+    parts.push({ text: "{user_photo}:" });
+    parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
 
-    const isShoesOnly = apparelItems.length === 1 && apparelItems[0].type === 'shoes';
-
-    if (isShoesOnly) {
-        parts.push({ text: "{user_photo}:" });
-        parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
-        parts.push({ text: "{shoe_image}:" });
-        parts.push({ inlineData: { data: apparelItems[0].base64, mimeType: apparelItems[0].mimeType } });
-        
-        prompt = `TASK: You are an expert photo compositing AI. Your ONLY job is to realistically replace the shoes on the person in {user_photo} with the shoes from {shoe_image}. The final image MUST be indistinguishable from a real photograph.
-
-**CRITICAL INSTRUCTIONS (MUST BE FOLLOWED EXACTLY):**
-
-1.  **PIXEL PRESERVATION IS THE TOP PRIORITY:** The output image MUST be a pixel-perfect copy of the original {user_photo} in every area EXCEPT for the shoes. Do NOT change the person's face, hair, skin tone, body shape, clothes, accessories, or the background. No color grading, smoothing, or filtering should be applied to the original image pixels.
-
-2.  **IDENTIFY AND MASK:**
-    -   In {user_photo}, accurately identify the region occupied by the person's feet/shoes. This is the ONLY area you are allowed to modify.
-    -   In {shoe_image}, perfectly segment the shoes from their background.
-
-3.  **FIT AND RENDER SHOES:**
-    -   Take the segmented shoes from {shoe_image} and realistically warp, scale, and rotate them to fit the exact perspective, pose, and size of the feet in {user_photo}.
-    -   The shoes must look naturally worn, not just pasted on.
-
-4.  **PERFECT LIGHTING & SHADOW MATCH:**
-    -   Analyze the lighting (direction, color, softness) in {user_photo}.
-    -   Apply the IDENTICAL lighting to the new shoes so they seamlessly blend into the scene.
-    -   Generate soft, realistic contact shadows cast by the shoes onto the ground, matching the shadows of other objects in the photo.
-
-5.  **COMPOSITE AND VERIFY:**
-    -   Composite the newly rendered shoes onto the original {user_photo}.
-    -   The transition between the new shoes and the person's legs/pants and the ground must be invisible.
-    -   Final Check: Before outputting, verify that no pixels outside the shoe area have been altered from the original {user_photo}.
-
-**STRICT NEGATIVE CONSTRAINTS (DO NOT DO ANY OF THE FOLLOWING):**
--   **DO NOT** regenerate, alter, or modify the person in any way (face, body, clothes).
--   **DO NOT** change the background, floor, or any other environmental object.
--   **DO NOT** distort the shoe's design or texture.
--   **DO NOT** create floating or badly angled shoes.
--   **DO NOT** produce an image with mismatched lighting, colors, or shadows.
--   **DO NOT** add any watermarks, text, or AI artifacts.
--   **Output must be a clean, photorealistic image.**`;
-
-    } else {
-        parts.push({ text: "{user_photo}:" });
-        parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
-
-        let apparelPromptInstructions = '';
-        for (const item of apparelItems) {
-            parts.push({ text: `{${item.type}_image}:` });
-            parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
-            apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${item.type === 'top' ? 'torso' : item.type === 'trousers' ? 'legs' : 'feet'}.`;
-        }
-        
-        prompt = `TASK: You are an expert photo compositing AI. Your task is to perform a virtual try-on. You will place the clothing item(s) from the provided apparel image(s) onto the person in the {user_photo}. The final image MUST look like a real, authentic photograph.
+    let apparelPromptInstructions = '';
+    for (const item of apparelItems) {
+        parts.push({ text: `{${item.type}_image}:` });
+        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
+        const location = item.type === 'top' ? 'torso' : 'legs';
+        apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${location}.`;
+    }
+    
+    const prompt = `TASK: You are an expert photo compositing AI. Your task is to perform a virtual try-on. You will place the clothing item(s) from the provided apparel image(s) onto the person in the {user_photo}. The final image MUST look like a real, authentic photograph.
 
 **CRITICAL INSTRUCTIONS (MUST BE FOLLOWED EXACTLY):**
 
@@ -135,7 +93,6 @@ ${apparelPromptInstructions}
 -   **DO NOT** create an image that looks "edited" or "AI-generated". Aim for 100% photorealism.
 -   **DO NOT** add watermarks, text, or artifacts.
 -   **DO NOT** ignore occlusions (e.g., an arm in front of the t-shirt).`;
-    }
     
     parts.push({ text: prompt });
 

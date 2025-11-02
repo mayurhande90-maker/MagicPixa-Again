@@ -11,7 +11,7 @@ import {
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon,
-    GarmentTopIcon, GarmentTrousersIcon, GarmentShoesIcon
+    GarmentTopIcon, GarmentTrousersIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -1518,21 +1518,19 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
 };
 
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    type ApparelType = 'top' | 'trousers' | 'shoes';
+    type ApparelType = 'top' | 'pants';
     type ImageState = { file: File; url: string } | null;
     type Base64State = Base64File | null;
 
     const [personImage, setPersonImage] = useState<ImageState>(null);
     const [topImage, setTopImage] = useState<ImageState>(null);
-    const [trousersImage, setTrousersImage] = useState<ImageState>(null);
-    const [shoesImage, setShoesImage] = useState<ImageState>(null);
+    const [pantsImage, setPantsImage] = useState<ImageState>(null);
 
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
     const [personBase64, setPersonBase64] = useState<Base64State>(null);
     const [topBase64, setTopBase64] = useState<Base64State>(null);
-    const [trousersBase64, setTrousersBase64] = useState<Base64State>(null);
-    const [shoesBase64, setShoesBase64] = useState<Base64State>(null);
+    const [pantsBase64, setPantsBase64] = useState<Base64State>(null);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -1545,8 +1543,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
     const personFileInputRef = useRef<HTMLInputElement>(null);
     const topFileInputRef = useRef<HTMLInputElement>(null);
-    const trousersFileInputRef = useRef<HTMLInputElement>(null);
-    const shoesFileInputRef = useRef<HTMLInputElement>(null);
+    const pantsFileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
 
     const EDIT_COST = 3;
@@ -1561,8 +1558,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
     useEffect(() => { personImage ? fileToBase64(personImage.file).then(setPersonBase64) : setPersonBase64(null); }, [personImage]);
     useEffect(() => { topImage ? fileToBase64(topImage.file).then(setTopBase64) : setTopBase64(null); }, [topImage]);
-    useEffect(() => { trousersImage ? fileToBase64(trousersImage.file).then(setTrousersBase64) : setTrousersBase64(null); }, [trousersImage]);
-    useEffect(() => { shoesImage ? fileToBase64(shoesImage.file).then(setShoesBase64) : setShoesBase64(null); }, [shoesImage]);
+    useEffect(() => { pantsImage ? fileToBase64(pantsImage.file).then(setPantsBase64) : setPantsBase64(null); }, [pantsImage]);
 
     useEffect(() => {
         if (isLoading) {
@@ -1588,8 +1584,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             const imageState = { file, url: URL.createObjectURL(file) };
             if(type === 'person') setPersonImage(imageState);
             if(type === 'top') setTopImage(imageState);
-            if(type === 'trousers') setTrousersImage(imageState);
-            if(type === 'shoes') setShoesImage(imageState);
+            if(type === 'pants') setPantsImage(imageState);
             setGeneratedImage(null);
             setError(null);
         }
@@ -1598,8 +1593,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const handleClearImage = (type: ApparelType | 'person') => {
         if(type === 'person') setPersonImage(null);
         if(type === 'top') setTopImage(null);
-        if(type === 'trousers') setTrousersImage(null);
-        if(type === 'shoes') setShoesImage(null);
+        if(type === 'pants') setPantsImage(null);
     }
 
     const handleStartOver = useCallback(() => {
@@ -1607,12 +1601,10 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         setError(null);
         setPersonImage(null);
         setTopImage(null);
-        setTrousersImage(null);
-        setShoesImage(null);
+        setPantsImage(null);
         if (personFileInputRef.current) personFileInputRef.current.value = "";
         if (topFileInputRef.current) topFileInputRef.current.value = "";
-        if (trousersFileInputRef.current) trousersFileInputRef.current.value = "";
-        if (shoesFileInputRef.current) shoesFileInputRef.current.value = "";
+        if (pantsFileInputRef.current) pantsFileInputRef.current.value = "";
     }, []);
 
     const handleGenerate = useCallback(async () => {
@@ -1623,8 +1615,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
         const apparelItems: { type: string; base64: string; mimeType: string }[] = [];
         if (topBase64) apparelItems.push({ type: 'top', ...topBase64 });
-        if (trousersBase64) apparelItems.push({ type: 'trousers', ...trousersBase64 });
-        if (shoesBase64) apparelItems.push({ type: 'shoes', ...shoesBase64 });
+        if (pantsBase64) apparelItems.push({ type: 'pants', ...pantsBase64 });
 
         if (apparelItems.length === 0) {
             setError("Please upload at least one clothing item.");
@@ -1656,7 +1647,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         } finally {
             setIsLoading(false);
         }
-    }, [personBase64, topBase64, trousersBase64, shoesBase64, currentCredits, auth, isGuest, navigateTo, currentCost]);
+    }, [personBase64, topBase64, pantsBase64, currentCredits, auth, isGuest, navigateTo, currentCost]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -1669,7 +1660,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     }, [generatedImage]);
 
     const hasInsufficientCredits = currentCredits < currentCost;
-    const canGenerate = personImage && (topImage || trousersImage || shoesImage);
+    const canGenerate = personImage && (topImage || pantsImage);
 
     const ApparelUploadBox: React.FC<{
         type: ApparelType;
@@ -1760,10 +1751,9 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         </div>
                          <div className="space-y-2 pt-4 border-t border-gray-200/80">
                             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Add Apparel (Optional)</label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-4">
                                 <ApparelUploadBox type="top" image={topImage} inputRef={topFileInputRef} icon={<GarmentTopIcon className="w-8 h-8"/>} />
-                                <ApparelUploadBox type="trousers" image={trousersImage} inputRef={trousersFileInputRef} icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
-                                <ApparelUploadBox type="shoes" image={shoesImage} inputRef={shoesFileInputRef} icon={<GarmentShoesIcon className="w-8 h-8"/>} />
+                                <ApparelUploadBox type="pants" image={pantsImage} inputRef={pantsFileInputRef} icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
                             </div>
                         </div>
                         
