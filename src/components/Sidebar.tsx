@@ -7,6 +7,8 @@ interface SidebarProps {
   activeView: View;
   setActiveView: (view: View) => void;
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 const NavButton: React.FC<{
@@ -32,7 +34,7 @@ const NavButton: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo, isOpen, setIsOpen }) => {
   const navStructure = [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { type: 'divider', label: 'Features' },
@@ -47,41 +49,56 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
   ];
 
+  const handleNavClick = (view: View) => {
+    setActiveView(view);
+    setIsOpen(false); // Close sidebar on mobile after navigation
+  }
+
   return (
-    <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200/80 p-4 flex flex-col">
-      <nav className="flex-1 space-y-1">
-        {navStructure.map((item, index) => {
-          if (item.type === 'divider') {
+    <>
+        <div 
+            className={`fixed inset-0 bg-black/30 z-40 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+        ></div>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-200/80 p-4 flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static`}>
+        <nav className="flex-1 space-y-1">
+            {navStructure.map((item, index) => {
+            if (item.type === 'divider') {
+                return (
+                <div key={`divider-${index}`} className="pt-3 pb-2">
+                    {item.label && <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pb-2">{item.label}</span>}
+                    <hr className="border-gray-200/80" />
+                </div>
+                );
+            }
             return (
-              <div key={`divider-${index}`} className="pt-3 pb-2">
-                 {item.label && <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pb-2">{item.label}</span>}
-                 <hr className="border-gray-200/80" />
-              </div>
+                <NavButton
+                key={item.id}
+                item={item as any}
+                activeView={activeView}
+                onClick={() => handleNavClick(item.id as View)}
+                />
             );
-          }
-          return (
-             <NavButton
-              key={item.id}
-              item={item as any}
-              activeView={activeView}
-              onClick={() => setActiveView(item.id as View)}
-            />
-          );
-        })}
-      </nav>
-      {user && (
-        <div className="mt-auto p-4 bg-gray-50 rounded-lg border border-gray-200/80">
-          <p className="text-sm text-[#5F6368] mb-1">Credits</p>
-          <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits}</p>
-          <button 
-            onClick={() => navigateTo('home', undefined, 'pricing')}
-            className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
-          >
-            Get More Credits
-          </button>
-        </div>
-      )}
-    </aside>
+            })}
+        </nav>
+        {user && (
+            <div className="mt-auto p-4 bg-gray-50 rounded-lg border border-gray-200/80">
+            <p className="text-sm text-[#5F6368] mb-1">Credits</p>
+            <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits}</p>
+            <button 
+                onClick={() => {
+                    navigateTo('home', undefined, 'pricing');
+                    setIsOpen(false);
+                }}
+                className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
+            >
+                Get More Credits
+            </button>
+            </div>
+        )}
+        </aside>
+    </>
   );
 };
 

@@ -184,7 +184,7 @@ export const PencilIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={`font-bold text-3xl select-none ${className}`}>
+  <div className={`font-bold text-3xl select-none flex items-center ${className}`}>
     <span className="text-[#1E1E1E]">Magic</span>
     <span style={{ color: '#f9d230' }}>Pixa</span>
   </div>
@@ -230,6 +230,12 @@ export const GarmentTopIcon: React.FC<{ className?: string }> = ({ className }) 
 export const GarmentTrousersIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.75v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5m6-14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5m6-14.25v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5a3 3 0 00-3-3h-1.5a3 3 0 00-3 3zM6.75 12v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 0a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5a3 3 0 00-3-3h-1.5z" transform="scale(0.8) translate(3, 3) rotate(180 12 12)" />
+    </svg>
+);
+
+export const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
     </svg>
 );
 // Minor change for commit.

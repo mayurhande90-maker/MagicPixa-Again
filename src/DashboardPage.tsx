@@ -2307,6 +2307,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   isConversationOpen,
   setIsConversationOpen
 }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const user = auth.user;
+
   const renderView = () => {
     switch(activeView) {
       case 'dashboard':
@@ -2333,7 +2336,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />;
     }
   };
-  const user = auth.user;
 
   if (!user) {
     return (
@@ -2345,9 +2347,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <div className="min-h-screen flex bg-[#F9FAFB]">
-        <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-        <div className="flex-1 flex flex-col">
-          <Header navigateTo={navigateTo} auth={{ ...auth, setActiveView, isDashboard: true, openConversation: () => setIsConversationOpen(true) }} />
+        <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <div className="flex-1 flex flex-col lg:ml-72">
+          <Header navigateTo={navigateTo} auth={{ ...auth, setActiveView, isDashboard: true, openConversation: () => setIsConversationOpen(true), isSidebarOpen, setIsSidebarOpen }} />
           <main className="flex-1 overflow-y-auto">
             {renderView()}
           </main>
