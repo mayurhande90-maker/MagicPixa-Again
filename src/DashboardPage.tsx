@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground, analyzeVideoTranscript, generateMockup } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, generateCaptions, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -10,7 +10,7 @@ import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
-    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, VideoIcon
+    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, TshirtIcon, UsersIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -1516,31 +1516,97 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     );
 };
 
-const MagicVideoInsights: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [videoUrl, setVideoUrl] = useState<string>('');
+const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [personImage, setPersonImage] = useState<{ file: File; url: string } | null>(null);
+    const [clothingImage, setClothingImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [personBase64, setPersonBase64] = useState<Base64File | null>(null);
+    const [clothingBase64, setClothingBase64] = useState<Base64File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-    
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+
     const [guestCredits, setGuestCredits] = useState<number>(() => {
-        const saved = sessionStorage.getItem('magicpixa-guest-credits-video');
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-apparel');
         return saved ? parseInt(saved, 10) : 2;
     });
 
-    const EDIT_COST = 2;
+    const personFileInputRef = useRef<HTMLInputElement>(null);
+    const clothingFileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 3;
     const currentCost = EDIT_COST;
+
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    
+
     useEffect(() => {
         if (isGuest) {
-            sessionStorage.setItem('magicpixa-guest-credits-video', guestCredits.toString());
+            sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
         }
     }, [isGuest, guestCredits]);
 
-    const handleGenerate = async () => {
-        if (!videoUrl.trim()) {
-            setError("Please enter a video URL.");
+    useEffect(() => {
+        if (personImage) {
+            fileToBase64(personImage.file).then(setPersonBase64);
+        } else {
+            setPersonBase64(null);
+        }
+    }, [personImage]);
+
+    useEffect(() => {
+        if (clothingImage) {
+            fileToBase64(clothingImage.file).then(setClothingBase64);
+        } else {
+            setClothingBase64(null);
+        }
+    }, [clothingImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'clothing') => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const setImage = type === 'person' ? setPersonImage : setClothingImage;
+            setImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
+        setPersonImage(null);
+        setClothingImage(null);
+        setPersonBase64(null);
+        setClothingBase64(null);
+        if (personFileInputRef.current) personFileInputRef.current.value = "";
+        if (clothingFileInputRef.current) clothingFileInputRef.current.value = "";
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!personBase64 || !clothingBase64) {
+            setError("Please upload both a person and a clothing photo.");
             return;
         }
         if (currentCredits < currentCost) {
@@ -1548,18 +1614,14 @@ const MagicVideoInsights: React.FC<{ auth: AuthProps; navigateTo: (page: Page, v
             else navigateTo('home', undefined, 'pricing');
             return;
         }
-        
+
         setIsLoading(true);
         setError(null);
-        setAnalysisResult(null);
+        setGeneratedImage(null);
 
         try {
-            // NOTE: For this demo, we use a sample transcript because a live transcript
-            // extraction service is beyond the scope of this frontend-only application.
-            const sampleTranscript = `(0:01) Hello everyone and welcome to our channel! Today we are unboxing the brand new Gadget Pro X. (0:15) As you can see, the packaging is very sleek, minimalist design. (0:30) Inside the box, you get the device itself, a USB-C charging cable, and a quick start guide. (1:05) The build quality feels really premium, it has an aluminum frame and a matte glass back which doesn't attract fingerprints. (1:45) The screen is a 6.7 inch OLED panel, it's incredibly bright and the colors just pop. (2:30) Let's turn it on. The setup process is very straightforward. (3:10) One of its key features is the new AI-powered camera system. It promises to take amazing photos even in low light. (4:00) We'll be testing that out in our full review, so make sure you subscribe so you don't miss it. (4:15) Overall, my first impressions are very positive. This feels like a solid device. Thanks for watching!`;
-            
-            const result = await analyzeVideoTranscript(sampleTranscript);
-            setAnalysisResult(result);
+            const newBase64 = await generateApparelTryOn(personBase64.base64, personBase64.mimeType, clothingBase64.base64, clothingBase64.mimeType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, currentCost);
@@ -1572,56 +1634,133 @@ const MagicVideoInsights: React.FC<{ auth: AuthProps; navigateTo: (page: Page, v
         } finally {
             setIsLoading(false);
         }
+    }, [personBase64, clothingBase64, currentCredits, auth, isGuest, navigateTo, currentCost]);
+
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_apparel_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+
+    const triggerFileInput = (type: 'person' | 'clothing') => {
+        if (isLoading) return;
+        const ref = type === 'person' ? personFileInputRef : clothingFileInputRef;
+        ref.current?.click();
     };
-    
+
     const hasInsufficientCredits = currentCredits < currentCost;
+    const canGenerate = personImage && clothingImage;
+
+    const UploadBox: React.FC<{ title: string, image: { url: string } | null, onTrigger: () => void, icon: React.ReactNode, instructions: string }> = ({ title, image, onTrigger, icon, instructions }) => (
+        <div className="flex flex-col items-center justify-center h-full w-full">
+            <p className="font-bold text-sm text-gray-700 mb-2">{title}</p>
+            <div 
+                className="aspect-square w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors"
+                onClick={onTrigger}
+            >
+                {image ? (
+                    <img src={image.url} alt={title} className="max-h-full h-auto w-auto object-contain rounded-md" />
+                ) : (
+                    <div className="text-center text-gray-500 p-2">
+                        {icon}
+                        <p className="text-xs mt-1">{instructions}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Video Insights</h2>
-                    <p className="text-[#5F6368] mt-2">Get an AI-powered summary and analysis from any video link.</p>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
+                    <p className="text-[#5F6368] mt-2">Virtually try on clothes with AI.</p>
                 </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
+                                <input type="file" ref={personFileInputRef} onChange={(e) => handleFileChange(e, 'person')} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                <input type="file" ref={clothingFileInputRef} onChange={(e) => handleFileChange(e, 'clothing')} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                
+                                {generatedImage ? (
+                                    <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`w-full h-full p-4 flex items-center justify-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="grid grid-cols-2 gap-4 w-full h-full">
+                                            <UploadBox title="Person Photo" image={personImage} onTrigger={() => triggerFileInput('person')} icon={<UsersIcon className="w-10 h-10 mx-auto" />} instructions="Upload a full-body shot" />
+                                            <UploadBox title="Clothing Photo" image={clothingImage} onTrigger={() => triggerFileInput('clothing')} icon={<TshirtIcon className="w-10 h-10 mx-auto" />} instructions="Upload a clear shot of the garment" />
+                                        </div>
+                                    </div>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                           <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
+                           <p className='text-sm text-[#5F6368]'>Your virtual fitting room</p>
+                        </div>
+                        <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                <p className="text-xs text-yellow-700">
+                                    For best results, use a clear, full-body photo of a person and a separate, clean photo of the clothing item.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            {generatedImage ? (
+                                <div className="space-y-4">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                        <DownloadIcon className="w-6 h-6" /> Download Image
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <RetryIcon className="w-5 h-5" /> Regenerate
+                                        </button>
+                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                            <UploadIcon className="w-5 h-5" /> Upload New
+                                        </button>
+                                    </div>
+                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                        <SparklesIcon className="w-6 h-6" /> Generate
+                                    </button>
+                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
+                                    <button onClick={handleStartOver} disabled={isLoading || (!personImage && !clothingImage)} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50">Start Over</button>
+                                </>
+                            )}
+                        </div>
 
-                <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                        <input
-                            type="text"
-                            value={videoUrl}
-                            onChange={(e) => setVideoUrl(e.target.value)}
-                            placeholder="Paste your video URL here (e.g., YouTube)"
-                            className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0079F2]"
-                            disabled={isLoading}
-                        />
-                        <button 
-                            onClick={handleGenerate} 
-                            disabled={isLoading || hasInsufficientCredits}
-                            className="flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-6 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-                        >
-                            <SparklesIcon className="w-6 h-6" /> Generate
-                        </button>
+                        {error && (
+                            <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'>
+                                <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>
+                                <button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800">
+                                    <RetryIcon className="w-4 h-4" /> Try Again
+                                </button>
+                            </div>
+                        )}
                     </div>
-                     <p className={`text-xs text-center sm:text-right ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This analysis will cost ${currentCost} credits.`}</p>
-                     <div className="mt-4 text-center text-sm p-3 bg-blue-50 text-blue-800 rounded-lg border border-blue-200/80">
-                         <strong>Demo Note:</strong> This feature uses a sample video transcript to demonstrate the AI's analysis capabilities.
-                     </div>
-                     {error && <div className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
                 </div>
-                
-                {isLoading && (
-                    <div className="mt-8 flex flex-col items-center justify-center text-center">
-                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                        <p className="mt-4 text-[#1E1E1E] font-medium">Analyzing video... this might take a moment.</p>
-                    </div>
-                )}
-                
-                {analysisResult && !isLoading && (
-                     <div className="mt-8 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                        <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Analysis Results</h3>
-                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}></div>
-                     </div>
-                )}
             </div>
         </div>
     );
@@ -2147,8 +2286,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
       case 'eraser':
           return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
-      case 'video':
-          return <MagicVideoInsights auth={auth} navigateTo={navigateTo} />;
+      case 'apparel':
+          return <MagicApparel auth={auth} navigateTo={navigateTo} />;
       case 'mockup':
           return <MagicMockup auth={auth} navigateTo={navigateTo} />;
       default:

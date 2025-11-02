@@ -40,52 +40,73 @@ export const startLiveSession = (callbacks: {
     });
 };
 
-export const analyzeVideoTranscript = async (transcript: string): Promise<string> => {
+export const generateApparelTryOn = async (
+  personBase64: string,
+  personMimeType: string,
+  clothingBase64: string,
+  clothingMimeType: string
+): Promise<string> => {
   if (!ai) {
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
-    const prompt = `You are an expert video analyst and content strategist. You will be provided with the full transcript of a video. Your task is to deeply analyze this transcript and generate a structured set of insights. The video's language could be English or any Indian local language, with any accent; you must understand it perfectly.
+    const prompt = `Task: Realistically place the garment from the clothing image onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
 
-**Your output must be structured in the following format, using Markdown for formatting:**
+Goals / Rules (strict):
+- Do not change any non-clothing pixels. Preserve face, hair, eyes, teeth, skin tone, tattoos, jewelry, shoes, and background exactly as in the user photo. No smoothing, retouching, or re-coloring outside the clothing area.
+- Preserve body geometry and proportions. Do not alter limb length, body width, posture, head size, or any body feature.
+- Make the clothing physically plausible. Fabric should drape, fold, and crease naturally over the body, respecting the person’s pose, limb intersection, and gravity.
+- Match lighting and color. Match the scene illumination, camera exposure, white balance, grain, and shadows present in the user photo so the garment appears native to that photo.
+- Respect occlusion. Where the person’s hands, arms, hair, or accessories overlap the garment, keep the occluding object intact and render the garment underneath correctly.
+- Do not hallucinate new body parts, faces, or backgrounds. No added faces, hands, or extra objects.
 
-**📝 Summary**
-<A concise, one-paragraph summary of the entire video.>
+Negative constraints (explicit — must not do):
+- Do not alter or regenerate the face, hair, background, hands, feet, or jewelry.
+- Do not add or remove people, tattoos, logos, or text outside the garment.
+- Do not introduce watermarks, signatures, or “AI” artifacts.
+- Do not crop, rotate, or otherwise warp the user photo; the final output must retain original framing.
+- Do not change skin tone, makeup, or other biometric features.
+- Short negative prompt: no face alteration, no background changes, no body shape change, no added people, no watermark, no oversmoothing, no unnatural blur, no repeating texture artifacts.`;
 
-**🕒 Key Topics**
-- **[Timestamp]** - <Topic 1>
-- **[Timestamp]** - <Topic 2>
-- **[Timestamp]** - <Topic 3>
-...
-
-**📊 Video Details**
-- **Language:** <Detected language and accent>
-- **Tone:** <e.g., Educational, Humorous, Formal>
-- **Key Quote 1:** "<Memorable quote from the transcript>"
-- **Key Quote 2:** "<Another memorable quote>"
-
-**🚀 Actionable Takeaways**
-- <A bulleted list of the main action items or key lessons a viewer should take away from the video.>`;
-    
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Video Transcript: """${transcript}"""`,
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { text: "user_photo:" },
+          { inlineData: { data: personBase64, mimeType: personMimeType } },
+          { text: "clothing_image:" },
+          { inlineData: { data: clothingBase64, mimeType: clothingMimeType } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE],
+      },
     });
-
+    
     if (response.promptFeedback?.blockReason) {
-        throw new Error(`Video analysis blocked due to: ${response.promptFeedback.blockReason}.`);
+      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
     }
 
-    return response.text;
-  } catch (error) {
-    console.error("Error analyzing video with Gemini:", error);
-    if (error instanceof Error) {
-        throw new Error(`Failed to analyze video: ${error.message}`);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+    if (imagePart?.inlineData?.data) {
+      return imagePart.inlineData.data;
     }
-    throw new Error("An unknown error occurred while communicating with the video analysis service.");
+
+    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
+
+  } catch (error) {
+    console.error("Error generating apparel with Gemini:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate image: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the image generation service.");
   }
 };
+
 
 export const generateCaptions = async (
   base64ImageData: string,

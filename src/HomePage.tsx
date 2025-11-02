@@ -3,7 +3,7 @@ import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon, VideoIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -53,11 +53,11 @@ const features = [
         disabled: false,
     },
     {
-        id: 'video',
-        icon: <VideoIcon className="w-10 h-10 text-white" />,
-        title: "Magic Video Insights",
-        description: "Paste a video link to get an AI-powered summary, key topics, and actionable takeaways in seconds.",
-        color: "bg-fuchsia-500",
+        id: 'apparel',
+        icon: <TshirtIcon className="w-10 h-10 text-white" />,
+        title: "Magic Apparel",
+        description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds.",
+        color: "bg-teal-500",
         disabled: false,
     },
     {
