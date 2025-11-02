@@ -50,19 +50,42 @@ export const generateApparelTryOn = async (
   }
 
   try {
-    const parts: any[] = [
-      { text: "user_photo:" },
-      { inlineData: { data: personBase64, mimeType: personMimeType } },
-    ];
+    const parts: any[] = [];
+    let prompt: string;
 
-    let apparelPromptInstructions = '';
-    for (const item of apparelItems) {
-      parts.push({ text: `${item.type}_image:` });
-      parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
-      apparelPromptInstructions += `\n- Place the garment from the ${item.type} image onto the corresponding area of the person (e.g., torso for top, legs for trousers, feet for shoes).`;
-    }
+    const isShoesOnly = apparelItems.length === 1 && apparelItems[0].type === 'shoes';
 
-    const prompt = `Task: Realistically place the garment(s) from the clothing image(s) onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
+    if (isShoesOnly) {
+        parts.push({ text: "user_photo:" });
+        parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
+        parts.push({ text: "shoe_image:" });
+        parts.push({ inlineData: { data: apparelItems[0].base64, mimeType: apparelItems[0].mimeType } });
+        
+        prompt = `Realistically render the footwear from the shoe_image onto the person in the user_photo so the output looks like an authentic photograph of that person wearing those shoes. The result must be photorealistic, perspective-correct, and must not alter any part of the original image other than the feet area where the shoes are applied.
+
+Goals / Rules:
+- Preserve every pixel of user_photo except where the new shoes naturally appear.
+- Do not modify face, legs, skin, posture, body proportions, background, or lighting outside the shoe area.
+- Maintain the exact perspective and orientation of the person’s feet in user_photo — the shoes must align perfectly with pose and angle.
+- Adapt the shoe geometry to fit the user’s foot size, orientation, and depth in the image without distorting shoe design.
+- Ensure perfect lighting match — shadows, highlights, reflections, and ambient tones must blend naturally with the floor and environment of user_photo.
+- Respect occlusion — if pants or floor objects partially cover the feet, render the shoe accordingly beneath or behind them.
+- No visible artifacts, mismatched edges, or blur transitions. The shoe should appear genuinely photographed as part of the scene.
+
+Negative prompt:
+no face change, no body change, no background change, no deformation, no artificial blur, no added reflections, no distortion, no floating shoes, no overexposure, no AI look`;
+    } else {
+        parts.push({ text: "user_photo:" });
+        parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
+
+        let apparelPromptInstructions = '';
+        for (const item of apparelItems) {
+            parts.push({ text: `${item.type}_image:` });
+            parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
+            apparelPromptInstructions += `\n- Place the garment from the ${item.type} image onto the corresponding area of the person (e.g., torso for top, legs for trousers, feet for shoes).`;
+        }
+        
+        prompt = `Task: Realistically place the garment(s) from the clothing image(s) onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
 ${apparelPromptInstructions}
 
 Goals / Rules (strict):
@@ -80,6 +103,7 @@ Negative constraints (explicit — must not do):
 - Do not crop, rotate, or otherwise warp the user photo; the final output must retain original framing.
 - Do not change skin tone, makeup, or other biometric features.
 - Short negative prompt: no face alteration, no background changes, no body shape change, no added people, no watermark, no oversmoothing, no unnatural blur, no repeating texture artifacts.`;
+    }
     
     parts.push({ text: prompt });
 
