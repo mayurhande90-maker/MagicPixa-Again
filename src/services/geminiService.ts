@@ -56,53 +56,85 @@ export const generateApparelTryOn = async (
     const isShoesOnly = apparelItems.length === 1 && apparelItems[0].type === 'shoes';
 
     if (isShoesOnly) {
-        parts.push({ text: "user_photo:" });
+        parts.push({ text: "{user_photo}:" });
         parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
-        parts.push({ text: "shoe_image:" });
+        parts.push({ text: "{shoe_image}:" });
         parts.push({ inlineData: { data: apparelItems[0].base64, mimeType: apparelItems[0].mimeType } });
         
-        prompt = `Realistically render the footwear from the shoe_image onto the person in the user_photo so the output looks like an authentic photograph of that person wearing those shoes. The result must be photorealistic, perspective-correct, and must not alter any part of the original image other than the feet area where the shoes are applied.
+        prompt = `TASK: You are an expert photo compositing AI. Your ONLY job is to realistically replace the shoes on the person in {user_photo} with the shoes from {shoe_image}. The final image MUST be indistinguishable from a real photograph.
 
-Goals / Rules:
-- Preserve every pixel of user_photo except where the new shoes naturally appear.
-- Do not modify face, legs, skin, posture, body proportions, background, or lighting outside the shoe area.
-- Maintain the exact perspective and orientation of the person’s feet in user_photo — the shoes must align perfectly with pose and angle.
-- Adapt the shoe geometry to fit the user’s foot size, orientation, and depth in the image without distorting shoe design.
-- Ensure perfect lighting match — shadows, highlights, reflections, and ambient tones must blend naturally with the floor and environment of user_photo.
-- Respect occlusion — if pants or floor objects partially cover the feet, render the shoe accordingly beneath or behind them.
-- No visible artifacts, mismatched edges, or blur transitions. The shoe should appear genuinely photographed as part of the scene.
+**CRITICAL INSTRUCTIONS (MUST BE FOLLOWED EXACTLY):**
 
-Negative prompt:
-no face change, no body change, no background change, no deformation, no artificial blur, no added reflections, no distortion, no floating shoes, no overexposure, no AI look`;
+1.  **PIXEL PRESERVATION IS THE TOP PRIORITY:** The output image MUST be a pixel-perfect copy of the original {user_photo} in every area EXCEPT for the shoes. Do NOT change the person's face, hair, skin tone, body shape, clothes, accessories, or the background. No color grading, smoothing, or filtering should be applied to the original image pixels.
+
+2.  **IDENTIFY AND MASK:**
+    -   In {user_photo}, accurately identify the region occupied by the person's feet/shoes. This is the ONLY area you are allowed to modify.
+    -   In {shoe_image}, perfectly segment the shoes from their background.
+
+3.  **FIT AND RENDER SHOES:**
+    -   Take the segmented shoes from {shoe_image} and realistically warp, scale, and rotate them to fit the exact perspective, pose, and size of the feet in {user_photo}.
+    -   The shoes must look naturally worn, not just pasted on.
+
+4.  **PERFECT LIGHTING & SHADOW MATCH:**
+    -   Analyze the lighting (direction, color, softness) in {user_photo}.
+    -   Apply the IDENTICAL lighting to the new shoes so they seamlessly blend into the scene.
+    -   Generate soft, realistic contact shadows cast by the shoes onto the ground, matching the shadows of other objects in the photo.
+
+5.  **COMPOSITE AND VERIFY:**
+    -   Composite the newly rendered shoes onto the original {user_photo}.
+    -   The transition between the new shoes and the person's legs/pants and the ground must be invisible.
+    -   Final Check: Before outputting, verify that no pixels outside the shoe area have been altered from the original {user_photo}.
+
+**STRICT NEGATIVE CONSTRAINTS (DO NOT DO ANY OF THE FOLLOWING):**
+-   **DO NOT** regenerate, alter, or modify the person in any way (face, body, clothes).
+-   **DO NOT** change the background, floor, or any other environmental object.
+-   **DO NOT** distort the shoe's design or texture.
+-   **DO NOT** create floating or badly angled shoes.
+-   **DO NOT** produce an image with mismatched lighting, colors, or shadows.
+-   **DO NOT** add any watermarks, text, or AI artifacts.
+-   **Output must be a clean, photorealistic image.**`;
+
     } else {
-        parts.push({ text: "user_photo:" });
+        parts.push({ text: "{user_photo}:" });
         parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
 
         let apparelPromptInstructions = '';
         for (const item of apparelItems) {
-            parts.push({ text: `${item.type}_image:` });
+            parts.push({ text: `{${item.type}_image}:` });
             parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
-            apparelPromptInstructions += `\n- Place the garment from the ${item.type} image onto the corresponding area of the person (e.g., torso for top, legs for trousers, feet for shoes).`;
+            apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${item.type === 'top' ? 'torso' : item.type === 'trousers' ? 'legs' : 'feet'}.`;
         }
         
-        prompt = `Task: Realistically place the garment(s) from the clothing image(s) onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
+        prompt = `TASK: You are an expert photo compositing AI. Your task is to perform a virtual try-on. You will place the clothing item(s) from the provided apparel image(s) onto the person in the {user_photo}. The final image MUST look like a real, authentic photograph.
+
+**CRITICAL INSTRUCTIONS (MUST BE FOLLOWED EXACTLY):**
+
+1.  **PIXEL PRESERVATION IS THE #1 RULE:** The final output MUST be a pixel-perfect copy of the original {user_photo} in every area EXCEPT for the clothing being replaced.
+    -   **ABSOLUTELY NO** changes to the person's face, hair, skin tone, body shape, or proportions.
+    -   **ABSOLUTELY NO** changes to the background, accessories (jewelry, watches), or anything that is not the target clothing.
+
+2.  **IDENTIFY AND REPLACE:**
+    -   For each provided apparel image, accurately identify the corresponding area on the person in {user_photo}. These are the ONLY areas you are allowed to modify.
 ${apparelPromptInstructions}
 
-Goals / Rules (strict):
-- Do not change any non-clothing pixels. Preserve face, hair, eyes, teeth, skin tone, tattoos, jewelry, shoes (unless a shoe image is provided), and background exactly as in the user photo. No smoothing, retouching, or re-coloring outside the clothing area.
-- Preserve body geometry and proportions. Do not alter limb length, body width, posture, head size, or any body feature.
-- Make the clothing physically plausible. Fabric should drape, fold, and crease naturally over the body, respecting the person’s pose, limb intersection, and gravity.
-- Match lighting and color. Match the scene illumination, camera exposure, white balance, grain, and shadows present in the user photo so the garment appears native to that photo.
-- Respect occlusion. Where the person’s hands, arms, hair, or accessories overlap the garment, keep the occluding object intact and render the garment underneath correctly.
-- Do not hallucinate new body parts, faces, or backgrounds. No added faces, hands, or extra objects.
+3.  **FIT & DRAPE REALISTICALLY:**
+    -   Warp the new garment to fit the person's body and pose naturally.
+    -   Simulate realistic fabric folds, drapes, and wrinkles. The clothing must look like it's actually being worn, respecting gravity and the person's posture.
 
-Negative constraints (explicit — must not do):
-- Do not alter or regenerate the face, hair, background, hands, feet (unless shoes are provided), or jewelry.
-- Do not add or remove people, tattoos, logos, or text outside the garment.
-- Do not introduce watermarks, signatures, or “AI” artifacts.
-- Do not crop, rotate, or otherwise warp the user photo; the final output must retain original framing.
-- Do not change skin tone, makeup, or other biometric features.
-- Short negative prompt: no face alteration, no background changes, no body shape change, no added people, no watermark, no oversmoothing, no unnatural blur, no repeating texture artifacts.`;
+4.  **MATCH LIGHTING & ENVIRONMENT:**
+    -   Analyze the lighting, shadows, and color temperature of the original {user_photo}.
+    -   Apply the IDENTICAL lighting and shadows to the new garment(s) so they blend perfectly into the scene.
+
+5.  **RESPECT OCCLUSION:**
+    -   If the person's hands, arms, hair, or accessories overlap the clothing, keep the overlapping object perfectly intact and render the garment correctly underneath it.
+
+**STRICT NEGATIVE CONSTRAINTS (DO NOT DO ANY OF THE FOLLOWING):**
+-   **DO NOT** regenerate the person. You are only replacing clothes.
+-   **DO NOT** alter the background in any way.
+-   **DO NOT** change the person's identity, face, or body proportions.
+-   **DO NOT** create an image that looks "edited" or "AI-generated". Aim for 100% photorealism.
+-   **DO NOT** add watermarks, text, or artifacts.
+-   **DO NOT** ignore occlusions (e.g., an arm in front of the t-shirt).`;
     }
     
     parts.push({ text: prompt });
