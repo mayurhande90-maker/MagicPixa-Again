@@ -43,18 +43,30 @@ export const startLiveSession = (callbacks: {
 export const generateApparelTryOn = async (
   personBase64: string,
   personMimeType: string,
-  clothingBase64: string,
-  clothingMimeType: string
+  apparelItems: { type: string; base64: string; mimeType: string }[]
 ): Promise<string> => {
   if (!ai) {
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
-    const prompt = `Task: Realistically place the garment from the clothing image onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
+    const parts: any[] = [
+      { text: "user_photo:" },
+      { inlineData: { data: personBase64, mimeType: personMimeType } },
+    ];
+
+    let apparelPromptInstructions = '';
+    for (const item of apparelItems) {
+      parts.push({ text: `${item.type}_image:` });
+      parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
+      apparelPromptInstructions += `\n- Place the garment from the ${item.type} image onto the corresponding area of the person (e.g., torso for top, legs for trousers, feet for shoes).`;
+    }
+
+    const prompt = `Task: Realistically place the garment(s) from the clothing image(s) onto the person in the user's photo so the final image looks like an authentic photograph of that person wearing that garment. Produce a high-resolution photo-realistic composite without altering the user’s face, hair, skin, body shape, background, accessories, or any non-clothing pixels.
+${apparelPromptInstructions}
 
 Goals / Rules (strict):
-- Do not change any non-clothing pixels. Preserve face, hair, eyes, teeth, skin tone, tattoos, jewelry, shoes, and background exactly as in the user photo. No smoothing, retouching, or re-coloring outside the clothing area.
+- Do not change any non-clothing pixels. Preserve face, hair, eyes, teeth, skin tone, tattoos, jewelry, shoes (unless a shoe image is provided), and background exactly as in the user photo. No smoothing, retouching, or re-coloring outside the clothing area.
 - Preserve body geometry and proportions. Do not alter limb length, body width, posture, head size, or any body feature.
 - Make the clothing physically plausible. Fabric should drape, fold, and crease naturally over the body, respecting the person’s pose, limb intersection, and gravity.
 - Match lighting and color. Match the scene illumination, camera exposure, white balance, grain, and shadows present in the user photo so the garment appears native to that photo.
@@ -62,24 +74,18 @@ Goals / Rules (strict):
 - Do not hallucinate new body parts, faces, or backgrounds. No added faces, hands, or extra objects.
 
 Negative constraints (explicit — must not do):
-- Do not alter or regenerate the face, hair, background, hands, feet, or jewelry.
+- Do not alter or regenerate the face, hair, background, hands, feet (unless shoes are provided), or jewelry.
 - Do not add or remove people, tattoos, logos, or text outside the garment.
 - Do not introduce watermarks, signatures, or “AI” artifacts.
 - Do not crop, rotate, or otherwise warp the user photo; the final output must retain original framing.
 - Do not change skin tone, makeup, or other biometric features.
 - Short negative prompt: no face alteration, no background changes, no body shape change, no added people, no watermark, no oversmoothing, no unnatural blur, no repeating texture artifacts.`;
+    
+    parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { text: "user_photo:" },
-          { inlineData: { data: personBase64, mimeType: personMimeType } },
-          { text: "clothing_image:" },
-          { inlineData: { data: clothingBase64, mimeType: clothingMimeType } },
-          { text: prompt },
-        ],
-      },
+      contents: { parts },
       config: {
         responseModalities: [Modality.IMAGE],
       },

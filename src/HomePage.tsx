@@ -3,7 +3,7 @@ import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, TshirtIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -54,7 +54,7 @@ const features = [
     },
     {
         id: 'apparel',
-        icon: <TshirtIcon className="w-10 h-10 text-white" />,
+        icon: <UsersIcon className="w-10 h-10 text-white" />,
         title: "Magic Apparel",
         description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds.",
         color: "bg-teal-500",
@@ -70,7 +70,7 @@ const features = [
     },
     {
         id: 'mockup',
-        icon: <TshirtIcon className="w-10 h-10 text-white" />,
+        icon: <MockupIcon className="w-10 h-10 text-white" />,
         title: "Magic Mockup",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",

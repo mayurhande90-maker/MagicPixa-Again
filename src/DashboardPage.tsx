@@ -10,7 +10,8 @@ import Billing from './components/Billing';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
-    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, TshirtIcon, UsersIcon
+    MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon,
+    GarmentTopIcon, GarmentTrousersIcon, GarmentShoesIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -1517,11 +1518,22 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
 };
 
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [personImage, setPersonImage] = useState<{ file: File; url: string } | null>(null);
-    const [clothingImage, setClothingImage] = useState<{ file: File; url: string } | null>(null);
+    type ApparelType = 'top' | 'trousers' | 'shoes';
+    type ImageState = { file: File; url: string } | null;
+    type Base64State = Base64File | null;
+
+    const [personImage, setPersonImage] = useState<ImageState>(null);
+    const [topImage, setTopImage] = useState<ImageState>(null);
+    const [trousersImage, setTrousersImage] = useState<ImageState>(null);
+    const [shoesImage, setShoesImage] = useState<ImageState>(null);
+
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [personBase64, setPersonBase64] = useState<Base64File | null>(null);
-    const [clothingBase64, setClothingBase64] = useState<Base64File | null>(null);
+
+    const [personBase64, setPersonBase64] = useState<Base64State>(null);
+    const [topBase64, setTopBase64] = useState<Base64State>(null);
+    const [trousersBase64, setTrousersBase64] = useState<Base64State>(null);
+    const [shoesBase64, setShoesBase64] = useState<Base64State>(null);
+
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
@@ -1532,7 +1544,9 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     });
 
     const personFileInputRef = useRef<HTMLInputElement>(null);
-    const clothingFileInputRef = useRef<HTMLInputElement>(null);
+    const topFileInputRef = useRef<HTMLInputElement>(null);
+    const trousersFileInputRef = useRef<HTMLInputElement>(null);
+    const shoesFileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
 
     const EDIT_COST = 3;
@@ -1542,73 +1556,81 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
 
     useEffect(() => {
-        if (isGuest) {
-            sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
-        }
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
     }, [isGuest, guestCredits]);
 
-    useEffect(() => {
-        if (personImage) {
-            fileToBase64(personImage.file).then(setPersonBase64);
-        } else {
-            setPersonBase64(null);
-        }
-    }, [personImage]);
-
-    useEffect(() => {
-        if (clothingImage) {
-            fileToBase64(clothingImage.file).then(setClothingBase64);
-        } else {
-            setClothingBase64(null);
-        }
-    }, [clothingImage]);
+    useEffect(() => { personImage ? fileToBase64(personImage.file).then(setPersonBase64) : setPersonBase64(null); }, [personImage]);
+    useEffect(() => { topImage ? fileToBase64(topImage.file).then(setTopBase64) : setTopBase64(null); }, [topImage]);
+    useEffect(() => { trousersImage ? fileToBase64(trousersImage.file).then(setTrousersBase64) : setTrousersBase64(null); }, [trousersImage]);
+    useEffect(() => { shoesImage ? fileToBase64(shoesImage.file).then(setShoesBase64) : setShoesBase64(null); }, [shoesImage]);
 
     useEffect(() => {
         if (isLoading) {
-            let messageIndex = 0;
-            setLoadingMessage(loadingMessages[messageIndex]);
+            let i = 0;
+            setLoadingMessage(loadingMessages[i]);
             messageIntervalRef.current = window.setInterval(() => {
-                messageIndex = (messageIndex + 1) % loadingMessages.length;
-                setLoadingMessage(loadingMessages[messageIndex]);
+                i = (i + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[i]);
             }, 2500);
         } else if (messageIntervalRef.current) {
             clearInterval(messageIntervalRef.current);
         }
-        return () => {
-            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
-        };
+        return () => { if (messageIntervalRef.current) clearInterval(messageIntervalRef.current); };
     }, [isLoading]);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'clothing') => {
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: ApparelType | 'person') => {
         const file = event.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
                 setError('Please upload a valid image file.');
                 return;
             }
-            const setImage = type === 'person' ? setPersonImage : setClothingImage;
-            setImage({ file, url: URL.createObjectURL(file) });
+            const imageState = { file, url: URL.createObjectURL(file) };
+            if(type === 'person') setPersonImage(imageState);
+            if(type === 'top') setTopImage(imageState);
+            if(type === 'trousers') setTrousersImage(imageState);
+            if(type === 'shoes') setShoesImage(imageState);
             setGeneratedImage(null);
             setError(null);
         }
     };
+    
+    const handleClearImage = (type: ApparelType | 'person') => {
+        if(type === 'person') setPersonImage(null);
+        if(type === 'top') setTopImage(null);
+        if(type === 'trousers') setTrousersImage(null);
+        if(type === 'shoes') setShoesImage(null);
+    }
 
     const handleStartOver = useCallback(() => {
         setGeneratedImage(null);
         setError(null);
         setPersonImage(null);
-        setClothingImage(null);
-        setPersonBase64(null);
-        setClothingBase64(null);
+        setTopImage(null);
+        setTrousersImage(null);
+        setShoesImage(null);
         if (personFileInputRef.current) personFileInputRef.current.value = "";
-        if (clothingFileInputRef.current) clothingFileInputRef.current.value = "";
+        if (topFileInputRef.current) topFileInputRef.current.value = "";
+        if (trousersFileInputRef.current) trousersFileInputRef.current.value = "";
+        if (shoesFileInputRef.current) shoesFileInputRef.current.value = "";
     }, []);
 
     const handleGenerate = useCallback(async () => {
-        if (!personBase64 || !clothingBase64) {
-            setError("Please upload both a person and a clothing photo.");
+        if (!personBase64) {
+            setError("Please upload a photo of a person.");
             return;
         }
+
+        const apparelItems: { type: string; base64: string; mimeType: string }[] = [];
+        if (topBase64) apparelItems.push({ type: 'top', ...topBase64 });
+        if (trousersBase64) apparelItems.push({ type: 'trousers', ...trousersBase64 });
+        if (shoesBase64) apparelItems.push({ type: 'shoes', ...shoesBase64 });
+
+        if (apparelItems.length === 0) {
+            setError("Please upload at least one clothing item.");
+            return;
+        }
+
         if (currentCredits < currentCost) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
@@ -1620,7 +1642,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         setGeneratedImage(null);
 
         try {
-            const newBase64 = await generateApparelTryOn(personBase64.base64, personBase64.mimeType, clothingBase64.base64, clothingBase64.mimeType);
+            const newBase64 = await generateApparelTryOn(personBase64.base64, personBase64.mimeType, apparelItems);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
@@ -1634,7 +1656,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         } finally {
             setIsLoading(false);
         }
-    }, [personBase64, clothingBase64, currentCredits, auth, isGuest, navigateTo, currentCost]);
+    }, [personBase64, topBase64, trousersBase64, shoesBase64, currentCredits, auth, isGuest, navigateTo, currentCost]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -1646,31 +1668,35 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         document.body.removeChild(link);
     }, [generatedImage]);
 
-    const triggerFileInput = (type: 'person' | 'clothing') => {
-        if (isLoading) return;
-        const ref = type === 'person' ? personFileInputRef : clothingFileInputRef;
-        ref.current?.click();
-    };
-
     const hasInsufficientCredits = currentCredits < currentCost;
-    const canGenerate = personImage && clothingImage;
+    const canGenerate = personImage && (topImage || trousersImage || shoesImage);
 
-    const UploadBox: React.FC<{ title: string, image: { url: string } | null, onTrigger: () => void, icon: React.ReactNode, instructions: string }> = ({ title, image, onTrigger, icon, instructions }) => (
-        <div className="flex flex-col items-center justify-center h-full w-full">
-            <p className="font-bold text-sm text-gray-700 mb-2">{title}</p>
+    const ApparelUploadBox: React.FC<{
+        type: ApparelType;
+        image: ImageState;
+        inputRef: React.RefObject<HTMLInputElement>;
+        icon: React.ReactNode;
+    }> = ({ type, image, inputRef, icon }) => (
+        <div className="relative">
+            <input type="file" ref={inputRef} onChange={(e) => handleFileChange(e, type)} className="hidden" accept="image/png, image/jpeg, image/webp" />
             <div 
-                className="aspect-square w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors"
-                onClick={onTrigger}
+                className="aspect-square w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors p-1"
+                onClick={() => inputRef.current?.click()}
             >
                 {image ? (
-                    <img src={image.url} alt={title} className="max-h-full h-auto w-auto object-contain rounded-md" />
+                    <img src={image.url} alt={type} className="max-h-full h-auto w-auto object-contain rounded-md" />
                 ) : (
-                    <div className="text-center text-gray-500 p-2">
+                    <div className="text-center text-gray-500">
                         {icon}
-                        <p className="text-xs mt-1">{instructions}</p>
+                        <p className="text-xs mt-1 capitalize">{type}</p>
                     </div>
                 )}
             </div>
+            {image && (
+                 <button onClick={() => handleClearImage(type)} className="absolute -top-1 -right-1 z-10 p-0.5 bg-white rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200 shadow">
+                    <XIcon className="w-4 h-4" />
+                </button>
+            )}
         </div>
     );
 
@@ -1685,18 +1711,14 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
                          <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
-                                <input type="file" ref={personFileInputRef} onChange={(e) => handleFileChange(e, 'person')} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                                <input type="file" ref={clothingFileInputRef} onChange={(e) => handleFileChange(e, 'clothing')} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                                
+                            <div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center`}>
                                 {generatedImage ? (
                                     <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : personImage ? (
+                                     <img src={personImage.url} alt="Person" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                                 ) : (
-                                    <div className={`w-full h-full p-4 flex items-center justify-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                        <div className="grid grid-cols-2 gap-4 w-full h-full">
-                                            <UploadBox title="Person Photo" image={personImage} onTrigger={() => triggerFileInput('person')} icon={<UsersIcon className="w-10 h-10 mx-auto" />} instructions="Upload a full-body shot" />
-                                            <UploadBox title="Clothing Photo" image={clothingImage} onTrigger={() => triggerFileInput('clothing')} icon={<TshirtIcon className="w-10 h-10 mx-auto" />} instructions="Upload a clear shot of the garment" />
-                                        </div>
+                                    <div className="text-center text-gray-500">
+                                        <p>Upload a person's photo in the control panel to begin.</p>
                                     </div>
                                 )}
                                 {isLoading && (
@@ -1714,13 +1736,34 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                            <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
                            <p className='text-sm text-[#5F6368]'>Your virtual fitting room</p>
                         </div>
-                        <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
-                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
-                                <p className="text-xs text-yellow-700">
-                                    For best results, use a clear, full-body photo of a person and a separate, clean photo of the clothing item.
-                                </p>
+                        
+                        <div>
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Upload Person Photo</label>
+                            <div className="relative">
+                                <input type="file" ref={personFileInputRef} onChange={(e) => handleFileChange(e, 'person')} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                <div className="aspect-[4/3] w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors" onClick={() => personFileInputRef.current?.click()}>
+                                    {personImage ? (
+                                        <img src={personImage.url} alt="Person" className="max-h-full h-auto w-auto object-contain rounded-md" />
+                                    ) : (
+                                        <div className="text-center text-gray-500 p-2">
+                                            <UsersIcon className="w-10 h-10 mx-auto" />
+                                            <p className="text-sm mt-1">Upload full-body shot</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {personImage && (
+                                     <button onClick={() => handleClearImage('person')} className="absolute -top-2 -right-2 z-10 p-1 bg-white rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200 shadow-md">
+                                        <XIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Add Apparel (Optional)</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <ApparelUploadBox type="top" image={topImage} inputRef={topFileInputRef} icon={<GarmentTopIcon className="w-8 h-8"/>} />
+                                <ApparelUploadBox type="trousers" image={trousersImage} inputRef={trousersFileInputRef} icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
+                                <ApparelUploadBox type="shoes" image={shoesImage} inputRef={shoesFileInputRef} icon={<GarmentShoesIcon className="w-8 h-8"/>} />
                             </div>
                         </div>
                         
@@ -1735,7 +1778,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                             <RetryIcon className="w-5 h-5" /> Regenerate
                                         </button>
                                         <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <UploadIcon className="w-5 h-5" /> Upload New
+                                            <UploadIcon className="w-5 h-5" /> Start Over
                                         </button>
                                     </div>
                                     <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
@@ -1746,7 +1789,6 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                         <SparklesIcon className="w-6 h-6" /> Generate
                                     </button>
                                     <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
-                                    <button onClick={handleStartOver} disabled={isLoading || (!personImage && !clothingImage)} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50">Start Over</button>
                                 </>
                             )}
                         </div>

@@ -167,7 +167,7 @@ export const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
-export const TshirtIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const MockupIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 3L3 9M15 3l6 6M9 21l-6-6M15 21l6-6" />
@@ -218,6 +218,24 @@ export const VideoIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+    </svg>
+);
+
+export const GarmentTopIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.109 1.109 0 00-.554 0l-.143-.048a2.25 2.25 0 01-1.161-.886l-.51-.766c-.32-.48-.226-1.121.216-1.49l1.068-.89a1.125 1.125 0 00.405-.864v-.568a2.25 2.25 0 012.25-2.25h.5a2.25 2.25 0 012.25 2.25v.568c0 .414.223.79.568.983l.812.381c.529.248.92.746.92 1.321v.516c0 .543-.339 1.036-.844 1.259l-.812.381a1.125 1.125 0 00-.568.983v.568a2.25 2.25 0 01-2.25 2.25h-2.5a2.25 2.25 0 01-2.25-2.25v-.568a1.125 1.125 0 00-.568-.983l-.812-.381a1.5 1.5 0 01-.844-1.259v-.516c0-.575.391-1.073.92-1.321l.812-.381a1.125 1.125 0 00.568-.983v-.568A2.25 2.25 0 019.75 3h.5a2.25 2.25 0 012.25 2.25v.568c0 .334.148.65.405.864l.216.18Z" transform="translate(-1.5, 6)" />
+    </svg>
+);
+
+export const GarmentTrousersIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.75v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5m6-14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 14.25a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5m6-14.25v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5a3 3 0 00-3-3h-1.5a3 3 0 00-3 3zM6.75 12v1.5a1.5 1.5 0 001.5 1.5h1.5a1.5 1.5 0 001.5-1.5v-1.5m-3 0a3 3 0 00-3 3v1.5a3 3 0 003 3h1.5a3 3 0 003-3v-1.5a3 3 0 00-3-3h-1.5z" transform="scale(0.8) translate(3, 3) rotate(180 12 12)" />
+    </svg>
+);
+
+export const GarmentShoesIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9.75v4.5a3 3 0 01-3 3h-10.5a3 3 0 01-3-3v-4.5m16.5 0a3 3 0 00-3-3h-3.75m-6 0a3 3 0 00-3 3m12.75 0v.75a3.75 3.75 0 01-7.5 0v-.75m-6-3h19.5" transform="scale(0.8) translate(2, 6)" />
     </svg>
 );
 // Minor change for commit.
