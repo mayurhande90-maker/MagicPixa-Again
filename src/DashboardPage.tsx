@@ -1774,12 +1774,19 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                     <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
                                 </div>
                             ) : (
-                                <>
+                                <div className="space-y-2">
                                     <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                         <SparklesIcon className="w-6 h-6" /> Generate
                                     </button>
-                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
-                                </>
+                                    
+                                    {!isLoading && personImage && !topImage && !pantsImage && (
+                                        <p className="text-xs text-center text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/80">
+                                            Please upload a Top or Pants to enable Generate.
+                                        </p>
+                                    )}
+
+                                    <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
+                                </div>
                             )}
                         </div>
 

@@ -71,8 +71,9 @@ export const generateApparelTryOn = async (
     -   **ABSOLUTELY NO** changes to the person's face, hair, skin tone, body shape, or proportions.
     -   **ABSOLUTELY NO** changes to the background, accessories (jewelry, watches), or anything that is not the target clothing.
 
-2.  **IDENTIFY AND REPLACE:**
-    -   For each provided apparel image, accurately identify the corresponding area on the person in {user_photo}. These are the ONLY areas you are allowed to modify.
+2.  **IDENTIFY AND REPLACE (DO NOT BLEND OR COPY):**
+    -   Your task is to **completely replace** the corresponding clothing item in {user_photo} with the new garment(s) provided.
+    -   **CRITICAL:** You must IGNORE the style, shape, and length of the clothing the person is originally wearing. The original clothing is only a guide for *location on the body*, not for the *final appearance*. For example, if the person is wearing shorts and you are given an image of long pants, you MUST generate the full-length pants, not shorts with a new texture.
 ${apparelPromptInstructions}
 
 3.  **FIT & DRAPE REALISTICALLY:**
@@ -92,7 +93,8 @@ ${apparelPromptInstructions}
 -   **DO NOT** change the person's identity, face, or body proportions.
 -   **DO NOT** create an image that looks "edited" or "AI-generated". Aim for 100% photorealism.
 -   **DO NOT** add watermarks, text, or artifacts.
--   **DO NOT** ignore occlusions (e.g., an arm in front of the t-shirt).`;
+-   **DO NOT** ignore occlusions (e.g., an arm in front of the t-shirt).
+-   **DO NOT** copy the style (e.g., length, cut) of the original garment in {user_photo}. You must render the new garment as it appears in its own image.`;
     
     parts.push({ text: prompt });
 
