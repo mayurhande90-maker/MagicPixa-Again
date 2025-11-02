@@ -69,6 +69,8 @@ export const signInWithGoogle = async (): Promise<void> => {
     // FIX: Switched to compat syntax for GoogleAuthProvider.
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
+        // Set persistence to LOCAL to keep the user signed in for 30 days.
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         // FIX: Switched to compat method on the auth instance.
         const result = await auth.signInWithPopup(provider);
         const user = result.user;
