@@ -300,9 +300,38 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     };
     
     const hasInsufficientCredits = currentCredits < currentCost;
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+            {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
@@ -377,6 +406,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                             {!originalImage && !isLoading && (
                                 <p className="text-xs text-center text-[#5F6368]">Click the canvas on the left to upload a photo.</p>
                             )}
+                             {originalImage && !generatedImage && (
+                                <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors hidden lg:block">Start Over</button>
+                            )}
 
                             {originalImage && (
                                 <>
@@ -390,31 +422,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                             ))}
                                         </div>
                                     </div>
-
-                                    {generatedImage ? (
-                                        <div className="space-y-4">
-                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                                <DownloadIcon className="w-6 h-6" /> Download Image
-                                            </button>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <RetryIcon className="w-5 h-5" /> Regenerate
-                                                </button>
-                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                                    <UploadIcon className="w-5 h-5" /> Upload New
-                                                </button>
-                                            </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </>
-                                    )}
+                                    <ActionButtons className="hidden lg:flex flex-col space-y-4 pt-4 border-t border-gray-200/80" />
                                 </>
                             )}
                         </div>
@@ -430,6 +438,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                         )}
                     </div>
                 </div>
+                 {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -583,9 +596,38 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const canGenerate = originalImage && spaceType && roomType && style;
 
     const currentStyles = spaceType === 'office' ? officeInteriorStyles : homeInteriorStyles;
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+             {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
@@ -680,37 +722,13 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                 )}
                             </div>
 
-                            {originalImage && (
-                                <>
-                                    {generatedImage ? (
-                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                                <DownloadIcon className="w-6 h-6" /> Download Image
-                                            </button>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <RetryIcon className="w-5 h-5" /> Regenerate
-                                                </button>
-                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                                    <UploadIcon className="w-5 h-5" /> Upload New
-                                                </button>
-                                            </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </div>
-                                    )}
-                                </>
-                            )}
                              {!originalImage && !isLoading && (
                                 <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload a photo to get started and select a style.</p>
                             )}
+
+                             {originalImage && (
+                                 <ActionButtons className="hidden lg:flex flex-col space-y-4 pt-4 border-t border-gray-200/80" />
+                             )}
                         </div>
 
                         {error && (
@@ -723,6 +741,11 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         )}
                     </div>
                 </div>
+                {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -866,9 +889,38 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     };
 
     const hasInsufficientCredits = currentCredits < currentCost;
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+            {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${currentCost} credits.`}</p>
+                     <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2>
@@ -943,31 +995,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                             </button>
                                         </div>
                                     </div>
-
-                                    {generatedImage ? (
-                                        <div className="space-y-4">
-                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                                <DownloadIcon className="w-6 h-6" /> Download Image
-                                            </button>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <RetryIcon className="w-5 h-5" /> Regenerate
-                                                </button>
-                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                                    <UploadIcon className="w-5 h-5" /> Upload New
-                                                </button>
-                                            </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${currentCost} credits.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </>
-                                    )}
+                                    <ActionButtons className="hidden lg:flex flex-col space-y-4 pt-4 border-t border-gray-200/80" />
                                 </>
                             )}
                         </div>
@@ -982,6 +1010,11 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                         )}
                     </div>
                 </div>
+                {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1158,9 +1191,35 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     };
 
     const hasInsufficientCredits = currentCredits < currentCost;
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+         <div className={className}>
+            {parsedCaptions && !isLoading ? (
+                 <div className="w-full space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credit.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credit.`}</p>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
@@ -1222,17 +1281,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                     <ResultCard title="📝 Caption (Long)" content={parsedCaptions.long} />
                                     <ResultCard title="🏷️ Hashtags (Recommended)" content={parsedCaptions.hashtags} />
                                 </div>
-                                <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <RetryIcon className="w-5 h-5" /> Regenerate
-                                        </button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <UploadIcon className="w-5 h-5" /> Upload New
-                                        </button>
-                                    </div>
-                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credit.</p>
-                                </div>
+                                <ActionButtons className="hidden lg:flex flex-col space-y-4 pt-4 border-t border-gray-200/80"/>
                             </>
                         ) : (
                              <>
@@ -1256,13 +1305,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                     )}
 
                                     {originalImage && (
-                                        <>
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credit.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </>
+                                       <ActionButtons className="hidden lg:flex flex-col space-y-4"/>
                                     )}
                                 </div>
                             </>
@@ -1278,6 +1321,11 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                         )}
                     </div>
                 </div>
+                {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1407,9 +1455,38 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     };
 
     const hasInsufficientCredits = currentCredits < currentCost;
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+            {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download PNG
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credit.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${currentCost} credit.`}</p>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
@@ -1473,32 +1550,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                                 <p className="text-xs text-center text-[#5F6368]">Upload a photo to get started.</p>
                             )}
                             {originalImage && (
-                                <>
-                                    {generatedImage ? (
-                                        <div className="space-y-4">
-                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                                <DownloadIcon className="w-6 h-6" /> Download PNG
-                                            </button>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <RetryIcon className="w-5 h-5" /> Regenerate
-                                                </button>
-                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                                    <UploadIcon className="w-5 h-5" /> Upload New
-                                                </button>
-                                            </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credit.</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${currentCost} credit.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </>
-                                    )}
-                                </>
+                                <ActionButtons className="hidden lg:flex flex-col space-y-4"/>
                             )}
                         </div>
 
@@ -1512,6 +1564,11 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                         )}
                     </div>
                 </div>
+                {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1661,6 +1718,34 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
     const hasInsufficientCredits = currentCredits < currentCost;
     const canGenerate = personImage && (topImage || pantsImage);
+    
+    const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+            {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Start Over
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
+                </div>
+            )}
+        </div>
+    );
 
     const ApparelUploadBox: React.FC<{
         type: ApparelType;
@@ -1692,7 +1777,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
@@ -1757,36 +1842,12 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                             </div>
                         </div>
                         
-                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                            {generatedImage ? (
-                                <div className="space-y-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                        <DownloadIcon className="w-6 h-6" /> Download Image
-                                    </button>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <RetryIcon className="w-5 h-5" /> Regenerate
-                                        </button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <UploadIcon className="w-5 h-5" /> Start Over
-                                        </button>
-                                    </div>
-                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                        <SparklesIcon className="w-6 h-6" /> Generate
-                                    </button>
-                                    
-                                    {!isLoading && personImage && !topImage && !pantsImage && (
-                                        <p className="text-xs text-center text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/80">
-                                            Please upload a Top or Pants to enable Generate.
-                                        </p>
-                                    )}
-
-                                    <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
-                                </div>
+                        <div className="hidden lg:block space-y-4 pt-4 border-t border-gray-200/80">
+                           <ActionButtons />
+                           {!isLoading && personImage && !topImage && !pantsImage && (
+                                <p className="text-xs text-center text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/80">
+                                    Please upload a Top or Pants to enable Generate.
+                                </p>
                             )}
                         </div>
 
@@ -1800,6 +1861,11 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         )}
                     </div>
                 </div>
+                {personImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4" />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1935,9 +2001,38 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 
     const hasInsufficientCredits = currentCredits < currentCost;
     const canGenerate = originalImage && mockupType;
+    
+     const ActionButtons: React.FC<{className?: string}> = ({className}) => (
+        <div className={className}>
+            {generatedImage ? (
+                 <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
+                </div>
+            ) : (
+                <div className="w-full space-y-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate
+                    </button>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors lg:hidden">Start Over</button>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-0'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
@@ -2007,37 +2102,13 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                 </div>
                             </div>
                             
-                            {originalImage && (
-                                <>
-                                    {generatedImage ? (
-                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                                <DownloadIcon className="w-6 h-6" /> Download Image
-                                            </button>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <RetryIcon className="w-5 h-5" /> Regenerate
-                                                </button>
-                                                <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                                    <UploadIcon className="w-5 h-5" /> Upload New
-                                                </button>
-                                            </div>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {currentCost} credits.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                                <SparklesIcon className="w-6 h-6" /> Generate
-                                            </button>
-                                            <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This generation will cost ${currentCost} credits.`}</p>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors">Start Over</button>
-                                        </div>
-                                    )}
-                                </>
-                            )}
                              {!originalImage && !isLoading && (
                                 <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload a design to get started.</p>
                             )}
+
+                             {originalImage && (
+                                <ActionButtons className="hidden lg:flex flex-col space-y-4 pt-4 border-t border-gray-200/80"/>
+                             )}
                         </div>
 
                         {error && (
@@ -2050,6 +2121,11 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                         )}
                     </div>
                 </div>
+                {originalImage && (
+                    <div className="lg:hidden">
+                        <ActionButtons className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4"/>
+                    </div>
+                )}
             </div>
         </div>
     );
