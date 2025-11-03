@@ -1,5 +1,3 @@
-
-
 // FIX: Refactored to use Firebase v8 compat syntax to resolve module import errors.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -7,7 +5,8 @@ import 'firebase/compat/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
-const firebaseConfig = {
+// Export the config object so other parts of the app can inspect it for diagnostics.
+export const firebaseConfig = {
   apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
   authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
