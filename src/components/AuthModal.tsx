@@ -1,27 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleIcon, MagicPixaLogo } from './icons';
 
 interface AuthModalProps {
   onClose: () => void;
   onGoogleSignIn: () => Promise<void>;
+  error?: string | null;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   onClose, 
-  onGoogleSignIn, 
+  onGoogleSignIn,
+  error: propError,
 }) => {
-  const [error, setError] = useState<string | null>(null);
+  const [internalError, setInternalError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // If a prop error is passed from the main app, it takes precedence.
+  const error = propError || internalError;
+  
+  // Clear any internal modal error if a new error is passed from props.
+  useEffect(() => {
+    if(propError) {
+      setInternalError(null);
+    }
+  }, [propError]);
+
+
   const handleGoogleClick = async () => {
-    setError(null);
+    setInternalError(null);
     setIsLoading(true);
     try {
       await onGoogleSignIn();
+      // On redirect, this component will unmount before the code below runs.
+      // isLoading will reset on component re-mount.
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google.');
-    } finally {
-      setIsLoading(false);
+      setInternalError(err.message || 'Failed to sign in with Google.');
+      // Only set loading to false on an immediate error, as success causes a page redirect.
+      setIsLoading(false); 
     }
   };
 
@@ -64,7 +79,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     }
                     Continue with Google
                 </button>
-                 {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+                 {error && <p className="text-sm text-red-600 text-center mt-2">{error}</p>}
               </div>
         </div>
       </div>

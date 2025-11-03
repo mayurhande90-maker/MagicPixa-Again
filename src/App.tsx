@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -59,43 +61,50 @@ const App: React.FC = () => {
       setIsLoadingAuth(false);
       return;
     }
-
-    // Set up the onAuthStateChanged listener immediately. This will be the single
-    // source of truth for the user's authentication state. It will trigger
-    // when the user signs in, signs out, or when the session is restored.
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // User is signed in. Fetch or create their profile.
-        const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
-        const userToSet: User = {
-          uid: firebaseUser.uid,
-          name: userProfile.name || firebaseUser.displayName || 'User',
-          email: userProfile.email || firebaseUser.email || 'No Email',
-          avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
-          credits: userProfile.credits,
-        };
-        setUser(userToSet);
-        setIsAuthenticated(true);
-      } else {
-        // User is signed out.
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-      // Finished processing, hide the loader.
-      setIsLoadingAuth(false);
-    });
-
-    // Now, process any pending redirect result. If a user just signed in
-    // via redirect, this will complete the process and trigger the
-    // onAuthStateChanged listener above with the user's data.
-    // If there was no redirect, this will resolve with a null user and do nothing.
+  
+    // This handles the result of a sign-in redirect. It's crucial to call this
+    // on page load to complete the authentication flow.
     auth.getRedirectResult().catch((error) => {
       console.error("Error processing Google Sign-In redirect:", error);
-      // Even if this fails, onAuthStateChanged might still recover an existing session.
+      let message = "An error occurred during sign-in. Please try again.";
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        message = 'An account already exists with this email. Please sign in using the original method.';
+      }
+      setAuthError(message);
       setIsLoadingAuth(false);
     });
-
-    // Cleanup function to unsubscribe from the listener when the component unmounts.
+  
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+          const userToSet: User = {
+            uid: firebaseUser.uid,
+            name: userProfile.name || firebaseUser.displayName || 'User',
+            email: userProfile.email || firebaseUser.email || 'No Email',
+            avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
+            credits: userProfile.credits,
+          };
+          setUser(userToSet);
+          setIsAuthenticated(true);
+          setAuthError(null); // Clear any previous auth errors on success.
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error("Error in onAuthStateChanged handler:", error);
+        setAuthError("Failed to load your user profile. Please try signing in again.");
+        setUser(null);
+        setIsAuthenticated(false);
+        if (auth) {
+            auth.signOut(); // Sign out to prevent a broken state.
+        }
+      } finally {
+        setIsLoadingAuth(false);
+      }
+    });
+  
     return () => unsubscribe();
   }, []);
 
@@ -143,6 +152,11 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated, authModalOpen, navigateTo]);
 
+  useEffect(() => {
+    if (authError) {
+      setAuthModalOpen(true);
+    }
+  }, [authError]);
 
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
@@ -189,7 +203,10 @@ const App: React.FC = () => {
   };
   
   const openAuthModal = () => setAuthModalOpen(true);
-  const closeAuthModal = () => setAuthModalOpen(false);
+  const closeAuthModal = () => {
+      setAuthModalOpen(false);
+      setAuthError(null);
+  };
 
   const authProps: AuthProps = {
     isAuthenticated,
@@ -217,7 +234,8 @@ const App: React.FC = () => {
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 
-          onGoogleSignIn={handleGoogleSignIn} 
+          onGoogleSignIn={handleGoogleSignIn}
+          error={authError}
         />
       )}
       {editProfileModalOpen && user && (
