@@ -53,6 +53,16 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // First, handle the result of a potential redirect from Google Sign-In.
+    // This completes the sign-in flow and allows onAuthStateChanged to pick up the user.
+    if (auth) {
+      auth.getRedirectResult().catch((error) => {
+        console.error("Error processing Google Sign-In redirect:", error);
+      });
+    }
+
+    // The onAuthStateChanged listener remains the single source of truth for the user's auth state.
+    // It will fire after getRedirectResult completes and also on any other auth state change.
     const unsubscribe = auth!.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
@@ -123,9 +133,8 @@ const App: React.FC = () => {
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
       await signInWithGoogle();
-      setAuthModalOpen(false);
-      setCurrentPage('dashboard');
-      window.scrollTo(0,0);
+      // Note: Code after signInWithGoogle() will not execute due to the page redirect.
+      // The redirect result is handled by the useEffect hook when the user returns.
     } catch (error: any) {
        console.error("Google Sign-In Error:", error);
        let message = "Failed to sign in with Google. Please try again.";
