@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
@@ -10,7 +6,8 @@ import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile } from './firebase'; 
-// FIX: The errors indicate Firebase v8 is used. Removing v9 imports as methods are called on the `auth` object directly.
+// FIX: Import modular auth functions to match Firebase v12 syntax.
+import { getRedirectResult, onAuthStateChanged, signOut } from 'firebase/auth';
 
 
 import ConfigurationError from './components/ConfigurationError';
@@ -67,10 +64,8 @@ const App: React.FC = () => {
       return;
     }
   
-    // This handles the result of a sign-in redirect. It's crucial to call this
-    // on page load to complete the authentication flow.
-    // FIX: Updated to Firebase v8 syntax.
-    auth.getRedirectResult().catch((error) => {
+    // FIX: Updated to Firebase v9+ modular syntax for handling redirect results.
+    getRedirectResult(auth).catch((error) => {
       console.error("Error processing Google Sign-In redirect:", error);
       let message = "An error occurred during sign-in. Please try again.";
       if (error.code === 'auth/account-exists-with-different-credential') {
@@ -80,8 +75,8 @@ const App: React.FC = () => {
       setIsLoadingAuth(false);
     });
   
-    // FIX: Updated to Firebase v8 syntax.
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    // FIX: Updated to Firebase v9+ modular syntax for observing auth state changes.
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
@@ -105,8 +100,8 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
-            // FIX: Updated to Firebase v8 syntax.
-            auth.signOut(); // Sign out to prevent a broken state.
+            // FIX: Updated to Firebase v9+ modular syntax for sign out.
+            signOut(auth); // Sign out to prevent a broken state.
         }
       } finally {
         setIsLoadingAuth(false);
@@ -182,8 +177,8 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // FIX: Updated to Firebase v8 syntax.
-      if (auth) await auth.signOut();
+      // FIX: Updated to Firebase v9+ modular syntax for sign out.
+      if (auth) await signOut(auth);
       setCurrentPage('home');
       window.scrollTo(0, 0);
     } catch (error) {
