@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
@@ -6,8 +7,8 @@ import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile } from './firebase'; 
-// FIX: Import modular auth functions to match Firebase v12 syntax.
-import { getRedirectResult, onAuthStateChanged, signOut } from 'firebase/auth';
+// FIX: Removed modular imports for Firebase auth functions to align with the v8 compatibility API, resolving module export errors.
+
 
 
 import ConfigurationError from './components/ConfigurationError';
@@ -64,7 +65,8 @@ const App: React.FC = () => {
       return;
     }
   
-    getRedirectResult(auth).catch((error) => {
+    // FIX: Switched to Firebase v8 compat syntax.
+    auth.getRedirectResult().catch((error) => {
         console.error("Error processing Google Sign-In redirect:", error);
         let message = "An error occurred during sign-in. Please try again.";
         if (error.code === 'auth/account-exists-with-different-credential') {
@@ -75,7 +77,8 @@ const App: React.FC = () => {
         sessionStorage.removeItem('pendingGoogleSignIn');
     });
   
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // FIX: Switched to Firebase v8 compat syntax.
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       const pendingSignIn = sessionStorage.getItem('pendingGoogleSignIn') === 'true';
       sessionStorage.removeItem('pendingGoogleSignIn');
 
@@ -96,8 +99,9 @@ const App: React.FC = () => {
           setUser(null);
           setIsAuthenticated(false);
           if (pendingSignIn) {
-            // DEFINITIVE FIX: Detect silent sign-in failure and provide actionable error.
-            setAuthError("Sign-in failed. Please ensure magicpixa.com is an authorized domain in your Firebase project's Authentication settings.");
+            // DEFINITIVE FIX: Detect silent sign-in failure and provide an actionable, dynamic error.
+            const currentDomain = window.location.hostname;
+            setAuthError(`Sign-in failed. Please ensure the domain "${currentDomain}" is an authorized domain in your Firebase project's Authentication settings.`);
           }
         }
       } catch (error) {
@@ -106,7 +110,8 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
-            signOut(auth); // Sign out to prevent a broken state.
+            // FIX: Switched to Firebase v8 compat syntax.
+            auth.signOut(); // Sign out to prevent a broken state.
         }
       } finally {
         setIsLoadingAuth(false);
@@ -184,7 +189,8 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      if (auth) await signOut(auth);
+      // FIX: Switched to Firebase v8 compat syntax.
+      if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
     } catch (error) {
