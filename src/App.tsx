@@ -1,6 +1,9 @@
 
 
-import React, { useState, useEffect, useCallback } from 'react';
+
+
+
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
 import { DashboardPage } from './DashboardPage';
@@ -46,7 +49,7 @@ const App: React.FC = () => {
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<ReactNode | null>(null);
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -99,9 +102,23 @@ const App: React.FC = () => {
           setUser(null);
           setIsAuthenticated(false);
           if (pendingSignIn) {
-            // DEFINITIVE FIX: Detect silent sign-in failure and provide an actionable, dynamic error.
+            // DEFINITIVE FIX: Provide a comprehensive, multi-step troubleshooting guide for auth failures.
             const currentDomain = window.location.hostname;
-            setAuthError(`Sign-in failed. Please ensure the domain "${currentDomain}" is an authorized domain in your Firebase project's Authentication settings.`);
+            // FIX: Property 'projectId' does not exist on type 'Object'. Accessed via index instead.
+            const projectId = auth?.app?.options?.['projectId'];
+            const expectedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : `[your-project-id].firebaseapp.com`;
+    
+            const ErrorMessage = () => (
+              <div className="text-left text-sm space-y-2">
+                <p><strong>Sign-in failed. Please check your configuration:</strong></p>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>Ensure <strong>`{currentDomain}`</strong> is in your Firebase project's <strong>Authentication → Settings → Authorized domains</strong>.</li>
+                  <li>Your app's environment variable for `authDomain` should be <strong>`{expectedAuthDomain}`</strong>.</li>
+                  <li>In Google Cloud Console, under APIs &amp; Services → Credentials, your OAuth Client ID must have <strong>`https://{currentDomain}`</strong> in its "Authorized JavaScript origins".</li>
+                </ol>
+              </div>
+            );
+            setAuthError(<ErrorMessage />);
           }
         }
       } catch (error) {

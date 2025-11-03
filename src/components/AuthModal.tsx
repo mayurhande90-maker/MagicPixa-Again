@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { GoogleIcon, MagicPixaLogo } from './icons';
 
 interface AuthModalProps {
   onClose: () => void;
   onGoogleSignIn: () => Promise<void>;
-  error?: string | null;
+  error?: ReactNode | null;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -79,7 +79,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     }
                     Continue with Google
                 </button>
-                 {error && <p className="text-sm text-red-600 text-center mt-2">{error}</p>}
+                 {error && <div className="text-sm text-red-700 mt-4 bg-red-50 p-4 rounded-lg border border-red-200">{error}</div>}
               </div>
         </div>
       </div>
