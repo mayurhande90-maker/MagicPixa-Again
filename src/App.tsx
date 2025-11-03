@@ -1,14 +1,19 @@
 
 
+
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
 import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile } from './firebase'; 
+// FIX: The errors indicate Firebase v8 is used. Removing v9 imports as methods are called on the `auth` object directly.
+
+
 import ConfigurationError from './components/ConfigurationError';
-import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
 export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile' | 'caption';
@@ -64,6 +69,7 @@ const App: React.FC = () => {
   
     // This handles the result of a sign-in redirect. It's crucial to call this
     // on page load to complete the authentication flow.
+    // FIX: Updated to Firebase v8 syntax.
     auth.getRedirectResult().catch((error) => {
       console.error("Error processing Google Sign-In redirect:", error);
       let message = "An error occurred during sign-in. Please try again.";
@@ -74,6 +80,7 @@ const App: React.FC = () => {
       setIsLoadingAuth(false);
     });
   
+    // FIX: Updated to Firebase v8 syntax.
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
         if (firebaseUser) {
@@ -98,6 +105,7 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
+            // FIX: Updated to Firebase v8 syntax.
             auth.signOut(); // Sign out to prevent a broken state.
         }
       } finally {
@@ -174,6 +182,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      // FIX: Updated to Firebase v8 syntax.
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
