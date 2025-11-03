@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1479,7 +1480,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                             <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Images</h3>
                             <div className="space-y-4">
-                                <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
+                                <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} aspectRatio="aspect-[4/3]" />
                                 <div className="flex gap-4">
                                     <ImageUploader image={topImage} onFileChange={(f) => handleFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
                                     <ImageUploader image={bottomImage} onFileChange={(f) => handleFileChange(f, setBottomImage)} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
@@ -1681,7 +1682,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                        <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 {generatedImage ? <img src={generatedImage} alt="Generated Mockup" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1712,6 +1713,231 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                 </div>
 
                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                    <ActionButtons />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// FIX: Added the missing CaptionGenerator component definition.
+const CaptionGenerator: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[] | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-caption');
+        return saved ? parseInt(saved, 10) : 1;
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 1;
+    const currentCost = EDIT_COST;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasImage = originalImage !== null;
+
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+    
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setCaptions(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setCaptions(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (currentCredits < EDIT_COST) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setCaptions(null);
+
+        try {
+            const newCaptions = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setCaptions(newCaptions);
+
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, currentCredits, auth, isGuest, navigateTo]);
+    
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+
+    const hasInsufficientCredits = currentCredits < currentCost;
+
+    const CopyToClipboardButton: React.FC<{ text: string }> = ({ text }) => {
+        const [copied, setCopied] = useState(false);
+        const handleCopy = () => {
+            navigator.clipboard.writeText(text).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            });
+        };
+        return (
+            <button onClick={handleCopy} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <CopyIcon className="w-5 h-5 text-gray-500" />}
+            </button>
+        );
+    };
+
+    const ActionButtons = () => (
+        <div className="w-full space-y-2">
+            {captions ? (
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <RetryIcon className="w-5 h-5" /> Regenerate
+                    </button>
+                    <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                        <UploadIcon className="w-5 h-5" /> Upload New
+                    </button>
+                </div>
+            ) : (
+                <>
+                    <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        <SparklesIcon className="w-6 h-6" /> Generate Captions
+                    </button>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for credits!' : 'Insufficient credits.') : `This costs ${currentCost} credit.`}</p>
+                </>
+            )}
+        </div>
+    );
+    
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+             <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions for your photos instantly.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3">
+                         <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!hasImage ? triggerFileInput : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {originalImage ? <img src={originalImage.url} alt="Uploaded for captions" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload a photo</span><span className="text-sm">or click to select a file</span></div></div>}
+                                {hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="lg:col-span-2 space-y-4">
+                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+                            <div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Generated Captions</h3><p className='text-sm text-[#5F6368]'>Copy your favorite one!</p></div>
+                            <div className="space-y-4 pt-4 border-t border-gray-200/80 min-h-[200px] flex flex-col justify-center">
+                                {isLoading ? (
+                                    <div className="flex flex-col items-center justify-center text-center">
+                                        <SparklesIcon className="w-10 h-10 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-2 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                ) : captions ? (
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                                        {captions.map((c, i) => (
+                                            <div key={i} className="bg-gray-50 p-4 rounded-lg border border-gray-200/80">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <p className="text-sm text-gray-700 flex-1">{c.caption}</p>
+                                                    <CopyToClipboardButton text={c.caption} />
+                                                </div>
+                                                <div className="flex justify-between items-start gap-2 mt-2 pt-2 border-t border-gray-200/80">
+                                                    <p className="text-xs text-blue-600 font-mono flex-1">{c.hashtags}</p>
+                                                    <CopyToClipboardButton text={c.hashtags} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-gray-400">
+                                        <div className="flex items-center justify-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                                            <InformationCircleIcon className="w-6 h-6 text-yellow-500 flex-shrink-0" />
+                                            <p className="text-xs text-yellow-700">Upload an image and click "Generate Captions" to see the magic happen.</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
+                            <ActionButtons />
+                        </div>
+                    </div>
+                </div>
+                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
                     <ActionButtons />
                 </div>
             </div>
