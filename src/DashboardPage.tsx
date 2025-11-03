@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1444,17 +1445,33 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         icon: React.ReactNode;
         aspectRatio?: string;
         disabled?: boolean;
-    }> = ({ image, onFileChange, title, icon, aspectRatio = 'aspect-[3/4]', disabled = false }) => {
+        onRemove?: () => void;
+    }> = ({ image, onFileChange, title, icon, aspectRatio = 'aspect-[3/4]', disabled = false, onRemove }) => {
         const inputRef = useRef<HTMLInputElement>(null);
         return (
             <div className="flex-1 flex flex-col items-center">
                 <div
-                    onClick={() => !disabled && inputRef.current?.click()}
-                    className={`w-full ${aspectRatio} relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center transition-colors ${!disabled ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : 'cursor-not-allowed'}`}
+                    onClick={() => !disabled && !image && inputRef.current?.click()}
+                    className={`w-full ${aspectRatio} relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center transition-colors ${!disabled && !image ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''} ${disabled ? 'cursor-not-allowed' : ''}`}
                 >
                     <input type="file" ref={inputRef} onChange={(e) => onFileChange(e.target.files?.[0])} className="hidden" accept="image/png, image/jpeg, image/webp" disabled={disabled}/>
                     {image ? (
-                        <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg" />
+                        <>
+                            <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg" />
+                             {onRemove && !disabled && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRemove();
+                                        if(inputRef.current) inputRef.current.value = "";
+                                    }}
+                                    className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full text-white hover:bg-black/75 transition-colors"
+                                    aria-label={`Remove ${title}`}
+                                >
+                                    <XIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                        </>
                     ) : (
                         <div className="text-center text-gray-500">
                             {icon}
@@ -1551,8 +1568,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                             <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Garments</h3>
                             <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
-                                <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
-                                <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
+                                <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setTopImage(null)} />
+                                <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                             </div>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
@@ -1567,8 +1584,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                  <div className="lg:hidden w-full bg-white p-4 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 mt-8">
                     <h3 className="font-bold text-lg mb-4 text-[#1E1E1E] text-center">Upload Garments</h3>
                     <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
-                        <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
-                        <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
+                        <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setTopImage(null)} />
+                        <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                     </div>
                  </div>
 
