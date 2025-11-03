@@ -61,23 +61,21 @@ if (isConfigValid) {
 }
 
 /**
- * Signs in the user with Google and ensures their profile is created in Firestore.
- * @returns A promise that resolves on successful sign-in.
+ * Signs in the user with Google using a redirect flow for better mobile compatibility.
+ * @returns A promise that resolves on successful sign-in initiation.
  */
 export const signInWithGoogle = async (): Promise<void> => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    // FIX: Switched to compat syntax for GoogleAuthProvider.
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
         // Set persistence to LOCAL to keep the user signed in for 30 days.
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        // FIX: Switched to compat method on the auth instance.
-        const result = await auth.signInWithPopup(provider);
-        const user = result.user;
-        // This function will either get the existing profile or create a new one with 10 credits.
-        await getOrCreateUserProfile(user!.uid, user!.displayName, user!.email);
+        // FIX: Use `signInWithRedirect` instead of `signInWithPopup` for better mobile compatibility.
+        // The authentication result will be handled by the `onAuthStateChanged` listener in App.tsx
+        // when the user is redirected back to the application.
+        await auth.signInWithRedirect(provider);
     } catch (error) {
-        console.error("Error during Google Sign-In:", error);
+        console.error("Error during Google Sign-In redirect initiation:", error);
         throw error;
     }
 };
