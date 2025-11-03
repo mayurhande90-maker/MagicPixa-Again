@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
-import DashboardPage from './DashboardPage';
+// FIX: Changed to a named import to resolve a circular dependency.
+import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile } from './firebase'; 
@@ -8,7 +10,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { getOrCreateUserProfile } from './firebase';
 
 export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile' | 'caption';
 
 export interface User {
   uid: string;

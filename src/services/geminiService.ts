@@ -1,7 +1,7 @@
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
@@ -39,6 +39,77 @@ export const startLiveSession = (callbacks: {
         },
     });
 };
+
+export const generateCaptions = async (
+  base64ImageData: string,
+  mimeType: string
+): Promise<{ caption: string; hashtags: string }[]> => {
+  if (!ai) {
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+  }
+
+  try {
+    const prompt = `Analyze this image and generate 3-5 distinct, engaging social media captions for it. For each caption, also provide a relevant, concise string of hashtags.
+
+    Follow these rules:
+    1.  The tone should be catchy and suitable for platforms like Instagram or Facebook.
+    2.  Each caption should offer a different angle or perspective on the image.
+    3.  Hashtags should be popular, relevant, and formatted as a single string (e.g., "#tag1 #tag2 #tag3").
+    4.  The output must be a valid JSON array.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              caption: {
+                type: Type.STRING,
+                description: 'A social media caption for the image.',
+              },
+              hashtags: {
+                type: Type.STRING,
+                description: 'A string of relevant hashtags, space-separated.',
+              },
+            },
+            required: ["caption", "hashtags"],
+          },
+        },
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new Error(`Caption generation blocked due to: ${response.promptFeedback.blockReason}.`);
+    }
+
+    const jsonText = response.text.trim();
+    if (!jsonText) {
+      throw new Error("The model did not return any caption data.");
+    }
+    
+    return JSON.parse(jsonText);
+
+  } catch (error) {
+    console.error("Error generating captions with Gemini:", error);
+    if (error instanceof Error) {
+      if (error.message.includes("JSON")) {
+          throw new Error("Failed to generate valid captions. The model's response was not in the expected format. Please try again.");
+      }
+      throw new Error(`Failed to generate captions: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while communicating with the caption generation service.");
+  }
+};
+
 
 export const generateApparelTryOn = async (
   personBase64: string,
