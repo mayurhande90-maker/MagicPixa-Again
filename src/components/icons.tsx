@@ -214,6 +214,13 @@ export const XIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+);
+
+
 export const VideoIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -223,7 +230,7 @@ export const VideoIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 export const GarmentTopIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.109 1.109 0 00-.554 0l-.143-.048a2.25 2.25 0 01-1.161-.886l-.51-.766c-.32-.48-.226-1.121.216-1.49l1.068-.89a1.125 1.125 0 00.405-.864v-.568a2.25 2.25 0 012.25-2.25h.5a2.25 2.25 0 012.25 2.25v.568c0 .414.223.79.568.983l.812.381c.529.248.92.746.92 1.321v.516c0 .543-.339 1.036-.844 1.259l-.812.381a1.125 1.125 0 00-.568.983v.568a2.25 2.25 0 01-2.25 2.25h-2.5a2.25 2.25 0 01-2.25-2.25v-.568a1.125 1.125 0 00-.568-.983l-.812-.381a1.5 1.5 0 01-.844-1.259v-.516c0-.575.391-1.073.92-1.321l.812-.381a1.125 1.125 0 00.568-.983v-.568A2.25 2.25 0 019.75 3h.5a2.25 2.25 0 012.25 2.25v.568c0 .334.148.65.405.864l.216.18Z" transform="translate(-1.5, 6)" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.109 1.109 0 00-.554 0l-.143-.048a2.25 2.25 0 01-1.161-.886l-.51-.766c-.32-.48-.226-1.121.216-1.49l1.068-.89a1.125 1.125 0 00.405-.864v-.568a2.25 2.25 0 012.25-2.25h.5a2.25 2.25 0 012.25 2.25v.568c0 .414.223.79.568.983l.812.381c.529.248.92.746.92 1.321v.516c0 .543-.339 1.036-.844 1.259l-.812.381a1.125 1.125 0 00-.568.983v.568a2.25 2.25 0 01-2.25-2.25h-2.5a2.25 2.25 0 01-2.25-2.25v-.568a1.125 1.125 0 00-.568-.983l-.812-.381a1.5 1.5 0 01-.844-1.259v-.516c0-.575.391-1.073.92-1.321l.812-.381a1.125 1.125 0 00.568-.983v-.568A2.25 2.25 0 019.75 3h.5a2.25 2.25 0 012.25 2.25v.568c0 .334.148.65.405.864l.216.18Z" transform="translate(-1.5, 6)" />
     </svg>
 );
 

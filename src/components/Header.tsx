@@ -61,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
       <header className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#F9FAFB]/80 backdrop-blur-lg border-b border-gray-200/80">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 lg:gap-10">
-              {auth.isDashboard && (
+              {auth.isDashboard && auth.isSidebarOpen !== undefined && auth.setIsSidebarOpen && (
                 <button onClick={() => auth.setIsSidebarOpen?.(!auth.isSidebarOpen)} className="p-2 -ml-2 text-[#1E1E1E] lg:hidden" aria-label="Open sidebar">
                     <MenuIcon className="w-6 h-6" />
                 </button>
@@ -83,20 +83,24 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
           <div className="flex items-center gap-4">
               {auth.isAuthenticated && auth.user ? (
                 <>
-                   {auth.isDashboard && (
-                      <button 
-                          onClick={auth.openConversation}
-                          className="hidden sm:flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
-                      >
-                          <AudioWaveIcon className="w-4 h-4" />
-                          <span>Magic Conversation</span>
-                      </button>
+                   {auth.isDashboard ? (
+                      <div className='flex items-center gap-4'>
+                        <button 
+                            onClick={auth.openConversation}
+                            className="hidden sm:flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                        >
+                            <AudioWaveIcon className="w-4 h-4" />
+                            <span>Magic Conversation</span>
+                        </button>
+                        <div className="hidden sm:flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
+                            <SparklesIcon className="w-4 h-4 text-yellow-600" />
+                            <span>{auth.user.credits} Credits</span>
+                        </div>
+                        <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
+                      </div>
+                  ) : (
+                     <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
                   )}
-                  <div className="hidden sm:flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
-                      <SparklesIcon className="w-4 h-4 text-yellow-600" />
-                      <span>{auth.user.credits} Credits</span>
-                  </div>
-                  <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
                 </>
               ) : (
                 <>
