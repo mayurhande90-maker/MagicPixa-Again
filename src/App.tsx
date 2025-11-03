@@ -55,56 +55,48 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // This function handles the entire authentication flow, including redirect results.
-    const handleAuthentication = async () => {
-      if (!auth) {
-        setIsLoadingAuth(false);
-        return () => {}; // Return an empty function if auth is not initialized
+    if (!auth) {
+      setIsLoadingAuth(false);
+      return;
+    }
+
+    // Set up the onAuthStateChanged listener immediately. This will be the single
+    // source of truth for the user's authentication state. It will trigger
+    // when the user signs in, signs out, or when the session is restored.
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in. Fetch or create their profile.
+        const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+        const userToSet: User = {
+          uid: firebaseUser.uid,
+          name: userProfile.name || firebaseUser.displayName || 'User',
+          email: userProfile.email || firebaseUser.email || 'No Email',
+          avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
+          credits: userProfile.credits,
+        };
+        setUser(userToSet);
+        setIsAuthenticated(true);
+      } else {
+        // User is signed out.
+        setUser(null);
+        setIsAuthenticated(false);
       }
-      
-      try {
-        // First, check for a redirect result. This is crucial for mobile sign-in.
-        // It processes the sign-in and establishes the session.
-        await auth.getRedirectResult();
-      } catch (error) {
-        console.error("Error processing Google Sign-In redirect:", error);
-      }
-  
-      // Now, set up the onAuthStateChanged listener. It acts as the single source of truth
-      // for the user's authentication state, whether from a redirect or a normal session.
-      const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        if (firebaseUser) {
-          const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
-          
-          const userToSet: User = {
-            uid: firebaseUser.uid,
-            name: userProfile.name || firebaseUser.displayName || 'User',
-            email: userProfile.email || firebaseUser.email || 'No Email',
-            avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
-            credits: userProfile.credits, 
-          };
-          setUser(userToSet);
-          setIsAuthenticated(true);
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-        setIsLoadingAuth(false);
-      });
-  
-      return unsubscribe;
-    };
-  
-    const unsubscribePromise = handleAuthentication();
-  
+      // Finished processing, hide the loader.
+      setIsLoadingAuth(false);
+    });
+
+    // Now, process any pending redirect result. If a user just signed in
+    // via redirect, this will complete the process and trigger the
+    // onAuthStateChanged listener above with the user's data.
+    // If there was no redirect, this will resolve with a null user and do nothing.
+    auth.getRedirectResult().catch((error) => {
+      console.error("Error processing Google Sign-In redirect:", error);
+      // Even if this fails, onAuthStateChanged might still recover an existing session.
+      setIsLoadingAuth(false);
+    });
+
     // Cleanup function to unsubscribe from the listener when the component unmounts.
-    return () => {
-      unsubscribePromise.then(unsubscribe => {
-        if (unsubscribe) {
-          unsubscribe();
-        }
-      });
-    };
+    return () => unsubscribe();
   }, []);
 
   const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {

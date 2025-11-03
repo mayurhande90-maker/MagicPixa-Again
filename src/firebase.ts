@@ -49,8 +49,12 @@ let db: firebase.firestore.Firestore | null = null;
 
 if (isConfigValid) {
   try {
-    // FIX: Used compat initialization.
-    app = firebase.initializeApp(firebaseConfig);
+    // FIX: Used compat initialization, ensuring it only happens once.
+    if (!firebase.apps.length) {
+      app = firebase.initializeApp(firebaseConfig);
+    } else {
+      app = firebase.app(); // Get existing app
+    }
     auth = firebase.auth();
     db = firebase.firestore();
   } catch (error) {
