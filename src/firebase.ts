@@ -37,10 +37,10 @@ const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// DEFINITIVE FIX: Revert configuration check to use `process.env.API_KEY` for the Gemini key
-// and `import.meta.env` for Firebase keys, matching platform requirements.
+// DEFINITIVE FIX: Unified all configuration checks to use the Vite-standard `import.meta.env`
+// with the `VITE_` prefix, including the Gemini API key. This is the root fix.
 const allConfigKeys = {
-    "API_KEY": process.env.API_KEY,
+    "VITE_API_KEY": (import.meta as any).env.VITE_API_KEY,
     "VITE_FIREBASE_API_KEY": (import.meta as any).env.VITE_FIREBASE_API_KEY,
     "VITE_FIREBASE_AUTH_DOMAIN": (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
     "VITE_FIREBASE_PROJECT_ID": (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
