@@ -11,7 +11,8 @@ import {
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon,
-    GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, LogoutIcon, PlusIcon
+    GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, LogoutIcon, PlusIcon,
+    DashboardIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -1050,4 +1051,388 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                 <div className='mb-8 text-center'><h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2><p className="text-[#5F6368] mt-2">Breathe new life into your vintage black & white photos.</p></div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3"><div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5"><div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />{generatedImage ? <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : originalImage ? <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload your vintage photo</span><span className="text-sm">Minimum 512x512 pixels</span></div></div>}{hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}{isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}</div></div></div>
-                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6"><div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Colourization Options</h3><p className='text-sm text-[#5F6368]'>Choose your enhancement level</p></div><div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left"><LightbulbIcon
+                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Colourization Options</h3><p className='text-sm text-[#5F6368]'>Choose your enhancement level</p></div>
+                        <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                <p className="text-xs text-yellow-700">High-contrast, clear black & white photos give the best results. Blurry or low-res images may be less accurate.</p>
+                            </div>
+                        </div>
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            <Controls />
+                            {!hasImage && !isLoading && <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload a photo to see the options.</p>}
+                            {hasImage && <div className="pt-4 border-t border-gray-200/80"><ActionButtons/></div>}
+                        </div>
+                        {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}
+                    </div>
+                    <MobileControls />
+                </div>
+                <MobileFooter />
+            </div>
+        </div>
+    );
+};
+
+const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-eraser');
+        return saved ? parseInt(saved, 10) : 1;
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+    
+    const EDIT_COST = 1;
+    const currentCost = EDIT_COST;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasImage = originalImage !== null;
+    
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-eraser', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        if (fileInputRef.current) fileInputRef.current.value = ""; 
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (currentCredits < EDIT_COST) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+        
+        try {
+            const newBase64 = await removeImageBackground(base64Data.base64, base64Data.mimeType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, currentCredits, auth, isGuest, navigateTo]);
+
+
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_transparent_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+    
+    const hasInsufficientCredits = currentCredits < currentCost;
+    
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+             <div className='w-full max-w-4xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
+                    <p className="text-[#5F6368] mt-2">Remove backgrounds from any photo in a single click.</p>
+                </div>
+                
+                <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                    <div
+                        className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                        onClick={!hasImage ? triggerFileInput : undefined}
+                    >
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                        
+                        {generatedImage ? (
+                            <img src={generatedImage} alt="Transparent Background" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                        ) : originalImage ? (
+                            <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                        ) : (
+                            <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                    <UploadIcon className="w-12 h-12" />
+                                    <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                    <span className="text-sm">or click to upload</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {hasImage && !isLoading && (
+                             <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"><ArrowUpCircleIcon className="w-6 h-6" /></button>
+                        )}
+
+                        {isLoading && (
+                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className='mt-8 max-w-sm mx-auto space-y-2'>
+                    {generatedImage ? (
+                        <>
+                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                <DownloadIcon className="w-6 h-6" /> Download Image
+                            </button>
+                            <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                <UploadIcon className="w-5 h-5" /> Upload New
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                            <SparklesIcon className="w-6 h-6" /> Remove Background
+                        </button>
+                    )}
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This costs ${currentCost} credit.`}</p>
+                    {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    // This component will be added in a future update
+    return <div className="p-8 text-center"><h2 className="text-2xl font-bold">CaptionAI is Coming Soon!</h2><p>This feature is under construction.</p></div>;
+};
+const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    // This component will be added in a future update
+    return <div className="p-8 text-center"><h2 className="text-2xl font-bold">Magic Apparel is Coming Soon!</h2><p>This feature is under construction.</p></div>;
+};
+
+const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    // This component will be added in a future update
+    return <div className="p-8 text-center"><h2 className="text-2xl font-bold">Magic Mockup is Coming Soon!</h2><p>This feature is under construction.</p></div>;
+};
+
+const ProfileScreen: React.FC<{ user: User | null; auth: AuthProps; openEditProfileModal: () => void; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ user, auth, openEditProfileModal, navigateTo }) => (
+    <div className="p-4">
+        <div className="flex items-center gap-4 mb-8">
+            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-3xl">
+                {user?.avatar}
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold text-[#1E1E1E]">{user?.name}</h2>
+                <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
+            </div>
+        </div>
+        
+        <div className="space-y-4">
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
+                <p className="text-sm text-[#5F6368] mb-1">Credits Remaining</p>
+                <div className="flex items-center justify-between">
+                    <p className="text-3xl font-bold text-[#1E1E1E]">{user?.credits}</p>
+                    <button onClick={() => navigateTo('home', undefined, 'pricing')} className="bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 px-4 rounded-lg">
+                        Get More
+                    </button>
+                </div>
+            </div>
+            
+            <button onClick={openEditProfileModal} className="w-full flex items-center justify-between text-left p-4 bg-white rounded-xl border border-gray-200/80">
+                <span className="font-semibold">Edit Profile</span>
+                <PencilIcon className="w-5 h-5 text-gray-400"/>
+            </button>
+
+            <button onClick={auth.handleLogout} className="w-full flex items-center justify-between text-left p-4 bg-white rounded-xl border border-gray-200/80">
+                <span className="font-semibold text-red-600">Logout</span>
+                <LogoutIcon className="w-5 h-5 text-red-600"/>
+            </button>
+        </div>
+    </div>
+);
+
+const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => void; onGenerateClick: () => void; }> = ({ activeView, setActiveView, onGenerateClick }) => {
+    // FIX: Explicitly type navItems to ensure item.view is of type View, not string.
+    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
+        { view: 'dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'billing', label: 'Credits', icon: CreditCardIcon },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+    ];
+    
+    // Split items for layout
+    const navItemsLeft = navItems.slice(0, 2);
+    const navItemsRight = navItems.slice(2);
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItemsLeft.map(item => (
+                    <button key={item.view} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+                
+                <div className="w-16 h-16"> {/* Spacer for the floating button */} </div>
+
+                {navItemsRight.map(item => (
+                    <button key={item.view} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+             <button onClick={onGenerateClick} className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#0079F2] text-white rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center transform transition-transform active:scale-90">
+                <PlusIcon className="w-8 h-8" />
+            </button>
+        </div>
+    );
+};
+
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  
+  const renderView = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+      case 'studio':
+        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
+      case 'interior':
+        return <MagicInterior auth={auth} navigateTo={navigateTo} />;
+      case 'colour':
+        return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
+      case 'eraser':
+        return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
+      case 'caption':
+        return <CaptionAI auth={auth} navigateTo={navigateTo} />;
+      case 'apparel':
+        return <MagicApparel auth={auth} navigateTo={navigateTo} />;
+      case 'mockup':
+        return <MagicMockup auth={auth} navigateTo={navigateTo} />;
+      case 'billing':
+        return <Billing user={auth.user!} setUser={auth.setUser} />;
+      case 'profile':
+        return <ProfileScreen user={auth.user} auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo}/>
+      default:
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+    }
+  };
+  
+  const GenerateModal = () => (
+    <div className="fixed inset-0 z-[110] bg-black/30 backdrop-blur-sm flex items-end" onClick={() => setIsGenerateModalOpen(false)}>
+        <div className="w-full bg-white rounded-t-2xl p-4" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold text-center mb-4">Create New</h2>
+            <div className="grid grid-cols-3 gap-4">
+                {dashboardFeatures.filter(f => !f.disabled).map(feature => (
+                    <button 
+                        key={feature.view}
+                        onClick={() => { setActiveView(feature.view); setIsGenerateModalOpen(false); }}
+                        className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100 text-center"
+                    >
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${feature.gradient}`}>
+                           <feature.icon className="w-7 h-7" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700">{feature.title}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+        <Header 
+            navigateTo={navigateTo} 
+            auth={{...auth, isDashboard: true, isSidebarOpen, setIsSidebarOpen, setActiveView }} 
+        />
+        <div className="lg:flex">
+            <div className="hidden lg:block">
+                 <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+            </div>
+            <main className="flex-1 lg:h-[calc(100vh-68px)] lg:overflow-y-auto pb-20 lg:pb-0">
+                {renderView()}
+            </main>
+        </div>
+        
+        {/* Mobile specific UI */}
+        <div className="lg:hidden">
+            <BottomNavBar activeView={activeView} setActiveView={setActiveView} onGenerateClick={() => setIsGenerateModalOpen(true)} />
+        </div>
+        {isGenerateModalOpen && <GenerateModal />}
+    </div>
+  );
+};
+
+export default DashboardPage;
