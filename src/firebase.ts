@@ -1,3 +1,4 @@
+
 // FIX: Refactored to use Firebase v12 (modular) syntax to match the installed package version.
 // This resolves the build error caused by incorrect v8 compat imports.
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -23,24 +24,25 @@ import {
 } from 'firebase/firestore';
 
 
-// Use process.env for environment variables in this environment.
+// Use import.meta.env for Vite environment variables
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// Check the correct variables and use keys that will clearly guide the user.
-// Use process.env for environment variables in this environment.
+// Check the correct Vite variables and use keys that will clearly guide the user.
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
 const allConfigKeys = {
-    "VITE_API_KEY (for Gemini)": process.env.VITE_API_KEY,
+    "VITE_API_KEY (for Gemini)": (import.meta as any).env.VITE_API_KEY,
     "VITE_FIREBASE_API_KEY": firebaseConfig.apiKey,
     "VITE_FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
     "VITE_FIREBASE_PROJECT_ID": firebaseConfig.projectId,

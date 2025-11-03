@@ -5,8 +5,9 @@ import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
-// Use process.env for environment variables in this environment.
-const apiKey = process.env.VITE_API_KEY;
+// Use import.meta.env for client-side variables in Vite
+// FIX: Cast `import.meta` to `any` to access `env` without TypeScript errors. This is a workaround for the missing Vite client types.
+const apiKey = (import.meta as any).env.VITE_API_KEY;
 
 // Initialize the AI client only if the API key is available.
 if (apiKey && apiKey !== 'undefined') {
