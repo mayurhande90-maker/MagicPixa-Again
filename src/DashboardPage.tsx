@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1309,7 +1310,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     type ImageState = { file: File; url: string; base64: Base64File } | null;
     const [personImage, setPersonImage] = useState<ImageState>(null);
     const [topImage, setTopImage] = useState<ImageState>(null);
-    const [bottomImage, setBottomImage] = useState<ImageState>(null);
+    const [pantsImage, setPantsImage] = useState<ImageState>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -1323,7 +1324,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const currentCredits = auth.user?.credits ?? 0;
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
-    const canGenerate = personImage && (topImage || bottomImage);
+    const canGenerate = personImage && (topImage || pantsImage);
 
     useEffect(() => {
         if (isLoading) {
@@ -1375,8 +1376,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             if (topImage) {
                 apparelItems.push({ type: 'top', base64: topImage.base64.base64, mimeType: topImage.base64.mimeType });
             }
-            if (bottomImage) {
-                apparelItems.push({ type: 'bottom', base64: bottomImage.base64.base64, mimeType: bottomImage.base64.mimeType });
+            if (pantsImage) {
+                apparelItems.push({ type: 'pants', base64: pantsImage.base64.base64, mimeType: pantsImage.base64.mimeType });
             }
 
             if(personImage){
@@ -1393,12 +1394,12 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         } finally {
             setIsLoading(false);
         }
-    }, [personImage, topImage, bottomImage, hasInsufficientCredits, auth, navigateTo]);
+    }, [personImage, topImage, pantsImage, hasInsufficientCredits, auth, navigateTo]);
     
     const handleStartOver = useCallback(() => {
         setPersonImage(null);
         setTopImage(null);
-        setBottomImage(null);
+        setPantsImage(null);
         setGeneratedImage(null);
         setError(null);
     }, []);
@@ -1453,7 +1454,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     {/* Output Column */}
                     <div className="lg:col-span-1">
-                        <div className="w-full aspect-[3/4] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
                                 {generatedImage ? (
                                     <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1483,7 +1484,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                 <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} aspectRatio="aspect-[4/3]" />
                                 <div className="flex gap-4">
                                     <ImageUploader image={topImage} onFileChange={(f) => handleFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
-                                    <ImageUploader image={bottomImage} onFileChange={(f) => handleFileChange(f, setBottomImage)} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
+                                    <ImageUploader image={pantsImage} onFileChange={(f) => handleFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
                                 </div>
                             </div>
                         </div>

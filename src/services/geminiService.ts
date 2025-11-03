@@ -129,7 +129,7 @@ export const generateApparelTryOn = async (
     let apparelPromptInstructions = '';
     for (const item of apparelItems) {
         parts.push({ text: `{${item.type}_image}:` });
-        parts.push({ inlineData: { data: item.base64, mimeType: item.base64 } });
+        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } }); // BUG FIX: Was passing item.base64 as mimeType
         const location = item.type === 'top' ? 'torso' : 'legs';
         apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${location}.`;
     }
