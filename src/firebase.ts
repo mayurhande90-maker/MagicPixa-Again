@@ -23,29 +23,29 @@ import {
 } from 'firebase/firestore';
 
 
-// FIX: Use process.env and add the VITE_ prefix to match the platform's environment variable injection for Firebase.
+// FIX: Removed the incorrect 'VITE_' prefix. The execution environment provides these variables directly.
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// FIX: Update the config key names to reflect the required VITE_ prefix for Firebase variables.
+// FIX: Update the config key names to match the actual environment variables (without 'VITE_').
 const allConfigKeys = {
     "API_KEY (for Gemini)": process.env.API_KEY,
-    "VITE_FIREBASE_API_KEY": process.env.VITE_FIREBASE_API_KEY,
-    "VITE_FIREBASE_AUTH_DOMAIN": process.env.VITE_FIREBASE_AUTH_DOMAIN,
-    "VITE_FIREBASE_PROJECT_ID": process.env.VITE_FIREBASE_PROJECT_ID,
-    "VITE_FIREBASE_STORAGE_BUCKET": process.env.VITE_FIREBASE_STORAGE_BUCKET,
-    "VITE_FIREBASE_MESSAGING_SENDER_ID": process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    "VITE_FIREBASE_APP_ID": process.env.VITE_FIREBASE_APP_ID
+    "FIREBASE_API_KEY": process.env.FIREBASE_API_KEY,
+    "FIREBASE_AUTH_DOMAIN": process.env.FIREBASE_AUTH_DOMAIN,
+    "FIREBASE_PROJECT_ID": process.env.FIREBASE_PROJECT_ID,
+    "FIREBASE_STORAGE_BUCKET": process.env.FIREBASE_STORAGE_BUCKET,
+    "FIREBASE_MESSAGING_SENDER_ID": process.env.FIREBASE_MESSAGING_SENDER_ID,
+    "FIREBASE_APP_ID": process.env.FIREBASE_APP_ID
 };
 
 const missingKeys = Object.entries(allConfigKeys)
