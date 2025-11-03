@@ -1,4 +1,3 @@
-
 // FIX: Refactored to use Firebase v12 (modular) syntax to match the installed package version.
 // This resolves the build error caused by incorrect v8 compat imports.
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -24,29 +23,29 @@ import {
 } from 'firebase/firestore';
 
 
-// FIX: Use process.env and remove VITE_ prefix to match the platform's environment variable injection.
+// FIX: Use process.env and add the VITE_ prefix to match the platform's environment variable injection for Firebase.
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// FIX: Update the config key names to reflect the change from VITE_ prefix to standard names.
+// FIX: Update the config key names to reflect the required VITE_ prefix for Firebase variables.
 const allConfigKeys = {
     "API_KEY (for Gemini)": process.env.API_KEY,
-    "FIREBASE_API_KEY": firebaseConfig.apiKey,
-    "FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
-    "FIREBASE_PROJECT_ID": firebaseConfig.projectId,
-    "FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
-    "FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
-    "FIREBASE_APP_ID": firebaseConfig.appId
+    "VITE_FIREBASE_API_KEY": process.env.VITE_FIREBASE_API_KEY,
+    "VITE_FIREBASE_AUTH_DOMAIN": process.env.VITE_FIREBASE_AUTH_DOMAIN,
+    "VITE_FIREBASE_PROJECT_ID": process.env.VITE_FIREBASE_PROJECT_ID,
+    "VITE_FIREBASE_STORAGE_BUCKET": process.env.VITE_FIREBASE_STORAGE_BUCKET,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    "VITE_FIREBASE_APP_ID": process.env.VITE_FIREBASE_APP_ID
 };
 
 const missingKeys = Object.entries(allConfigKeys)
