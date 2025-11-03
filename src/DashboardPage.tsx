@@ -12,7 +12,7 @@ import {
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, LogoutIcon, PlusIcon,
-    DashboardIcon
+    DashboardIcon, CopyIcon, InformationCircleIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -412,7 +412,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
@@ -466,7 +466,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                         </div>
                     </div>
                     
-                    <DesktopControlPanel />
+                    <div className="lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto lg:pr-2">
+                        <DesktopControlPanel />
+                    </div>
                     
                     <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
                         <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
@@ -492,7 +494,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     </div>
 
                 </div>
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
                     {generatedImage ? (
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
@@ -747,7 +749,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
@@ -771,7 +773,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         </div>
                     </div>
                     
-                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto lg:pr-2">
                         <div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Design Controls</h3><p className='text-sm text-[#5F6368]'>Select your desired style</p></div>
                         <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left"><LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" /><div><p className="font-bold text-sm text-yellow-800">Pro Tip</p><p className="text-xs text-yellow-700">For best results, use a wide-angle shot of your room in good lighting. Empty rooms work great!</p></div></div>
                         <div className="space-y-4 pt-4 border-t border-gray-200/80"><Controls isMobile={false} />{!hasImage && !isLoading && <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload a photo to get started and select a style.</p>}{hasImage && <div className="pt-4 border-t border-gray-200/80"><ActionButtons/></div>}</div>
@@ -794,7 +796,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 
                 </div>
 
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
                     {generatedImage ? (
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
@@ -1027,7 +1029,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
     
     const MobileFooter = () => (
-         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+         <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
              {generatedImage ? (
                 <div className="grid grid-cols-2 gap-4">
                     <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
@@ -1046,12 +1048,12 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'><h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2><p className="text-[#5F6368] mt-2">Breathe new life into your vintage black & white photos.</p></div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3"><div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5"><div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />{generatedImage ? <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : originalImage ? <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload your vintage photo</span><span className="text-sm">Minimum 512x512 pixels</span></div></div>}{hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}{isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}</div></div></div>
-                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto lg:pr-2">
                         <div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Colourization Options</h3><p className='text-sm text-[#5F6368]'>Choose your enhancement level</p></div>
                         <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
                             <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
@@ -1203,7 +1205,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     const hasInsufficientCredits = currentCredits < currentCost;
     
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
              <div className='w-full max-w-4xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
@@ -1244,7 +1246,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                     </div>
                 </div>
 
-                <div className='mt-8 max-w-sm mx-auto space-y-2'>
+                <div className='hidden lg:block mt-8 max-w-sm mx-auto space-y-2'>
                     {generatedImage ? (
                         <>
                             <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
@@ -1262,15 +1264,317 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                     <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get credits!' : 'Insufficient credits.') : `This costs ${currentCost} credit.`}</p>
                     {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
                 </div>
+                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                    {generatedImage ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                <DownloadIcon className="w-5 h-5" /> Download
+                            </button>
+                            <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                <UploadIcon className="w-5 h-5" /> New
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Remove Background
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
 const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    // This component will be added in a future update
-    return <div className="p-8 text-center"><h2 className="text-2xl font-bold">CaptionAI is Coming Soon!</h2><p>This feature is under construction.</p></div>;
+    type ParsedCaptions = { [key: string]: string };
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [generatedCaptions, setGeneratedCaptions] = useState<ParsedCaptions | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-caption');
+        return saved ? parseInt(saved, 10) : 1;
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 1;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasImage = originalImage !== null;
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    const parseCaptions = (text: string): ParsedCaptions => {
+        const sections: ParsedCaptions = {};
+        const lines = text.split('\n');
+        let currentKey: string | null = null;
+        let content: string[] = [];
+    
+        const keyMap: { [key: string]: string } = {
+            '⚙️ **Auto Notes:**': 'autoNotes',
+            '🌟 **Recommended Caption:**': 'recommended',
+            '🪶 **Caption (Short):**': 'short',
+            '💬 **Caption (Medium):**': 'medium',
+            '📝 **Caption (Long):**': 'long',
+            '🏷️ **Hashtags (Recommended):**': 'hashtags'
+        };
+    
+        for (const line of lines) {
+            if (line.trim().startsWith('---')) continue;
+    
+            const foundKey = Object.keys(keyMap).find(k => line.trim().startsWith(k));
+            if (foundKey) {
+                if (currentKey) {
+                    sections[currentKey] = content.join('\n').trim();
+                }
+                currentKey = keyMap[foundKey];
+                content = [line.replace(foundKey, '').trim()];
+            } else if (currentKey) {
+                content.push(line);
+            }
+        }
+        if (currentKey) {
+            sections[currentKey] = content.join('\n').trim();
+        }
+        return sections;
+    };
+
+    const handleCopyToClipboard = (text: string, key: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedKey(key);
+        setTimeout(() => setCopiedKey(null), 2000);
+    };
+
+    useEffect(() => {
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
+        }
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            setGeneratedCaptions(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+    
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+        }
+    };
+    
+    const handleStartOver = useCallback(() => {
+        setGeneratedCaptions(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        if (fileInputRef.current) fileInputRef.current.value = ""; 
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedCaptions(null);
+        
+        try {
+            const rawCaptions = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setGeneratedCaptions(parseCaptions(rawCaptions));
+            
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, hasInsufficientCredits, auth, isGuest, navigateTo]);
+    
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+
+    const captionSections = [
+        { key: 'recommended', title: '🌟 Recommended Caption' },
+        { key: 'short', title: '🪶 Caption (Short)' },
+        { key: 'medium', title: '💬 Caption (Medium)' },
+        { key: 'long', title: '📝 Caption (Long)' },
+        { key: 'hashtags', title: '🏷️ Hashtags (Recommended)' },
+    ];
+    
+    const OutputDisplay = () => (
+        <div className="space-y-4">
+            {generatedCaptions?.autoNotes && (
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200/80 text-left">
+                    <InformationCircleIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-bold text-sm text-blue-800">⚙️ Auto Notes</p>
+                        <p className="text-sm text-blue-700">{generatedCaptions.autoNotes}</p>
+                    </div>
+                </div>
+            )}
+            {captionSections.map(section => generatedCaptions?.[section.key] && (
+                <div key={section.key} className="bg-white p-4 rounded-lg border border-gray-200/80">
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold text-[#1E1E1E]">{section.title}</h4>
+                        <button onClick={() => handleCopyToClipboard(generatedCaptions[section.key], section.key)} className="flex items-center gap-1.5 text-xs text-[#0079F2] font-semibold hover:underline">
+                           <CopyIcon className="w-4 h-4" />
+                           {copiedKey === section.key ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+                    <p className="text-[#5F6368] text-sm whitespace-pre-wrap">{generatedCaptions[section.key]}</p>
+                </div>
+            ))}
+        </div>
+    );
+    
+    const DesktopControlPanel = () => (
+        <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+             <div className='text-center'>
+                <h3 className="text-xl font-bold text-[#1E1E1E]">Captions for your Photo</h3>
+                <p className='text-sm text-[#5F6368]'>Generate social media content</p>
+            </div>
+             <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                {!hasImage ? (
+                    <p className="text-xs text-center text-[#5F6368]">Upload a photo to start generating captions.</p>
+                ) : !generatedCaptions ? (
+                    <div className="w-full space-y-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                            <SparklesIcon className="w-6 h-6" /> Generate Captions
+                        </button>
+                        <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+                    </div>
+                ) : (
+                    <div className="w-full space-y-2">
+                         <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{`Regeneration costs ${EDIT_COST} credit.`}</p>
+                    </div>
+                )}
+             </div>
+             {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
+
+             {generatedCaptions && !isLoading && (
+                <div className="pt-4 border-t border-gray-200/80">
+                    <OutputDisplay />
+                </div>
+             )}
+        </div>
+    );
+    
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
+             <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Instantly generate engaging captions & hashtags for your photos.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                     <div className="lg:col-span-3">
+                         <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!hasImage ? triggerFileInput : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {originalImage ? (
+                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <UploadIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                            <span className="text-sm">or click to upload</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                         </div>
+                     </div>
+                     <div className="lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto lg:pr-2">
+                        <DesktopControlPanel />
+                     </div>
+                     <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
+                        <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Generated Captions</h3>
+                        {error && <div className='w-full text-red-600 bg-red-100 p-3 rounded-lg text-center text-sm'>{error}</div>}
+                        {generatedCaptions ? <OutputDisplay /> : <p className="text-sm text-center text-gray-500 py-4">Your captions will appear here after you generate them.</p>}
+                     </div>
+                </div>
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                     {!generatedCaptions ? (
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Generate Captions
+                        </button>
+                     ) : (
+                         <div className="grid grid-cols-2 gap-4">
+                             <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                <RetryIcon className="w-5 h-5" /> Regenerate
+                            </button>
+                             <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg">
+                                <UploadIcon className="w-5 h-5" /> New Photo
+                            </button>
+                         </div>
+                     )}
+                </div>
+             </div>
+        </div>
+    );
 };
+
 
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     type ImageState = { file: File; url: string; base64: Base64File } | null;
@@ -1410,7 +1714,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-40 lg:pb-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
@@ -1443,7 +1747,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     </div>
 
                     {/* Input/Controls Column */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-6 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto lg:pr-2">
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                             <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Images</h3>
                             <div className="space-y-4">
@@ -1477,9 +1781,9 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                 </div>
 
                  {/* Mobile Sticky Footer */}
-                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 p-4">
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
                      {generatedImage ? (
-                        <div className="grid grid-cols-2 gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
+                        <div className="grid grid-cols-2 gap-4">
                             <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
                                 <DownloadIcon className="w-5 h-5" /> Download
                             </button>
@@ -1488,7 +1792,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-lg border">
+                        <div>
                             <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
                                 <SparklesIcon className="w-5 h-5" /> Generate
                             </button>
