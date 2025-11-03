@@ -1346,12 +1346,14 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                 apparelItems.push({ type: 'bottom', base64: bottomImage.base64.base64, mimeType: bottomImage.base64.mimeType });
             }
 
-            const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            if(personImage){
+                const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
+                setGeneratedImage(`data:image/png;base64,${newBase64}`);
 
-            if (auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
-                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+                if (auth.user) {
+                    const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                    auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+                }
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -1415,14 +1417,38 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes in seconds.</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Output Column */}
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[3/4] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
+                                {generatedImage ? (
+                                    <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                     <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-gray-400">
+                                            <UsersIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg'>Your generated image will appear here</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Input/Controls Column */}
-                    <div className="space-y-6">
+                    <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                             <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Images</h3>
-                            <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="space-y-4">
                                 <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
-                                <div className="flex flex-col gap-4">
+                                <div className="flex gap-4">
                                     <ImageUploader image={topImage} onFileChange={(f) => handleFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
                                     <ImageUploader image={bottomImage} onFileChange={(f) => handleFileChange(f, setBottomImage)} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
                                 </div>
@@ -1447,28 +1473,6 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                              <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
-
-                    {/* Output Column */}
-                    <div className="w-full aspect-[3/4] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
-                            {generatedImage ? (
-                                <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                            ) : (
-                                 <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                    <div className="flex flex-col items-center gap-2 text-gray-400">
-                                        <UsersIcon className="w-12 h-12" />
-                                        <span className='font-semibold text-lg'>Your generated image will appear here</span>
-                                    </div>
-                                </div>
-                            )}
-                            {isLoading && (
-                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                                    <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium">{loadingMessage}</p>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
 
