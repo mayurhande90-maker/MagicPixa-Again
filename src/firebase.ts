@@ -23,29 +23,33 @@ import {
 } from 'firebase/firestore';
 
 
-// FIX: Removed the incorrect 'VITE_' prefix. The execution environment provides these variables directly.
+// DEFINITIVE FIX: Use `import.meta.env` for Vite-exposed variables (prefixed with VITE_)
+// and `process.env` for the specially-injected Gemini API_KEY.
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
+// FIX: Cast `import.meta` to `any` to bypass TypeScript error when `vite/client` types are not available.
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// FIX: Update the config key names to match the actual environment variables (without 'VITE_').
+// DEFINITIVE FIX: Check the correct environment variables. Update the keys to guide the user
+// on what to set in their hosting dashboard.
 const allConfigKeys = {
-    "API_KEY (for Gemini)": process.env.API_KEY,
-    "FIREBASE_API_KEY": process.env.FIREBASE_API_KEY,
-    "FIREBASE_AUTH_DOMAIN": process.env.FIREBASE_AUTH_DOMAIN,
-    "FIREBASE_PROJECT_ID": process.env.FIREBASE_PROJECT_ID,
-    "FIREBASE_STORAGE_BUCKET": process.env.FIREBASE_STORAGE_BUCKET,
-    "FIREBASE_MESSAGING_SENDER_ID": process.env.FIREBASE_MESSAGING_SENDER_ID,
-    "FIREBASE_APP_ID": process.env.FIREBASE_APP_ID
+    "API_KEY": process.env.API_KEY,
+// FIX: Cast `import.meta` to `any` to bypass TypeScript error when `vite/client` types are not available.
+    "VITE_FIREBASE_API_KEY": (import.meta as any).env.VITE_FIREBASE_API_KEY,
+    "VITE_FIREBASE_AUTH_DOMAIN": (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
+    "VITE_FIREBASE_PROJECT_ID": (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+    "VITE_FIREBASE_STORAGE_BUCKET": (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    "VITE_FIREBASE_APP_ID": (import.meta as any).env.VITE_FIREBASE_APP_ID
 };
 
 const missingKeys = Object.entries(allConfigKeys)
