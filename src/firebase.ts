@@ -1,7 +1,7 @@
-// FIX: Refactored to use Firebase v8 compat syntax to resolve module import errors.
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
+
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -46,16 +46,15 @@ export const isConfigValid = missingKeys.length === 0;
 
 export const getMissingConfigKeys = (): string[] => missingKeys;
 
-let app: firebase.app.App | null = null;
-let auth: firebase.auth.Auth | null = null;
-let db: firebase.firestore.Firestore | null = null;
+let app;
+let auth: import('@firebase/auth').Auth | null = null;
+let db: import('@firebase/firestore').Firestore | null = null;
 
 if (isConfigValid) {
   try {
-    // FIX: Updated to Firebase v8 compat initialization syntax.
-    app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
-    auth = firebase.auth();
-    db = firebase.firestore();
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
@@ -69,11 +68,10 @@ if (isConfigValid) {
  */
 export const signInWithGoogle = async (): Promise<void> => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    // FIX: Updated to Firebase v8 compat syntax.
-    const provider = new firebase.auth.GoogleAuthProvider();
+    const provider = new GoogleAuthProvider();
     try {
-        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        await auth.signInWithRedirect(provider);
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithRedirect(auth, provider);
     } catch (error) {
         console.error("Error during Google Sign-In redirect initiation:", error);
         throw error;
@@ -89,25 +87,23 @@ export const signInWithGoogle = async (): Promise<void> => {
  * @param email The user's email (optional, used for creation).
  * @returns The user's profile data.
  */
-export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null): Promise<firebase.firestore.DocumentData> => {
+export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null) => {
   if (!db) throw new Error("Firestore is not initialized.");
-  // FIX: Updated to Firebase v8 compat syntax.
-  const userRef = db.collection("users").doc(uid);
-  const docSnap = await userRef.get();
+  const userRef = doc(db, "users", uid);
+  const docSnap = await getDoc(userRef);
 
-  if (docSnap.exists) {
+  if (docSnap.exists()) {
     // Profile exists, check for credit renewal
-    const userData = docSnap.data()!;
-    const lastRenewal = userData.lastCreditRenewal as firebase.firestore.Timestamp;
+    const userData = docSnap.data();
+    const lastRenewal = userData.lastCreditRenewal as Timestamp;
     if (lastRenewal) {
         const lastRenewalDate = lastRenewal.toDate();
         const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
 
         if (new Date() >= oneMonthLater) {
-          // FIX: Updated to Firebase v8 compat syntax.
-          await userRef.update({
+          await updateDoc(userRef, {
             credits: 10,
-            lastCreditRenewal: firebase.firestore.FieldValue.serverTimestamp(),
+            lastCreditRenewal: serverTimestamp(),
           });
           console.log(`Credits renewed for user ${uid}`);
           return { ...userData, credits: 10 };
@@ -122,12 +118,10 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       name: name || 'New User',
       email: email || 'No Email',
       credits: 10,
-      // FIX: Updated to Firebase v8 compat syntax.
-      signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
-      lastCreditRenewal: firebase.firestore.FieldValue.serverTimestamp(),
+      signUpDate: serverTimestamp(),
+      lastCreditRenewal: serverTimestamp(),
     };
-    // FIX: Updated to Firebase v8 compat syntax.
-    await userRef.set(newUserProfile);
+    await setDoc(userRef, newUserProfile);
     // Return the profile data (timestamps will be null until server processes them, which is fine)
     return { ...newUserProfile, credits: 10 };
   }
@@ -140,9 +134,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
  */
 export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
-    // FIX: Updated to Firebase v8 compat syntax.
-    const userRef = db.collection("users").doc(uid);
-    await userRef.update(data);
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, data);
 };
 
 /**
@@ -152,7 +145,7 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
  * @param amount The number of credits to deduct.
  * @returns The updated user profile data after deduction.
  */
-export const deductCredits = async (uid: string, amount: number): Promise<firebase.firestore.DocumentData> => {
+export const deductCredits = async (uid: string, amount: number) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
   // First, ensure the profile exists and is up-to-date
@@ -162,10 +155,9 @@ export const deductCredits = async (uid: string, amount: number): Promise<fireba
     throw new Error("Insufficient credits.");
   }
 
-  // FIX: Updated to Firebase v8 compat syntax.
-  const userRef = db.collection("users").doc(uid);
-  await userRef.update({
-    credits: firebase.firestore.FieldValue.increment(-amount),
+  const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    credits: increment(-amount),
   });
 
   return { ...userProfile, credits: userProfile.credits - amount };
@@ -177,16 +169,15 @@ export const deductCredits = async (uid: string, amount: number): Promise<fireba
  * @param amount The number of credits to add.
  * @returns The updated user profile data after addition.
  */
-export const addCredits = async (uid: string, amount: number): Promise<firebase.firestore.DocumentData> => {
+export const addCredits = async (uid: string, amount: number) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
   // Ensure the user profile exists.
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
 
-  // FIX: Updated to Firebase v8 compat syntax.
-  const userRef = db.collection("users").doc(uid);
-  await userRef.update({
-    credits: firebase.firestore.FieldValue.increment(amount),
+  const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    credits: increment(amount),
   });
 
   // Return the new profile state
@@ -194,4 +185,3 @@ export const addCredits = async (uid: string, amount: number): Promise<firebase.
 };
 
 export { app, auth };
-// Minor change to allow commit.

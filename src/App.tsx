@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
 import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
-// FIX: Removed modular imports for Firebase auth functions to align with the v8 compatibility API, resolving module export errors.
+import { getRedirectResult, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig } from './firebase'; 
 
 
@@ -63,8 +64,7 @@ const App: React.FC = () => {
       return;
     }
   
-    // FIX: Switched to Firebase v8 compat syntax.
-    auth.getRedirectResult().catch((error) => {
+    getRedirectResult(auth).catch((error) => {
         console.error("Error processing Google Sign-In redirect:", error);
         let message = "An error occurred during sign-in. Please try again.";
         if (error.code === 'auth/account-exists-with-different-credential') {
@@ -75,8 +75,7 @@ const App: React.FC = () => {
         sessionStorage.removeItem('pendingGoogleSignIn');
     });
   
-    // FIX: Switched to Firebase v8 compat syntax.
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       const pendingSignIn = sessionStorage.getItem('pendingGoogleSignIn') === 'true';
       sessionStorage.removeItem('pendingGoogleSignIn');
 
@@ -130,8 +129,7 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
-            // FIX: Switched to Firebase v8 compat syntax.
-            auth.signOut(); // Sign out to prevent a broken state.
+            signOut(auth); // Sign out to prevent a broken state.
         }
       } finally {
         setIsLoadingAuth(false);
@@ -209,8 +207,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // FIX: Switched to Firebase v8 compat syntax.
-      if (auth) await auth.signOut();
+      if (auth) await signOut(auth);
       setCurrentPage('home');
       window.scrollTo(0, 0);
     } catch (error) {
@@ -286,4 +283,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-// Minor change to allow commit.
