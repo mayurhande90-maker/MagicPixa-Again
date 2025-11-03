@@ -23,10 +23,8 @@ import {
 } from 'firebase/firestore';
 
 
-// DEFINITIVE FIX: Use `import.meta.env` for Vite-exposed variables (prefixed with VITE_)
-// and `process.env` for the specially-injected Gemini API_KEY.
+// DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const firebaseConfig = {
-// FIX: Cast `import.meta` to `any` to bypass TypeScript error when `vite/client` types are not available.
   apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
   authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
@@ -39,11 +37,10 @@ const checkConfigValue = (value: string | undefined): boolean => {
     return !!value && value !== 'undefined';
 };
 
-// DEFINITIVE FIX: Check the correct environment variables. Update the keys to guide the user
-// on what to set in their hosting dashboard.
+// DEFINITIVE FIX: Unify all configuration checks to use Vite's `import.meta.env` standard.
+// This ensures consistent behavior and provides the correct variable names in the error message.
 const allConfigKeys = {
-    "API_KEY": process.env.API_KEY,
-// FIX: Cast `import.meta` to `any` to bypass TypeScript error when `vite/client` types are not available.
+    "VITE_API_KEY": (import.meta as any).env.VITE_API_KEY,
     "VITE_FIREBASE_API_KEY": (import.meta as any).env.VITE_FIREBASE_API_KEY,
     "VITE_FIREBASE_AUTH_DOMAIN": (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
     "VITE_FIREBASE_PROJECT_ID": (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,

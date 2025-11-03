@@ -1,4 +1,3 @@
-
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
@@ -6,8 +5,8 @@ import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
-// FIX: Use process.env to correctly access the API key in this environment.
-const apiKey = process.env.API_KEY;
+// DEFINITIVE FIX: Use Vite's standard `import.meta.env` for all environment variables, including the API key.
+const apiKey = (import.meta as any).env.VITE_API_KEY;
 
 // Initialize the AI client only if the API key is available.
 if (apiKey) {
@@ -23,7 +22,7 @@ export const startLiveSession = (callbacks: {
 }) => {
     if (!ai) {
         // FIX: Updated error message to reflect correct environment variable.
-        throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
     }
 
     return ai.live.connect({
@@ -47,7 +46,7 @@ export const generateCaptions = async (
 ): Promise<{ caption: string; hashtags: string }[]> => {
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -120,7 +119,7 @@ export const generateApparelTryOn = async (
 ): Promise<string> => {
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -211,7 +210,7 @@ export const editImageWithPrompt = async (
   // Now, check for the AI client at the time of the function call.
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
   
   try {
@@ -281,7 +280,7 @@ export const colourizeImage = async (
 ): Promise<string> => {
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -342,7 +341,7 @@ export const removeImageBackground = async (
 ): Promise<string> => {
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -400,7 +399,7 @@ export const generateMockup = async (
 ): Promise<string> => {
   if (!ai) {
     // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
@@ -508,7 +507,7 @@ export const generateInteriorDesign = async (
 ): Promise<string> => {
     if (!ai) {
         // FIX: Updated error message to reflect correct environment variable.
-        throw new Error("API key is not configured. Please set the API_KEY environment variable in your project settings.");
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
     }
 
     try {
