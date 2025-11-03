@@ -5,7 +5,7 @@ import HomePage from './HomePage';
 import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
-import { getRedirectResult, onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig } from './firebase'; 
 
 
@@ -64,21 +64,7 @@ const App: React.FC = () => {
       return;
     }
   
-    getRedirectResult(auth).catch((error) => {
-        console.error("Error processing Google Sign-In redirect:", error);
-        let message = "An error occurred during sign-in. Please try again.";
-        if (error.code === 'auth/account-exists-with-different-credential') {
-            message = 'An account already exists with this email. Please sign in using the original method.';
-        }
-        setAuthError(message);
-        setIsLoadingAuth(false);
-        sessionStorage.removeItem('pendingGoogleSignIn');
-    });
-  
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      const pendingSignIn = sessionStorage.getItem('pendingGoogleSignIn') === 'true';
-      sessionStorage.removeItem('pendingGoogleSignIn');
-
       try {
         if (firebaseUser) {
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
@@ -95,33 +81,6 @@ const App: React.FC = () => {
         } else {
           setUser(null);
           setIsAuthenticated(false);
-          if (pendingSignIn) {
-            // DEFINITIVE FIX: Provide a comprehensive, multi-step troubleshooting guide for auth failures that actively checks the current config.
-            const currentDomain = window.location.hostname;
-            const projectId = auth?.app?.options?.['projectId'];
-            const expectedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : `[your-project-id].firebaseapp.com`;
-            const actualAuthDomain = firebaseConfig.authDomain;
-    
-            const ErrorMessage = () => (
-              <div className="text-left text-sm space-y-2">
-                <p><strong>Sign-in failed. Please check your configuration:</strong></p>
-                <ol className="list-decimal list-inside space-y-3">
-                  <li>Ensure <strong>`{currentDomain}`</strong> is in your Firebase project's <strong>Authentication → Settings → Authorized domains</strong>.</li>
-                  <li>
-                    Your app's environment variable for `authDomain` must be <strong>`{expectedAuthDomain}`</strong>.
-                    {actualAuthDomain !== expectedAuthDomain && (
-                      <div className="mt-1 p-2 bg-red-100 text-red-800 rounded-md text-xs">
-                        <span className="font-bold">Mismatch detected!</span> Your config is currently set to:<br/>
-                        <code className="font-mono bg-red-200 px-1 rounded">{actualAuthDomain || "not set"}</code>
-                      </div>
-                    )}
-                  </li>
-                  <li>In Google Cloud Console, under APIs &amp; Services → Credentials, your OAuth Client ID must have <strong>`https://{currentDomain}`</strong> in its "Authorized JavaScript origins".</li>
-                </ol>
-              </div>
-            );
-            setAuthError(<ErrorMessage />);
-          }
         }
       } catch (error) {
         console.error("Error in onAuthStateChanged handler:", error);
@@ -191,17 +150,45 @@ const App: React.FC = () => {
 
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
-      sessionStorage.setItem('pendingGoogleSignIn', 'true');
       await signInWithGoogle();
-      // Note: Code after signInWithGoogle() will not execute due to the page redirect.
-      // The redirect result is handled by the useEffect hook when the user returns.
+      // Successful sign-in is handled by the onAuthStateChanged listener.
     } catch (error: any) {
-       sessionStorage.removeItem('pendingGoogleSignIn');
        console.error("Google Sign-In Error:", error);
-       let message = "Failed to sign in with Google. Please try again.";
-       if (error.code !== 'auth/popup-closed-by-user') {
-         throw new Error(message);
+
+       // If the error is an auth/unauthorized-domain error, show the detailed message.
+       if (error.code === 'auth/unauthorized-domain') {
+          const currentDomain = window.location.hostname;
+          const projectId = auth?.app?.options?.['projectId'];
+          const expectedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : `[your-project-id].firebaseapp.com`;
+          const actualAuthDomain = firebaseConfig.authDomain;
+  
+          const ErrorMessage = () => (
+            <div className="text-left text-sm space-y-2">
+              <p><strong>Sign-in failed. Please check your configuration:</strong></p>
+              <ol className="list-decimal list-inside space-y-3">
+                <li>Ensure <strong>`{currentDomain}`</strong> is in your Firebase project's <strong>Authentication → Settings → Authorized domains</strong>.</li>
+                <li>
+                  Your app's environment variable for `authDomain` must be <strong>`{expectedAuthDomain}`</strong>.
+                  {actualAuthDomain !== expectedAuthDomain && (
+                    <div className="mt-1 p-2 bg-red-100 text-red-800 rounded-md text-xs">
+                      <span className="font-bold">Mismatch detected!</span> Your config is currently set to:<br/>
+                      <code className="font-mono bg-red-200 px-1 rounded">{actualAuthDomain || "not set"}</code>
+                    </div>
+                  )}
+                </li>
+                <li>In Google Cloud Console, under APIs &amp; Services → Credentials, your OAuth Client ID must have <strong>`https://{currentDomain}`</strong> in its "Authorized JavaScript origins".</li>
+              </ol>
+            </div>
+          );
+          setAuthError(<ErrorMessage />);
+       } else if (error.code === 'auth/account-exists-with-different-credential') {
+            setAuthError('An account already exists with this email address. Please sign in using the method you originally used.');
+       } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+         // Generic error for other cases, ignoring when the user manually closes the popup.
+         setAuthError("Failed to sign in with Google. Please try again.");
        }
+       // Re-throw the error so the modal's loading state can be stopped.
+       throw error;
     }
   };
 
@@ -238,7 +225,8 @@ const App: React.FC = () => {
   const openAuthModal = () => setAuthModalOpen(true);
   const closeAuthModal = () => {
       setAuthModalOpen(false);
-      setAuthError(null);
+      // Delay clearing error to prevent flash of content before modal closes
+      setTimeout(() => setAuthError(null), 300);
   };
 
   const authProps: AuthProps = {

@@ -1,6 +1,6 @@
 
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp } from 'firebase/firestore';
 
 
@@ -63,20 +63,22 @@ if (isConfigValid) {
 }
 
 /**
- * Signs in the user with Google using a redirect flow for better mobile compatibility.
- * @returns A promise that resolves on successful sign-in initiation.
+ * Signs in the user with Google using a popup window.
+ * This method is more self-contained than redirect and provides immediate feedback.
+ * @returns A promise that resolves with the user's credentials on success.
  */
-export const signInWithGoogle = async (): Promise<void> => {
+export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     const provider = new GoogleAuthProvider();
     try {
-        await setPersistence(auth, browserLocalPersistence);
-        await signInWithRedirect(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        return result;
     } catch (error) {
-        console.error("Error during Google Sign-In redirect initiation:", error);
-        throw error;
+        console.error("Error during Google Sign-In with Popup:", error);
+        throw error; // Re-throw to be caught by the calling function in App.tsx
     }
 };
+
 
 /**
  * Gets a user's profile from Firestore. If it doesn't exist, it creates one on-the-fly.
