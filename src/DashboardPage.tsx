@@ -1457,7 +1457,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <input type="file" ref={inputRef} onChange={(e) => onFileChange(e.target.files?.[0])} className="hidden" accept="image/png, image/jpeg, image/webp" disabled={disabled}/>
                     {image ? (
                         <>
-                            <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg" />
+                            <img src={image.url} alt={title} className="w-full h-full object-contain rounded-lg" />
                              {onRemove && !disabled && (
                                 <button
                                     onClick={(e) => {
@@ -1567,7 +1567,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <div className="lg:col-span-2 space-y-4">
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                             <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Garments</h3>
-                            <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
+                            <div className={`flex items-start gap-4 ${!personImage ? 'opacity-50' : ''}`}>
                                 <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setTopImage(null)} />
                                 <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                             </div>
@@ -1583,7 +1583,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                  {/* Mobile Garment Uploader */}
                  <div className="lg:hidden w-full bg-white p-4 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 mt-8">
                     <h3 className="font-bold text-lg mb-4 text-[#1E1E1E] text-center">Upload Garments</h3>
-                    <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
+                    <div className={`flex items-start gap-4 ${!personImage ? 'opacity-50' : ''}`}>
                         <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setTopImage(null)} />
                         <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                     </div>
