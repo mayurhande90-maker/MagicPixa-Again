@@ -5,11 +5,18 @@ import 'firebase/compat/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
+const projectId = (import.meta as any).env.VITE_FIREBASE_PROJECT_ID;
+
+// SELF-HEALING CONFIG: The authDomain was consistently misconfigured by the user.
+// To fix this permanently, we now derive the authDomain directly from the projectId,
+// which is the standard Firebase convention and bypasses the faulty environment variable.
+const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN;
+
 // Export the config object so other parts of the app can inspect it for diagnostics.
 export const firebaseConfig = {
   apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+  authDomain: derivedAuthDomain,
+  projectId: projectId,
   storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
