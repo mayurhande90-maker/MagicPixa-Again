@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1319,6 +1316,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
 
     const messageIntervalRef = useRef<number | null>(null);
+    const personFileInputRef = useRef<HTMLInputElement>(null);
+
 
     const EDIT_COST = 3;
     const isGuest = !auth.isAuthenticated || !auth.user;
@@ -1342,8 +1341,24 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
         };
     }, [isLoading]);
+    
+    const handlePersonFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const url = URL.createObjectURL(file);
+            fileToBase64(file).then(base64File => {
+                setPersonImage({ file, url, base64: base64File });
+            });
+            setError(null);
+            setGeneratedImage(null);
+        }
+    };
 
-    const handleFileChange = (file: File | undefined, setImageState: React.Dispatch<React.SetStateAction<ImageState>>) => {
+    const handleGarmentFileChange = (file: File | undefined, setImageState: React.Dispatch<React.SetStateAction<ImageState>>) => {
         if (file) {
             if (!file.type.startsWith('image/')) {
                 setError('Please upload a valid image file.');
@@ -1356,6 +1371,11 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             setError(null);
             setGeneratedImage(null);
         }
+    };
+    
+    const triggerPersonFileInput = () => {
+        if (isLoading) return;
+        personFileInputRef.current?.click();
     };
 
     const handleGenerate = useCallback(async () => {
@@ -1403,6 +1423,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         setPantsImage(null);
         setGeneratedImage(null);
         setError(null);
+        if (personFileInputRef.current) personFileInputRef.current.value = "";
     }, []);
 
     const handleDownloadClick = useCallback(() => {
@@ -1422,15 +1443,16 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         title: string;
         icon: React.ReactNode;
         aspectRatio?: string;
-    }> = ({ image, onFileChange, title, icon, aspectRatio = 'aspect-[3/4]' }) => {
+        disabled?: boolean;
+    }> = ({ image, onFileChange, title, icon, aspectRatio = 'aspect-[3/4]', disabled = false }) => {
         const inputRef = useRef<HTMLInputElement>(null);
         return (
             <div className="flex-1 flex flex-col items-center">
                 <div
-                    onClick={() => inputRef.current?.click()}
-                    className={`w-full ${aspectRatio} relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors`}
+                    onClick={() => !disabled && inputRef.current?.click()}
+                    className={`w-full ${aspectRatio} relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center transition-colors ${!disabled ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : 'cursor-not-allowed'}`}
                 >
-                    <input type="file" ref={inputRef} onChange={(e) => onFileChange(e.target.files?.[0])} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                    <input type="file" ref={inputRef} onChange={(e) => onFileChange(e.target.files?.[0])} className="hidden" accept="image/png, image/jpeg, image/webp" disabled={disabled}/>
                     {image ? (
                         <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg" />
                     ) : (
@@ -1444,6 +1466,34 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         );
     };
 
+    const ActionButtons = () => (
+        <div className="w-full space-y-2">
+            {generatedImage ? (
+                <div className="w-full space-y-2">
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Image
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                         <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Start Over
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                        <SparklesIcon className="w-5 h-5" /> Generate
+                    </button>
+                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                </>
+            )}
+        </div>
+    );
+    
+
     return (
         <div className='p-4 sm:p-6 lg:p-8 h-full'>
             <div className='w-full max-w-7xl mx-auto'>
@@ -1452,21 +1502,40 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes in seconds.</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Output Column */}
-                    <div className="lg:col-span-1">
-                        <div className="w-full h-full bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex flex-col">
-                            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex-1 flex items-center justify-center">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Main Canvas */}
+                    <div className="lg:col-span-3">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!personImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!personImage ? triggerPersonFileInput : undefined}
+                            >
+                                <input type="file" ref={personFileInputRef} onChange={handlePersonFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                
                                 {generatedImage ? (
                                     <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : personImage ? (
+                                    <img src={personImage.url} alt="Person" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                                 ) : (
-                                     <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                        <div className="flex flex-col items-center gap-2 text-gray-400">
-                                            <UsersIcon className="w-12 h-12" />
-                                            <span className='font-semibold text-lg'>Your generated image will appear here</span>
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <AvatarUserIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Upload a photo of a person</span>
+                                            <span className="text-sm">or click to select a file</span>
                                         </div>
                                     </div>
                                 )}
+
+                                {personImage && !isLoading && (
+                                     <button
+                                        onClick={triggerPersonFileInput}
+                                        className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                        aria-label="Change photo"
+                                    >
+                                        <ArrowUpCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+
                                 {isLoading && (
                                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
                                         <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
@@ -1477,58 +1546,36 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         </div>
                     </div>
 
-                    {/* Input/Controls Column */}
-                    <div className="lg:col-span-1 space-y-6">
+                    {/* Control Panel */}
+                    <div className="lg:col-span-2 space-y-4">
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Images</h3>
-                            <div className="space-y-4">
-                                <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} aspectRatio="aspect-[4/3]" />
-                                <div className="flex gap-4">
-                                    <ImageUploader image={topImage} onFileChange={(f) => handleFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
-                                    <ImageUploader image={pantsImage} onFileChange={(f) => handleFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
-                                </div>
+                            <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Garments</h3>
+                            <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
+                                <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
+                                <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
                             </div>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
                              <h3 className="font-bold text-lg text-[#1E1E1E]">2. Generate</h3>
-                            {generatedImage ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                        <DownloadIcon className="w-5 h-5" /> Download
-                                    </button>
-                                     <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg">
-                                        <RetryIcon className="w-5 h-5" /> Start Over
-                                    </button>
-                                </div>
-                            ) : (
-                                <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                    <SparklesIcon className="w-5 h-5" /> Generate
-                                </button>
-                            )}
-                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                            <ActionButtons />
                         </div>
                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </div>
                 </div>
 
+                 {/* Mobile Garment Uploader */}
+                 <div className="lg:hidden w-full bg-white p-4 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 mt-8">
+                    <h3 className="font-bold text-lg mb-4 text-[#1E1E1E] text-center">Upload Garments</h3>
+                    <div className={`flex gap-4 ${!personImage ? 'opacity-50' : ''}`}>
+                        <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
+                        <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} />
+                    </div>
+                 </div>
+
+
                  {/* Mobile Sticky Footer */}
                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
-                     {generatedImage ? (
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                <DownloadIcon className="w-5 h-5" /> Download
-                            </button>
-                             <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg">
-                                <RetryIcon className="w-5 h-5" /> Start Over
-                            </button>
-                        </div>
-                    ) : (
-                        <div>
-                            <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5" /> Generate
-                            </button>
-                        </div>
-                    )}
+                    <ActionButtons />
                 </div>
             </div>
         </div>
