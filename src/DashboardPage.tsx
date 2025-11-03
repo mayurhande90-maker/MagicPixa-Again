@@ -427,27 +427,25 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     
                     <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
                         <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-                        {originalImage ? (
-                            mobileControlsExpanded ? (
+                        {mobileControlsExpanded || !hasImage ? (
+                            <div className={!hasImage ? 'opacity-50' : ''}>
+                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {aspectRatios.map(ar => (
+                                        <button key={ar.key} onClick={() => handleAspectRatioSelect(ar.key)} disabled={!hasImage} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>{ar.label}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                                 <div>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {aspectRatios.map(ar => (
-                                            <button key={ar.key} onClick={() => handleAspectRatioSelect(ar.key)} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>{ar.label}</button>
-                                        ))}
-                                    </div>
+                                    <p className="text-xs text-gray-500">Aspect Ratio</p>
+                                    <p className="text-sm font-semibold text-[#1E1E1E]">{aspectRatios.find(ar => ar.key === aspectRatio)?.label}</p>
                                 </div>
-                            ) : (
-                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Aspect Ratio</p>
-                                        <p className="text-sm font-semibold text-[#1E1E1E]">{aspectRatios.find(ar => ar.key === aspectRatio)?.label}</p>
-                                    </div>
-                                    <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
-                                </div>
-                            )
-                        ) : <p className="text-xs text-center text-[#5F6368]">Upload a photo to see options.</p>}
-                         {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
+                                <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
+                            </div>
+                        )}
+                        {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
                     </div>
 
                 </div>
@@ -626,7 +624,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const currentStyles = spaceType === 'office' ? officeInteriorStyles : homeInteriorStyles;
 
     const Controls = ({isMobile}: {isMobile: boolean}) => (
-         <div className="space-y-4">
+         <div className={`space-y-4 ${!hasImage ? 'opacity-50' : ''}`}>
             <div>
                 <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Space Type</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -740,12 +738,14 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
                         <div className="flex justify-center items-center relative">
                             <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-                            {!mobileControlsExpanded && <button onClick={() => setMobileControlsExpanded(true)} className="absolute right-0 text-sm font-semibold text-[#0079F2]">Change</button>}
+                            {(!mobileControlsExpanded && hasImage) && <button onClick={() => setMobileControlsExpanded(true)} className="absolute right-0 text-sm font-semibold text-[#0079F2]">Change</button>}
                         </div>
 
-                        {originalImage ? (
-                            mobileControlsExpanded ? <Controls isMobile={true}/> : <MobileSummary />
-                        ): <p className="text-xs text-center text-[#5F6368]">Upload a photo to see options.</p>}
+                        {mobileControlsExpanded || !hasImage ? (
+                            <Controls isMobile={true}/>
+                        ) : (
+                            <MobileSummary />
+                        )}
                          {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
                     </div>
 
@@ -946,7 +946,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
     
     const Controls = () => (
-        <div>
+        <div className={!hasImage ? 'opacity-50' : ''}>
             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Mode</label>
             <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setMode('restore')} disabled={!hasImage} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${mode === 'restore' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
@@ -962,25 +962,23 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const MobileControls = () => (
         <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
             <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-            {originalImage ? (
-                mobileControlsExpanded ? (
+            {mobileControlsExpanded || !hasImage ? (
+                <div className={!hasImage ? 'opacity-50' : ''}>
+                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Mode</label>
+                    <div className="grid grid-cols-1 gap-2">
+                        <button onClick={() => handleModeSelect('restore')} disabled={!hasImage} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${mode === 'restore' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>Auto Restore & Colourize</button>
+                        <button onClick={() => handleModeSelect('colourize_only')} disabled={!hasImage} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${mode === 'colourize_only' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>Colourize Only</button>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                     <div>
-                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Mode</label>
-                        <div className="grid grid-cols-1 gap-2">
-                            <button onClick={() => handleModeSelect('restore')} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${mode === 'restore' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>Auto Restore & Colourize</button>
-                            <button onClick={() => handleModeSelect('colourize_only')} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors ${mode === 'colourize_only' ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>Colourize Only</button>
-                        </div>
+                        <p className="text-xs text-gray-500">Mode</p>
+                        <p className="text-sm font-semibold text-[#1E1E1E]">{mode === 'restore' ? 'Auto Restore & Colourize' : 'Colourize Only'}</p>
                     </div>
-                ) : (
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                        <div>
-                            <p className="text-xs text-gray-500">Mode</p>
-                            <p className="text-sm font-semibold text-[#1E1E1E]">{mode === 'restore' ? 'Auto Restore & Colourize' : 'Colourize Only'}</p>
-                        </div>
-                        <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
-                    </div>
-                )
-            ) : <p className="text-xs text-center text-[#5F6368]">Upload a photo to see options.</p>}
+                    <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
+                </div>
+            )}
             {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
         </div>
     );
@@ -1557,12 +1555,13 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         inputRef: React.RefObject<HTMLInputElement>;
         icon: React.ReactNode;
         isMobile?: boolean;
-    }> = ({ type, image, inputRef, icon, isMobile }) => (
+        disabled: boolean;
+    }> = ({ type, image, inputRef, icon, isMobile, disabled }) => (
         <div className="relative">
             <input type="file" ref={inputRef} onChange={(e) => handleFileChange(e, type)} className="hidden" accept="image/png, image/jpeg, image/webp" />
             <div 
-                className={`w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors p-1 ${isMobile ? 'aspect-square' : 'h-32'}`}
-                onClick={() => inputRef.current?.click()}
+                className={`w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center transition-colors p-1 ${isMobile ? 'aspect-square' : 'h-32'} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50'}`}
+                onClick={() => !disabled && inputRef.current?.click()}
             >
                 {image ? <img src={image.url} alt={type} className="max-h-full h-auto w-auto object-contain rounded-md" />
                 : <div className="text-center text-gray-500">{icon}<p className="text-xs mt-1 capitalize">{type}</p></div>}
@@ -1576,8 +1575,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             <div className={`space-y-2 ${!hasImage ? 'opacity-50' : ''}`}>
                 <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Add Apparel</label>
                 <div className={`grid grid-cols-2 gap-4`}>
-                    <ApparelUploadBox type="top" image={topImage} inputRef={topFileInputRef} icon={<GarmentTopIcon className="w-8 h-8"/>} isMobile={isMobile} />
-                    <ApparelUploadBox type="pants" image={pantsImage} inputRef={pantsFileInputRef} icon={<GarmentTrousersIcon className="w-8 h-8"/>} isMobile={isMobile}/>
+                    <ApparelUploadBox type="top" image={topImage} inputRef={topFileInputRef} icon={<GarmentTopIcon className="w-8 h-8"/>} isMobile={isMobile} disabled={!hasImage} />
+                    <ApparelUploadBox type="pants" image={pantsImage} inputRef={pantsFileInputRef} icon={<GarmentTrousersIcon className="w-8 h-8"/>} isMobile={isMobile} disabled={!hasImage}/>
                 </div>
                  <p className="text-xs text-center text-gray-500 pt-1">Upload photos of clothing on a plain background for best results.</p>
             </div>
@@ -1633,9 +1632,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
                     <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
                         <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-                        {personImage ? (
-                            <Controls isMobile={true}/>
-                        ): <p className="text-xs text-center text-[#5F6368]">Upload a photo of a person to begin.</p>}
+                        <Controls isMobile={true}/>
+                        {!hasImage && <p className="text-xs text-center text-[#5F6368] pt-2 border-t border-gray-200/80">Upload a photo of a person to enable controls.</p>}
                         {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
                     </div>
 
@@ -1803,7 +1801,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const canGenerate = originalImage && mockupType;
     
     const Controls = () => (
-        <div>
+        <div className={!hasImage ? 'opacity-50' : ''}>
             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Select Mockup Type</label>
             <div className="grid grid-cols-3 gap-2">
                 {mockupTypes.map(mt => (
@@ -1818,26 +1816,24 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const MobileControls = () => (
         <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
             <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-            {originalImage ? (
-                mobileControlsExpanded ? (
+            {mobileControlsExpanded || !hasImage ? (
+                 <div className={!hasImage ? 'opacity-50' : ''}>
+                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Select Mockup Type</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {mockupTypes.map(mt => (
+                            <button key={mt.key} onClick={() => handleMockupTypeSelect(mt.key)} disabled={!hasImage} className={`py-3 px-1 text-xs font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${mockupType === mt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>{mt.label}</button>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                     <div>
-                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Select Mockup Type</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {mockupTypes.map(mt => (
-                                <button key={mt.key} onClick={() => handleMockupTypeSelect(mt.key)} className={`py-3 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${mockupType === mt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>{mt.label}</button>
-                            ))}
-                        </div>
+                        <p className="text-xs text-gray-500">Mockup Type</p>
+                        <p className="text-sm font-semibold text-[#1E1E1E]">{mockupTypes.find(mt => mt.key === mockupType)?.label}</p>
                     </div>
-                ) : (
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                        <div>
-                            <p className="text-xs text-gray-500">Mockup Type</p>
-                            <p className="text-sm font-semibold text-[#1E1E1E]">{mockupTypes.find(mt => mt.key === mockupType)?.label}</p>
-                        </div>
-                        <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
-                    </div>
-                )
-            ) : <p className="text-xs text-center text-[#5F6368]">Upload a design to see options.</p>}
+                    <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
+                </div>
+            )}
             {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
         </div>
     );
@@ -1892,7 +1888,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                 <div className='mb-8 text-center'><h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2><p className="text-[#5F6368] mt-2">Create photo-realistic mockups in seconds.</p></div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3"><div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5"><div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />{generatedImage ? <img src={generatedImage} alt="Generated Mockup" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : originalImage ? <img src={originalImage.url} alt="Original Design" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload your logo or design</span><span className="text-sm">Transparent PNGs work best!</span></div></div>}{hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change design"><ArrowUpCircleIcon className="w-6 h-6" /></button>}{isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}</div></div></div>
-                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6"><div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Mockup Controls</h3><p className='text-sm text-[#5F6368]'>Select a mockup type</p></div><div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left"><LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" /><div><p className="font-bold text-sm text-yellow-800">Pro Tip</p><p className="text-xs text-yellow-700">For the best results, upload a logo or design as a transparent PNG file.</p></div></div><div className="space-y-4 pt-4 border-t border-gray-200/80">{!hasImage && <p className="text-xs text-center text-gray-500">Upload a design to get started.</p>}<Controls />{hasImage && <div className="pt-4 border-t border-gray-200/80"><ActionButtons/></div>}</div>{error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}</div>
+                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6"><div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Mockup Controls</h3><p className='text-sm text-[#5F6368]'>Select a mockup type</p></div><div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left"><LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" /><div><p className="font-bold text-sm text-yellow-800">Pro Tip</p><p className="text-xs text-yellow-700">For the best results, upload a logo or design as a transparent PNG file.</p></div></div><div className="space-y-4 pt-4 border-t border-gray-200/80"><Controls />{hasImage && <div className="pt-4 border-t border-gray-200/80"><ActionButtons/></div>}</div>{error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}</div>
                     <MobileControls />
                 </div>
                 <MobileFooter />
