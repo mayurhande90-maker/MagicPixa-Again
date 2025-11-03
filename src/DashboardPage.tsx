@@ -1271,10 +1271,231 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     // This component will be added in a future update
     return <div className="p-8 text-center"><h2 className="text-2xl font-bold">CaptionAI is Coming Soon!</h2><p>This feature is under construction.</p></div>;
 };
+
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    // This component will be added in a future update
-    return <div className="p-8 text-center"><h2 className="text-2xl font-bold">Magic Apparel is Coming Soon!</h2><p>This feature is under construction.</p></div>;
+    type ImageState = { file: File; url: string; base64: Base64File } | null;
+    const [personImage, setPersonImage] = useState<ImageState>(null);
+    const [topImage, setTopImage] = useState<ImageState>(null);
+    const [bottomImage, setBottomImage] = useState<ImageState>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 3;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = auth.user?.credits ?? 0;
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    const canGenerate = personImage && (topImage || bottomImage);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (file: File | undefined, setImageState: React.Dispatch<React.SetStateAction<ImageState>>) => {
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const url = URL.createObjectURL(file);
+            fileToBase64(file).then(base64File => {
+                setImageState({ file, url, base64: base64File });
+            });
+            setError(null);
+            setGeneratedImage(null);
+        }
+    };
+
+    const handleGenerate = useCallback(async () => {
+        if (!canGenerate) {
+            setError("Please upload a person's photo and at least one clothing item.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+
+        try {
+            const apparelItems: { type: string; base64: string; mimeType: string }[] = [];
+            if (topImage) {
+                apparelItems.push({ type: 'top', base64: topImage.base64.base64, mimeType: topImage.base64.mimeType });
+            }
+            if (bottomImage) {
+                apparelItems.push({ type: 'bottom', base64: bottomImage.base64.base64, mimeType: bottomImage.base64.mimeType });
+            }
+
+            const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+
+            if (auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [personImage, topImage, bottomImage, hasInsufficientCredits, auth, navigateTo]);
+    
+    const handleStartOver = useCallback(() => {
+        setPersonImage(null);
+        setTopImage(null);
+        setBottomImage(null);
+        setGeneratedImage(null);
+        setError(null);
+    }, []);
+
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_apparel_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+
+
+    const ImageUploader: React.FC<{
+        image: ImageState;
+        onFileChange: (file: File | undefined) => void;
+        title: string;
+        icon: React.ReactNode;
+        aspectRatio?: string;
+    }> = ({ image, onFileChange, title, icon, aspectRatio = 'aspect-[3/4]' }) => {
+        const inputRef = useRef<HTMLInputElement>(null);
+        return (
+            <div className="flex-1 flex flex-col items-center">
+                <div
+                    onClick={() => inputRef.current?.click()}
+                    className={`w-full ${aspectRatio} relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50 transition-colors`}
+                >
+                    <input type="file" ref={inputRef} onChange={(e) => onFileChange(e.target.files?.[0])} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                    {image ? (
+                        <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                        <div className="text-center text-gray-500">
+                            {icon}
+                            <p className="text-xs mt-1">{title}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full pb-28 lg:pb-8'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
+                    <p className="text-[#5F6368] mt-2">Virtually try on clothes in seconds.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* Input/Controls Column */}
+                    <div className="space-y-6">
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                            <h3 className="font-bold text-lg mb-4 text-[#1E1E1E]">1. Upload Images</h3>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <ImageUploader image={personImage} onFileChange={(f) => handleFileChange(f, setPersonImage)} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
+                                <div className="flex flex-col gap-4">
+                                    <ImageUploader image={topImage} onFileChange={(f) => handleFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
+                                    <ImageUploader image={bottomImage} onFileChange={(f) => handleFileChange(f, setBottomImage)} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
+                             <h3 className="font-bold text-lg text-[#1E1E1E]">2. Generate</h3>
+                            {generatedImage ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                        <DownloadIcon className="w-5 h-5" /> Download
+                                    </button>
+                                     <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg">
+                                        <RetryIcon className="w-5 h-5" /> Start Over
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5" /> Generate
+                                </button>
+                            )}
+                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </div>
+
+                    {/* Output Column */}
+                    <div className="w-full aspect-[3/4] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center">
+                            {generatedImage ? (
+                                <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                            ) : (
+                                 <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                    <div className="flex flex-col items-center gap-2 text-gray-400">
+                                        <UsersIcon className="w-12 h-12" />
+                                        <span className='font-semibold text-lg'>Your generated image will appear here</span>
+                                    </div>
+                                </div>
+                            )}
+                            {isLoading && (
+                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                    <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium">{loadingMessage}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                 {/* Mobile Sticky Footer */}
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 p-4">
+                     {generatedImage ? (
+                        <div className="grid grid-cols-2 gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
+                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                <DownloadIcon className="w-5 h-5" /> Download
+                            </button>
+                             <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg">
+                                <RetryIcon className="w-5 h-5" /> Start Over
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-lg border">
+                            <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5" /> Generate
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 };
+
 
 const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     // This component will be added in a future update
