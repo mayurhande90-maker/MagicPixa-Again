@@ -37,12 +37,12 @@ const features = [
         disabled: false,
     },
     {
-        id: 'caption',
+        id: null,
         icon: <CaptionIcon className="w-10 h-10 text-white" />,
         title: "CaptionAI",
         description: "Upload a photo and instantly get engaging, copy-paste-ready captions and hashtags for social media.",
         color: "bg-amber-500",
-        disabled: false,
+        disabled: true,
     },
     {
         id: 'interior',

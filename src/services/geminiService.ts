@@ -58,7 +58,7 @@ export const generateApparelTryOn = async (
     let apparelPromptInstructions = '';
     for (const item of apparelItems) {
         parts.push({ text: `{${item.type}_image}:` });
-        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
+        parts.push({ inlineData: { data: item.base64, mimeType: item.base64 } });
         const location = item.type === 'top' ? 'torso' : 'legs';
         apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${location}.`;
     }
@@ -125,125 +125,6 @@ ${apparelPromptInstructions}
       throw new Error(`Failed to generate image: ${error.message}`);
     }
     throw new Error("An unknown error occurred while communicating with the image generation service.");
-  }
-};
-
-
-export const generateCaptions = async (
-  base64ImageData: string,
-  mimeType: string
-): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
-  try {
-    const prompt = `You are a professional social media strategist and caption writer.
-You will receive an uploaded image. First, perform a detailed visual analysis of this photo before generating any caption or hashtags.
-
-Analyze the following:
-1. Main subject(s) — what or who is in the photo.
-2. Objects, background, environment, and setting.
-3. Any visible text or product logos.
-4. Emotions, color palette, and lighting tone.
-5. Overall theme — for example: travel, tech, fashion, food, podcast, fitness, education, event, nature, etc.
-6. Scene composition — indoor, outdoor, studio, natural light, crowd, etc.
-
-After the visual analysis:
-- First, write one **Recommended Caption**. This should be the single best, most engaging caption for the image, complete with 3-5 of the most important hashtags integrated naturally at the end. It should be instantly postable.
-- Then, write **3 separate caption options** (Short, Medium, Long).
-  - The short caption should be punchy and expressive (ideal for Reels or YouTube Shorts).
-  - The medium caption should tell a short story or context (Instagram posts).
-  - The long caption should include context + a strong CTA line (LinkedIn or Facebook).
-
-- Finally, generate a separate list of **hashtags** that are:
-  - 100% relevant to what’s visible in the photo.
-  - Trending, clean, and ad-safe.
-  - Include both broad and niche tags.
-  - Format hashtags clearly — separated by spaces, with line breaks if needed.
-
-- Maintain a professional layout and readability:
-  - Add line breaks, spacing, and emojis only where contextually natural.
-  - **CRITICAL:** Captions MUST be written in simple, conversational, everyday English. They must sound completely natural and human. Avoid complex vocabulary or robotic phrasing.
-  - Avoid generic filler lines like “A beautiful day!” unless contextually correct.
-
-Output must be **ready to post** directly on platforms like Instagram, YouTube Community, or Facebook.
-
------------------------------------------
-FORMAT THE OUTPUT EXACTLY LIKE THIS:
------------------------------------------
-
-⚙️ **Auto Notes:**
-<one-line explanation of what the image contains>
-
-🌟 **Recommended Caption:**
-<The single best caption, ready to post, with 3-5 integrated hashtags>
-
----
-
-🪶 **Caption (Short):**
-<short caption text>
-
-💬 **Caption (Medium):**
-<medium caption text>
-
-📝 **Caption (Long):**
-<long caption text>
-
-🏷️ **Hashtags (Recommended):**
-#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5 #hashtag6 ...
-
------------------------------------------
-ADDITIONAL INSTRUCTIONS
------------------------------------------
-- The top priority is that captions sound authentic and human. Use simple language that people use in their daily lives.
-- If the image contains a person, describe the vibe or emotion — never identify who they are.
-- If it’s a product or object, mention features or purpose naturally.
-- If it’s travel/nature — highlight place, vibe, and mood.
-- If text is detected on image, use that to understand theme (e.g., “Podcast” or “Full Episode”).
-- Use relevant emojis only when it fits the tone.
-- Do not overuse hashtags (15–20 max).
-- Do not include any banned or misleading hashtags.
-- The final output should look balanced and properly spaced for direct posting.
-
------------------------------------------
-NEGATIVE PROMPT
------------------------------------------
-"Do not produce captions unrelated to the image.
-Do not invent objects or events.
-Do not include any names of people.
-Do not generate hashtags that are irrelevant or spammy.
-Avoid overused hashtags like #instagood or #photooftay unless contextually fitting.
-Do not use repeated emojis or symbols excessively."`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64ImageData,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: prompt,
-          },
-        ],
-      },
-    });
-
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Caption generation blocked due to: ${response.promptFeedback.blockReason}.`);
-    }
-
-    return response.text;
-  } catch (error) {
-    console.error("Error generating captions with Gemini:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate captions: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the caption generation service.");
   }
 };
 
