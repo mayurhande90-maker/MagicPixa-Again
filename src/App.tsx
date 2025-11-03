@@ -64,19 +64,21 @@ const App: React.FC = () => {
       return;
     }
   
-    // FIX: Updated to Firebase v9+ modular syntax for handling redirect results.
     getRedirectResult(auth).catch((error) => {
-      console.error("Error processing Google Sign-In redirect:", error);
-      let message = "An error occurred during sign-in. Please try again.";
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        message = 'An account already exists with this email. Please sign in using the original method.';
-      }
-      setAuthError(message);
-      setIsLoadingAuth(false);
+        console.error("Error processing Google Sign-In redirect:", error);
+        let message = "An error occurred during sign-in. Please try again.";
+        if (error.code === 'auth/account-exists-with-different-credential') {
+            message = 'An account already exists with this email. Please sign in using the original method.';
+        }
+        setAuthError(message);
+        setIsLoadingAuth(false);
+        sessionStorage.removeItem('pendingGoogleSignIn');
     });
   
-    // FIX: Updated to Firebase v9+ modular syntax for observing auth state changes.
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const pendingSignIn = sessionStorage.getItem('pendingGoogleSignIn') === 'true';
+      sessionStorage.removeItem('pendingGoogleSignIn');
+
       try {
         if (firebaseUser) {
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
@@ -93,6 +95,10 @@ const App: React.FC = () => {
         } else {
           setUser(null);
           setIsAuthenticated(false);
+          if (pendingSignIn) {
+            // DEFINITIVE FIX: Detect silent sign-in failure and provide actionable error.
+            setAuthError("Sign-in failed. Please ensure magicpixa.com is an authorized domain in your Firebase project's Authentication settings.");
+          }
         }
       } catch (error) {
         console.error("Error in onAuthStateChanged handler:", error);
@@ -100,7 +106,6 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
-            // FIX: Updated to Firebase v9+ modular syntax for sign out.
             signOut(auth); // Sign out to prevent a broken state.
         }
       } finally {
@@ -163,10 +168,12 @@ const App: React.FC = () => {
 
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
+      sessionStorage.setItem('pendingGoogleSignIn', 'true');
       await signInWithGoogle();
       // Note: Code after signInWithGoogle() will not execute due to the page redirect.
       // The redirect result is handled by the useEffect hook when the user returns.
     } catch (error: any) {
+       sessionStorage.removeItem('pendingGoogleSignIn');
        console.error("Google Sign-In Error:", error);
        let message = "Failed to sign in with Google. Please try again.";
        if (error.code !== 'auth/popup-closed-by-user') {
@@ -177,7 +184,6 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // FIX: Updated to Firebase v9+ modular syntax for sign out.
       if (auth) await signOut(auth);
       setCurrentPage('home');
       window.scrollTo(0, 0);
@@ -254,4 +260,4 @@ const App: React.FC = () => {
 };
 
 export default App;
-// Minor change for commit.
+// Minor change to allow commit.
