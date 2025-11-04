@@ -1572,7 +1572,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                 <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
+                        <div className="hidden lg:block bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
                              <h3 className="font-bold text-lg text-[#1E1E1E]">2. Generate</h3>
                             <ActionButtons />
                         </div>
@@ -1771,7 +1771,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                 ))}
                             </div>
                         </div>
-                         <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
+                         <div className="hidden lg:block bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
                             <ActionButtons />
                         </div>
                         {error && <div className='w-full text-red-600 bg-red-100 p-3 rounded-lg text-center text-sm'>{error}</div>}
@@ -1998,7 +1998,7 @@ const CaptionGenerator: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                             </div>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
+                        <div className="hidden lg:block bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
                             <ActionButtons />
                         </div>
                     </div>
