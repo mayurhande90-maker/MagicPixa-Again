@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Page, AuthProps, View } from './App';
 import Header from './components/Header';
 import Footer from './components/Footer';
+// FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -124,6 +125,58 @@ const pricingPlans = {
     ]
 };
 
+const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
+    const handleNav = (view: View) => {
+        if (!auth.isAuthenticated) {
+            auth.openAuthModal();
+        } else {
+            navigateTo('dashboard', view);
+        }
+    };
+
+    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
+        { view: 'dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'billing', label: 'Credits', icon: CreditCardIcon },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+    ];
+    
+    const navItemsLeft = navItems.slice(0, 2);
+    const navItemsRight = navItems.slice(2);
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItemsLeft.map(item => (
+                    <button key={item.view} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+                
+                <div className="w-16 h-16"> {/* Spacer for the floating button */} </div>
+
+                {navItemsRight.map(item => (
+                    <button key={item.view} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+            
+            <div className="absolute left-1/2 -translate-x-1/2 -top-8">
+                <button 
+                    onClick={() => handleNav('studio')}
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0079F2] to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 transition-transform transform active:scale-90"
+                    aria-label="Features"
+                >
+                    <SparklesIcon className="w-8 h-8"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
   const [isYearly, setIsYearly] = useState(true);
@@ -131,7 +184,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
   return (
     <>
       <Header navigateTo={navigateTo} auth={auth} />
-      <main className="bg-[#F9FAFB]">
+      <main className="bg-[#F9FAFB] pb-20 lg:pb-0">
         {/* Hero Section */}
         <section id="home" className="text-center py-20 px-4">
             <div className="relative max-w-5xl mx-auto bg-white p-8 sm:p-12 md:p-20 rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden">
@@ -157,111 +210,116 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
             </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 px-4 bg-[#F9FAFB]">
-            <div className="max-w-6xl mx-auto text-center bg-white p-8 sm:p-12 md:p-16 rounded-3xl shadow-sm border border-gray-200/80">
-                <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Everything You Need to Create</h2>
-                <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <div 
-                            key={index} 
-                            onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
-                            className={`relative bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left transition-transform duration-300 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : 'transform hover:-translate-y-2 cursor-pointer'}`}
-                        >
-                            {feature.disabled && (
-                                <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                    Coming Soon
+        {/* Sections below are hidden on mobile to provide a focused, non-scrolling experience */}
+        <div className="hidden lg:block">
+            {/* Features Section */}
+            <section id="features" className="py-20 px-4 bg-[#F9FAFB]">
+                <div className="max-w-6xl mx-auto text-center bg-white p-8 sm:p-12 md:p-16 rounded-3xl shadow-sm border border-gray-200/80">
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Everything You Need to Create</h2>
+                    <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {features.map((feature, index) => (
+                            <div 
+                                key={index} 
+                                onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
+                                className={`relative bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left transition-transform duration-300 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : 'transform hover:-translate-y-2 cursor-pointer'}`}
+                            >
+                                {feature.disabled && (
+                                    <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        Coming Soon
+                                    </div>
+                                )}
+                                <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}>
+                                    {feature.icon}
                                 </div>
-                            )}
-                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}>
-                                {feature.icon}
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{feature.title}</h3>
+                                <p className="text-[#5F6368]">{feature.description}</p>
                             </div>
-                            <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{feature.title}</h3>
-                            <p className="text-[#5F6368]">{feature.description}</p>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        {/* Reviews Section */}
-        <section id="reviews" className="py-20 px-4 bg-white">
-            <div className="max-w-6xl mx-auto text-center">
-                 <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Loved by Creators Everywhere</h2>
-                <p className="text-lg text-[#5F6368] mb-12">Don't just take our word for it. Here's what our users say.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {reviews.map((review, index) => (
-                        <div key={index} className="bg-[#F9FAFB] p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left">
-                            <div className="flex items-center mb-4">
-                                {[...Array(5)].map((_, i) => <StarIcon key={i} className="w-5 h-5 text-yellow-400" />)}
+            {/* Reviews Section */}
+            <section id="reviews" className="py-20 px-4 bg-white">
+                <div className="max-w-6xl mx-auto text-center">
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Loved by Creators Everywhere</h2>
+                    <p className="text-lg text-[#5F6368] mb-12">Don't just take our word for it. Here's what our users say.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {reviews.map((review, index) => (
+                            <div key={index} className="bg-[#F9FAFB] p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left">
+                                <div className="flex items-center mb-4">
+                                    {[...Array(5)].map((_, i) => <StarIcon key={i} className="w-5 h-5 text-yellow-400" />)}
+                                </div>
+                                <p className="text-[#5F6368] mb-6 italic">"{review.review}"</p>
+                                <div>
+                                    <p className="font-bold text-[#1E1E1E]">{review.name}</p>
+                                    <p className="text-sm text-[#5F6368]">{review.location}</p>
+                                </div>
                             </div>
-                            <p className="text-[#5F6368] mb-6 italic">"{review.review}"</p>
-                            <div>
-                                <p className="font-bold text-[#1E1E1E]">{review.name}</p>
-                                <p className="text-sm text-[#5F6368]">{review.location}</p>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Pricing Section */}
+            <section id="pricing" className="py-20 px-4 bg-[#F9FAFB]">
+                <div className="max-w-6xl mx-auto text-center">
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Choose Your Perfect Plan</h2>
+                    <p className="text-lg text-[#5F6368] mb-8">Simple, transparent pricing for everyone.</p>
+                    <div className="flex justify-center items-center gap-4 mb-12">
+                        <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
+                        <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="billing-toggle" className="sr-only peer" checked={isYearly} onChange={() => setIsYearly(!isYearly)} />
+                            <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0079F2]"></div>
+                        </label>
+                        <span className={`font-semibold ${isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>
+                            Yearly <span className="text-sm font-normal bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Save 20%</span>
+                        </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
+                            <div key={index} className={`bg-white p-8 rounded-2xl shadow-sm border-2 text-left flex flex-col ${plan.popular ? 'border-[#0079F2]' : 'border-gray-200/80'}`}>
+                                {plan.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-10 mb-4 mx-auto">Most Popular</p>}
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{plan.name}</h3>
+                                <p className="text-[#5F6368] mb-4">{plan.credits}</p>
+                                <p className="mb-6">
+                                    <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
+                                    <span className="text-[#5F6368]">/ month</span>
+                                </p>
+                                <ul className="space-y-3 text-[#5F6368] flex-grow">
+                                    {plan.features.map((feature, i) => (
+                                        <li key={i} className="flex items-center gap-3">
+                                            <CheckIcon className="w-5 h-5 text-emerald-500" />
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <button className={`w-full mt-8 py-3 rounded-xl font-semibold transition-colors ${plan.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}>
+                                    {plan.name === 'Free' ? 'Get Started' : 'Choose Plan'}
+                                </button>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
+            </section>
+
+            {/* About Us Section */}
+            <section id="about" className="py-20 px-4 bg-white">
+            <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Our Mission</h2>
+                <p className="text-lg text-[#5F6368]">
+                At MagicPixa, we believe that creativity should be accessible to everyone. Our mission is to empower individuals and businesses with powerful, intuitive AI tools that make professional-quality visual content creation as simple as a single click. We're dedicated to pushing the boundaries of what's possible, so you can focus on what matters most: bringing your ideas to life.
+                </p>
             </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section id="pricing" className="py-20 px-4 bg-[#F9FAFB]">
-            <div className="max-w-6xl mx-auto text-center">
-                <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Choose Your Perfect Plan</h2>
-                <p className="text-lg text-[#5F6368] mb-8">Simple, transparent pricing for everyone.</p>
-                <div className="flex justify-center items-center gap-4 mb-12">
-                    <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
-                    <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="billing-toggle" className="sr-only peer" checked={isYearly} onChange={() => setIsYearly(!isYearly)} />
-                        <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0079F2]"></div>
-                    </label>
-                    <span className={`font-semibold ${isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>
-                        Yearly <span className="text-sm font-normal bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Save 20%</span>
-                    </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
-                        <div key={index} className={`bg-white p-8 rounded-2xl shadow-sm border-2 text-left flex flex-col ${plan.popular ? 'border-[#0079F2]' : 'border-gray-200/80'}`}>
-                            {plan.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-10 mb-4 mx-auto">Most Popular</p>}
-                            <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{plan.name}</h3>
-                            <p className="text-[#5F6368] mb-4">{plan.credits}</p>
-                            <p className="mb-6">
-                                <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                                <span className="text-[#5F6368]">/ month</span>
-                            </p>
-                            <ul className="space-y-3 text-[#5F6368] flex-grow">
-                                {plan.features.map((feature, i) => (
-                                    <li key={i} className="flex items-center gap-3">
-                                        <CheckIcon className="w-5 h-5 text-emerald-500" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            <button className={`w-full mt-8 py-3 rounded-xl font-semibold transition-colors ${plan.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}>
-                                {plan.name === 'Free' ? 'Get Started' : 'Choose Plan'}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-
-        {/* About Us Section */}
-        <section id="about" className="py-20 px-4 bg-white">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Our Mission</h2>
-            <p className="text-lg text-[#5F6368]">
-              At MagicPixa, we believe that creativity should be accessible to everyone. Our mission is to empower individuals and businesses with powerful, intuitive AI tools that make professional-quality visual content creation as simple as a single click. We're dedicated to pushing the boundaries of what's possible, so you can focus on what matters most: bringing your ideas to life.
-            </p>
-          </div>
-        </section>
-
+            </section>
+        </div>
       </main>
-      <Footer />
+      <HomeMobileNav navigateTo={navigateTo} auth={auth} />
+      <div className="hidden lg:block">
+        <Footer />
+      </div>
     </>
   );
 };

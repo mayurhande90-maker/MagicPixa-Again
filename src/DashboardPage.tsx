@@ -2047,7 +2047,7 @@ const ProfileScreen: React.FC<{ user: User | null; auth: AuthProps; openEditProf
     </div>
 );
 
-const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => void; onGenerateClick: () => void; }> = ({ activeView, setActiveView, onGenerateClick }) => {
+const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => void; onFeaturesClick: () => void; }> = ({ activeView, setActiveView, onFeaturesClick }) => {
     // FIX: Explicitly type navItems to ensure item.view is of type View, not string.
     const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
         { view: 'dashboard', label: 'Home', icon: HomeIcon },
@@ -2083,9 +2083,9 @@ const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => 
             
             <div className="absolute left-1/2 -translate-x-1/2 -top-8">
                 <button 
-                    onClick={onGenerateClick}
+                    onClick={onFeaturesClick}
                     className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0079F2] to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 transition-transform transform active:scale-90"
-                    aria-label="Generate"
+                    aria-label="Features"
                 >
                     <SparklesIcon className="w-8 h-8"/>
                 </button>
@@ -2315,7 +2315,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
     
-    const handleGenerateClick = () => {
+    const handleFeaturesClick = () => {
         const mobileOnlyViews = ['dashboard', 'billing', 'creations', 'profile'];
         if(mobileOnlyViews.includes(activeView)) {
             setActiveView('studio'); // Default to studio if on a non-creation page
@@ -2349,7 +2349,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             />
 
             <div className="pb-20 lg:pb-0"></div>
-            <BottomNavBar activeView={activeView} setActiveView={setActiveView} onGenerateClick={handleGenerateClick} />
+            <BottomNavBar activeView={activeView} setActiveView={setActiveView} onFeaturesClick={handleFeaturesClick} />
         </div>
     );
 };
