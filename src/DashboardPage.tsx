@@ -1604,9 +1604,20 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
 
                  {/* Mobile Sticky Footer */}
                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
-                    <div className="hidden lg:block">
-                        <ActionButtons />
-                    </div>
+                    {generatedImage ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                <DownloadIcon className="w-5 h-5" /> Download
+                            </button>
+                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <RetryIcon className="w-5 h-5" /> Regenerate
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Generate
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
