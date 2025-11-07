@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1673,7 +1674,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                  {/* Mobile Garment Uploader */}
                  <div className="lg:hidden w-full bg-white p-4 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 mt-8">
                     <h3 className="font-bold text-lg mb-4 text-[#1E1E1E] text-center">Upload Garments</h3>
-                    <div className={`grid grid-cols-2 gap-4 ${!personImage ? 'opacity-50' : ''}`}>
+                    <div className={`grid grid-cols-2 gap-4 ${!personImage ? 'opacity-50' : ''} p-4`}>
                         <ImageUploader image={topImage} onFileChange={(f) => handleGarmentFileChange(f, setTopImage)} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setTopImage(null)} />
                         <ImageUploader image={pantsImage} onFileChange={(f) => handleGarmentFileChange(f, setPantsImage)} title="Upload Pants" icon={<GarmentTrousersIcon className="w-8 h-8"/>} aspectRatio="aspect-square" disabled={!personImage} onRemove={() => setPantsImage(null)} />
                     </div>
@@ -2143,21 +2144,27 @@ const Profile: React.FC<{ user: User | null, auth: AuthProps, openEditProfileMod
             </div>
 
             {/* Subscription & Credits Card */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><StarIcon className="w-4 h-4 text-yellow-400"/> Current Plan</p>
-                        <p className="text-lg font-bold text-[#1E1E1E]">Free Plan</p>
+            <div className="space-y-4">
+                {/* Current Plan Box */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><StarIcon className="w-4 h-4 text-yellow-400"/> Current Plan</p>
+                            <p className="text-lg font-bold text-[#1E1E1E]">Free Plan</p>
+                        </div>
+                        <button onClick={() => navigateTo('home', undefined, 'pricing')} className="font-semibold text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">Upgrade</button>
                     </div>
-                    <button onClick={() => navigateTo('home', undefined, 'pricing')} className="font-semibold text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">Upgrade</button>
                 </div>
-                <hr className="border-gray-200/80" />
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><TicketIcon className="w-4 h-4 text-green-500"/> Remaining Credits</p>
-                        <p className="text-lg font-bold text-[#1E1E1E]">{user?.credits} Credits</p>
+
+                {/* Remaining Credits Box */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><TicketIcon className="w-4 h-4 text-green-500"/> Remaining Credits</p>
+                            <p className="text-lg font-bold text-[#1E1E1E]">{user?.credits} Credits</p>
+                        </div>
+                        <button onClick={() => setActiveView('billing')} className="font-semibold text-sm bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors">Get More</button>
                     </div>
-                    <button onClick={() => setActiveView('billing')} className="font-semibold text-sm bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors">Get More</button>
                 </div>
             </div>
             
@@ -2536,3 +2543,4 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
     </div>
   );
 };
+// Minor change to allow commit.
