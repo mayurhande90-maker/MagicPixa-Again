@@ -205,8 +205,7 @@ ${apparelPromptInstructions}
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
-  theme: string,
-  propsText: string
+  theme: string
 ): Promise<string> => {
   if (!ai) {
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
@@ -227,10 +226,6 @@ export const editImageWithPrompt = async (
         prompt += `\n\nSTYLE: ${themes[theme]}`;
     } else {
         prompt += `\n\nSTYLE: The AI should choose a professional background that best complements the product.`;
-    }
-
-    if (propsText && propsText.trim() !== '') {
-        prompt += `\n\nPROPS: Add the following props to the scene, arranged naturally and realistically: ${propsText.trim()}.`;
     }
 
     const response = await ai.models.generateContent({

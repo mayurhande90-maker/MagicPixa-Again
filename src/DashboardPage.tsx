@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -287,11 +288,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     
     // New prompt-less state
     const [theme, setTheme] = useState<string>('automatic');
-    const [propsText, setPropsText] = useState<string>('');
-    const [showComparison, setShowComparison] = useState<boolean>(false);
-    const [sliderPosition, setSliderPosition] = useState<number>(50);
-    const comparisonContainerRef = useRef<HTMLDivElement>(null);
-
     const [mobileControlsExpanded, setMobileControlsExpanded] = useState(true);
     
     const [guestCredits, setGuestCredits] = useState<number>(() => {
@@ -363,7 +359,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             }
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
-            setShowComparison(false);
             setError(null);
             setMobileControlsExpanded(true);
         }
@@ -375,8 +370,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setOriginalImage(null);
         setBase64Data(null);
         setTheme('automatic');
-        setPropsText('');
-        setShowComparison(false);
         setMobileControlsExpanded(true);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
@@ -397,9 +390,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setGeneratedImage(null);
         
         try {
-            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, theme, propsText);
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, theme);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
-            setShowComparison(true);
             
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
@@ -413,7 +405,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, theme, propsText, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, theme, currentCredits, auth, isGuest, navigateTo]);
 
 
     const handleDownloadClick = useCallback(() => {
@@ -429,14 +421,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const triggerFileInput = () => {
         if (isLoading) return;
         fileInputRef.current?.click();
-    };
-
-    const handleSliderMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-        if (!comparisonContainerRef.current) return;
-        const rect = comparisonContainerRef.current.getBoundingClientRect();
-        const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const position = ((x - rect.left) / rect.width) * 100;
-        setSliderPosition(Math.max(0, Math.min(100, position)));
     };
     
     const hasInsufficientCredits = currentCredits < currentCost;
@@ -473,15 +457,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                     {t.icon} {t.label}
                                 </button>
                             ))}
-                        </div>
-                    </div>
-                    
-                    {/* PROPS INPUT */}
-                    <div>
-                         <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Add Props (Optional)</label>
-                        <div className="relative">
-                            <PlusCircleIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input type="text" value={propsText} onChange={e => setPropsText(e.target.value)} placeholder="e.g., a silk cloth, two lemons" className="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </div>
                     
@@ -536,19 +511,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
-                                {generatedImage && showComparison && originalImage ? (
-                                     <div ref={comparisonContainerRef} className="absolute inset-0 cursor-ew-resize" onMouseMove={handleSliderMove} onTouchMove={handleSliderMove}>
-                                        <img src={originalImage.url} alt="Original" className="absolute w-full h-full object-contain" />
-                                        <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
-                                            <img src={generatedImage} alt="Generated" className="absolute w-full h-full object-contain" />
-                                        </div>
-                                        <div className="absolute top-0 bottom-0 bg-white/50 w-1 pointer-events-none" style={{ left: `calc(${sliderPosition}% - 2px)` }}>
-                                            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white w-8 h-8 rounded-full border-2 border-[#0079F2] flex items-center justify-center shadow-md">
-                                                <ChevronLeftRightIcon className="w-4 h-4 text-[#0079F2]" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : generatedImage ? (
+                                {generatedImage ? (
                                     <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -564,16 +527,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
 
                                 {hasImage && !isLoading && (
                                     <div className='absolute top-3 right-3 z-20 flex flex-col gap-2'>
-                                        {generatedImage && (
-                                             <button
-                                                onClick={() => setShowComparison(!showComparison)}
-                                                className={`p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md ${showComparison ? 'text-blue-600' : ''}`}
-                                                aria-label={showComparison ? "Exit comparison" : "Compare images"}
-                                                title={showComparison ? "Exit comparison" : "Compare images"}
-                                            >
-                                                <CompareIcon className="w-6 h-6" />
-                                            </button>
-                                        )}
                                          <button
                                             onClick={triggerFileInput}
                                             className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
@@ -616,10 +569,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                             </button>
                                         ))}
                                     </div>
-                                </div>
-                                <div className="relative">
-                                    <PlusCircleIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                                    <input type="text" value={propsText} onChange={e => setPropsText(e.target.value)} placeholder="Add props, e.g., flowers" className="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
                                 </div>
                             </div>
                         )}
