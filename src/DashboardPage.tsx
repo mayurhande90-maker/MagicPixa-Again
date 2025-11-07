@@ -36,13 +36,6 @@ const loadingMessages = [
   "Just a moment...",
 ];
 
-const aspectRatios = [
-    { key: 'original', label: 'Same as Input' },
-    { key: '1:1', label: '1:1 (Square)' },
-    { key: '16:9', label: '16:9 (Landscape)' },
-    { key: '9:16', label: '9:16 (Portrait)' },
-];
-
 const homeInteriorStyles = [
     { key: 'Modern', label: 'Modern' },
     { key: 'Japanese', label: 'Japanese' },
@@ -288,15 +281,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
-    const [aspectRatio, setAspectRatio] = useState<string>('original');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     
     // New prompt-less state
     const [theme, setTheme] = useState<string>('automatic');
-    const [shadow, setShadow] = useState<string>('medium');
-    const [temperature, setTemperature] = useState<string>('neutral');
     const [propsText, setPropsText] = useState<string>('');
     const [showComparison, setShowComparison] = useState<boolean>(false);
     const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -384,10 +374,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setError(null);
         setOriginalImage(null);
         setBase64Data(null);
-        setAspectRatio('original');
         setTheme('automatic');
-        setShadow('medium');
-        setTemperature('neutral');
         setPropsText('');
         setShowComparison(false);
         setMobileControlsExpanded(true);
@@ -410,7 +397,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setGeneratedImage(null);
         
         try {
-            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio, theme, shadow, temperature, propsText);
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, theme, propsText);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             setShowComparison(true);
             
@@ -426,7 +413,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, aspectRatio, theme, shadow, temperature, propsText, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, theme, propsText, currentCredits, auth, isGuest, navigateTo]);
 
 
     const handleDownloadClick = useCallback(() => {
@@ -476,7 +463,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     <p className="text-sm text-[#5F6368]">Upload a photo to begin styling your scene.</p>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col space-y-4 pt-4 border-t border-gray-200/80">
+                <div className="flex-1 flex flex-col space-y-6 pt-4 border-t border-gray-200/80">
                     {/* THEME SELECTOR */}
                     <div>
                         <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Scene Theme</label>
@@ -489,59 +476,39 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                         </div>
                     </div>
                     
-                    {/* FINE TUNE */}
-                    <div className='space-y-4'>
-                        <label className="block text-sm font-bold text-[#1E1E1E]">Fine-Tune Ambiance</label>
-                        <div className='text-xs space-y-3'>
-                             <div className='space-y-1'>
-                                <div className='flex justify-between items-center'><span className='font-semibold text-gray-600'>Shadows</span><span className='capitalize text-gray-500'>{shadow}</span></div>
-                                <input type="range" min="0" max="2" value={['soft', 'medium', 'dramatic'].indexOf(shadow)} onChange={e => setShadow(['soft', 'medium', 'dramatic'][parseInt(e.target.value, 10)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                            </div>
-                            <div className='space-y-1'>
-                                <div className='flex justify-between items-center'><span className='font-semibold text-gray-600'>Temperature</span><span className='capitalize text-gray-500'>{temperature}</span></div>
-                                <input type="range" min="0" max="2" value={['cool', 'neutral', 'warm'].indexOf(temperature)} onChange={e => setTemperature(['cool', 'neutral', 'warm'][parseInt(e.target.value, 10)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                            </div>
-                        </div>
+                    {/* PROPS INPUT */}
+                    <div>
+                         <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Add Props (Optional)</label>
                         <div className="relative">
                             <PlusCircleIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input type="text" value={propsText} onChange={e => setPropsText(e.target.value)} placeholder="e.g., a silk cloth, two lemons" className="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </div>
                     
-                    {/* ASPECT RATIO */}
-                     <div>
-                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {aspectRatios.map(ar => (
-                                <button key={ar.key} onClick={() => setAspectRatio(ar.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
-                                    {ar.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    
                     {/* ACTION BUTTONS */}
-                    <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                        {generatedImage ? (
-                            <>
-                                <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                    <DownloadIcon className="w-6 h-6" /> Download
+                    <div className="flex-1 flex flex-col justify-end">
+                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                            {generatedImage ? (
+                                <>
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                        <DownloadIcon className="w-6 h-6" /> Download
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <RetryIcon className="w-5 h-5" /> Try Another Look
+                                        </button>
+                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                            <UploadIcon className="w-5 h-5" /> Start Over
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                    <SparklesIcon className="w-6 h-6" /> Generate Scene
                                 </button>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <RetryIcon className="w-5 h-5" /> Try Another Look
-                                    </button>
-                                    <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                        <UploadIcon className="w-5 h-5" /> Start Over
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                <SparklesIcon className="w-6 h-6" /> Generate Scene
-                            </button>
-                        )}
-                         <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                            )}
+                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                        </div>
                     </div>
                 </div>
             )}

@@ -205,10 +205,7 @@ ${apparelPromptInstructions}
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
-  aspectRatio: string,
   theme: string,
-  shadow: string,
-  temperature: string,
   propsText: string
 ): Promise<string> => {
   if (!ai) {
@@ -216,7 +213,7 @@ export const editImageWithPrompt = async (
   }
   
   try {
-    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity. Place the product in an appealing, professional setting.`;
+    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. The product must cast a natural, realistic shadow and the lighting should be balanced. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity. Place the product in an appealing, professional setting.`;
     
     const themes: { [key: string]: string } = {
         'minimalist': 'The background should be a minimalist studio setting. Use clean surfaces, soft neutral colors, and a simple, uncluttered composition.',
@@ -232,38 +229,8 @@ export const editImageWithPrompt = async (
         prompt += `\n\nSTYLE: The AI should choose a professional background that best complements the product.`;
     }
 
-    const shadows: { [key: string]: string } = {
-        'soft': 'The product must cast a very soft, subtle shadow.',
-        'medium': 'The product must cast a natural, realistic shadow.',
-        'dramatic': 'The product must cast a dark, dramatic, and well-defined shadow.'
-    };
-    if (shadow && shadows[shadow]) {
-        prompt += `\n\nSHADOWS: ${shadows[shadow]}`;
-    }
-
-    const temperatures: { [key: string]: string } = {
-        'cool': 'The overall color temperature of the scene must be cool, with bluish tones.',
-        'neutral': 'The overall color temperature must be neutral and balanced.',
-        'warm': 'The overall color temperature of the scene must be warm, with golden or yellowish tones.'
-    };
-    if (temperature && temperatures[temperature]) {
-        prompt += `\n\nLIGHTING: ${temperatures[temperature]}`;
-    }
-
     if (propsText && propsText.trim() !== '') {
         prompt += `\n\nPROPS: Add the following props to the scene, arranged naturally and realistically: ${propsText.trim()}.`;
-    }
-
-    if (aspectRatio !== 'original') {
-        let aspectRatioDescription = aspectRatio;
-        if (aspectRatio === '16:9') {
-            aspectRatioDescription = '16:9 landscape';
-        } else if (aspectRatio === '9:16') {
-            aspectRatioDescription = '9:16 portrait';
-        } else if (aspectRatio === '1:1') {
-            aspectRatioDescription = '1:1 square';
-        }
-        prompt += ` The final output image MUST have a strict aspect ratio of ${aspectRatioDescription}. Adjust the framing and background composition as needed, but do not stretch or distort the original product.`;
     }
 
     const response = await ai.models.generateContent({
