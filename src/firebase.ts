@@ -1,10 +1,9 @@
-
-
-// FIX: Updated Firebase imports to use scoped packages (e.g., '@firebase/app') to resolve module export errors.
-// This aligns with the existing type definitions in this file which already use the scoped package format.
-import { initializeApp, getApp, getApps } from '@firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from '@firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp } from '@firebase/firestore';
+// FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
+// Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
+// FIX: Switched to a namespace import to resolve module resolution issues with named exports from 'firebase/app'.
+import * as firebaseApp from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -50,12 +49,13 @@ export const isConfigValid = missingKeys.length === 0;
 export const getMissingConfigKeys = (): string[] => missingKeys;
 
 let app;
-let auth: import('@firebase/auth').Auth | null = null;
-let db: import('@firebase/firestore').Firestore | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (isConfigValid) {
   try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    // FIX: Use namespace import to access firebase app functions.
+    app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApp();
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {
