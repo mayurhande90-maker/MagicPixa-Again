@@ -2,6 +2,9 @@
 
 
 
+
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -15,8 +18,10 @@ import {
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
-    GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, LogoutIcon, PlusIcon,
-    DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon
+    // FIX: Added missing ChevronDownIcon import.
+    GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
+    DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
+    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -295,6 +300,16 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    
+    // New prompt-less state
+    const [theme, setTheme] = useState<string>('automatic');
+    const [shadow, setShadow] = useState<string>('medium');
+    const [temperature, setTemperature] = useState<string>('neutral');
+    const [propsText, setPropsText] = useState<string>('');
+    const [showComparison, setShowComparison] = useState<boolean>(false);
+    const [sliderPosition, setSliderPosition] = useState<number>(50);
+    const comparisonContainerRef = useRef<HTMLDivElement>(null);
+
     const [mobileControlsExpanded, setMobileControlsExpanded] = useState(true);
     
     const [guestCredits, setGuestCredits] = useState<number>(() => {
@@ -366,6 +381,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             }
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
+            setShowComparison(false);
             setError(null);
             setMobileControlsExpanded(true);
         }
@@ -377,6 +393,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setOriginalImage(null);
         setBase64Data(null);
         setAspectRatio('original');
+        setTheme('automatic');
+        setShadow('medium');
+        setTemperature('neutral');
+        setPropsText('');
+        setShowComparison(false);
         setMobileControlsExpanded(true);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
@@ -397,8 +418,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setGeneratedImage(null);
         
         try {
-            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio);
+            const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, aspectRatio, theme, shadow, temperature, propsText);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            setShowComparison(true);
             
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
@@ -412,7 +434,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, aspectRatio, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, aspectRatio, theme, shadow, temperature, propsText, currentCredits, auth, isGuest, navigateTo]);
 
 
     const handleDownloadClick = useCallback(() => {
@@ -429,70 +451,109 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         if (isLoading) return;
         fileInputRef.current?.click();
     };
-    
-    const handleAspectRatioSelect = (key: string) => {
-        setAspectRatio(key);
-        setMobileControlsExpanded(false);
-    };
 
+    const handleSliderMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+        if (!comparisonContainerRef.current) return;
+        const rect = comparisonContainerRef.current.getBoundingClientRect();
+        const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const position = ((x - rect.left) / rect.width) * 100;
+        setSliderPosition(Math.max(0, Math.min(100, position)));
+    };
+    
     const hasInsufficientCredits = currentCredits < currentCost;
     
+    const themes = [
+        { key: 'automatic', label: 'Automatic', icon: <SparklesIcon className="w-5 h-5"/> },
+        { key: 'minimalist', label: 'Minimalist', icon: <MinimalistIcon className="w-5 h-5"/> },
+        { key: 'natural', label: 'Natural', icon: <LeafIcon className="w-5 h-5"/> },
+        { key: 'geometric', label: 'Geometric', icon: <CubeIcon className="w-5 h-5"/> },
+        { key: 'luxe', label: 'Luxe', icon: <DiamondIcon className="w-5 h-5"/> },
+        { key: 'outdoor', label: 'Outdoor', icon: <SunIcon className="w-5 h-5"/> },
+    ];
+    
     const DesktopControlPanel = () => (
-        <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+        <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
             <div className='text-center'>
                 <h3 className="text-xl font-bold text-[#1E1E1E]">Control Panel</h3>
                 <p className='text-sm text-[#5F6368]'>Your creative cockpit</p>
             </div>
-            <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
-                <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
-                <div>
-                    <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
-                    <p className="text-xs text-yellow-700">For best results, upload a clear, well-lit photo where the subject is facing forward.</p>
+            
+            {!hasImage ? (
+                <div className='flex-1 flex flex-col items-center justify-center text-center p-4 border-t border-gray-200/80'>
+                    <PhotoStudioIcon className="w-12 h-12 text-gray-300 mb-2"/>
+                    <p className="text-sm text-[#5F6368]">Upload a photo to begin styling your scene.</p>
                 </div>
-            </div>
-            <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                {!originalImage && !isLoading && <p className="text-xs text-center text-[#5F6368]">Click the canvas on the left to upload a photo.</p>}
-                {originalImage && (
-                    <>
-                        <div>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {aspectRatios.map(ar => (
-                                    <button key={ar.key} onClick={() => setAspectRatio(ar.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
-                                        {ar.label}
-                                    </button>
-                                ))}
+            ) : (
+                <div className="flex-1 flex flex-col space-y-4 pt-4 border-t border-gray-200/80">
+                    {/* THEME SELECTOR */}
+                    <div>
+                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Scene Theme</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {themes.map(t => (
+                                <button key={t.key} onClick={() => setTheme(t.key)} className={`flex flex-col items-center justify-center gap-1.5 p-2 text-xs font-semibold rounded-lg border-2 transition-colors ${theme === t.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                    {t.icon} {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* FINE TUNE */}
+                    <div className='space-y-4'>
+                        <label className="block text-sm font-bold text-[#1E1E1E]">Fine-Tune Ambiance</label>
+                        <div className='text-xs space-y-3'>
+                             <div className='space-y-1'>
+                                <div className='flex justify-between items-center'><span className='font-semibold text-gray-600'>Shadows</span><span className='capitalize text-gray-500'>{shadow}</span></div>
+                                <input type="range" min="0" max="2" value={['soft', 'medium', 'dramatic'].indexOf(shadow)} onChange={e => setShadow(['soft', 'medium', 'dramatic'][parseInt(e.target.value, 10)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                            </div>
+                            <div className='space-y-1'>
+                                <div className='flex justify-between items-center'><span className='font-semibold text-gray-600'>Temperature</span><span className='capitalize text-gray-500'>{temperature}</span></div>
+                                <input type="range" min="0" max="2" value={['cool', 'neutral', 'warm'].indexOf(temperature)} onChange={e => setTemperature(['cool', 'neutral', 'warm'][parseInt(e.target.value, 10)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
                             </div>
                         </div>
-                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                            {generatedImage ? (
-                                <div className="w-full space-y-2">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
-                                        <DownloadIcon className="w-6 h-6" /> Download Image
-                                    </button>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <RetryIcon className="w-5 h-5" /> Regenerate
-                                        </button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <UploadIcon className="w-5 h-5" /> Upload New
-                                        </button>
-                                    </div>
-                                    <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>Regeneration costs {EDIT_COST} credits.</p>
-                                </div>
-                            ) : (
-                                <div className="w-full space-y-2">
-                                    <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                                        <SparklesIcon className="w-6 h-6" /> Generate
-                                    </button>
-                                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits. Top up now!') : `This generation will cost ${EDIT_COST} credits.`}</p>
-                                </div>
-                            )}
+                        <div className="relative">
+                            <PlusCircleIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input type="text" value={propsText} onChange={e => setPropsText(e.target.value)} placeholder="e.g., a silk cloth, two lemons" className="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
-                    </>
-                )}
-            </div>
-            {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
+                    </div>
+                    
+                    {/* ASPECT RATIO */}
+                     <div>
+                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {aspectRatios.map(ar => (
+                                <button key={ar.key} onClick={() => setAspectRatio(ar.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>
+                                    {ar.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* ACTION BUTTONS */}
+                    <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                        {generatedImage ? (
+                            <>
+                                <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                                    <DownloadIcon className="w-6 h-6" /> Download
+                                </button>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <RetryIcon className="w-5 h-5" /> Try Another Look
+                                    </button>
+                                    <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                        <UploadIcon className="w-5 h-5" /> Start Over
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                <SparklesIcon className="w-6 h-6" /> Generate Scene
+                            </button>
+                        )}
+                         <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits.') : `This generation will cost ${EDIT_COST} credits.`}</p>
+                    </div>
+                </div>
+            )}
+             {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
         </div>
     );
 
@@ -508,7 +569,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     <div className="lg:col-span-3">
                          <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
-                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
                                 role={!hasImage ? 'button' : undefined} 
                                 tabIndex={!hasImage ? 0 : -1} 
@@ -516,7 +577,19 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
-                                {generatedImage ? (
+                                {generatedImage && showComparison && originalImage ? (
+                                     <div ref={comparisonContainerRef} className="absolute inset-0 cursor-ew-resize" onMouseMove={handleSliderMove} onTouchMove={handleSliderMove}>
+                                        <img src={originalImage.url} alt="Original" className="absolute w-full h-full object-contain" />
+                                        <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
+                                            <img src={generatedImage} alt="Generated" className="absolute w-full h-full object-contain" />
+                                        </div>
+                                        <div className="absolute top-0 bottom-0 bg-white/50 w-1 pointer-events-none" style={{ left: `calc(${sliderPosition}% - 2px)` }}>
+                                            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white w-8 h-8 rounded-full border-2 border-[#0079F2] flex items-center justify-center shadow-md">
+                                                <ChevronLeftRightIcon className="w-4 h-4 text-[#0079F2]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : generatedImage ? (
                                     <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -531,14 +604,26 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 )}
 
                                 {hasImage && !isLoading && (
-                                     <button
-                                        onClick={triggerFileInput}
-                                        className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
-                                        aria-label="Change photo"
-                                        title="Change photo"
-                                    >
-                                        <ArrowUpCircleIcon className="w-6 h-6" />
-                                    </button>
+                                    <div className='absolute top-3 right-3 z-20 flex flex-col gap-2'>
+                                        {generatedImage && (
+                                             <button
+                                                onClick={() => setShowComparison(!showComparison)}
+                                                className={`p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md ${showComparison ? 'text-blue-600' : ''}`}
+                                                aria-label={showComparison ? "Exit comparison" : "Compare images"}
+                                                title={showComparison ? "Exit comparison" : "Compare images"}
+                                            >
+                                                <CompareIcon className="w-6 h-6" />
+                                            </button>
+                                        )}
+                                         <button
+                                            onClick={triggerFileInput}
+                                            className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                            aria-label="Change photo"
+                                            title="Change photo"
+                                        >
+                                            <ArrowUpCircleIcon className="w-6 h-6" />
+                                        </button>
+                                    </div>
                                 )}
 
                                 {isLoading && (
@@ -553,28 +638,34 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     
                     <DesktopControlPanel />
                     
-                    <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
-                        <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
-                        {mobileControlsExpanded || !hasImage ? (
-                            <div className={!hasImage ? 'opacity-50' : ''}>
-                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Aspect Ratio</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {aspectRatios.map(ar => (
-                                        <button key={ar.key} onClick={() => handleAspectRatioSelect(ar.key)} disabled={!hasImage} className={`py-3 px-1 text-sm font-semibold rounded-lg border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 ${aspectRatio === ar.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'}`}>{ar.label}</button>
-                                    ))}
+                    {/* Mobile Controls */}
+                    {hasImage && <div className="lg:hidden w-full bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Controls</h3>
+                             <button onClick={() => setMobileControlsExpanded(!mobileControlsExpanded)} className="p-1">
+                                {mobileControlsExpanded ? <ChevronUpIcon className="w-5 h-5"/> : <ChevronDownIcon className="w-5 h-5"/>}
+                            </button>
+                        </div>
+                        {mobileControlsExpanded && (
+                            <div className='space-y-4'>
+                                <div className='pt-2'>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Scene Theme</label>
+                                    <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
+                                        {themes.map(t => (
+                                            <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2 w-20 text-xs font-semibold rounded-lg border-2 transition-colors ${theme === t.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
+                                                {t.icon} {t.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                <div>
-                                    <p className="text-xs text-gray-500">Aspect Ratio</p>
-                                    <p className="text-sm font-semibold text-[#1E1E1E]">{aspectRatios.find(ar => ar.key === aspectRatio)?.label}</p>
+                                <div className="relative">
+                                    <PlusCircleIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <input type="text" value={propsText} onChange={e => setPropsText(e.target.value)} placeholder="Add props, e.g., flowers" className="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
                                 </div>
-                                <button onClick={() => setMobileControlsExpanded(true)} className="text-sm font-semibold text-[#0079F2] py-1 px-3 rounded-md hover:bg-blue-50">Change</button>
                             </div>
                         )}
                         {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
-                    </div>
+                    </div>}
 
                 </div>
                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
@@ -584,7 +675,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 <DownloadIcon className="w-5 h-5" /> Download
                             </button>
                             <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                <RetryIcon className="w-5 h-5" /> Regenerate
+                                <RetryIcon className="w-5 h-5" /> Another Look
                             </button>
                         </div>
                     ) : (
@@ -2028,15 +2119,14 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
-            <div className='w-full max-w-7xl mx-auto'>
+        <div className="p-4 sm:p-6 lg:p-8 h-full">
+            <div className="w-full max-w-7xl mx-auto">
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
                     <p className="text-[#5F6368] mt-2">Generate engaging social media captions for any photo.</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    {/* Image Uploader */}
                     <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div
                             className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
@@ -2044,503 +2134,367 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                         >
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                             {originalImage ? (
-                                <img src={originalImage.url} alt="Uploaded for captions" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                <img src={originalImage.url} alt="Uploaded for captioning" className="max-h-full h-auto w-auto object-contain rounded-lg" />
                             ) : (
                                 <div className="text-center">
                                     <div className="flex flex-col items-center gap-2 text-[#5F6368]">
                                         <UploadIcon className="w-12 h-12" />
-                                        <span className='font-semibold text-lg text-[#1E1E1E]'>Upload a Photo</span>
-                                        <span className="text-sm">and we'll write the captions</span>
+                                        <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                        <span className="text-sm">or click to upload</span>
                                     </div>
                                 </div>
                             )}
-                            {hasImage && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
+                             {hasImage && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
                         </div>
                     </div>
 
-                    {/* Captions Display */}
-                    <div className="w-full h-full min-h-[50vh] lg:aspect-square flex flex-col">
-                        <div className="flex-1 bg-white rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 p-6 space-y-4 overflow-y-auto">
-                            <h3 className="text-xl font-bold text-center text-[#1E1E1E]">Generated Captions</h3>
-                            {isLoading ? (
-                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                                    <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
-                                </div>
-                            ) : error ? (
-                                <div className='w-full flex flex-col items-center justify-center gap-4 pt-4'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={() => { setError(null); handleGenerate();}} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>
-                            ) : generatedCaptions ? (
-                                <div className="space-y-4">
-                                    {generatedCaptions.map((item, index) => (
-                                        <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200/80">
-                                            <p className="text-sm text-gray-800">{item.caption}</p>
-                                            <p className="text-xs text-blue-600 mt-2 font-medium">{item.hashtags}</p>
-                                            <button onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)} className="mt-3 text-xs font-bold flex items-center gap-1.5 text-gray-500 hover:text-black transition-colors">
-                                                {copiedIndex === index ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}
-                                                {copiedIndex === index ? 'Copied!' : 'Copy Text'}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                                    <InformationCircleIcon className="w-10 h-10 mb-2"/>
-                                    <p className="font-semibold">Your captions will appear here.</p>
-                                    <p className="text-sm">Upload an image and click "Generate".</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="hidden lg:block pt-8">
-                             <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5" /> {generatedCaptions ? 'Regenerate' : 'Generate'} Captions
-                            </button>
-                            <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${currentCost} credit.`}</p>
-                        </div>
-                    </div>
-                </div>
+                    <div className="space-y-4">
+                        <button 
+                            onClick={handleGenerate} 
+                            disabled={!hasImage || isLoading || hasInsufficientCredits}
+                            className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                        >
+                            {isLoading ? 'Generating...' : <><SparklesIcon className="w-6 h-6" /> Generate Captions</>}
+                        </button>
+                        <p className={`text-xs text-center -mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${currentCost} credit.`}</p>
 
-                {/* Mobile Sticky Footer */}
-                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
-                     <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                        <SparklesIcon className="w-5 h-5" /> {generatedCaptions ? 'Regenerate' : 'Generate'}
-                    </button>
+                        {isLoading ? (
+                             <div className="h-96 bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex flex-col items-center justify-center">
+                                <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                            </div>
+                        ) : error ? (
+                            <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>
+                        ) : generatedCaptions ? (
+                            <div className="space-y-4">
+                                {generatedCaptions.map((item, index) => (
+                                    <div key={index} className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+                                        <p className="text-[#1E1E1E]">{item.caption}</p>
+                                        <p className="text-sm text-blue-600 mt-2">{item.hashtags}</p>
+                                        <button 
+                                            onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)}
+                                            className="mt-3 flex items-center gap-2 text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-md hover:bg-gray-200"
+                                        >
+                                            {copiedIndex === index ? <><CheckIcon className="w-4 h-4 text-green-500"/> Copied!</> : <><CopyIcon className="w-4 h-4"/> Copy Text</>}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="h-96 bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex flex-col items-center justify-center text-center">
+                                <CaptionIcon className="w-12 h-12 text-gray-300 mb-2" />
+                                <p className="text-sm text-[#5F6368] max-w-xs">Your generated captions will appear here once you upload an image and click "Generate".</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-const Creations: React.FC = () => (
-    <div className="p-4 sm:p-6 lg:p-8 h-full">
-        <div className='mb-8'>
-            <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
-            <p className="text-[#5F6368] mt-1">A gallery of all your magical creations.</p>
-        </div>
-         <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-             <ProjectsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-             <h3 className="text-xl font-bold text-[#1E1E1E]">Coming Soon!</h3>
-             <p className="text-[#5F6368] mt-2 max-w-sm mx-auto">We're hard at work building this space. Soon, all your generated images and projects will be saved and organized right here for you to access anytime.</p>
-        </div>
-    </div>
-);
+// FIX: This component was not returning any JSX. Added a return statement and wrapped the JSX block.
+const ConversationView: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    type TranscriptionEntry = {
+        id: number;
+        type: 'user' | 'model';
+        text: string;
+    };
 
-const Profile: React.FC<{ user: User | null, auth: AuthProps, openEditProfileModal: () => void, navigateTo: (page: Page, view?: View, sectionId?: string) => void, setActiveView: (view: View) => void }> = ({ user, auth, openEditProfileModal, navigateTo, setActiveView }) => {
-    
-    // Mobile-first Account Hub View
-    const MobileAccountHub = () => (
-        <div className="p-4 space-y-6">
-             {/* User Identity Card */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl flex-shrink-0">
-                    {user?.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-[#1E1E1E] truncate">{user?.name}</h3>
-                    <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
-                </div>
-                <button onClick={openEditProfileModal} className="p-2 text-gray-500 hover:text-blue-600">
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-            </div>
-
-            {/* Subscription & Credits Card */}
-            <div className="space-y-4">
-                {/* Current Plan Box */}
-                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><StarIcon className="w-4 h-4 text-yellow-400"/> Current Plan</p>
-                            <p className="text-lg font-bold text-[#1E1E1E]">Free Plan</p>
-                        </div>
-                        <button onClick={() => navigateTo('home', undefined, 'pricing')} className="font-semibold text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">Upgrade</button>
-                    </div>
-                </div>
-
-                {/* Remaining Credits Box */}
-                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><TicketIcon className="w-4 h-4 text-green-500"/> Remaining Credits</p>
-                            <p className="text-lg font-bold text-[#1E1E1E]">{user?.credits} Credits</p>
-                        </div>
-                        <button onClick={() => setActiveView('billing')} className="font-semibold text-sm bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors">Get More</button>
-                    </div>
-                </div>
-            </div>
-            
-            {/* Account Management List */}
-            <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 divide-y divide-gray-200/80">
-                 <button disabled className="w-full flex items-center justify-between p-4 text-left text-gray-400 cursor-not-allowed">
-                    <div className="flex items-center gap-4">
-                        <CreditCardIcon className="w-6 h-6"/>
-                        <span className="font-semibold">Manage Subscription</span>
-                    </div>
-                    <ChevronRightIcon className="w-5 h-5"/>
-                </button>
-                 <button disabled className="w-full flex items-center justify-between p-4 text-left text-gray-400 cursor-not-allowed">
-                    <div className="flex items-center gap-4">
-                        <HelpIcon className="w-6 h-6"/>
-                        <span className="font-semibold">Help & Support</span>
-                    </div>
-                    <ChevronRightIcon className="w-5 h-5"/>
-                </button>
-            </div>
-
-             {/* Sign Out Button */}
-            <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                 <button onClick={auth.handleLogout} className="w-full flex items-center justify-between p-4 text-left text-red-600">
-                    <div className="flex items-center gap-4">
-                        <LogoutIcon className="w-6 h-6"/>
-                        <span className="font-semibold">Sign Out</span>
-                    </div>
-                </button>
-            </div>
-        </div>
-    );
-    
-    // Desktop View
-    const DesktopProfile = () => (
-         <div className="p-4 sm:p-6 lg:p-8 h-full">
-            <div className='mb-8'>
-                <h2 className="text-3xl font-bold text-[#1E1E1E]">My Profile</h2>
-                <p className="text-[#5F6368] mt-1">Manage your account settings.</p>
-            </div>
-            <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                <div className="flex flex-col items-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl mb-4">
-                        {user?.avatar}
-                    </div>
-                    <h3 className="text-2xl font-bold text-[#1E1E1E]">{user?.name}</h3>
-                    <p className="text-[#5F6368]">{user?.email}</p>
-                    <div className="mt-6 w-full space-y-4">
-                        <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <PencilIcon className="w-4 h-4" /> Edit Profile
-                        </button>
-                        <button onClick={auth.handleLogout} className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                        <LogoutIcon className="w-4 h-4" /> Sign Out
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-
-    return (
-        <>
-            <div className="hidden lg:block">
-                <DesktopProfile />
-            </div>
-            <div className="lg:hidden">
-                <MobileAccountHub />
-            </div>
-        </>
-    );
-};
-
-
-const MagicConversation: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-    // ... State management for conversation ...
-    const [isRecording, setIsRecording] = useState(false);
-    const [isConnecting, setIsConnecting] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [isSessionActive, setIsSessionActive] = useState(false);
+    const [isModelSpeaking, setIsModelSpeaking] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [transcriptions, setTranscriptions] = useState<{ type: 'user' | 'model'; text: string }[]>([]);
+    const [transcriptions, setTranscriptions] = useState<TranscriptionEntry[]>([]);
 
-    const sessionRef = useRef<any>(null); // Using `any` due to no exported LiveSession type
+    const sessionRef = useRef<any>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
     const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const outputNodeRef = useRef<GainNode | null>(null);
-    const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-    const nextStartTimeRef = useRef<number>(0);
-    const transcriptContainerRef = useRef<HTMLDivElement>(null);
-    const currentInputTranscription = useRef('');
-    const currentOutputTranscription = useRef('');
-    
+    const currentInputTranscriptionRef = useRef('');
+    const currentOutputTranscriptionRef = useRef('');
+    const nextStartTimeRef = useRef(0);
+    const sourcesRef = useRef(new Set<AudioBufferSourceNode>());
+    const transcriptionContainerRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        if(transcriptContainerRef.current) {
-            transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
+        if (transcriptionContainerRef.current) {
+            transcriptionContainerRef.current.scrollTop = transcriptionContainerRef.current.scrollHeight;
         }
     }, [transcriptions]);
 
-    const stopAudioPlayback = () => {
-        if(sourcesRef.current) {
-            for (const source of sourcesRef.current.values()) {
-                source.stop();
-                sourcesRef.current.delete(source);
-            }
-        }
-        nextStartTimeRef.current = 0;
-    };
-
-    const stopAudioProcessing = useCallback(() => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
+    const cleanupAudio = useCallback(() => {
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
         }
         if (mediaStreamSourceRef.current) {
             mediaStreamSourceRef.current.disconnect();
             mediaStreamSourceRef.current = null;
         }
-        if (scriptProcessorRef.current) {
-            scriptProcessorRef.current.disconnect();
-            scriptProcessorRef.current.onaudioprocess = null;
-            scriptProcessorRef.current = null;
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
         }
         if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
             inputAudioContextRef.current.close();
         }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close();
+        }
+        inputAudioContextRef.current = null;
+        outputAudioContextRef.current = null;
+        sourcesRef.current.forEach(source => source.stop());
+        sourcesRef.current.clear();
+        nextStartTimeRef.current = 0;
     }, []);
 
-    const cleanup = useCallback(() => {
-        setIsRecording(false);
-        setIsConnecting(false);
-        stopAudioPlayback();
-        stopAudioProcessing();
+    const handleStart = useCallback(async () => {
+        setIsListening(true);
+        setError(null);
+        setTranscriptions([]);
+        currentInputTranscriptionRef.current = '';
+        currentOutputTranscriptionRef.current = '';
 
+        try {
+            cleanupAudio();
+
+            inputAudioContextRef.current = new (window.AudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext)({ sampleRate: 24000 });
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStreamRef.current = stream;
+
+            const sessionPromise = startLiveSession({
+                onopen: () => {
+                    if (!inputAudioContextRef.current || !mediaStreamRef.current) return;
+                    setIsSessionActive(true);
+                    
+                    const source = inputAudioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
+                    mediaStreamSourceRef.current = source;
+                    
+                    const scriptProcessor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                    scriptProcessorRef.current = scriptProcessor;
+                    
+                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32767)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
+                        };
+                        sessionPromise.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    };
+                    source.connect(scriptProcessor);
+                    scriptProcessor.connect(inputAudioContextRef.current.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
+                        setIsModelSpeaking(true);
+                        const base64Audio = message.serverContent.modelTurn.parts[0].inlineData.data;
+                        if (outputAudioContextRef.current) {
+                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputAudioContextRef.current.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current, 24000, 1);
+                            const source = outputAudioContextRef.current.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(outputAudioContextRef.current.destination);
+                            source.onended = () => {
+                                sourcesRef.current.delete(source);
+                                if (sourcesRef.current.size === 0) {
+                                    setIsModelSpeaking(false);
+                                }
+                            };
+                            source.start(nextStartTimeRef.current);
+                            nextStartTimeRef.current += audioBuffer.duration;
+                            sourcesRef.current.add(source);
+                        }
+                    }
+
+                    if (message.serverContent?.outputTranscription?.text) {
+                        currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
+                    }
+                    if (message.serverContent?.inputTranscription?.text) {
+                        currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
+                    }
+                    if (message.serverContent?.turnComplete) {
+                        setTranscriptions(prev => [
+                            ...prev,
+                            { id: Date.now(), type: 'user', text: currentInputTranscriptionRef.current },
+                            { id: Date.now() + 1, type: 'model', text: currentOutputTranscriptionRef.current }
+                        ]);
+                        currentInputTranscriptionRef.current = '';
+                        currentOutputTranscriptionRef.current = '';
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error("Session error:", e);
+                    setError("A connection error occurred. Please try again.");
+                    setIsListening(false);
+                    setIsSessionActive(false);
+                    cleanupAudio();
+                },
+                onclose: (e: CloseEvent) => {
+                    setIsListening(false);
+                    setIsSessionActive(false);
+                    cleanupAudio();
+                },
+            });
+            sessionRef.current = await sessionPromise;
+        } catch (err) {
+            console.error("Error starting session:", err);
+            setError("Could not access microphone. Please check your browser permissions.");
+            setIsListening(false);
+            cleanupAudio();
+        }
+    }, [cleanupAudio]);
+
+    const handleStop = useCallback(() => {
         if (sessionRef.current) {
             sessionRef.current.close();
             sessionRef.current = null;
         }
-    }, [stopAudioProcessing]);
-
-    const handleStart = async () => {
-        if (isRecording) return;
-        setIsConnecting(true);
-        setError(null);
-        setTranscriptions([]);
-        
-        try {
-            // Initialize Audio Contexts
-            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-            outputNodeRef.current = outputAudioContextRef.current.createGain();
-            outputNodeRef.current.connect(outputAudioContextRef.current.destination);
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
-            
-            const sessionPromise = startLiveSession({
-                 onopen: () => {
-                    if (!inputAudioContextRef.current) return;
-                    mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
-                    scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
-                    
-                    scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
-                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                        const pcmBlob: Blob = {
-                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
-                            mimeType: 'audio/pcm;rate=16000',
-                        };
-                         sessionPromise.then((session) => {
-                           session.sendRealtimeInput({ media: pcmBlob });
-                        });
-                    };
-                    
-                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
-                    scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
-                    setIsConnecting(false);
-                    setIsRecording(true);
-                },
-                onmessage: async (message: LiveServerMessage) => {
-                    if (message.serverContent?.outputTranscription) {
-                        currentOutputTranscription.current += message.serverContent.outputTranscription.text;
-                    }
-                    if (message.serverContent?.inputTranscription) {
-                        currentInputTranscription.current += message.serverContent.inputTranscription.text;
-                    }
-
-                    if (message.serverContent?.turnComplete) {
-                        setTranscriptions(prev => [
-                            ...prev, 
-                            { type: 'user', text: currentInputTranscription.current },
-                            { type: 'model', text: currentOutputTranscription.current }
-                        ]);
-                        currentInputTranscription.current = '';
-                        currentOutputTranscription.current = '';
-                    }
-
-                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                    if (base64Audio && outputAudioContextRef.current && outputNodeRef.current) {
-                        const ctx = outputAudioContextRef.current;
-                        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-                        
-                        const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
-                        const source = ctx.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.connect(outputNodeRef.current);
-                        
-                        source.addEventListener('ended', () => {
-                            sourcesRef.current.delete(source);
-                        });
-
-                        source.start(nextStartTimeRef.current);
-                        nextStartTimeRef.current += audioBuffer.duration;
-                        sourcesRef.current.add(source);
-                    }
-                },
-                onerror: (e: ErrorEvent) => {
-                    console.error("Live session error:", e);
-                    setError("A connection error occurred. Please try again.");
-                    cleanup();
-                },
-                onclose: (e: CloseEvent) => {
-                    cleanup();
-                },
-            });
-
-            sessionRef.current = await sessionPromise;
-
-        } catch (err) {
-            console.error("Failed to start session:", err);
-            setError("Could not access microphone. Please check permissions and try again.");
-            setIsConnecting(false);
-        }
-    };
-    
-    const handleStop = () => {
-        cleanup();
-    };
+        setIsListening(false);
+        setIsSessionActive(false);
+        cleanupAudio();
+    }, [cleanupAudio]);
 
     return (
-        <div className={`fixed inset-x-0 bottom-0 z-[60] lg:inset-auto lg:bottom-8 lg:right-8 lg:w-96 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-[calc(100%+2rem)]'}`}>
-            <div className="bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl border border-gray-200/80 max-h-[70vh] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200/80">
-                    <h3 className="font-bold text-lg flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-blue-500" /> Magic Conversation</h3>
-                    <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100"><XIcon className="w-5 h-5"/></button>
-                </div>
+    <div
+    className={`fixed inset-0 z-[100] transform transition-transform duration-500 ease-in-out ${
+      isConversationOpen ? 'translate-y-0' : 'translate-y-full'
+    }`}
+  >
+    <div className="relative w-full h-full bg-white flex flex-col">
+        <div className="absolute top-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-b z-10 flex justify-between items-center">
+             <h3 className="font-bold text-lg text-[#1E1E1E]">Magic Conversation</h3>
+             <button onClick={() => setIsConversationOpen(false)} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-6 h-6" /></button>
+        </div>
 
-                {/* Body / Transcript */}
-                <div ref={transcriptContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
-                    {transcriptions.length === 0 && !isRecording && !isConnecting && (
-                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                            <p>Tap the microphone to start a conversation with Pixa.</p>
-                        </div>
-                    )}
-                     {transcriptions.map((item, index) => (
-                         <div key={index} className={`flex items-start gap-3 ${item.type === 'user' ? 'justify-end' : ''}`}>
-                             {item.type === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-500"/></div>}
-                             <div className={`max-w-xs px-4 py-2 rounded-2xl ${item.type === 'user' ? 'bg-gray-200 text-gray-800 rounded-br-none' : 'bg-blue-500 text-white rounded-bl-none'}`}>
-                                 <p className="text-sm">{item.text}</p>
-                             </div>
-                         </div>
-                     ))}
-                </div>
-
-                {/* Footer / Controls */}
-                <div className="p-4 border-t border-gray-200/80">
-                     {error && <p className="text-center text-sm text-red-600 mb-2">{error}</p>}
-                    <div className="flex justify-center items-center">
-                        <button 
-                            onClick={isRecording ? handleStop : handleStart} 
-                            disabled={isConnecting}
-                            className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-colors duration-300 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} disabled:bg-gray-400`}
-                        >
-                            {isConnecting ? 
-                                <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                : isRecording ? <StopIcon className="w-7 h-7" /> : <MicrophoneIcon className="w-7 h-7" />
-                            }
-                        </button>
+        <div ref={transcriptionContainerRef} className="flex-1 overflow-y-auto p-4 pt-20 pb-40 space-y-4">
+            {transcriptions.map(t => (
+                <div key={t.id} className={`flex ${t.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${t.type === 'user' ? 'bg-[#0079F2] text-white rounded-br-none' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-none'}`}>
+                       <p>{t.text}</p>
                     </div>
                 </div>
+            ))}
+             {isListening && !transcriptions.length && (
+                 <div className="text-center text-gray-400 pt-20">
+                    <p>Listening...</p>
+                 </div>
+             )}
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-t">
+            {error && <div className="text-center text-red-500 text-sm mb-2">{error}</div>}
+             <div className="flex items-center justify-center gap-4">
+                <button 
+                    onClick={isListening ? handleStop : handleStart}
+                    className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors duration-300 shadow-lg ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f9d230] hover:bg-yellow-400'}`}
+                >
+                    {isListening ? <StopIcon className="w-8 h-8 text-white"/> : <MicrophoneIcon className="w-8 h-8 text-[#1E1E1E]"/>}
+                </button>
             </div>
         </div>
-    );
-};
-
-const MobileNav: React.FC<{ activeView: View; setActiveView: (view: View) => void; auth: AuthProps }> = ({ activeView, setActiveView, auth }) => {
-    const handleNav = (view: View) => {
-        if (!auth.isAuthenticated) {
-            auth.openAuthModal();
-        } else {
-            setActiveView(view);
-        }
-    };
-
-    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean }[] = [
-        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
-        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
-        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
-    ];
-    
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button 
-                        key={item.label} 
-                        onClick={() => handleNav(item.view)} 
-                        disabled={item.disabled} 
-                        className={`flex flex-col items-center justify-center gap-1 p-2 w-1/4 h-full transition-colors ${activeView === item.view ? 'text-blue-600' : 'text-gray-500'} disabled:text-gray-300`}
-                    >
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-
-export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-
-  const renderActiveView = () => {
-    switch (activeView) {
-      case 'dashboard': return <MobileDashboard user={auth.user} setActiveView={setActiveView} />;
-      case 'home_dashboard': return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
-      case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
-      case 'interior': return <MagicInterior auth={auth} navigateTo={navigateTo} />;
-      case 'billing': return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
-      case 'colour': return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
-      case 'eraser': return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
-      case 'apparel': return <MagicApparel auth={auth} navigateTo={navigateTo} />;
-      case 'mockup': return <MagicMockup auth={auth} navigateTo={navigateTo} />;
-      case 'caption': return <CaptionAI auth={auth} navigateTo={navigateTo} />;
-      case 'creations': return <Creations />;
-      case 'profile': return <Profile user={auth.user} auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} />;
-      default: return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-    }
-  };
-  
-  const showBackButton = ![
-      'dashboard', 'home_dashboard', 'creations', 'billing', 'profile'
-  ].includes(activeView);
-
-  const handleBack = () => {
-      setActiveView('dashboard');
-  };
-  
-  const headerAuthProps = {
-    ...auth,
-    setActiveView,
-    openConversation: () => setIsConversationOpen(true),
-    isDashboard: true,
-    showBackButton,
-    handleBack,
-  };
-
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
-      <div className="hidden lg:block">
-        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-      </div>
-      <div className="flex-1 flex flex-col w-full">
-        <Header navigateTo={navigateTo} auth={headerAuthProps} />
-        <main className="flex-1 overflow-y-auto pb-24 lg:pb-0">
-          {renderActiveView()}
-        </main>
-        {auth.isAuthenticated && (
-            <>
-                <MagicConversation isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
-                <MobileNav activeView={activeView} setActiveView={setActiveView} auth={auth}/>
-            </>
-        )}
-      </div>
+    </div>
     </div>
   );
 };
-// Minor change to allow commit.
+
+const ProfileView: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => {
+    return (
+        <div className="p-4">
+            <div className="flex items-center gap-4 mb-8">
+                 <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
+                    {auth.user?.avatar}
+                </div>
+                <div>
+                    <h3 className="font-bold text-xl text-[#1E1E1E]">{auth.user?.name}</h3>
+                    <p className="text-sm text-[#5F6368] truncate">{auth.user?.email}</p>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                 <button onClick={openEditProfileModal} className="w-full flex items-center gap-4 p-4 text-left bg-white rounded-lg border hover:bg-gray-50">
+                    <AvatarUserIcon className="w-6 h-6 text-gray-500" />
+                    <div>
+                        <p className="font-semibold text-[#1E1E1E]">Edit Profile</p>
+                        <p className="text-xs text-gray-500">Update your name and email</p>
+                    </div>
+                 </button>
+                 <button className="w-full flex items-center gap-4 p-4 text-left bg-white rounded-lg border hover:bg-gray-50">
+                    <CreditCardIcon className="w-6 h-6 text-gray-500" />
+                    <div>
+                        <p className="font-semibold text-[#1E1E1E]">Billing</p>
+                        <p className="text-xs text-gray-500">Manage your subscription and credits</p>
+                    </div>
+                 </button>
+                <button onClick={auth.handleLogout} className="w-full flex items-center gap-4 p-4 text-left bg-white rounded-lg border hover:bg-gray-50">
+                    <LogoutIcon className="w-6 h-6 text-red-500" />
+                    <div>
+                        <p className="font-semibold text-red-600">Logout</p>
+                         <p className="text-xs text-gray-500">You will be returned to the homepage</p>
+                    </div>
+                 </button>
+            </div>
+        </div>
+    );
+};
+
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({
+  navigateTo,
+  auth,
+  activeView,
+  setActiveView,
+  openEditProfileModal,
+  isConversationOpen,
+  setIsConversationOpen,
+}) => {
+  const renderView = () => {
+    switch(activeView) {
+      case 'dashboard':
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+      case 'home_dashboard':
+        return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+      case 'studio':
+        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo}/>;
+      case 'interior':
+        return <MagicInterior auth={auth} navigateTo={navigateTo}/>;
+      case 'colour':
+        return <MagicPhotoColour auth={auth} navigateTo={navigateTo}/>;
+      case 'eraser':
+        return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo}/>;
+       case 'apparel':
+        return <MagicApparel auth={auth} navigateTo={navigateTo}/>;
+       case 'mockup':
+        return <MagicMockup auth={auth} navigateTo={navigateTo}/>;
+      case 'caption':
+        return <CaptionAI auth={auth} navigateTo={navigateTo}/>;
+      case 'billing':
+        return <Billing user={auth.user!} setUser={auth.setUser} />;
+      case 'profile':
+        return <ProfileView auth={auth} openEditProfileModal={openEditProfileModal}/>
+      default:
+        return <div>View not found</div>;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-[#F9FAFB]">
+      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo}/>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header navigateTo={navigateTo} auth={{ ...auth, isDashboard: true, openConversation: () => setIsConversationOpen(true), showBackButton: activeView !== 'home_dashboard' && activeView !== 'dashboard', handleBack: () => setActiveView('dashboard') }} />
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-0">
+          {renderView()}
+        </main>
+      </div>
+      <ConversationView auth={auth} navigateTo={navigateTo} />
+    </div>
+  );
+};
+
+export default DashboardPage;

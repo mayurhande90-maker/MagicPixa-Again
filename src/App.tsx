@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
-// FIX: Changed to a named import to resolve a circular dependency.
-import { DashboardPage } from './DashboardPage';
+// FIX: Changed to a default import to resolve a circular dependency.
+import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { onAuthStateChanged, signOut } from 'firebase/auth';

@@ -206,16 +206,54 @@ export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
   aspectRatio: string,
+  theme: string,
+  shadow: string,
+  temperature: string,
+  propsText: string
 ): Promise<string> => {
-  // Now, check for the AI client at the time of the function call.
   if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
   
   try {
-    let prompt = `Edit this product photo. The product itself, including packaging, logos, and text, MUST be preserved perfectly. Generate a new, hyper-realistic, marketing-ready image by replacing the background with a professional, appealing setting that complements the product. Ensure lighting is professional.`;
+    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity. Place the product in an appealing, professional setting.`;
     
+    const themes: { [key: string]: string } = {
+        'minimalist': 'The background should be a minimalist studio setting. Use clean surfaces, soft neutral colors, and a simple, uncluttered composition.',
+        'natural': 'The background should feature natural elements. Place the product on a surface like wood or stone, with soft, leafy botanicals or other organic textures blurred in the background.',
+        'geometric': 'The background should be bold and geometric. Use colorful blocks, strong lines, and dramatic lighting to create a modern, eye-catching scene.',
+        'luxe': 'The background should feel luxurious and elegant. Use materials like marble, silk, or satin with subtle golden or metallic accents and sophisticated lighting.',
+        'outdoor': 'The background should be a beautiful outdoor setting during the golden hour. The lighting should be warm and golden, with a soft, naturally blurred background (like a beach or a garden).'
+    };
+
+    if (theme && themes[theme]) {
+        prompt += `\n\nSTYLE: ${themes[theme]}`;
+    } else {
+        prompt += `\n\nSTYLE: The AI should choose a professional background that best complements the product.`;
+    }
+
+    const shadows: { [key: string]: string } = {
+        'soft': 'The product must cast a very soft, subtle shadow.',
+        'medium': 'The product must cast a natural, realistic shadow.',
+        'dramatic': 'The product must cast a dark, dramatic, and well-defined shadow.'
+    };
+    if (shadow && shadows[shadow]) {
+        prompt += `\n\nSHADOWS: ${shadows[shadow]}`;
+    }
+
+    const temperatures: { [key: string]: string } = {
+        'cool': 'The overall color temperature of the scene must be cool, with bluish tones.',
+        'neutral': 'The overall color temperature must be neutral and balanced.',
+        'warm': 'The overall color temperature of the scene must be warm, with golden or yellowish tones.'
+    };
+    if (temperature && temperatures[temperature]) {
+        prompt += `\n\nLIGHTING: ${temperatures[temperature]}`;
+    }
+
+    if (propsText && propsText.trim() !== '') {
+        prompt += `\n\nPROPS: Add the following props to the scene, arranged naturally and realistically: ${propsText.trim()}.`;
+    }
+
     if (aspectRatio !== 'original') {
         let aspectRatioDescription = aspectRatio;
         if (aspectRatio === '16:9') {
@@ -248,19 +286,16 @@ export const editImageWithPrompt = async (
       },
     });
 
-    // Check for prompt feedback which indicates a block
     if (response.promptFeedback?.blockReason) {
         throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
     }
 
-    // Extract the first image part from the response candidates
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
 
     if (imagePart?.inlineData?.data) {
         return imagePart.inlineData.data;
     }
     
-    // If no image is found and it wasn't blocked, it's a different issue.
     console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
     throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
 
