@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -18,12 +12,10 @@ import {
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
-    // FIX: Added missing ChevronDownIcon import.
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
     LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon
 } from './components/icons';
-// FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
 
 interface DashboardPageProps {
@@ -2193,8 +2185,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
-// FIX: This component was not returning any JSX. Added a return statement and wrapped the JSX block.
-const ConversationView: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const ConversationView: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; isConversationOpen: boolean; setIsConversationOpen: (isOpen: boolean) => void; }> = ({ auth, navigateTo, isConversationOpen, setIsConversationOpen }) => {
     type TranscriptionEntry = {
         id: number;
         type: 'user' | 'model';
@@ -2362,46 +2353,46 @@ const ConversationView: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     }, [cleanupAudio]);
 
     return (
-    <div
-    className={`fixed inset-0 z-[100] transform transition-transform duration-500 ease-in-out ${
-      isConversationOpen ? 'translate-y-0' : 'translate-y-full'
-    }`}
-  >
-    <div className="relative w-full h-full bg-white flex flex-col">
-        <div className="absolute top-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-b z-10 flex justify-between items-center">
-             <h3 className="font-bold text-lg text-[#1E1E1E]">Magic Conversation</h3>
-             <button onClick={() => setIsConversationOpen(false)} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-6 h-6" /></button>
-        </div>
+        <div
+        className={`fixed inset-0 z-[100] transform transition-transform duration-500 ease-in-out ${
+          isConversationOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="relative w-full h-full bg-white flex flex-col">
+            <div className="absolute top-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-b z-10 flex justify-between items-center">
+                 <h3 className="font-bold text-lg text-[#1E1E1E]">Magic Conversation</h3>
+                 <button onClick={() => setIsConversationOpen(false)} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-6 h-6" /></button>
+            </div>
 
-        <div ref={transcriptionContainerRef} className="flex-1 overflow-y-auto p-4 pt-20 pb-40 space-y-4">
-            {transcriptions.map(t => (
-                <div key={t.id} className={`flex ${t.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${t.type === 'user' ? 'bg-[#0079F2] text-white rounded-br-none' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-none'}`}>
-                       <p>{t.text}</p>
+            <div ref={transcriptionContainerRef} className="flex-1 overflow-y-auto p-4 pt-20 pb-40 space-y-4">
+                {transcriptions.map(t => (
+                    <div key={t.id} className={`flex ${t.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${t.type === 'user' ? 'bg-[#0079F2] text-white rounded-br-none' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-none'}`}>
+                           <p>{t.text}</p>
+                        </div>
                     </div>
-                </div>
-            ))}
-             {isListening && !transcriptions.length && (
-                 <div className="text-center text-gray-400 pt-20">
-                    <p>Listening...</p>
-                 </div>
-             )}
-        </div>
+                ))}
+                 {isListening && !transcriptions.length && (
+                     <div className="text-center text-gray-400 pt-20">
+                        <p>Listening...</p>
+                     </div>
+                 )}
+            </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-t">
-            {error && <div className="text-center text-red-500 text-sm mb-2">{error}</div>}
-             <div className="flex items-center justify-center gap-4">
-                <button 
-                    onClick={isListening ? handleStop : handleStart}
-                    className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors duration-300 shadow-lg ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f9d230] hover:bg-yellow-400'}`}
-                >
-                    {isListening ? <StopIcon className="w-8 h-8 text-white"/> : <MicrophoneIcon className="w-8 h-8 text-[#1E1E1E]"/>}
-                </button>
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-t">
+                {error && <div className="text-center text-red-500 text-sm mb-2">{error}</div>}
+                 <div className="flex items-center justify-center gap-4">
+                    <button 
+                        onClick={isListening ? handleStop : handleStart}
+                        className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors duration-300 shadow-lg ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f9d230] hover:bg-yellow-400'}`}
+                    >
+                        {isListening ? <StopIcon className="w-8 h-8 text-white"/> : <MicrophoneIcon className="w-8 h-8 text-[#1E1E1E]"/>}
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    </div>
-  );
+        </div>
+      );
 };
 
 const ProfileView: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => {
@@ -2492,7 +2483,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {renderView()}
         </main>
       </div>
-      <ConversationView auth={auth} navigateTo={navigateTo} />
+      <ConversationView auth={auth} navigateTo={navigateTo} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} />
     </div>
   );
 };
