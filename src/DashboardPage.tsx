@@ -203,54 +203,86 @@ const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: V
     </>
 );
 
-const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => (
-    <div className="p-4">
-        <h1 className="text-2xl font-bold text-[#1E1E1E]">Welcome, {user?.name.split(' ')[0]}!</h1>
-        <p className="text-[#5F6368] mt-1 mb-6">Here's a summary of your account.</p>
+const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => {
+    // Static data for the Smart Stack for now.
+    const smartStackItems = [
+        {
+            icon: <RetryIcon className="w-6 h-6 text-indigo-500" />,
+            title: "Jump back in",
+            description: "Continue editing your latest product photo.",
+            bgColor: "bg-indigo-50",
+            action: () => setActiveView('studio')
+        },
+        {
+            icon: <CaptionIcon className="w-6 h-6 text-amber-500" />,
+            title: "Intelligent Suggestion",
+            description: "Your new photo looks great! Generate some social media captions.",
+            bgColor: "bg-amber-50",
+            action: () => setActiveView('caption')
+        },
+        {
+            icon: <HomeIcon className="w-6 h-6 text-orange-500" />,
+            title: "Feature Discovery",
+            description: "Did you know you can redesign your entire room with Magic Interior?",
+            bgColor: "bg-orange-50",
+            action: () => setActiveView('interior')
+        }
+    ];
 
-        <div className="space-y-4">
-            {/* Profile Card */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-xl">
-                        {user?.avatar}
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-md text-[#1E1E1E]">{user?.name}</h3>
-                        <p className="text-xs text-[#5F6368] truncate">{user?.email}</p>
-                    </div>
-                </div>
-                <button onClick={() => setActiveView('profile')} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                   <AvatarUserIcon className="w-4 h-4" /> View Profile
+    return (
+        <div className="p-4 space-y-8">
+            {/* 1. Primary Action Zone */}
+            <div>
+                <h1 className="text-2xl font-bold text-[#1E1E1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
+                <p className="text-[#5F6368] mt-1 mb-6">Ready to start creating?</p>
+                <button 
+                    onClick={() => setActiveView('dashboard')}
+                    className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-[#f9d230] text-[#1E1E1E] font-bold rounded-xl shadow-lg shadow-[#f9d230]/40 transition-transform transform active:scale-95"
+                >
+                    <PlusIcon className="w-6 h-6" />
+                    <span>Start with a Photo</span>
                 </button>
             </div>
 
-            {/* Credits Card */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
-                <div className="flex justify-between items-center mb-1">
-                   <h3 className="font-semibold text-md text-[#1E1E1E]">Your Credits</h3>
-                   <CreditCardIcon className="w-5 h-5 text-gray-400" />
+            {/* 2. The Smart Stack */}
+            <div>
+                <h2 className="text-lg font-bold text-[#1E1E1E] mb-3">Recommended for you</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 -mb-4">
+                    {smartStackItems.map((item, index) => (
+                        <div key={index} onClick={item.action} className={`flex-shrink-0 w-64 p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform active:scale-95 ${item.bgColor}`}>
+                            <div className="flex items-start gap-3">
+                                {item.icon}
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-sm text-[#1E1E1E]">{item.title}</h3>
+                                    <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-                <p className="text-3xl font-bold text-[#1E1E1E]">{user?.credits}</p>
-                <button onClick={() => setActiveView('billing')} className="w-full mt-2 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform">
-                    Get More Credits
-                </button>
             </div>
-            
-            {/* My Creations Hub */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
-                <h2 className="text-md font-semibold text-[#1E1E1E] mb-2">My Creations</h2>
-                <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                     <ProjectsIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                     <p className="text-xs text-[#5F6368]">Your future creations will appear here.</p>
-                     <button disabled className="mt-2 bg-gray-200 text-gray-500 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed">
-                        Coming Soon
-                    </button>
+
+            {/* 3. Quick Tools */}
+            <div>
+                <h2 className="text-lg font-bold text-[#1E1E1E] mb-3">All Tools</h2>
+                <div className="grid grid-cols-4 gap-4">
+                    {dashboardFeatures.filter(f => !f.disabled).slice(0, 8).map(feature => (
+                        <div 
+                            key={feature.view}
+                            onClick={() => !feature.disabled && setActiveView(feature.view)}
+                            className="flex flex-col items-center gap-2 text-center cursor-pointer transition-transform transform active:scale-90"
+                        >
+                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${feature.gradient} shadow-md`}>
+                                <feature.icon className="w-8 h-8 text-white" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700">{feature.title.replace('Magic ', '').replace(' AI', '')}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
