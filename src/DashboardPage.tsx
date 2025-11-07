@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -14,7 +15,7 @@ import {
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, LogoutIcon, PlusIcon,
-    DashboardIcon, CopyIcon, InformationCircleIcon
+    DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon
 } from './components/icons';
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { Blob, LiveServerMessage } from '@google/genai';
@@ -2122,31 +2123,113 @@ const Creations: React.FC = () => (
     </div>
 );
 
-const Profile: React.FC<{ user: User | null, auth: AuthProps, openEditProfileModal: () => void }> = ({ user, auth, openEditProfileModal }) => (
-    <div className="p-4 sm:p-6 lg:p-8 h-full">
-        <div className='mb-8'>
-            <h2 className="text-3xl font-bold text-[#1E1E1E]">My Profile</h2>
-            <p className="text-[#5F6368] mt-1">Manage your account settings.</p>
-        </div>
-        <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-            <div className="flex flex-col items-center text-center">
-                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl mb-4">
+const Profile: React.FC<{ user: User | null, auth: AuthProps, openEditProfileModal: () => void, navigateTo: (page: Page, view?: View, sectionId?: string) => void, setActiveView: (view: View) => void }> = ({ user, auth, openEditProfileModal, navigateTo, setActiveView }) => {
+    
+    // Mobile-first Account Hub View
+    const MobileAccountHub = () => (
+        <div className="p-4 space-y-6">
+             {/* User Identity Card */}
+            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl flex-shrink-0">
                     {user?.avatar}
                 </div>
-                <h3 className="text-2xl font-bold text-[#1E1E1E]">{user?.name}</h3>
-                <p className="text-[#5F6368]">{user?.email}</p>
-                <div className="mt-6 w-full space-y-4">
-                    <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                       <PencilIcon className="w-4 h-4" /> Edit Profile
-                    </button>
-                     <button onClick={auth.handleLogout} className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                       <LogoutIcon className="w-4 h-4" /> Sign Out
-                    </button>
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold text-[#1E1E1E] truncate">{user?.name}</h3>
+                    <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
+                </div>
+                <button onClick={openEditProfileModal} className="p-2 text-gray-500 hover:text-blue-600">
+                    <PencilIcon className="w-5 h-5" />
+                </button>
+            </div>
+
+            {/* Subscription & Credits Card */}
+            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><StarIcon className="w-4 h-4 text-yellow-400"/> Current Plan</p>
+                        <p className="text-lg font-bold text-[#1E1E1E]">Free Plan</p>
+                    </div>
+                    <button onClick={() => navigateTo('home', undefined, 'pricing')} className="font-semibold text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">Upgrade</button>
+                </div>
+                <hr className="border-gray-200/80" />
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-500 flex items-center gap-1.5"><TicketIcon className="w-4 h-4 text-green-500"/> Remaining Credits</p>
+                        <p className="text-lg font-bold text-[#1E1E1E]">{user?.credits} Credits</p>
+                    </div>
+                    <button onClick={() => setActiveView('billing')} className="font-semibold text-sm bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors">Get More</button>
+                </div>
+            </div>
+            
+            {/* Account Management List */}
+            <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 divide-y divide-gray-200/80">
+                 <button disabled className="w-full flex items-center justify-between p-4 text-left text-gray-400 cursor-not-allowed">
+                    <div className="flex items-center gap-4">
+                        <CreditCardIcon className="w-6 h-6"/>
+                        <span className="font-semibold">Manage Subscription</span>
+                    </div>
+                    <ChevronRightIcon className="w-5 h-5"/>
+                </button>
+                 <button disabled className="w-full flex items-center justify-between p-4 text-left text-gray-400 cursor-not-allowed">
+                    <div className="flex items-center gap-4">
+                        <HelpIcon className="w-6 h-6"/>
+                        <span className="font-semibold">Help & Support</span>
+                    </div>
+                    <ChevronRightIcon className="w-5 h-5"/>
+                </button>
+            </div>
+
+             {/* Sign Out Button */}
+            <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                 <button onClick={auth.handleLogout} className="w-full flex items-center justify-between p-4 text-left text-red-600">
+                    <div className="flex items-center gap-4">
+                        <LogoutIcon className="w-6 h-6"/>
+                        <span className="font-semibold">Sign Out</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    );
+    
+    // Desktop View
+    const DesktopProfile = () => (
+         <div className="p-4 sm:p-6 lg:p-8 h-full">
+            <div className='mb-8'>
+                <h2 className="text-3xl font-bold text-[#1E1E1E]">My Profile</h2>
+                <p className="text-[#5F6368] mt-1">Manage your account settings.</p>
+            </div>
+            <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl mb-4">
+                        {user?.avatar}
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#1E1E1E]">{user?.name}</h3>
+                    <p className="text-[#5F6368]">{user?.email}</p>
+                    <div className="mt-6 w-full space-y-4">
+                        <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <PencilIcon className="w-4 h-4" /> Edit Profile
+                        </button>
+                        <button onClick={auth.handleLogout} className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                        <LogoutIcon className="w-4 h-4" /> Sign Out
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+
+    return (
+        <>
+            <div className="hidden lg:block">
+                <DesktopProfile />
+            </div>
+            <div className="lg:hidden">
+                <MobileAccountHub />
+            </div>
+        </>
+    );
+};
+
 
 const MagicConversation: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
     // ... State management for conversation ...
@@ -2411,7 +2494,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
       case 'mockup': return <MagicMockup auth={auth} navigateTo={navigateTo} />;
       case 'caption': return <CaptionAI auth={auth} navigateTo={navigateTo} />;
       case 'creations': return <Creations />;
-      case 'profile': return <Profile user={auth.user} auth={auth} openEditProfileModal={openEditProfileModal} />;
+      case 'profile': return <Profile user={auth.user} auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} />;
       default: return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
     }
   };
@@ -2435,7 +2518,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
-      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+      <div className="hidden lg:block">
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+      </div>
       <div className="flex-1 flex flex-col w-full">
         <Header navigateTo={navigateTo} auth={headerAuthProps} />
         <main className="flex-1 overflow-y-auto pb-24 lg:pb-0">
