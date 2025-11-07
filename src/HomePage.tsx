@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon, MicrophoneIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -166,11 +166,11 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
             
             <div className="absolute left-1/2 -translate-x-1/2 -top-8">
                 <button 
-                    onClick={() => handleNav('studio')}
+                    onClick={() => handleNav('dashboard')}
                     className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0079F2] to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 transition-transform transform active:scale-90"
-                    aria-label="Features"
+                    aria-label="Open Pixa Assistant"
                 >
-                    <SparklesIcon className="w-8 h-8"/>
+                    <MicrophoneIcon className="w-8 h-8"/>
                 </button>
             </div>
         </div>
