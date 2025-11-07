@@ -1,7 +1,10 @@
 
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp } from 'firebase/firestore';
+
+// FIX: Updated Firebase imports to use scoped packages (e.g., '@firebase/app') to resolve module export errors.
+// This aligns with the existing type definitions in this file which already use the scoped package format.
+import { initializeApp, getApp, getApps } from '@firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from '@firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp } from '@firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.

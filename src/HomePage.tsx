@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon, MicrophoneIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon, MicrophoneIcon, DashboardIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -135,8 +135,8 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
     };
 
     const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'billing', label: 'Credits', icon: CreditCardIcon },
+        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
         { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
     ];
@@ -145,7 +145,7 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
         <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
             <div className="flex justify-around items-center h-full">
                 {navItems.map(item => (
-                    <button key={item.view} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
+                    <button key={item.label} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
                         <item.icon className="w-6 h-6" />
                         <span className="text-xs font-medium">{item.label}</span>
                     </button>

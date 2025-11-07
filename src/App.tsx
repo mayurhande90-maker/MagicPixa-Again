@@ -13,7 +13,7 @@ import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUser
 import ConfigurationError from './components/ConfigurationError';
 
 export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile' | 'caption';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard';
 
 export interface User {
   uid: string;
@@ -38,7 +38,7 @@ const App: React.FC = () => {
   }
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [activeView, setActiveView] = useState<View>('dashboard');
+  const [activeView, setActiveView] = useState<View>('home_dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -108,7 +108,7 @@ const App: React.FC = () => {
         if (view) {
             setActiveView(view);
         } else if (page === 'dashboard') {
-            setActiveView('dashboard');
+            setActiveView('home_dashboard');
         }
         setCurrentPage(page);
 

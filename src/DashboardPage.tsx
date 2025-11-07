@@ -203,6 +203,55 @@ const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: V
     </>
 );
 
+const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => (
+    <div className="p-4">
+        <h1 className="text-2xl font-bold text-[#1E1E1E]">Welcome, {user?.name.split(' ')[0]}!</h1>
+        <p className="text-[#5F6368] mt-1 mb-6">Here's a summary of your account.</p>
+
+        <div className="space-y-4">
+            {/* Profile Card */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-xl">
+                        {user?.avatar}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-md text-[#1E1E1E]">{user?.name}</h3>
+                        <p className="text-xs text-[#5F6368] truncate">{user?.email}</p>
+                    </div>
+                </div>
+                <button onClick={() => setActiveView('profile')} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                   <AvatarUserIcon className="w-4 h-4" /> View Profile
+                </button>
+            </div>
+
+            {/* Credits Card */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
+                <div className="flex justify-between items-center mb-1">
+                   <h3 className="font-semibold text-md text-[#1E1E1E]">Your Credits</h3>
+                   <CreditCardIcon className="w-5 h-5 text-gray-400" />
+                </div>
+                <p className="text-3xl font-bold text-[#1E1E1E]">{user?.credits}</p>
+                <button onClick={() => setActiveView('billing')} className="w-full mt-2 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform">
+                    Get More Credits
+                </button>
+            </div>
+            
+            {/* My Creations Hub */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
+                <h2 className="text-md font-semibold text-[#1E1E1E] mb-2">My Creations</h2>
+                <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                     <ProjectsIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                     <p className="text-xs text-[#5F6368]">Your future creations will appear here.</p>
+                     <button disabled className="mt-2 bg-gray-200 text-gray-500 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed">
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
 
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
@@ -2083,23 +2132,34 @@ const ProfileScreen: React.FC<{ user: User | null; auth: AuthProps; openEditProf
 );
 
 const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => void; onAssistantClick: () => void; }> = ({ activeView, setActiveView, onAssistantClick }) => {
-    // FIX: Explicitly type navItems to ensure item.view is of type View, not string.
     const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'billing', label: 'Credits', icon: CreditCardIcon },
+        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
         { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
     ];
+    
+    const featureViews: View[] = ['dashboard', 'studio', 'interior', 'colour', 'eraser', 'apparel', 'mockup', 'caption'];
 
     return (
         <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
             <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button key={item.view} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
+                {navItems.map(item => {
+                    let isActive = activeView === item.view;
+                    if (item.label === 'Features' && featureViews.includes(activeView)) {
+                        isActive = true;
+                    }
+                    if (item.label === 'Home' && activeView !== 'home_dashboard') {
+                        isActive = false;
+                    }
+
+                    return (
+                        <button key={item.label} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
+                            <item.icon className="w-6 h-6" />
+                            <span className="text-xs font-medium">{item.label}</span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -2299,6 +2359,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     const renderView = () => {
         switch(activeView) {
+            case 'home_dashboard':
+                return (
+                    <>
+                        <div className="hidden lg:block h-full">
+                            <DesktopDashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />
+                        </div>
+                        <div className="lg:hidden">
+                            <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />
+                        </div>
+                    </>
+                );
             case 'dashboard':
                 return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
             case 'studio':
