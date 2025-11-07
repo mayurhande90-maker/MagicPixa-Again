@@ -2389,6 +2389,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     }, [activeView]);
 
+    const topLevelMobileViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'profile'];
+    const showBackButton = !topLevelMobileViews.includes(activeView);
+    const handleBack = () => setActiveView('dashboard');
+
     const renderView = () => {
         switch(activeView) {
             case 'home_dashboard':
@@ -2433,7 +2437,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
             <Header
                 navigateTo={navigateTo}
-                auth={{ ...auth, isDashboard: true, openConversation: () => setIsConversationOpen(true), isSidebarOpen, setIsSidebarOpen }}
+                auth={{ 
+                    ...auth, 
+                    isDashboard: true, 
+                    openConversation: () => setIsConversationOpen(true), 
+                    isSidebarOpen, 
+                    setIsSidebarOpen,
+                    showBackButton,
+                    handleBack
+                }}
             />
             <div className="flex flex-1 overflow-hidden">
                  <Sidebar

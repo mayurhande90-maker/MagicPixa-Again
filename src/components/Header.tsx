@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 // FIX: Import `View` from `../App` where it is defined, instead of `../DashboardPage` which does not export it.
 import { Page, AuthProps, View } from '../App';
 import UserMenu from './UserMenu';
-import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon } from './icons';
+import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon } from './icons';
 
 // Add `setActiveView` to AuthProps for the dashboard context
 interface DashboardAuthProps extends AuthProps {
@@ -11,6 +11,8 @@ interface DashboardAuthProps extends AuthProps {
     isDashboard?: boolean;
     isSidebarOpen?: boolean;
     setIsSidebarOpen?: (isOpen: boolean) => void;
+    showBackButton?: boolean;
+    handleBack?: () => void;
 }
 
 interface HeaderProps {
@@ -61,10 +63,20 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
       <header className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#F9FAFB]/80 backdrop-blur-lg border-b border-gray-200/80">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 lg:gap-10">
-              {auth.isDashboard && auth.isSidebarOpen !== undefined && auth.setIsSidebarOpen && (
-                <button onClick={() => auth.setIsSidebarOpen?.(!auth.isSidebarOpen)} className="p-2 -ml-2 text-[#1E1E1E] lg:hidden" aria-label="Open sidebar">
-                    <MenuIcon className="w-6 h-6" />
-                </button>
+              {auth.isDashboard && (
+                <div className="lg:hidden">
+                    {auth.showBackButton ? (
+                        <button onClick={auth.handleBack} className="p-2 -ml-2 text-[#1E1E1E]" aria-label="Go back">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                    ) : (
+                         auth.setIsSidebarOpen && (
+                            <button onClick={() => auth.setIsSidebarOpen?.(!auth.isSidebarOpen)} className="p-2 -ml-2 text-[#1E1E1E]" aria-label="Open sidebar">
+                                <MenuIcon className="w-6 h-6" />
+                            </button>
+                         )
+                    )}
+                </div>
               )}
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigateTo('home', undefined, 'home')}>
                   <MagicPixaLogo />
