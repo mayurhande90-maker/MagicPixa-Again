@@ -141,37 +141,15 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
     ];
     
-    const navItemsLeft = navItems.slice(0, 2);
-    const navItemsRight = navItems.slice(2);
-
     return (
         <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
             <div className="flex justify-around items-center h-full">
-                {navItemsLeft.map(item => (
+                {navItems.map(item => (
                     <button key={item.view} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
                         <item.icon className="w-6 h-6" />
                         <span className="text-xs font-medium">{item.label}</span>
                     </button>
                 ))}
-                
-                <div className="w-16 h-16"> {/* Spacer for the floating button */} </div>
-
-                {navItemsRight.map(item => (
-                    <button key={item.view} onClick={() => handleNav(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 text-gray-500 disabled:text-gray-300`}>
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-            
-            <div className="absolute left-1/2 -translate-x-1/2 -top-8">
-                <button 
-                    onClick={() => handleNav('dashboard')}
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0079F2] to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 transition-transform transform active:scale-90"
-                    aria-label="Open Pixa Assistant"
-                >
-                    <MicrophoneIcon className="w-8 h-8"/>
-                </button>
             </div>
         </div>
     );

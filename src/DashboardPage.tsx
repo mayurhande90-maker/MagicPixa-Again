@@ -505,11 +505,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                             </button>
                         </div>
                     ) : (
-                        <div className="hidden lg:block">
-                            <button onClick={handleImageEdit} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5" /> Generate
-                            </button>
-                        </div>
+                        <button onClick={handleImageEdit} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Generate
+                        </button>
                     )}
                 </div>
             </div>
@@ -723,11 +721,9 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     </div>
                 </>
             ) : (
-                <div className="hidden lg:block">
-                    <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
-                        <SparklesIcon className="w-6 h-6" /> Generate
-                    </button>
-                </div>
+                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                    <SparklesIcon className="w-6 h-6" /> Generate
+                </button>
             )}
             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
         </div>
@@ -809,11 +805,9 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                             </button>
                         </div>
                     ) : (
-                        <div className="hidden lg:block">
-                            <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5" /> Generate
-                            </button>
-                        </div>
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits || !canGenerate} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Generate
+                        </button>
                     )}
                 </div>
             </div>
@@ -1046,11 +1040,9 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     </button>
                 </div>
             ) : (
-                <div className="hidden lg:block">
-                    <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                        <SparklesIcon className="w-5 h-5" /> Generate
-                    </button>
-                </div>
+                <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                    <SparklesIcon className="w-5 h-5" /> Generate
+                </button>
             )}
          </div>
     );
@@ -1311,11 +1303,9 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                     {generatedImage ? (
                         <ActionButtons />
                     ) : (
-                         <div className="hidden lg:block">
-                            <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
-                                <SparklesIcon className="w-6 h-6" /> Remove Background
-                            </button>
-                        </div>
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                            <SparklesIcon className="w-6 h-6" /> Remove Background
+                        </button>
                     )}
                 </div>
             </div>
@@ -1815,11 +1805,9 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                     {generatedImage ? (
                         <ActionButtons />
                     ) : (
-                        <div className="hidden lg:block">
-                            <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
-                                <SparklesIcon className="w-6 h-6" /> Generate
-                            </button>
-                        </div>
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                            <SparklesIcon className="w-6 h-6" /> Generate
+                        </button>
                     )}
                 </div>
             </div>
@@ -2048,11 +2036,9 @@ const CaptionGenerator: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     {captions ? (
                         <ActionButtons />
                     ) : (
-                        <div className="hidden lg:block">
-                            <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
-                                <SparklesIcon className="w-6 h-6" /> Generate Captions
-                            </button>
-                        </div>
+                        <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                            <SparklesIcon className="w-6 h-6" /> Generate Captions
+                        </button>
                     )}
                 </div>
             </div>
@@ -2104,40 +2090,16 @@ const BottomNavBar: React.FC<{ activeView: View; setActiveView: (view: View) => 
         { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
     ];
-    
-    // Split items for layout
-    const navItemsLeft = navItems.slice(0, 2);
-    const navItemsRight = navItems.slice(2);
 
     return (
         <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
             <div className="flex justify-around items-center h-full">
-                {navItemsLeft.map(item => (
+                {navItems.map(item => (
                     <button key={item.view} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
                         <item.icon className="w-6 h-6" />
                         <span className="text-xs font-medium">{item.label}</span>
                     </button>
                 ))}
-                
-                <div className="w-16 h-16"> {/* Spacer for the floating button */} </div>
-
-                {/* FIX: Mapped over navItemsRight to render buttons correctly. */}
-                {navItemsRight.map(item => (
-                    <button key={item.view} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-            
-            <div className="absolute left-1/2 -translate-x-1/2 -top-8">
-                <button 
-                    onClick={onAssistantClick}
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0079F2] to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 transition-transform transform active:scale-90"
-                    aria-label="Open Pixa Assistant"
-                >
-                    <MicrophoneIcon className="w-8 h-8"/>
-                </button>
             </div>
         </div>
     );
