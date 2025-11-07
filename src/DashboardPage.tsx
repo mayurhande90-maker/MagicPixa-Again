@@ -2397,7 +2397,6 @@ const MobileNav: React.FC<{ activeView: View; setActiveView: (view: View) => voi
 
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const renderActiveView = () => {
     switch (activeView) {
@@ -2430,15 +2429,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
     setActiveView,
     openConversation: () => setIsConversationOpen(true),
     isDashboard: true,
-    isSidebarOpen,
-    setIsSidebarOpen,
     showBackButton,
     handleBack,
   };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
-      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
       <div className="flex-1 flex flex-col w-full">
         <Header navigateTo={navigateTo} auth={headerAuthProps} />
         <main className="flex-1 overflow-y-auto pb-24 lg:pb-0">

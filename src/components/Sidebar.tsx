@@ -7,8 +7,6 @@ interface SidebarProps {
   activeView: View;
   setActiveView: (view: View) => void;
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
 }
 
 const NavButton: React.FC<{
@@ -34,7 +32,7 @@ const NavButton: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo, isOpen, setIsOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo }) => {
   const navStructure = [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { type: 'divider', label: 'Features' },
@@ -51,17 +49,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
 
   const handleNavClick = (view: View) => {
     setActiveView(view);
-    setIsOpen(false); // Close sidebar on mobile after navigation
   }
 
   return (
-    <>
-        <div 
-            className={`fixed inset-0 bg-black/30 z-40 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-            onClick={() => setIsOpen(false)}
-            aria-hidden="true"
-        ></div>
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-200/80 p-4 flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static`}>
+    <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200/80 p-4 flex-col">
         <nav className="flex-1 space-y-1">
             {navStructure.map((item, index) => {
             if (item.type === 'divider') {
@@ -89,7 +80,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
             <button 
                 onClick={() => {
                     navigateTo('home', undefined, 'pricing');
-                    setIsOpen(false);
                 }}
                 className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
             >
@@ -97,8 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
             </button>
             </div>
         )}
-        </aside>
-    </>
+    </aside>
   );
 };
 

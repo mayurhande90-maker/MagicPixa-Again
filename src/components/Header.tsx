@@ -9,8 +9,6 @@ interface DashboardAuthProps extends AuthProps {
     setActiveView?: (view: View) => void;
     openConversation?: () => void;
     isDashboard?: boolean;
-    isSidebarOpen?: boolean;
-    setIsSidebarOpen?: (isOpen: boolean) => void;
     showBackButton?: boolean;
     handleBack?: () => void;
 }
@@ -65,16 +63,10 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
           <div className="flex items-center gap-2 lg:gap-10">
               {auth.isDashboard && (
                 <div className="lg:hidden">
-                    {auth.showBackButton ? (
+                    {auth.showBackButton && (
                         <button onClick={auth.handleBack} className="p-2 -ml-2 text-[#1E1E1E]" aria-label="Go back">
                             <ArrowLeftIcon className="w-6 h-6" />
                         </button>
-                    ) : (
-                         auth.setIsSidebarOpen && (
-                            <button onClick={() => auth.setIsSidebarOpen?.(!auth.isSidebarOpen)} className="p-2 -ml-2 text-[#1E1E1E]" aria-label="Open sidebar">
-                                <MenuIcon className="w-6 h-6" />
-                            </button>
-                         )
                     )}
                 </div>
               )}
