@@ -1783,7 +1783,6 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 
         setIsLoading(true);
         setError(null);
-// FIX: The `MagicMockup` component was incomplete. The `handleGenerate` function was truncated, and the component was missing its JSX return statement, causing compilation errors.
         setGeneratedImage(null);
 
         try {
@@ -1925,4 +1924,533 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             </div>
         </div>
     );
+};
+
+const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    type CaptionResult = { caption: string; hashtags: string };
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedCaptions, setGeneratedCaptions] = useState<CaptionResult[] | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 1;
+    const currentCost = EDIT_COST;
+    
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = auth.user?.credits ?? 0;
+    const hasImage = originalImage !== null;
+    const hasInsufficientCredits = currentCredits < currentCost;
+    
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+            setGeneratedCaptions(null); // Clear old captions on new image
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setError(null);
+        }
+    };
+    
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (currentCredits < currentCost) {
+            navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedCaptions(null);
+
+        try {
+            const results = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setGeneratedCaptions(results);
+            if (auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [base64Data, currentCredits, auth, navigateTo, currentCost]);
+
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
+    };
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions for any photo.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* Image Uploader */}
+                    <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div
+                            className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                            onClick={!hasImage ? triggerFileInput : undefined}
+                        >
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                            {originalImage ? (
+                                <img src={originalImage.url} alt="Uploaded for captions" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                            ) : (
+                                <div className="text-center">
+                                    <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                        <UploadIcon className="w-12 h-12" />
+                                        <span className='font-semibold text-lg text-[#1E1E1E]'>Upload a Photo</span>
+                                        <span className="text-sm">and we'll write the captions</span>
+                                    </div>
+                                </div>
+                            )}
+                            {hasImage && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
+                        </div>
+                    </div>
+
+                    {/* Captions Display */}
+                    <div className="w-full h-full min-h-[50vh] lg:aspect-square flex flex-col">
+                        <div className="flex-1 bg-white rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 p-6 space-y-4 overflow-y-auto">
+                            <h3 className="text-xl font-bold text-center text-[#1E1E1E]">Generated Captions</h3>
+                            {isLoading ? (
+                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                    <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                </div>
+                            ) : error ? (
+                                <div className='w-full flex flex-col items-center justify-center gap-4 pt-4'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={() => { setError(null); handleGenerate();}} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>
+                            ) : generatedCaptions ? (
+                                <div className="space-y-4">
+                                    {generatedCaptions.map((item, index) => (
+                                        <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200/80">
+                                            <p className="text-sm text-gray-800">{item.caption}</p>
+                                            <p className="text-xs text-blue-600 mt-2 font-medium">{item.hashtags}</p>
+                                            <button onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)} className="mt-3 text-xs font-bold flex items-center gap-1.5 text-gray-500 hover:text-black transition-colors">
+                                                {copiedIndex === index ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}
+                                                {copiedIndex === index ? 'Copied!' : 'Copy Text'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                                    <InformationCircleIcon className="w-10 h-10 mb-2"/>
+                                    <p className="font-semibold">Your captions will appear here.</p>
+                                    <p className="text-sm">Upload an image and click "Generate".</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="hidden lg:block pt-8">
+                             <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5" /> {generatedCaptions ? 'Regenerate' : 'Generate'} Captions
+                            </button>
+                            <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${currentCost} credit.`}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Sticky Footer */}
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                     <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                        <SparklesIcon className="w-5 h-5" /> {generatedCaptions ? 'Regenerate' : 'Generate'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Creations: React.FC = () => (
+    <div className="p-4 sm:p-6 lg:p-8 h-full">
+        <div className='mb-8'>
+            <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
+            <p className="text-[#5F6368] mt-1">A gallery of all your magical creations.</p>
+        </div>
+         <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+             <ProjectsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+             <h3 className="text-xl font-bold text-[#1E1E1E]">Coming Soon!</h3>
+             <p className="text-[#5F6368] mt-2 max-w-sm mx-auto">We're hard at work building this space. Soon, all your generated images and projects will be saved and organized right here for you to access anytime.</p>
+        </div>
+    </div>
+);
+
+const Profile: React.FC<{ user: User | null, auth: AuthProps, openEditProfileModal: () => void }> = ({ user, auth, openEditProfileModal }) => (
+    <div className="p-4 sm:p-6 lg:p-8 h-full">
+        <div className='mb-8'>
+            <h2 className="text-3xl font-bold text-[#1E1E1E]">My Profile</h2>
+            <p className="text-[#5F6368] mt-1">Manage your account settings.</p>
+        </div>
+        <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+            <div className="flex flex-col items-center text-center">
+                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl mb-4">
+                    {user?.avatar}
+                </div>
+                <h3 className="text-2xl font-bold text-[#1E1E1E]">{user?.name}</h3>
+                <p className="text-[#5F6368]">{user?.email}</p>
+                <div className="mt-6 w-full space-y-4">
+                    <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                       <PencilIcon className="w-4 h-4" /> Edit Profile
+                    </button>
+                     <button onClick={auth.handleLogout} className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                       <LogoutIcon className="w-4 h-4" /> Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const MagicConversation: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+    // ... State management for conversation ...
+    const [isRecording, setIsRecording] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [transcriptions, setTranscriptions] = useState<{ type: 'user' | 'model'; text: string }[]>([]);
+
+    const sessionRef = useRef<any>(null); // Using `any` due to no exported LiveSession type
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const outputNodeRef = useRef<GainNode | null>(null);
+    const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+    const nextStartTimeRef = useRef<number>(0);
+    const transcriptContainerRef = useRef<HTMLDivElement>(null);
+    const currentInputTranscription = useRef('');
+    const currentOutputTranscription = useRef('');
+    
+    useEffect(() => {
+        if(transcriptContainerRef.current) {
+            transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
+        }
+    }, [transcriptions]);
+
+    const stopAudioPlayback = () => {
+        if(sourcesRef.current) {
+            for (const source of sourcesRef.current.values()) {
+                source.stop();
+                sourcesRef.current.delete(source);
+            }
+        }
+        nextStartTimeRef.current = 0;
+    };
+
+    const stopAudioProcessing = useCallback(() => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        if (mediaStreamSourceRef.current) {
+            mediaStreamSourceRef.current.disconnect();
+            mediaStreamSourceRef.current = null;
+        }
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current.onaudioprocess = null;
+            scriptProcessorRef.current = null;
+        }
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            inputAudioContextRef.current.close();
+        }
+    }, []);
+
+    const cleanup = useCallback(() => {
+        setIsRecording(false);
+        setIsConnecting(false);
+        stopAudioPlayback();
+        stopAudioProcessing();
+
+        if (sessionRef.current) {
+            sessionRef.current.close();
+            sessionRef.current = null;
+        }
+    }, [stopAudioProcessing]);
+
+    const handleStart = async () => {
+        if (isRecording) return;
+        setIsConnecting(true);
+        setError(null);
+        setTranscriptions([]);
+        
+        try {
+            // Initialize Audio Contexts
+            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            outputNodeRef.current = outputAudioContextRef.current.createGain();
+            outputNodeRef.current.connect(outputAudioContextRef.current.destination);
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+            
+            const sessionPromise = startLiveSession({
+                 onopen: () => {
+                    if (!inputAudioContextRef.current) return;
+                    mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
+                    scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                    
+                    scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
+                        };
+                         sessionPromise.then((session) => {
+                           session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    };
+                    
+                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                    scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+                    setIsConnecting(false);
+                    setIsRecording(true);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    if (message.serverContent?.outputTranscription) {
+                        currentOutputTranscription.current += message.serverContent.outputTranscription.text;
+                    }
+                    if (message.serverContent?.inputTranscription) {
+                        currentInputTranscription.current += message.serverContent.inputTranscription.text;
+                    }
+
+                    if (message.serverContent?.turnComplete) {
+                        setTranscriptions(prev => [
+                            ...prev, 
+                            { type: 'user', text: currentInputTranscription.current },
+                            { type: 'model', text: currentOutputTranscription.current }
+                        ]);
+                        currentInputTranscription.current = '';
+                        currentOutputTranscription.current = '';
+                    }
+
+                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (base64Audio && outputAudioContextRef.current && outputNodeRef.current) {
+                        const ctx = outputAudioContextRef.current;
+                        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                        
+                        const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+                        const source = ctx.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputNodeRef.current);
+                        
+                        source.addEventListener('ended', () => {
+                            sourcesRef.current.delete(source);
+                        });
+
+                        source.start(nextStartTimeRef.current);
+                        nextStartTimeRef.current += audioBuffer.duration;
+                        sourcesRef.current.add(source);
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error("Live session error:", e);
+                    setError("A connection error occurred. Please try again.");
+                    cleanup();
+                },
+                onclose: (e: CloseEvent) => {
+                    cleanup();
+                },
+            });
+
+            sessionRef.current = await sessionPromise;
+
+        } catch (err) {
+            console.error("Failed to start session:", err);
+            setError("Could not access microphone. Please check permissions and try again.");
+            setIsConnecting(false);
+        }
+    };
+    
+    const handleStop = () => {
+        cleanup();
+    };
+
+    return (
+        <div className={`fixed inset-x-0 bottom-0 z-[60] lg:inset-auto lg:bottom-8 lg:right-8 lg:w-96 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-[calc(100%+2rem)]'}`}>
+            <div className="bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl border border-gray-200/80 max-h-[70vh] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200/80">
+                    <h3 className="font-bold text-lg flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-blue-500" /> Magic Conversation</h3>
+                    <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100"><XIcon className="w-5 h-5"/></button>
+                </div>
+
+                {/* Body / Transcript */}
+                <div ref={transcriptContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                    {transcriptions.length === 0 && !isRecording && !isConnecting && (
+                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                            <p>Tap the microphone to start a conversation with Pixa.</p>
+                        </div>
+                    )}
+                     {transcriptions.map((item, index) => (
+                         <div key={index} className={`flex items-start gap-3 ${item.type === 'user' ? 'justify-end' : ''}`}>
+                             {item.type === 'model' && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-blue-500"/></div>}
+                             <div className={`max-w-xs px-4 py-2 rounded-2xl ${item.type === 'user' ? 'bg-gray-200 text-gray-800 rounded-br-none' : 'bg-blue-500 text-white rounded-bl-none'}`}>
+                                 <p className="text-sm">{item.text}</p>
+                             </div>
+                         </div>
+                     ))}
+                </div>
+
+                {/* Footer / Controls */}
+                <div className="p-4 border-t border-gray-200/80">
+                     {error && <p className="text-center text-sm text-red-600 mb-2">{error}</p>}
+                    <div className="flex justify-center items-center">
+                        <button 
+                            onClick={isRecording ? handleStop : handleStart} 
+                            disabled={isConnecting}
+                            className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-colors duration-300 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} disabled:bg-gray-400`}
+                        >
+                            {isConnecting ? 
+                                <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                : isRecording ? <StopIcon className="w-7 h-7" /> : <MicrophoneIcon className="w-7 h-7" />
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MobileNav: React.FC<{ activeView: View; setActiveView: (view: View) => void; auth: AuthProps }> = ({ activeView, setActiveView, auth }) => {
+    const handleNav = (view: View) => {
+        if (!auth.isAuthenticated) {
+            auth.openAuthModal();
+        } else {
+            setActiveView(view);
+        }
+    };
+
+    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean }[] = [
+        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+    ];
+    
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItems.map(item => (
+                    <button 
+                        key={item.label} 
+                        onClick={() => handleNav(item.view)} 
+                        disabled={item.disabled} 
+                        className={`flex flex-col items-center justify-center gap-1 p-2 w-1/4 h-full transition-colors ${activeView === item.view ? 'text-blue-600' : 'text-gray-500'} disabled:text-gray-300`}
+                    >
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'dashboard': return <MobileDashboard user={auth.user} setActiveView={setActiveView} />;
+      case 'home_dashboard': return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+      case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
+      case 'interior': return <MagicInterior auth={auth} navigateTo={navigateTo} />;
+      case 'billing': return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
+      case 'colour': return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
+      case 'eraser': return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
+      case 'apparel': return <MagicApparel auth={auth} navigateTo={navigateTo} />;
+      case 'mockup': return <MagicMockup auth={auth} navigateTo={navigateTo} />;
+      case 'caption': return <CaptionAI auth={auth} navigateTo={navigateTo} />;
+      case 'creations': return <Creations />;
+      case 'profile': return <Profile user={auth.user} auth={auth} openEditProfileModal={openEditProfileModal} />;
+      default: return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+    }
+  };
+  
+  const showBackButton = ![
+      'dashboard', 'home_dashboard', 'creations', 'billing', 'profile'
+  ].includes(activeView);
+
+  const handleBack = () => {
+      setActiveView('dashboard');
+  };
+  
+  const headerAuthProps = {
+    ...auth,
+    setActiveView,
+    openConversation: () => setIsConversationOpen(true),
+    isDashboard: true,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    showBackButton,
+    handleBack,
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
+      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col w-full">
+        <Header navigateTo={navigateTo} auth={headerAuthProps} />
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-0">
+          {renderActiveView()}
+        </main>
+        {auth.isAuthenticated && (
+            <>
+                <MagicConversation isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
+                <MobileNav activeView={activeView} setActiveView={setActiveView} auth={auth}/>
+            </>
+        )}
+      </div>
+    </div>
+  );
 };
