@@ -1535,20 +1535,6 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes on any person from a photo.</p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    <div className="lg:col-span-2 space-y-4">
-                        <ImageUploadBox image={personImage} onClear={() => setPersonImage(null)} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
-                        <div className="grid grid-cols-2 gap-4">
-                            <ImageUploadBox image={topImage} onClear={() => setTopImage(null)} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} />
-                            <ImageUploadBox image={bottomImage} onClear={() => setBottomImage(null)} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
-                        </div>
-                         <div className="space-y-2 pt-4">
-                            <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
-                            </button>
-                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                        </div>
-                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
                     <div className="lg:col-span-3">
                         <div className="w-full aspect-[4/5] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
                             {isLoading ? (
@@ -1565,6 +1551,20 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                             )}
                         </div>
                         {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
+                    </div>
+                    <div className="lg:col-span-2 space-y-4">
+                        <ImageUploadBox image={personImage} onClear={() => setPersonImage(null)} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <ImageUploadBox image={topImage} onClear={() => setTopImage(null)} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} />
+                            <ImageUploadBox image={bottomImage} onClear={() => setBottomImage(null)} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
+                        </div>
+                         <div className="space-y-2 pt-4">
+                            <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                            </button>
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </div>
                 </div>
             </div>
@@ -1662,6 +1662,20 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                     <p className="text-[#5F6368] mt-2">Generate realistic mockups for your designs instantly.</p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
+                            {isLoading ? (
+                                <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your mockup...</p></div>
+                            ) : generatedImage ? (
+                                <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                    <img src={generatedImage} alt="Generated Mockup" className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"/>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-400"><MockupIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated mockup will appear here.</p></div>
+                            )}
+                        </div>
+                        {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
+                    </div>
                     <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white p-4 rounded-xl border">
                             <h3 className="font-bold mb-2">1. Upload your design</h3>
@@ -1687,20 +1701,6 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
-                     <div className="lg:col-span-3">
-                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
-                            {isLoading ? (
-                                <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your mockup...</p></div>
-                            ) : generatedImage ? (
-                                <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                    <img src={generatedImage} alt="Generated Mockup" className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"/>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-400"><MockupIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated mockup will appear here.</p></div>
-                            )}
-                        </div>
-                        {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
                     </div>
                 </div>
             </div>
@@ -1795,9 +1795,9 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
                     <p className="text-[#5F6368] mt-2">Generate engaging social media captions for your photos instantly.</p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    <div>
-                        <div onClick={!originalImage ? triggerFileInput : undefined} className={`cursor-pointer w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center ${!originalImage ? 'hover:border-[#0079F2]' : 'cursor-default'}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3">
+                        <div onClick={!originalImage ? triggerFileInput : undefined} className={`cursor-pointer w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center ${!originalImage ? 'hover:border-[#0079F2]' : 'cursor-default'}`}>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
                             {originalImage ? (
                                 <img src={originalImage.url} alt="Uploaded for captioning" className="max-h-full object-contain rounded-lg"/>
@@ -1806,7 +1806,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                             )}
                         </div>
                         {originalImage && (
-                            <div className="mt-4 space-y-2">
+                            <div className="hidden lg:block mt-4 space-y-2">
                                 <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                     <SparklesIcon className="w-5 h-5"/> Generate Captions
                                 </button>
@@ -1814,7 +1814,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                             </div>
                         )}
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 min-h-[50vh]">
+                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 min-h-[50vh]">
                         <h3 className="font-bold text-lg mb-4 text-center">Generated Captions</h3>
                         {isLoading ? (
                             <div className="text-center"><SparklesIcon className="w-8 h-8 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-2 font-medium">Generating...</p></div>
@@ -1836,6 +1836,16 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                             <div className="text-center text-gray-400 pt-16"><CaptionIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your captions will appear here.</p></div>
                         )}
                     </div>
+                </div>
+                 <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                    {originalImage && (
+                        <div className="space-y-2">
+                            <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate Captions
+                            </button>
+                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
