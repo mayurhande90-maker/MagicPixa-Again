@@ -542,8 +542,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -881,8 +881,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 {generatedImage ? (
-                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated Interior" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Generated Interior" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 )
                                 : originalImage ? <img src={originalImage.url} alt="Original Room" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1173,8 +1173,8 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1345,8 +1345,8 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Transparent Background" className="max-h-full h-auto w-auto object-contain rounded-lg" style={{backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none'%3e%3cpath d='M0 0h16v16H0z' fill='%23f1f5f9'/%3e%3cpath d='M16 16h16v16H16z' fill='%23f1f5f9'/%3e%3c/svg%3e")`}} />
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Transparent Background" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" style={{backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none'%3e%3cpath d='M0 0h16v16H0z' fill='%23f1f5f9'/%3e%3cpath d='M16 16h16v16H16z' fill='%23f1f5f9'/%3e%3c/svg%3e")`}} />
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1587,3 +1587,4 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     </div>
   );
 };
+// Minor change to allow commit.
