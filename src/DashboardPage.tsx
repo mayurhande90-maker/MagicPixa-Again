@@ -1797,17 +1797,46 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                        <div onClick={!originalImage ? triggerFileInput : undefined} className={`cursor-pointer w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center ${!originalImage ? 'hover:border-[#0079F2]' : 'cursor-default'}`}>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
-                            {originalImage ? (
-                                <img src={originalImage.url} alt="Uploaded for captioning" className="max-h-full object-contain rounded-lg"/>
-                            ) : (
-                                <div className="text-center text-gray-500"><UploadIcon className="w-12 h-12 mx-auto"/><p className="mt-2 font-semibold">Upload a Photo</p></div>
-                            )}
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!originalImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                onClick={!originalImage ? triggerFileInput : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                
+                                {originalImage ? (
+                                    <img src={originalImage.url} alt="Uploaded for captioning" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
+                                            <UploadIcon className="w-12 h-12" />
+                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
+                                            <span className="text-sm">or click to upload</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {originalImage && !isLoading && (
+                                    <button
+                                        onClick={triggerFileInput}
+                                        className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                        aria-label="Change photo"
+                                    >
+                                        <ArrowUpCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">Generating captions...</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         {originalImage && (
                             <div className="hidden lg:block mt-4 space-y-2">
-                                <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                     <SparklesIcon className="w-5 h-5"/> Generate Captions
                                 </button>
                                 <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
@@ -1817,7 +1846,9 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 min-h-[50vh]">
                         <h3 className="font-bold text-lg mb-4 text-center">Generated Captions</h3>
                         {isLoading ? (
-                            <div className="text-center"><SparklesIcon className="w-8 h-8 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-2 font-medium">Generating...</p></div>
+                            <div className="flex items-center justify-center h-full pt-16">
+                                <div className="text-center"><SparklesIcon className="w-8 h-8 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-2 font-medium">Generating...</p></div>
+                            </div>
                         ) : error ? (
                              <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>
                         ) : generatedCaptions ? (
@@ -1833,7 +1864,9 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center text-gray-400 pt-16"><CaptionIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your captions will appear here.</p></div>
+                            <div className="flex items-center justify-center h-full pt-16">
+                                <div className="text-center text-gray-400"><CaptionIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your captions will appear here.</p></div>
+                            </div>
                         )}
                     </div>
                 </div>
