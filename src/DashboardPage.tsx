@@ -1509,13 +1509,13 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         title: string,
         icon: React.ReactNode,
     }> = ({ image, onClear, inputRef, onFileChange, title, icon }) => (
-        <div className="relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-center">
+        <div className="relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-center hover:border-[#0079F2] transition-colors">
             <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*"/>
             {image ? (
                 <>
                     <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg"/>
-                    <button onClick={onClear} className="absolute top-2 right-2 p-1.5 bg-white/70 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors">
-                        <XIcon className="w-4 h-4 text-gray-700"/>
+                    <button onClick={() => inputRef.current?.click()} className="absolute bottom-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors">
+                        <ArrowUpCircleIcon className="w-5 h-5 text-gray-700"/>
                     </button>
                 </>
             ) : (
