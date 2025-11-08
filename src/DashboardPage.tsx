@@ -1506,13 +1506,12 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         inputRef: React.RefObject<HTMLInputElement>;
         onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
         title: string;
-        icon: React.ReactNode;
-    }> = ({ image, inputRef, onFileChange, title, icon }) => {
+    }> = ({ image, inputRef, onFileChange, title }) => {
         const triggerFileInput = () => inputRef.current?.click();
     
         return (
             <div
-                className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
+                className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
                 onClick={!image ? triggerFileInput : undefined}
             >
                 <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
@@ -1521,18 +1520,18 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         <img src={image.url} alt={title} className="w-full h-full object-cover" />
                         <button
                             onClick={triggerFileInput}
-                            className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+                            className="absolute top-3 right-3 z-20 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
                             aria-label={`Change ${title}`}
                             title={`Change ${title}`}
                         >
-                            <ArrowUpCircleIcon className="w-6 h-6 text-gray-700" />
+                            <ArrowUpCircleIcon className="w-6 h-6" />
                         </button>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center gap-2 text-[#5F6368]">
-                        {icon}
-                        <span className="text-sm font-semibold text-[#1E1E1E]">{title}</span>
-                        <span className="text-xs">Click to upload</span>
+                    <div className="flex flex-col items-center gap-2 text-[#5F6368] p-2">
+                        <UploadIcon className="w-10 h-10" />
+                        <span className="font-semibold text-base text-[#1E1E1E]">{title}</span>
+                        <span className="text-sm">Click to upload</span>
                     </div>
                 )}
             </div>
@@ -1565,10 +1564,10 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
                     </div>
                     <div className="lg:col-span-2 space-y-4">
-                        <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
+                        <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" />
                         <div className="grid grid-cols-2 gap-4">
-                            <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} />
-                            <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
+                            <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" />
+                            <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" />
                         </div>
                          <div className="space-y-2 pt-4">
                             <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
