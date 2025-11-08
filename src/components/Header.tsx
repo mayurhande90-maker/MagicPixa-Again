@@ -87,24 +87,33 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
           <div className="flex items-center gap-4">
               {auth.isAuthenticated && auth.user ? (
                 <>
-                   {auth.isDashboard ? (
-                      <div className='flex items-center gap-4'>
+                  {/* Mobile view: Show credits instead of user circle */}
+                  <div className="sm:hidden flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
+                    <SparklesIcon className="w-4 h-4 text-yellow-600" />
+                    <span>{auth.user.credits} Credits</span>
+                  </div>
+
+                  {/* Desktop view: Unchanged */}
+                  <div className="hidden sm:flex items-center gap-4">
+                    {auth.isDashboard ? (
+                      <>
                         <button 
                             onClick={auth.openConversation}
-                            className="hidden sm:flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                            className="flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
                         >
                             <AudioWaveIcon className="w-4 h-4" />
                             <span>Magic Conversation</span>
                         </button>
-                        <div className="hidden sm:flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
+                        <div className="flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
                             <SparklesIcon className="w-4 h-4 text-yellow-600" />
                             <span>{auth.user.credits} Credits</span>
                         </div>
                         <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
-                      </div>
-                  ) : (
-                     <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
-                  )}
+                      </>
+                    ) : (
+                       <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
