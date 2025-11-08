@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1545,37 +1546,51 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes on any person from a photo.</p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    <div className="lg:col-span-3">
-                        <div className="w-full aspect-[4/5] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
+                <div className="flex justify-center">
+                    <div className="w-full max-w-lg space-y-6">
+                        <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center overflow-hidden">
                             {isLoading ? (
-                                <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your look...</p></div>
+                                <div className="text-center">
+                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/>
+                                    <p className="mt-4 font-medium">Generating your look...</p>
+                                </div>
                             ) : generatedImage ? (
-                                <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                    <img src={generatedImage} alt="Virtual Try-On" className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"/>
+                                <div className="relative w-full h-full">
+                                    <img src={generatedImage} alt="Virtual Try-On" className="w-full h-full object-contain rounded-lg"/>
+                                    <div className="absolute top-3 right-3 z-20 flex flex-col gap-2">
+                                        <button
+                                            onClick={() => setIsModalOpen(true)}
+                                            className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                            aria-label="Zoom in" title="Zoom in"
+                                        >
+                                            <PlusCircleIcon className="w-6 h-6" /> 
+                                        </button>
+                                        <button
+                                            onClick={handleStartOver}
+                                            className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                            aria-label="Start Over" title="Start Over"
+                                        >
+                                            <RetryIcon className="w-6 h-6" />
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="text-center text-gray-400">
-                                    <UsersIcon className="w-16 h-16 mx-auto mb-2"/>
-                                    <p className="font-semibold">Your generated image will appear here.</p>
-                                </div>
+                                <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" />
                             )}
                         </div>
-                        {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
-                    </div>
-                    <div className="lg:col-span-2 space-y-4">
-                        <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" />
+                        
                         <div className="grid grid-cols-2 gap-4">
                             <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" />
                             <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" />
                         </div>
+
                          <div className="space-y-2 pt-4">
                             <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                 <SparklesIcon className="w-5 h-5"/> Generate Try-On
                             </button>
                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
-                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </div>
                 </div>
             </div>
