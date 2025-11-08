@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1448,7 +1449,10 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             }
             const base64 = await fileToBase64(file);
             const data = { file, url: URL.createObjectURL(file), base64 };
-            if (type === 'person') setPersonImage(data);
+            if (type === 'person') {
+                setPersonImage(data);
+                setGeneratedImage(null); // When person changes, remove old result
+            }
             else if (type === 'top') setTopImage(data);
             else if (type === 'bottom') setBottomImage(data);
             setError(null);
@@ -1472,14 +1476,14 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         
         setIsLoading(true);
         setError(null);
-        setGeneratedImage(null);
-
+        
         const apparelItems: { type: string; base64: string; mimeType: string }[] = [];
         if (topImage) apparelItems.push({ type: 'top', ...topImage.base64 });
         if (bottomImage) apparelItems.push({ type: 'bottom', ...bottomImage.base64 });
 
         try {
             const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
+            // The generated image replaces the person image in the UI
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
@@ -1507,12 +1511,13 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         inputRef: React.RefObject<HTMLInputElement>;
         onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
         title: string;
-    }> = ({ image, inputRef, onFileChange, title }) => {
+        isPerson?: boolean;
+    }> = ({ image, inputRef, onFileChange, title, isPerson = false }) => {
         const triggerFileInput = () => inputRef.current?.click();
     
         return (
             <div
-                className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
+                className={`relative w-full ${isPerson ? '' : 'aspect-square'} bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
                 onClick={!image ? triggerFileInput : undefined}
             >
                 <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
@@ -1546,9 +1551,10 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes on any person from a photo.</p>
                 </div>
-                <div className="flex justify-center">
-                    <div className="w-full max-w-lg space-y-6">
-                        <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Left Column: Main Image Area */}
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/5] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center overflow-hidden">
                             {isLoading ? (
                                 <div className="text-center">
                                     <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/>
@@ -1575,22 +1581,30 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                     </div>
                                 </div>
                             ) : (
-                                <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" />
+                                <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" isPerson={true} />
                             )}
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" />
-                            <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" />
-                        </div>
+                    </div>
 
-                         <div className="space-y-2 pt-4">
-                            <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
-                            </button>
-                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                        </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    {/* Right Column: Controls */}
+                    <div className="lg:col-span-2">
+                         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 space-y-6">
+                            <div>
+                                <h3 className="text-xl font-bold text-[#1E1E1E] text-center mb-1">Controls</h3>
+                                <p className="text-sm text-[#5F6368] text-center">Upload clothing items</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" />
+                                <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" />
+                            </div>
+                            <div className="space-y-2 pt-6 border-t border-gray-200/80">
+                                <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                                </button>
+                                <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                            </div>
+                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                         </div>
                     </div>
                 </div>
             </div>
