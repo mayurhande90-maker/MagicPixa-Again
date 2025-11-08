@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -16,7 +17,7 @@ import {
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
-    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ZoomInIcon
+    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -545,11 +546,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}>
+                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
                                         <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                            <ZoomInIcon className="w-12 h-12 text-white" />
-                                        </div>
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -887,11 +885,8 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 {generatedImage ? (
-                                    <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}>
+                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
                                         <img src={generatedImage} alt="Generated Interior" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                            <ZoomInIcon className="w-12 h-12 text-white" />
-                                        </div>
                                     </div>
                                 )
                                 : originalImage ? <img src={originalImage.url} alt="Original Room" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1187,7 +1182,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'><h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2><p className="text-[#5F6368] mt-2">Breathe new life into your vintage black & white photos.</p></div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3"><div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5"><div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />{generatedImage ? <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" /><div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"><ZoomInIcon className="w-12 h-12 text-white" /></div></div> : originalImage ? <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload your vintage photo</span><span className="text-sm">Minimum 512x512 pixels</span></div></div>}{hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}{isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}</div></div></div>
+                    <div className="lg:col-span-3"><div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5"><div className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`} onClick={!hasImage ? triggerFileInput : undefined}><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />{generatedImage ? <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg" /></div> : originalImage ? <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" /> : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload your vintage photo</span><span className="text-sm">Minimum 512x512 pixels</span></div></div>}{hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}{isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}</div></div></div>
                     <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
                         <div className='text-center'><h3 className="text-xl font-bold text-[#1E1E1E]">Colourization Options</h3><p className='text-sm text-[#5F6368]'>Choose your enhancement level</p></div>
                         <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
@@ -1395,11 +1390,8 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                                 <div className="absolute inset-0 bg-gray-50/80 backdrop-blur-[2px] rounded-xl"></div>
                                 
                                 {generatedImage ? (
-                                    <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}>
+                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
                                         <img src={generatedImage} alt="Transparent Background" className="max-h-full h-auto w-auto object-contain rounded-lg z-10" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg z-10">
-                                            <ZoomInIcon className="w-12 h-12 text-white" />
-                                        </div>
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg z-10" />
@@ -1686,11 +1678,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                 <input type="file" ref={personFileInputRef} onChange={handlePersonFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}>
+                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
                                         <img src={generatedImage} alt="Generated Apparel" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                            <ZoomInIcon className="w-12 h-12 text-white" />
-                                        </div>
                                     </div>
                                 ) : personImage ? (
                                     <img src={personImage.url} alt="Person" className="max-h-full h-auto w-auto object-contain rounded-lg" />
@@ -1932,11 +1921,8 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 
                                 {generatedImage ? (
-                                    <div className="relative group w-full h-full cursor-pointer" onClick={() => setIsModalOpen(true)}>
+                                    <div className="relative w-full h-full cursor-pointer transform hover:-translate-y-1 transition-transform duration-300" onClick={() => setIsModalOpen(true)}>
                                         <img src={generatedImage} alt="Generated Mockup" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                            <ZoomInIcon className="w-12 h-12 text-white" />
-                                        </div>
                                     </div>
                                 ) : originalImage ? (
                                     <img src={originalImage.url} alt="Original Design" className="max-h-full h-auto w-auto object-contain rounded-lg" />
