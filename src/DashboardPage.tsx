@@ -2160,59 +2160,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
       case 'profile':
           // On mobile, this view is triggered from the nav bar.
-          // On desktop, it is a modal. We handle modal opening in App.tsx
-          if (isMobile && auth.user) {
-              return (
-                  <div className="p-4">
-                      <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
-                                {auth.user.avatar}
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg text-[#1E1E1E]">{auth.user.name}</h3>
-                                <p className="text-sm text-[#5F6368] truncate">{auth.user.email}</p>
-                            </div>
-                        </div>
-                        <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                           <PencilIcon className="w-4 h-4" /> Edit Profile
-                        </button>
-                        <button onClick={auth.handleLogout} className="w-full mt-2 flex items-center justify-center gap-2 text-sm py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                           <LogoutIcon className="w-4 h-4" /> Logout
-                        </button>
-                    </div>
-                  </div>
-              );
+          // On desktop, it's handled by UserMenu.
+          // For mobile, open the modal and revert view. For desktop, it's handled by UserMenu.
+          if (isMobile) {
+            openEditProfileModal();
+            setActiveView('home_dashboard'); // Go back to a safe default
+            return null; // Don't render anything this frame
           }
-          return null;
+          return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
       default:
         return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-        <Header 
-            navigateTo={navigateTo} 
-            auth={{...auth, isDashboard: true, showBackButton, handleBack, openConversation: () => setIsConversationOpen(true)}} 
+    <div className="flex h-screen bg-[#F9FAFB]">
+      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header
+          navigateTo={navigateTo}
+          auth={{
+            ...auth,
+            isDashboard: true,
+            setActiveView,
+            openConversation: () => setIsConversationOpen(true),
+            showBackButton,
+            handleBack
+          }}
         />
-        <div className="lg:flex h-[calc(100vh-69px)]">
-            <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-            <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-                {renderContent()}
-            </main>
-        </div>
-        <PixaChat 
-            user={auth.user} 
-            isConversationOpen={isConversationOpen}
-            setIsConversationOpen={setIsConversationOpen}
-        />
-        <MobileNav 
-            navigateTo={navigateTo}
-            auth={auth}
-            activeView={activeView}
-        />
+        <main className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </main>
+      </div>
+      <PixaChat user={auth.user} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} />
+      {isMobile && <MobileNav navigateTo={navigateTo} auth={auth} activeView={activeView} />}
     </div>
   );
 };
-// Minor change to allow commit.
