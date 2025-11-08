@@ -1416,20 +1416,594 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     );
 };
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    return (<div></div>);
+    const [personImage, setPersonImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [topImage, setTopImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [bottomImage, setBottomImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const personFileInputRef = useRef<HTMLInputElement>(null);
+    const topFileInputRef = useRef<HTMLInputElement>(null);
+    const bottomFileInputRef = useRef<HTMLInputElement>(null);
+    
+    const EDIT_COST = 3;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-apparel') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-apparel')!, 10) : 2);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'top' | 'bottom') => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const base64 = await fileToBase64(file);
+            const data = { file, url: URL.createObjectURL(file), base64 };
+            if (type === 'person') setPersonImage(data);
+            else if (type === 'top') setTopImage(data);
+            else if (type === 'bottom') setBottomImage(data);
+            setError(null);
+        }
+    };
+    
+    const handleGenerate = async () => {
+        if (!personImage) {
+            setError("Please upload a photo of a person.");
+            return;
+        }
+        if (!topImage && !bottomImage) {
+            setError("Please upload at least one clothing item.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+
+        const apparelItems: { type: string; base64: string; mimeType: string }[] = [];
+        if (topImage) apparelItems.push({ type: 'top', ...topImage.base64 });
+        if (bottomImage) apparelItems.push({ type: 'bottom', ...bottomImage.base64 });
+
+        try {
+            const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleStartOver = () => {
+        setPersonImage(null);
+        setTopImage(null);
+        setBottomImage(null);
+        setGeneratedImage(null);
+        setError(null);
+    };
+    
+    const ImageUploadBox: React.FC<{
+        image: { url: string } | null,
+        onClear: () => void,
+        inputRef: React.RefObject<HTMLInputElement>,
+        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+        title: string,
+        icon: React.ReactNode,
+    }> = ({ image, onClear, inputRef, onFileChange, title, icon }) => (
+        <div className="relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-center">
+            <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*"/>
+            {image ? (
+                <>
+                    <img src={image.url} alt={title} className="w-full h-full object-cover rounded-lg"/>
+                    <button onClick={onClear} className="absolute top-2 right-2 p-1.5 bg-white/70 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors">
+                        <XIcon className="w-4 h-4 text-gray-700"/>
+                    </button>
+                </>
+            ) : (
+                <button onClick={() => inputRef.current?.click()} className="flex flex-col items-center gap-2 text-gray-500 hover:text-[#0079F2]">
+                    {icon}
+                    <span className="text-sm font-semibold">{title}</span>
+                </button>
+            )}
+        </div>
+    );
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
+                    <p className="text-[#5F6368] mt-2">Virtually try on clothes on any person from a photo.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div className="lg:col-span-2 space-y-4">
+                        <ImageUploadBox image={personImage} onClear={() => setPersonImage(null)} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <ImageUploadBox image={topImage} onClear={() => setTopImage(null)} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" icon={<GarmentTopIcon className="w-8 h-8"/>} />
+                            <ImageUploadBox image={bottomImage} onClear={() => setBottomImage(null)} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
+                        </div>
+                         <div className="space-y-2 pt-4">
+                            <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                            </button>
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </div>
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/5] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
+                            {isLoading ? (
+                                <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your look...</p></div>
+                            ) : generatedImage ? (
+                                <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                    <img src={generatedImage} alt="Virtual Try-On" className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"/>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-400">
+                                    <UsersIcon className="w-16 h-16 mx-auto mb-2"/>
+                                    <p className="font-semibold">Your generated image will appear here.</p>
+                                </div>
+                            )}
+                        </div>
+                        {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
+                    </div>
+                </div>
+            </div>
+            {isModalOpen && generatedImage && (
+                <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
+            )}
+        </div>
+    );
 };
 const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    return (<div></div>);
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [mockupType, setMockupType] = useState<string>('T-shirt');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-mockup') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-mockup')!, 10) : 2);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    const EDIT_COST = 2;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-mockup', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            fileToBase64(originalImage.file).then(setBase64Data);
+        }
+    }, [originalImage]);
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!base64Data) {
+            setError("Please upload a logo or design.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+
+        try {
+            const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, mockupType);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleStartOver = () => {
+        setOriginalImage(null);
+        setGeneratedImage(null);
+        setError(null);
+    };
+
+    const triggerFileInput = () => fileInputRef.current?.click();
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
+                    <p className="text-[#5F6368] mt-2">Generate realistic mockups for your designs instantly.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white p-4 rounded-xl border">
+                            <h3 className="font-bold mb-2">1. Upload your design</h3>
+                            <div onClick={triggerFileInput} className="cursor-pointer aspect-video bg-gray-50 border-2 border-dashed rounded-lg flex items-center justify-center text-center text-gray-500 hover:border-[#0079F2] p-4">
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
+                                {originalImage ? <img src={originalImage.url} alt="Uploaded design" className="max-h-full object-contain"/> : <span>+ Upload Logo/Design</span>}
+                            </div>
+                        </div>
+                        <div className={`bg-white p-4 rounded-xl border ${!originalImage ? 'opacity-50' : ''}`}>
+                            <h3 className="font-bold mb-2">2. Choose a mockup</h3>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {mockupTypes.map(m => (
+                                    <button key={m.key} onClick={() => setMockupType(m.key)} disabled={!originalImage} className={`py-2 text-xs font-semibold rounded-lg border-2 ${mockupType === m.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white hover:border-[#0079F2]'}`}>
+                                        {m.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2 pt-4">
+                            <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate Mockup
+                            </button>
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </div>
+                     <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
+                            {isLoading ? (
+                                <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your mockup...</p></div>
+                            ) : generatedImage ? (
+                                <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                    <img src={generatedImage} alt="Generated Mockup" className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"/>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-400"><MockupIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated mockup will appear here.</p></div>
+                            )}
+                        </div>
+                        {generatedImage && <button onClick={handleStartOver} className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-black">Start Over</button>}
+                    </div>
+                </div>
+            </div>
+            {isModalOpen && generatedImage && (
+                <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
+            )}
+        </div>
+    );
 };
 const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    return (<div></div>);
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [generatedCaptions, setGeneratedCaptions] = useState<{ caption: string; hashtags: string }[] | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const EDIT_COST = 1;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-caption') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-caption')!, 10) : 2);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+    
+    useEffect(() => {
+        if (originalImage) {
+            fileToBase64(originalImage.file).then(setBase64Data).catch(err => setError("Failed to process file."));
+        }
+    }, [originalImage]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedCaptions(null);
+            setError(null);
+        }
+    };
+    
+    const handleGenerate = async () => {
+        if (!base64Data) {
+            setError("Please upload an image.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        setGeneratedCaptions(null);
+
+        try {
+            const captions = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setGeneratedCaptions(captions);
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    const triggerFileInput = () => fileInputRef.current?.click();
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions for your photos instantly.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    <div>
+                        <div onClick={!originalImage ? triggerFileInput : undefined} className={`cursor-pointer w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center ${!originalImage ? 'hover:border-[#0079F2]' : 'cursor-default'}`}>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
+                            {originalImage ? (
+                                <img src={originalImage.url} alt="Uploaded for captioning" className="max-h-full object-contain rounded-lg"/>
+                            ) : (
+                                <div className="text-center text-gray-500"><UploadIcon className="w-12 h-12 mx-auto"/><p className="mt-2 font-semibold">Upload a Photo</p></div>
+                            )}
+                        </div>
+                        {originalImage && (
+                            <div className="mt-4 space-y-2">
+                                <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5"/> Generate Captions
+                                </button>
+                                <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 min-h-[50vh]">
+                        <h3 className="font-bold text-lg mb-4 text-center">Generated Captions</h3>
+                        {isLoading ? (
+                            <div className="text-center"><SparklesIcon className="w-8 h-8 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-2 font-medium">Generating...</p></div>
+                        ) : error ? (
+                             <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>
+                        ) : generatedCaptions ? (
+                            <div className="space-y-4">
+                                {generatedCaptions.map((item, index) => (
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg border">
+                                        <p className="text-gray-800">{item.caption}</p>
+                                        <p className="text-sm text-blue-600 mt-2 font-mono">{item.hashtags}</p>
+                                        <button onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)} className="mt-3 flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-black">
+                                            {copiedIndex === index ? <><CheckIcon className="w-4 h-4 text-green-500"/> Copied!</> : <><CopyIcon className="w-4 h-4"/> Copy</>}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-400 pt-16"><CaptionIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your captions will appear here.</p></div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 const PixaChat: React.FC<{
     user: User | null;
     isConversationOpen: boolean;
     setIsConversationOpen: (isOpen: boolean) => void;
 }> = ({ user, isConversationOpen, setIsConversationOpen }) => {
-    return (<div></div>);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [transcriptionHistory, setTranscriptionHistory] = useState<{ speaker: 'user' | 'pixa', text: string }[]>([]);
+    
+    const sessionPromiseRef = useRef<Promise<any> | null>(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    
+    const currentInputTranscriptionRef = useRef('');
+    const currentOutputTranscriptionRef = useRef('');
+    const nextStartTimeRef = useRef(0);
+    const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+
+    const cleanup = useCallback(() => {
+        sessionPromiseRef.current?.then(session => session.close());
+        scriptProcessorRef.current?.disconnect();
+        mediaStreamSourceRef.current?.disconnect();
+        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+        inputAudioContextRef.current?.close();
+        outputAudioContextRef.current?.close();
+
+        sessionPromiseRef.current = null;
+        inputAudioContextRef.current = null;
+        outputAudioContextRef.current = null;
+        mediaStreamRef.current = null;
+        scriptProcessorRef.current = null;
+        mediaStreamSourceRef.current = null;
+    }, []);
+
+    const handleStartStop = async () => {
+        if (isRecording) {
+            setIsRecording(false);
+            cleanup();
+        } else {
+            try {
+                setTranscriptionHistory([]);
+                setIsRecording(true);
+                
+                inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaStreamRef.current = stream;
+
+                sessionPromiseRef.current = startLiveSession({
+                    onopen: () => {
+                        const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
+                        mediaStreamSourceRef.current = source;
+                        const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                        scriptProcessorRef.current = scriptProcessor;
+
+                        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                            const pcmBlob: Blob = {
+                                data: encode(new Int16Array(inputData.map(x => x * 32767)).buffer as any),
+                                mimeType: 'audio/pcm;rate=16000',
+                            };
+                            sessionPromiseRef.current?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
+                        };
+                        source.connect(scriptProcessor);
+                        scriptProcessor.connect(inputAudioContextRef.current!.destination);
+                    },
+                    onmessage: async (message: LiveServerMessage) => {
+                        if (message.serverContent?.outputTranscription) {
+                            currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
+                            setTranscriptionHistory(prev => {
+                                const last = prev[prev.length - 1];
+                                if (last?.speaker === 'pixa') {
+                                    return [...prev.slice(0, -1), { speaker: 'pixa', text: currentOutputTranscriptionRef.current }];
+                                }
+                                return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current }];
+                            });
+                        }
+                        if (message.serverContent?.inputTranscription) {
+                            currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
+                             setTranscriptionHistory(prev => {
+                                const last = prev[prev.length - 1];
+                                if (last?.speaker === 'user') {
+                                    return [...prev.slice(0, -1), { speaker: 'user', text: currentInputTranscriptionRef.current }];
+                                }
+                                return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current }];
+                            });
+                        }
+                         if (message.serverContent?.turnComplete) {
+                             currentInputTranscriptionRef.current = '';
+                             currentOutputTranscriptionRef.current = '';
+                         }
+                        
+                        const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                        if (base64Audio) {
+                            setIsSpeaking(true);
+                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputAudioContextRef.current!.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
+                            const source = outputAudioContextRef.current!.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(outputAudioContextRef.current!.destination);
+                            
+                            source.addEventListener('ended', () => {
+                                audioSourcesRef.current.delete(source);
+                                if (audioSourcesRef.current.size === 0) {
+                                    setIsSpeaking(false);
+                                }
+                            });
+
+                            source.start(nextStartTimeRef.current);
+                            nextStartTimeRef.current += audioBuffer.duration;
+                            audioSourcesRef.current.add(source);
+                        }
+                    },
+                    onerror: (e: ErrorEvent) => {
+                        console.error("Session Error:", e);
+                        setIsRecording(false);
+                        cleanup();
+                    },
+                    onclose: (e: CloseEvent) => {
+                        setIsRecording(false);
+                        cleanup();
+                    },
+                });
+            } catch(err) {
+                 console.error("Error starting conversation:", err);
+                 setIsRecording(false);
+            }
+        }
+    };
+    
+    useEffect(() => {
+        return () => cleanup();
+    }, [cleanup]);
+
+    if (!isConversationOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-lg flex flex-col items-center justify-between p-4" onClick={handleStartStop}>
+            <div className="text-center text-white pt-10">
+                <p className="font-bold text-2xl">Magic Conversation</p>
+                <p className="text-lg opacity-80">Tap anywhere to start or stop</p>
+            </div>
+            
+            <div className="w-full max-w-2xl text-white text-lg font-medium space-y-4 overflow-y-auto max-h-[50vh]">
+                {transcriptionHistory.map((item, index) => (
+                    <div key={index} className={`p-3 rounded-lg ${item.speaker === 'user' ? 'bg-white/10 text-right' : 'bg-blue-500/20 text-left'}`}>
+                        {item.text}
+                    </div>
+                ))}
+            </div>
+
+            <div className="flex flex-col items-center">
+                <button onClick={handleStartStop} className={`w-24 h-24 rounded-full transition-colors flex items-center justify-center ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}>
+                    {isRecording ? <StopIcon className="w-10 h-10 text-white"/> : <MicrophoneIcon className="w-10 h-10 text-white"/>}
+                </button>
+                <p className={`mt-4 font-semibold transition-opacity ${isSpeaking ? 'opacity-100 text-blue-300' : 'opacity-0'}`}>Pixa is speaking...</p>
+            </div>
+        </div>
+    );
 };
 
 const MobileNav: React.FC<{ 
