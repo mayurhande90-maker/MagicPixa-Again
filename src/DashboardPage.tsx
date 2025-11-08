@@ -1432,6 +1432,53 @@ const PixaChat: React.FC<{
     return (<div></div>);
 };
 
+const MobileNav: React.FC<{ 
+    navigateTo: (page: Page, view?: View) => void; 
+    auth: AuthProps; 
+    activeView: View;
+}> = ({ navigateTo, auth, activeView }) => {
+    const handleNav = (view: View) => {
+        if (!auth.isAuthenticated) {
+            auth.openAuthModal();
+        } else {
+            navigateTo('dashboard', view);
+        }
+    };
+
+    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
+        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+    ];
+
+    const getIsActive = (view: View) => {
+        if (activeView === view) return true;
+        const featureViews: View[] = ['studio', 'eraser', 'colour', 'caption', 'interior', 'apparel', 'mockup'];
+        if (view === 'dashboard' && featureViews.includes(activeView)) return true;
+        return false;
+    };
+    
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItems.map(item => (
+                    <button 
+                        key={item.label} 
+                        onClick={() => handleNav(item.view as View)} 
+                        disabled={item.disabled} 
+                        className={`flex flex-col items-center justify-center gap-1 p-2 w-1/4 transition-colors ${getIsActive(item.view) ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}
+                    >
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
 // FIX: Changed to a named export to resolve circular dependency with App.tsx
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   navigateTo,
@@ -1523,7 +1570,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         />
         <div className="lg:flex h-[calc(100vh-69px)]">
             <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
                 {renderContent()}
             </main>
         </div>
@@ -1531,6 +1578,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             user={auth.user} 
             isConversationOpen={isConversationOpen}
             setIsConversationOpen={setIsConversationOpen}
+        />
+        <MobileNav 
+            navigateTo={navigateTo}
+            auth={auth}
+            activeView={activeView}
         />
     </div>
   );
