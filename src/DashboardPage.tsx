@@ -8,6 +8,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -17,13 +18,14 @@ import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
+import ThemeToggle from './components/ThemeToggle';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
-    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon
+    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -2178,6 +2180,103 @@ const MobileNav: React.FC<{
     );
 };
 
+const MobileProfilePage: React.FC<{
+  user: User;
+  handleLogout: () => void;
+  openEditProfileModal: () => void;
+  navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+}> = ({ user, handleLogout, openEditProfileModal, navigateTo }) => {
+    
+    const memberSince = user.signUpDate
+    ? new Date(user.signUpDate.seconds * 1000).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : 'N/A';
+    
+    const ActionItem: React.FC<{icon: React.ReactNode, label: string, onClick?: () => void, children?: React.ReactNode}> = ({ icon, label, onClick, children }) => (
+        <button onClick={onClick} className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:hover:bg-transparent" disabled={!onClick}>
+            <div className="flex items-center gap-4">
+                <div className="text-gray-500">{icon}</div>
+                <span className="font-semibold text-gray-800">{label}</span>
+            </div>
+            {children || (onClick && <ChevronRightIcon className="w-5 h-5 text-gray-400" />)}
+        </button>
+    );
+
+    return (
+        <div className="p-4 pb-24 space-y-6">
+            {/* Identity Card */}
+            <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-200/80">
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl flex-shrink-0">
+                    {user.avatar}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                    <h2 className="font-bold text-lg text-gray-900 truncate">{user.name}</h2>
+                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                </div>
+            </div>
+
+            {/* Credits Card */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200/80">
+                <div className="flex justify-between items-center mb-2">
+                    <p className="font-semibold text-gray-700">Credits</p>
+                    <p className="text-sm font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Free Plan</p>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 mb-4">{user.credits}</p>
+                <button 
+                    onClick={() => navigateTo('home', undefined, 'pricing')}
+                    className="w-full bg-[#f9d230] text-[#1E1E1E] font-bold py-2.5 rounded-lg transition-transform transform active:scale-95"
+                >
+                    Get More Credits
+                </button>
+            </div>
+            
+            {/* Stats Card */}
+            <div className="bg-white rounded-2xl p-4 grid grid-cols-2 gap-4 text-center shadow-sm border border-gray-200/80">
+                <div>
+                    <p className="text-sm text-gray-500">Creations Made</p>
+                    <p className="font-bold text-lg text-gray-900">N/A</p>
+                </div>
+                 <div>
+                    <p className="text-sm text-gray-500">Member Since</p>
+                    <p className="font-bold text-lg text-gray-900">{memberSince}</p>
+                </div>
+            </div>
+
+            {/* Action Lists */}
+            <div className="space-y-4">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/80">
+                    <div className="divide-y divide-gray-200/80">
+                        <ActionItem icon={<PencilIcon className="w-6 h-6"/>} label="Edit Profile" onClick={openEditProfileModal}/>
+                        <ActionItem icon={<CreditCardIcon className="w-6 h-6"/>} label="Manage Subscription" onClick={() => navigateTo('home', undefined, 'pricing')}/>
+                        <ActionItem icon={<PaletteIcon className="w-6 h-6"/>} label="Theme">
+                             <ThemeToggle />
+                        </ActionItem>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/80">
+                    <div className="divide-y divide-gray-200/80">
+                        <ActionItem icon={<HelpIcon className="w-6 h-6"/>} label="Help & Support" onClick={() => {}}/>
+                        <ActionItem icon={<ShieldCheckIcon className="w-6 h-6"/>} label="Privacy Policy" onClick={() => {}}/>
+                        <ActionItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Terms of Service" onClick={() => {}}/>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Logout */}
+            <button 
+                onClick={handleLogout} 
+                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-100 text-red-600 font-bold rounded-xl transition-colors active:bg-gray-200"
+            >
+                <LogoutIcon className="w-6 h-6" />
+                <span>Log Out</span>
+            </button>
+        </div>
+    );
+};
 
 // FIX: Changed to a named export to resolve circular dependency with App.tsx
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -2194,7 +2293,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleBack = () => {
       // Determine the most logical place to go back to.
-      if (['studio', 'eraser', 'colour', 'caption', 'interior', 'apparel', 'mockup'].includes(activeView)) {
+      if (['studio', 'eraser', 'colour', 'caption', 'interior', 'apparel', 'mockup', 'profile'].includes(activeView)) {
           setActiveView('dashboard');
       } else {
           setActiveView('home_dashboard');
@@ -2231,14 +2330,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       case 'billing':
         return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
       case 'profile':
-          // On mobile, this view is triggered from the nav bar.
-          // On desktop, it's handled by UserMenu.
-          // For mobile, open the modal and revert view. For desktop, it's handled by UserMenu.
           if (isMobile) {
-            openEditProfileModal();
-            setActiveView('home_dashboard'); // Go back to a safe default
-            return null; // Don't render anything this frame
+            return auth.user ? <MobileProfilePage user={auth.user} handleLogout={auth.handleLogout} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} /> : null;
           }
+          setActiveView('dashboard');
           return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
       default:
         return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;

@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to resolve a circular dependency.
@@ -22,6 +23,7 @@ export interface User {
   email: string;
   avatar: string;
   credits: number;
+  signUpDate?: { seconds: number; nanoseconds: number };
 }
 
 export interface AuthProps {
@@ -75,6 +77,7 @@ const App: React.FC = () => {
             email: userProfile.email || firebaseUser.email || 'No Email',
             avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
             credits: userProfile.credits,
+            signUpDate: userProfile.signUpDate,
           };
           setUser(userToSet);
           setIsAuthenticated(true);
