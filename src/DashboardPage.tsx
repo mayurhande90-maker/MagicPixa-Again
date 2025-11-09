@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1552,27 +1553,31 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
                     <p className="text-[#5F6368] mt-2">Virtually try on clothes on any person from a photo.</p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch">
                     {/* Left Column: Main Image Area */}
                     <div className="lg:col-span-3">
-                        <div className="w-full h-full bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex flex-col">
-                           {/* Main display area */}
-                            <div className="flex-grow w-full rounded-xl flex items-center justify-center text-center overflow-hidden mb-4 bg-gray-50 border-2 border-dashed border-gray-300 min-h-[400px]">
+                        <div className="w-full h-full bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative w-full aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!personImage && !isLoading ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
+                                onClick={!personImage && !isLoading ? () => personFileInputRef.current?.click() : undefined}
+                            >
+                                <input type="file" ref={personFileInputRef} onChange={e => handleFileChange(e, 'person')} className="hidden" accept="image/*" />
+
                                 {isLoading ? (
                                     <div className="text-center">
-                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/>
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto" />
                                         <p className="mt-4 font-medium">Generating your look...</p>
                                     </div>
                                 ) : generatedImage ? (
                                     <div className="relative w-full h-full">
-                                        <img src={generatedImage} alt="Virtual Try-On" className="w-full h-full object-contain rounded-lg"/>
+                                        <img src={generatedImage} alt="Virtual Try-On" className="w-full h-full object-contain" />
                                         <div className="absolute top-3 right-3 z-20 flex flex-col gap-2">
                                             <button
                                                 onClick={() => setIsModalOpen(true)}
                                                 className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
                                                 aria-label="Zoom in" title="Zoom in"
                                             >
-                                                <PlusCircleIcon className="w-6 h-6" /> 
+                                                <PlusCircleIcon className="w-6 h-6" />
                                             </button>
                                             <button
                                                 onClick={handleStartOver}
@@ -1584,25 +1589,32 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                         </div>
                                     </div>
                                 ) : personImage ? (
-                                     <img src={personImage.url} alt="Person" className="w-full h-full object-contain"/>
+                                    <div className="relative w-full h-full">
+                                        <img src={personImage.url} alt="Person" className="w-full h-full object-contain" />
+                                        <button
+                                            onClick={() => personFileInputRef.current?.click()}
+                                            className="absolute top-3 right-3 z-20 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md"
+                                            aria-label="Change Person Photo"
+                                            title="Change Person Photo"
+                                        >
+                                            <ArrowUpCircleIcon className="w-6 h-6" />
+                                        </button>
+                                    </div>
                                 ) : (
-                                    <div className="text-gray-400 p-4">
-                                        <UsersIcon className="w-16 h-16 mx-auto mb-2"/>
-                                        <p className="font-semibold text-lg text-gray-600">Generated try-on will appear here</p>
-                                        <p className="text-sm">First, upload a photo of a person below.</p>
+                                    <div className="flex flex-col items-center gap-2 text-[#5F6368] p-4">
+                                        <UsersIcon className="w-16 h-16" />
+                                        <span className="font-semibold text-lg text-[#1E1E1E]">Upload a photo of a person</span>
+                                        <span className="text-sm">Click here to start</span>
                                     </div>
                                 )}
                             </div>
-                            
-                            {!generatedImage &&
-                                <ImageUploadBox image={personImage} inputRef={personFileInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Upload Person" />
-                            }
                         </div>
                     </div>
 
+
                     {/* Right Column: Controls */}
                     <div className="lg:col-span-2">
-                         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 space-y-6">
+                         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg shadow-gray-500/5 space-y-6 h-full flex flex-col">
                             <div>
                                 <h3 className="text-xl font-bold text-[#1E1E1E] text-center mb-1">Controls</h3>
                                 <p className="text-sm text-[#5F6368] text-center">Upload clothing items</p>
@@ -1611,6 +1623,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                 <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" isSquare={true} />
                                 <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" isSquare={true} />
                             </div>
+                            <div className="flex-grow"></div>
                             <div className="space-y-2 pt-6 border-t border-gray-200/80">
                                 <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                     <SparklesIcon className="w-5 h-5"/> Generate Try-On
