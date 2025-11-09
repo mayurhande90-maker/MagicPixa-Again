@@ -6,6 +6,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -530,7 +532,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
@@ -539,7 +541,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                         <div className="w-full aspect-square lg:aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
@@ -873,7 +875,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
@@ -882,7 +884,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                         <div className="w-full aspect-square lg:aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
@@ -1164,7 +1166,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
     
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2>
@@ -1173,7 +1175,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                         <div className="w-full aspect-square lg:aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
@@ -1336,7 +1338,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
@@ -1345,7 +1347,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
                 
                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                        <div className="w-full aspect-square lg:aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
@@ -1551,7 +1553,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
@@ -1628,7 +1630,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                                 <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" isSquare={true} />
                             </div>
                             <div className="flex-grow"></div>
-                            <div className="space-y-2 pt-6 border-t border-gray-200/80">
+                            <div className="hidden lg:block space-y-2 pt-6 border-t border-gray-200/80">
                                 <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                     <SparklesIcon className="w-5 h-5"/> Generate Try-On
                                 </button>
@@ -1642,6 +1644,11 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             {isModalOpen && generatedImage && (
                 <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
             )}
+            <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                    <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                </button>
+            </div>
         </div>
     );
 };
@@ -1726,7 +1733,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const triggerFileInput = () => fileInputRef.current?.click();
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
@@ -1765,7 +1772,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                                 ))}
                             </div>
                         </div>
-                        <div className="space-y-2 pt-4">
+                        <div className="hidden lg:block space-y-2 pt-4">
                             <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                 <SparklesIcon className="w-5 h-5"/> Generate Mockup
                             </button>
@@ -1778,6 +1785,11 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             {isModalOpen && generatedImage && (
                 <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
             )}
+             <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-t p-4">
+                <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                    <SparklesIcon className="w-5 h-5"/> Generate Mockup
+                </button>
+            </div>
         </div>
     );
 };
@@ -1860,7 +1872,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const triggerFileInput = () => fileInputRef.current?.click();
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 h-full pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
@@ -1868,7 +1880,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3">
-                        <div className="w-full aspect-square lg:aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
                                 className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!originalImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!originalImage ? triggerFileInput : undefined}
