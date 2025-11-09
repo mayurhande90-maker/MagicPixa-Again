@@ -1,27 +1,28 @@
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Changed from a namespace import to named imports for `firebase/app` to resolve errors with modular function calls like `initializeApp`.
-import { initializeApp, getApps, getApp } from 'firebase/app';
+// FIX: Switched from named to namespace import for `firebase/app` to work around a potential module resolution issue causing "not an exported member" errors.
+import * as firebaseApp from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
-const projectId = (import.meta as any).env.VITE_FIREBASE_PROJECT_ID;
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
 // SELF-HEALING CONFIG: The authDomain was consistently misconfigured by the user.
 // To fix this permanently, we now derive the authDomain directly from the projectId,
 // which is the standard Firebase convention and bypasses the faulty environment variable.
-const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN;
+const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 
 // Export the config object so other parts of the app can inspect it for diagnostics.
 export const firebaseConfig = {
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: derivedAuthDomain,
   projectId: projectId,
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
@@ -31,13 +32,13 @@ const checkConfigValue = (value: string | undefined): boolean => {
 // DEFINITIVE FIX: All keys, including the Gemini API key, must use the VITE_ prefix
 // and be accessed via import.meta.env in a Vite application.
 const allConfigKeys = {
-    "VITE_API_KEY": (import.meta as any).env.VITE_API_KEY,
-    "VITE_FIREBASE_API_KEY": (import.meta as any).env.VITE_FIREBASE_API_KEY,
-    "VITE_FIREBASE_AUTH_DOMAIN": (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
-    "VITE_FIREBASE_PROJECT_ID": (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
-    "VITE_FIREBASE_STORAGE_BUCKET": (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
-    "VITE_FIREBASE_MESSAGING_SENDER_ID": (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    "VITE_FIREBASE_APP_ID": (import.meta as any).env.VITE_FIREBASE_APP_ID
+    "VITE_API_KEY": import.meta.env.VITE_API_KEY,
+    "VITE_FIREBASE_API_KEY": import.meta.env.VITE_FIREBASE_API_KEY,
+    "VITE_FIREBASE_AUTH_DOMAIN": import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    "VITE_FIREBASE_PROJECT_ID": import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    "VITE_FIREBASE_STORAGE_BUCKET": import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    "VITE_FIREBASE_APP_ID": import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const missingKeys = Object.entries(allConfigKeys)
@@ -55,7 +56,8 @@ let db: Firestore | null = null;
 if (isConfigValid) {
   try {
     // FIX: Use the directly imported Firebase functions `getApps`, `initializeApp`, and `getApp` instead of trying to access them through a namespace.
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    // FIX: Use the namespace import `firebaseApp` to call initialization functions.
+    app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApp();
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {

@@ -6,7 +6,7 @@ import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
 let ai: GoogleGenAI | null = null;
 
 // DEFINITIVE FIX: Use `import.meta.env.VITE_API_KEY` for the Gemini key, as required by the Vite build process.
-const apiKey = (import.meta as any).env.VITE_API_KEY;
+const apiKey = import.meta.env.VITE_API_KEY;
 
 // Initialize the AI client only if the API key is available.
 if (apiKey && apiKey !== 'undefined') {
