@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1558,7 +1560,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <div className="lg:col-span-3">
                         <div className="w-full h-full bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
-                                className={`relative w-full aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!personImage && !isLoading ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
+                                className={`relative w-full aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!personImage && !isLoading ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`}
                                 onClick={!personImage && !isLoading ? () => personFileInputRef.current?.click() : undefined}
                             >
                                 <input type="file" ref={personFileInputRef} onChange={e => handleFileChange(e, 'person')} className="hidden" accept="image/*" />
