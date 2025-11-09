@@ -1,4 +1,4 @@
-/// <reference types="vite/client" />
+// FIX: Removed the reference to "vite/client" as it was causing a resolution error. The manual type definitions below serve as a workaround.
 
 // FIX: Manually define ImportMeta and ImportMetaEnv to resolve TypeScript errors
 // related to `import.meta.env` not being found. This is a workaround for a

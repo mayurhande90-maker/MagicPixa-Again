@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1961,7 +1950,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                             <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                 <SparklesIcon className="w-5 h-5"/> Generate Captions
                             </button>
-                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
                         </div>
                     )}
                 </div>
@@ -1969,316 +1958,202 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         </div>
     );
 };
-const PixaChat: React.FC<{
-    user: User | null;
-    isConversationOpen: boolean;
-    setIsConversationOpen: (isOpen: boolean) => void;
-}> = ({ user, isConversationOpen, setIsConversationOpen }) => {
-    const [isRecording, setIsRecording] = useState(false);
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [transcriptionHistory, setTranscriptionHistory] = useState<{ speaker: 'user' | 'pixa', text: string }[]>([]);
+
+
+const ConversationOverlay: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+}> = ({ isOpen, onClose }) => {
+    const [isListening, setIsListening] = useState(false);
+    const [transcriptions, setTranscriptions] = useState<{ type: 'user' | 'bot'; text: string }[]>([]);
     
+    // Refs for audio processing
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
     const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    
+
+    // Refs for transcription handling
     const currentInputTranscriptionRef = useRef('');
     const currentOutputTranscriptionRef = useRef('');
-    const nextStartTimeRef = useRef(0);
-    const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+    const conversationContainerRef = useRef<HTMLDivElement>(null);
 
-    const cleanup = useCallback(() => {
-        sessionPromiseRef.current?.then(session => session.close());
-        scriptProcessorRef.current?.disconnect();
-        mediaStreamSourceRef.current?.disconnect();
-        mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    const stopAudioProcessing = useCallback(() => {
+        // Stop microphone
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
+        }
+        // Disconnect audio nodes
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
+        }
+        if (mediaStreamSourceRef.current) {
+            mediaStreamSourceRef.current.disconnect();
+            mediaStreamSourceRef.current = null;
+        }
+        // Close audio contexts
         inputAudioContextRef.current?.close();
         outputAudioContextRef.current?.close();
-
-        sessionPromiseRef.current = null;
         inputAudioContextRef.current = null;
         outputAudioContextRef.current = null;
-        mediaStreamRef.current = null;
-        scriptProcessorRef.current = null;
-        mediaStreamSourceRef.current = null;
     }, []);
 
-    const handleStartStop = async () => {
-        if (isRecording) {
-            setIsRecording(false);
-            cleanup();
-        } else {
-            try {
-                setTranscriptionHistory([]);
-                setIsRecording(true);
-                
-                inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaStreamRef.current = stream;
-
-                sessionPromiseRef.current = startLiveSession({
-                    onopen: () => {
-                        const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
-                        mediaStreamSourceRef.current = source;
-                        const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-                        scriptProcessorRef.current = scriptProcessor;
-
-                        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                            const pcmBlob: Blob = {
-                                data: encode(new Int16Array(inputData.map(x => x * 32767)).buffer as any),
-                                mimeType: 'audio/pcm;rate=16000',
-                            };
-                            sessionPromiseRef.current?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
-                        };
-                        source.connect(scriptProcessor);
-                        scriptProcessor.connect(inputAudioContextRef.current!.destination);
-                    },
-                    onmessage: async (message: LiveServerMessage) => {
-                        if (message.serverContent?.outputTranscription) {
-                            currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
-                            setTranscriptionHistory(prev => {
-                                const last = prev[prev.length - 1];
-                                if (last?.speaker === 'pixa') {
-                                    return [...prev.slice(0, -1), { speaker: 'pixa', text: currentOutputTranscriptionRef.current }];
-                                }
-                                return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current }];
-                            });
-                        }
-                        if (message.serverContent?.inputTranscription) {
-                            currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
-                             setTranscriptionHistory(prev => {
-                                const last = prev[prev.length - 1];
-                                if (last?.speaker === 'user') {
-                                    return [...prev.slice(0, -1), { speaker: 'user', text: currentInputTranscriptionRef.current }];
-                                }
-                                return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current }];
-                            });
-                        }
-                         if (message.serverContent?.turnComplete) {
-                             currentInputTranscriptionRef.current = '';
-                             currentOutputTranscriptionRef.current = '';
-                         }
-                        
-                        const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                        if (base64Audio) {
-                            setIsSpeaking(true);
-                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputAudioContextRef.current!.currentTime);
-                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
-                            const source = outputAudioContextRef.current!.createBufferSource();
-                            source.buffer = audioBuffer;
-                            source.connect(outputAudioContextRef.current!.destination);
-                            
-                            source.addEventListener('ended', () => {
-                                audioSourcesRef.current.delete(source);
-                                if (audioSourcesRef.current.size === 0) {
-                                    setIsSpeaking(false);
-                                }
-                            });
-
-                            source.start(nextStartTimeRef.current);
-                            nextStartTimeRef.current += audioBuffer.duration;
-                            audioSourcesRef.current.add(source);
-                        }
-                    },
-                    onerror: (e: ErrorEvent) => {
-                        console.error("Session Error:", e);
-                        setIsRecording(false);
-                        cleanup();
-                    },
-                    onclose: (e: CloseEvent) => {
-                        setIsRecording(false);
-                        cleanup();
-                    },
-                });
-            } catch(err) {
-                 console.error("Error starting conversation:", err);
-                 setIsRecording(false);
-            }
+    const stopConversation = useCallback(() => {
+        if (sessionPromiseRef.current) {
+            sessionPromiseRef.current.then(session => session.close());
+            sessionPromiseRef.current = null;
         }
-    };
+        stopAudioProcessing();
+        setIsListening(false);
+        currentInputTranscriptionRef.current = '';
+        currentOutputTranscriptionRef.current = '';
+    }, [stopAudioProcessing]);
+
+    const startConversation = useCallback(async () => {
+        if (isListening) return;
+
+        setTranscriptions([]);
+        setIsListening(true);
+
+        try {
+            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            const outputNode = outputAudioContextRef.current.createGain();
+
+            let nextStartTime = 0;
+            const sources = new Set<AudioBufferSourceNode>();
+            
+            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            sessionPromiseRef.current = startLiveSession({
+                onopen: () => {
+                    if (!inputAudioContextRef.current || !mediaStreamRef.current) return;
+                    mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
+                    scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                    scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
+                        };
+                        sessionPromiseRef.current?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
+                    };
+                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                    scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    if (message.serverContent?.inputTranscription) {
+                        currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
+                    }
+                    if (message.serverContent?.outputTranscription) {
+                        currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
+                    }
+                    if (message.serverContent?.turnComplete) {
+                        setTranscriptions(prev => [
+                            ...prev,
+                            { type: 'user', text: currentInputTranscriptionRef.current },
+                            { type: 'bot', text: currentOutputTranscriptionRef.current }
+                        ]);
+                        currentInputTranscriptionRef.current = '';
+                        currentOutputTranscriptionRef.current = '';
+                    }
+
+                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (base64Audio && outputAudioContextRef.current) {
+                        nextStartTime = Math.max(nextStartTime, outputAudioContextRef.current.currentTime);
+                        const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current, 24000, 1);
+                        const source = outputAudioContextRef.current.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputNode);
+                        source.addEventListener('ended', () => sources.delete(source));
+                        source.start(nextStartTime);
+                        nextStartTime += audioBuffer.duration;
+                        sources.add(source);
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error('Live session error:', e);
+                    stopConversation();
+                },
+                onclose: (e: CloseEvent) => {
+                    console.log('Live session closed');
+                    stopConversation();
+                },
+            });
+
+        } catch (error) {
+            console.error('Error starting conversation:', error);
+            setIsListening(false);
+        }
+    }, [isListening, stopConversation]);
+
+    useEffect(() => {
+        if (isOpen) {
+            startConversation();
+        } else {
+            stopConversation();
+        }
+        return () => stopConversation();
+    }, [isOpen, startConversation, stopConversation]);
     
     useEffect(() => {
-        return () => cleanup();
-    }, [cleanup]);
-
-    if (!isConversationOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-lg flex flex-col items-center justify-between p-4" onClick={handleStartStop}>
-            <div className="text-center text-white pt-10">
-                <p className="font-bold text-2xl">Magic Conversation</p>
-                <p className="text-lg opacity-80">Tap anywhere to start or stop</p>
-            </div>
-            
-            <div className="w-full max-w-2xl text-white text-lg font-medium space-y-4 overflow-y-auto max-h-[50vh]">
-                {transcriptionHistory.map((item, index) => (
-                    <div key={index} className={`p-3 rounded-lg ${item.speaker === 'user' ? 'bg-white/10 text-right' : 'bg-blue-500/20 text-left'}`}>
-                        {item.text}
-                    </div>
-                ))}
-            </div>
-
-            <div className="flex flex-col items-center">
-                <button onClick={handleStartStop} className={`w-24 h-24 rounded-full transition-colors flex items-center justify-center ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}>
-                    {isRecording ? <StopIcon className="w-10 h-10 text-white"/> : <MicrophoneIcon className="w-10 h-10 text-white"/>}
-                </button>
-                <p className={`mt-4 font-semibold transition-opacity ${isSpeaking ? 'opacity-100 text-blue-300' : 'opacity-0'}`}>Pixa is speaking...</p>
-            </div>
-        </div>
-    );
-};
-
-const MobileNav: React.FC<{ 
-    navigateTo: (page: Page, view?: View) => void; 
-    auth: AuthProps; 
-    activeView: View;
-}> = ({ navigateTo, auth, activeView }) => {
-    const handleNav = (view: View) => {
-        if (!auth.isAuthenticated) {
-            auth.openAuthModal();
-        } else {
-            navigateTo('dashboard', view);
+        if (conversationContainerRef.current) {
+            conversationContainerRef.current.scrollTop = conversationContainerRef.current.scrollHeight;
         }
-    };
+    }, [transcriptions]);
 
-    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
-        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
-        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
-    ];
-
-    const getIsActive = (view: View) => {
-        if (activeView === view) return true;
-        const featureViews: View[] = ['studio', 'eraser', 'colour', 'caption', 'interior', 'apparel', 'mockup'];
-        if (view === 'dashboard' && featureViews.includes(activeView)) return true;
-        return false;
-    };
-    
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button 
-                        key={item.label} 
-                        onClick={() => handleNav(item.view as View)} 
-                        disabled={item.disabled} 
-                        className={`flex flex-col items-center justify-center gap-1 p-2 w-1/4 transition-colors ${getIsActive(item.view) ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}
-                    >
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
+        <div className={`fixed inset-0 lg:inset-auto lg:bottom-8 lg:right-8 z-[100] bg-white lg:rounded-2xl lg:shadow-2xl lg:border lg:w-[400px] lg:h-[600px] transition-transform duration-300 ${isOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0 lg:scale-95 lg:opacity-0'}`}>
+            <div className="flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b">
+                    <h2 className="font-bold text-lg flex items-center gap-2">
+                        <AudioWaveIcon className="w-5 h-5 text-[#0079F2]" />
+                        Magic Conversation
+                    </h2>
+                    <button onClick={onClose} className="p-2 text-gray-500 hover:text-black">
+                        <XIcon className="w-6 h-6" />
                     </button>
-                ))}
+                </div>
+
+                {/* Conversation Body */}
+                <div ref={conversationContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                     {transcriptions.length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                           <MicrophoneIcon className="w-12 h-12 mb-2"/>
+                           <p className="font-semibold">I'm listening...</p>
+                           <p className="text-sm">Start speaking to talk with Pixa.</p>
+                        </div>
+                    )}
+                    {transcriptions.map((t, i) => (
+                        <div key={i} className={`flex ${t.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] p-3 rounded-2xl ${t.type === 'user' ? 'bg-[#0079F2] text-white rounded-br-lg' : 'bg-gray-100 text-black rounded-bl-lg'}`}>
+                                {t.text}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Footer / Control */}
+                <div className="p-4 border-t">
+                     <button
+                        onClick={stopConversation}
+                        className="w-full flex items-center justify-center gap-3 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-transform transform active:scale-95"
+                    >
+                        <StopIcon className="w-6 h-6" />
+                        <span>Stop Conversation</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-const MobileProfilePage: React.FC<{
-  user: User;
-  handleLogout: () => void;
-  openEditProfileModal: () => void;
-  navigateTo: (page: Page, view?: View, sectionId?: string) => void;
-}> = ({ user, handleLogout, openEditProfileModal, navigateTo }) => {
-    
-    const memberSince = user.signUpDate
-    ? new Date(user.signUpDate.seconds * 1000).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'N/A';
-    
-    const ActionItem: React.FC<{icon: React.ReactNode, label: string, onClick?: () => void, children?: React.ReactNode}> = ({ icon, label, onClick, children }) => (
-        <button onClick={onClick} className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:hover:bg-transparent" disabled={!onClick}>
-            <div className="flex items-center gap-4">
-                <div className="text-gray-500">{icon}</div>
-                <span className="font-semibold text-gray-800">{label}</span>
-            </div>
-            {children || (onClick && <ChevronRightIcon className="w-5 h-5 text-gray-400" />)}
-        </button>
-    );
-
-    return (
-        <div className="p-4 pb-24 space-y-6">
-            {/* Identity Card */}
-            <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-200/80">
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl flex-shrink-0">
-                    {user.avatar}
-                </div>
-                <div className="flex-1 overflow-hidden">
-                    <h2 className="font-bold text-lg text-gray-900 truncate">{user.name}</h2>
-                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                </div>
-            </div>
-
-            {/* Credits Card */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200/80">
-                <div className="flex justify-between items-center mb-2">
-                    <p className="font-semibold text-gray-700">Credits</p>
-                    <p className="text-sm font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Free Plan</p>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 mb-4">{user.credits}</p>
-                <button 
-                    onClick={() => navigateTo('home', undefined, 'pricing')}
-                    className="w-full bg-[#f9d230] text-[#1E1E1E] font-bold py-2.5 rounded-lg transition-transform transform active:scale-95"
-                >
-                    Get More Credits
-                </button>
-            </div>
-            
-            {/* Stats Card */}
-            <div className="bg-white rounded-2xl p-4 grid grid-cols-2 gap-4 text-center shadow-sm border border-gray-200/80">
-                <div>
-                    <p className="text-sm text-gray-500">Creations Made</p>
-                    <p className="font-bold text-lg text-gray-900">N/A</p>
-                </div>
-                 <div>
-                    <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="font-bold text-lg text-gray-900">{memberSince}</p>
-                </div>
-            </div>
-
-            {/* Action Lists */}
-            <div className="space-y-4">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/80">
-                    <div className="divide-y divide-gray-200/80">
-                        <ActionItem icon={<PencilIcon className="w-6 h-6"/>} label="Edit Profile" onClick={openEditProfileModal}/>
-                        <ActionItem icon={<CreditCardIcon className="w-6 h-6"/>} label="Manage Subscription" onClick={() => navigateTo('home', undefined, 'pricing')}/>
-                        <ActionItem icon={<PaletteIcon className="w-6 h-6"/>} label="Theme">
-                             <ThemeToggle />
-                        </ActionItem>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/80">
-                    <div className="divide-y divide-gray-200/80">
-                        <ActionItem icon={<HelpIcon className="w-6 h-6"/>} label="Help & Support" onClick={() => {}}/>
-                        <ActionItem icon={<ShieldCheckIcon className="w-6 h-6"/>} label="Privacy Policy" onClick={() => {}}/>
-                        <ActionItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Terms of Service" onClick={() => {}}/>
-                    </div>
-                </div>
-            </div>
-            
-            {/* Logout */}
-            <button 
-                onClick={handleLogout} 
-                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-100 text-red-600 font-bold rounded-xl transition-colors active:bg-gray-200"
-            >
-                <LogoutIcon className="w-6 h-6" />
-                <span>Log Out</span>
-            </button>
-        </div>
-    );
-};
-
-// FIX: Changed to a named export to resolve circular dependency with App.tsx
+// FIX: Change to a named export to resolve circular dependency with App.tsx.
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   navigateTo,
   auth,
@@ -2286,81 +2161,83 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   setActiveView,
   openEditProfileModal,
   isConversationOpen,
-  setIsConversationOpen
+  setIsConversationOpen,
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const showBackButton = activeView !== 'dashboard' && activeView !== 'home_dashboard';
-
   const handleBack = () => {
-      // Determine the most logical place to go back to.
-      if (['studio', 'eraser', 'colour', 'caption', 'interior', 'apparel', 'mockup', 'profile'].includes(activeView)) {
-          setActiveView('dashboard');
-      } else {
-          setActiveView('home_dashboard');
-      }
+    setActiveView('home_dashboard');
   };
 
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const renderContent = () => {
-    switch (activeView) {
-      case 'home_dashboard':
-        return isMobile ? <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-      case 'dashboard':
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-      case 'studio':
-        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
-      case 'interior':
-          return <MagicInterior auth={auth} navigateTo={navigateTo} />;
-      case 'colour':
-          return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
-      case 'eraser':
-          return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />;
-       case 'apparel':
-          return <MagicApparel auth={auth} navigateTo={navigateTo} />;
-       case 'mockup':
-            return <MagicMockup auth={auth} navigateTo={navigateTo} />;
-       case 'caption':
-            return <CaptionAI auth={auth} navigateTo={navigateTo} />;
-      case 'billing':
-        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
-      case 'profile':
-          if (isMobile) {
-            return auth.user ? <MobileProfilePage user={auth.user} handleLogout={auth.handleLogout} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} /> : null;
-          }
-          setActiveView('dashboard');
-          return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-      default:
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-    }
+  const dashboardAuthProps = {
+    ...auth,
+    isDashboard: true,
+    showBackButton: activeView !== 'home_dashboard' && activeView !== 'dashboard' && activeView !== 'billing' && activeView !== 'creations' && activeView !== 'profile',
+    handleBack,
+    setActiveView,
+    openConversation: () => setIsConversationOpen(true),
   };
+  
+  const MobileHeader: React.FC = () => (
+      <header className="sticky top-0 z-40 py-4 px-4 bg-[#F9FAFB]/80 backdrop-blur-lg border-b border-gray-200/80 lg:hidden">
+          <div className="flex items-center justify-between">
+              <div>
+                  {activeView !== 'home_dashboard' && (
+                       <button onClick={handleBack} className="p-2 -ml-2 text-[#1E1E1E]" aria-label="Go back">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                  )}
+              </div>
+              <div className="font-bold text-lg text-center absolute left-1/2 -translate-x-1/2">
+                {
+                    {
+                        'home_dashboard': 'Home',
+                        'dashboard': 'All Tools',
+                        'studio': 'Photo Studio',
+                        'eraser': 'BG Eraser',
+                        'colour': 'Photo Colour',
+                        'caption': 'CaptionAI',
+                        'interior': 'Interior AI',
+                        'apparel': 'Apparel AI',
+                        'mockup': 'Mockup AI',
+                        'creations': 'My Creations',
+                        'billing': 'Billing',
+                        'profile': 'Profile',
+                    }[activeView] || 'MagicPixa'
+                }
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsConversationOpen(true)} className="p-2 text-[#1E1E1E]">
+                    <MicrophoneIcon className="w-6 h-6"/>
+                </button>
+              </div>
+          </div>
+      </header>
+  );
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB]">
-      <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          navigateTo={navigateTo}
-          auth={{
-            ...auth,
-            isDashboard: true,
-            setActiveView,
-            openConversation: () => setIsConversationOpen(true),
-            showBackButton,
-            handleBack
-          }}
-        />
+    <div className="flex flex-col h-screen bg-[#F9FAFB]">
+      <div className='hidden lg:block'>
+         <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
+      </div>
+      <div className="lg:hidden">
+         <MobileHeader/>
+      </div>
+      
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
         <main className="flex-1 overflow-y-auto">
-          {renderContent()}
+          {activeView === 'home_dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />}
+          {activeView === 'dashboard' && <MobileDashboard user={auth.user} setActiveView={setActiveView} />}
+          {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'interior' && <MagicInterior auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'colour' && <MagicPhotoColour auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'eraser' && <MagicBackgroundEraser auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'apparel' && <MagicApparel auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'mockup' && <MagicMockup auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo}/>}
+          {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
+          <ConversationOverlay isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
         </main>
       </div>
-      <PixaChat user={auth.user} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} />
-      {isMobile && <MobileNav navigateTo={navigateTo} auth={auth} activeView={activeView} />}
     </div>
   );
 };
