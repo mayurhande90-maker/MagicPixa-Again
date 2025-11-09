@@ -1,7 +1,8 @@
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Use named imports for Firebase app functions to align with modular SDK v9+ usage, resolving "does not exist on type" errors.
-import { initializeApp, getApps, getApp } from 'firebase/app';
+// FIX: Changed to a namespace import for firebase/app as named imports were failing to resolve, which caused errors like "has no exported member 'initializeApp'". This is a workaround for a potential build tool or dependency issue.
+import * as FirebaseApp from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore } from 'firebase/firestore';
 
@@ -54,8 +55,8 @@ let db: Firestore | null = null;
 
 if (isConfigValid) {
   try {
-    // FIX: Use the directly imported Firebase functions `getApps`, `initializeApp`, and `getApp` as required by the modular SDK.
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    // FIX: Use the namespace import to call Firebase app functions.
+    app = FirebaseApp.getApps().length === 0 ? FirebaseApp.initializeApp(firebaseConfig) : FirebaseApp.getApp();
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {

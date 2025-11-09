@@ -7,14 +7,14 @@ import { deductCredits, getOrCreateUserProfile } from './firebase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
-import ThemeToggle from './components/ThemeToggle';
+// FIX: Import AudioWaveIcon to resolve 'Cannot find name' error.
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
-    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon
+    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, ArrowLeftIcon, AudioWaveIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -2153,6 +2153,85 @@ const ConversationOverlay: React.FC<{
     );
 };
 
+const MobileProfilePage: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, openEditProfileModal, navigateTo }) => {
+    const user = auth.user;
+    if (!user) return null;
+
+    const totalCreditsInPlan = 10; // Assuming a free plan of 10 credits
+    const creditPercentage = Math.min((user.credits / totalCreditsInPlan) * 100, 100);
+  
+    const formatDate = (timestamp?: { seconds: number; nanoseconds: number }) => {
+      if (!timestamp) return 'N/A';
+      return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+  
+    const ActionItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; }> = ({ icon, label, onClick }) => (
+      <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-white rounded-lg transition-colors hover:bg-gray-50">
+        <div className="flex items-center gap-4">
+          {icon}
+          <span className="font-semibold text-gray-800">{label}</span>
+        </div>
+        <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+      </button>
+    );
+  
+    return (
+      <div className="p-4 space-y-6 pb-24">
+        {/* Profile Header */}
+        <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200/80">
+          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
+            {user.avatar}
+          </div>
+          <div>
+            <h2 className="font-bold text-xl text-gray-900">{user.name}</h2>
+            <p className="text-sm text-gray-500">{user.email}</p>
+          </div>
+        </div>
+  
+        {/* Credits Card */}
+        <div className="p-4 bg-white rounded-xl border border-gray-200/80">
+          <div className="flex justify-between items-baseline mb-2">
+            <h3 className="font-bold text-gray-800">Credits</h3>
+            <span className="font-bold text-xl text-gray-900">{user.credits} <span className="text-sm font-medium text-gray-500">/ {totalCreditsInPlan}</span></span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+              <div className="bg-[#f9d230] h-2.5 rounded-full" style={{ width: `${creditPercentage}%` }}></div>
+          </div>
+          <button onClick={() => navigateTo('home', undefined, 'pricing')} className="w-full bg-[#f9d230] text-[#1E1E1E] font-semibold py-2 rounded-lg">
+            Get More Credits
+          </button>
+        </div>
+  
+        {/* Account Actions */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-500 px-2">Account</h3>
+          <ActionItem icon={<PencilIcon className="w-6 h-6 text-gray-500" />} label="Edit Profile" onClick={openEditProfileModal} />
+          <ActionItem icon={<TicketIcon className="w-6 h-6 text-gray-500" />} label="Manage Subscription" onClick={() => navigateTo('home', undefined, 'pricing')} />
+        </div>
+  
+        {/* Support */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-500 px-2">Support & Legal</h3>
+          <ActionItem icon={<HelpIcon className="w-6 h-6 text-gray-500" />} label="Help & Support" onClick={() => {}} />
+          <ActionItem icon={<ShieldCheckIcon className="w-6 h-6 text-gray-500" />} label="Privacy Policy" onClick={() => {}} />
+          <ActionItem icon={<DocumentTextIcon className="w-6 h-6 text-gray-500" />} label="Terms of Service" onClick={() => {}} />
+        </div>
+  
+        {/* Logout */}
+        <div className="pt-4">
+          <button onClick={auth.handleLogout} className="w-full flex items-center justify-center gap-3 py-3 bg-red-50 text-red-600 font-bold rounded-xl">
+            <LogoutIcon className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    );
+};
+
 // FIX: Change to a named export to resolve circular dependency with App.tsx.
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   navigateTo,
@@ -2214,7 +2293,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[#F9FAFB]">
+    <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
       <div className='hidden lg:block'>
          <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
       </div>
@@ -2222,9 +2301,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
          <MobileHeader/>
       </div>
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           {activeView === 'home_dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />}
           {activeView === 'dashboard' && <MobileDashboard user={auth.user} setActiveView={setActiveView} />}
           {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo}/>}
@@ -2235,6 +2314,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {activeView === 'mockup' && <MagicMockup auth={auth} navigateTo={navigateTo}/>}
           {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo}/>}
           {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
+          {activeView === 'profile' && auth.user && <div className="lg:hidden"><MobileProfilePage auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} /></div>}
           <ConversationOverlay isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
         </main>
       </div>
