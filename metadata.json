@@ -2,5 +2,7 @@
   "name": "MagicPixa",
   "description": "An AI-powered image generation and enhancement platform for photos, products, interiors, notes, and more.",
   "version": "1.0.2",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
