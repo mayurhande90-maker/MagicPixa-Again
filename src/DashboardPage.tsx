@@ -1191,7 +1191,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(true);
     const [style, setStyle] = useState('romantic');
     const [environment, setEnvironment] = useState('sunny');
 
@@ -1212,7 +1212,6 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-soul', guestCredits.toString());
     }, [isGuest, guestCredits]);
 
-    // FIX: Added missing handleDownloadClick function to allow downloading the generated image.
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
         const link = document.createElement('a');
@@ -1236,7 +1235,6 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             else setPersonB(data);
             setGeneratedImage(null);
             setError(null);
-            if(personA || personB) setIsPanelOpen(true);
         }
     };
     
@@ -1276,7 +1274,9 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         setPersonB(null);
         setGeneratedImage(null);
         setError(null);
-        setIsPanelOpen(false);
+        setIsPanelOpen(true);
+        if (fileInputARef.current) fileInputARef.current.value = "";
+        if (fileInputBRef.current) fileInputBRef.current.value = "";
     };
 
     const ImageUploadBox: React.FC<{
@@ -1284,7 +1284,8 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         inputRef: React.RefObject<HTMLInputElement>;
         onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
         title: string;
-    }> = ({ image, inputRef, onFileChange, title }) => {
+        isSquare?: boolean;
+    }> = ({ image, inputRef, onFileChange, title, isSquare = false }) => {
         const triggerFileInput = () => inputRef.current?.click();
         return (
             <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? triggerFileInput : undefined}>
@@ -1317,8 +1318,8 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
                     <div className="hidden lg:col-span-2 lg:flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" />
-                            <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" />
+                            <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" isSquare={true}/>
+                            <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" isSquare={true}/>
                         </div>
                         <div className={!hasImages ? 'opacity-50' : ''}>
                             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
@@ -1342,26 +1343,35 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     </div>
 
                     <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-                        <div onClick={() => (personA || personB) && setIsPanelOpen(!isPanelOpen)} className={`w-full py-2 flex justify-center ${(personA || personB) ? 'cursor-pointer' : ''}`} aria-expanded={isPanelOpen}>
-                            {(personA || personB) ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        <div onClick={() => setIsPanelOpen(!isPanelOpen)} className="w-full py-2 flex justify-center cursor-pointer" aria-controls="mobile-controls-panel-soul" aria-expanded={isPanelOpen}>
+                            {isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>}
                         </div>
-                        <div className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && (personA || personB) ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
+                        <div id="mobile-controls-panel-soul" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
                             <div className="grid grid-cols-2 gap-4 mb-4">
-                                <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" />
-                                <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" />
+                                <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" isSquare={true}/>
+                                <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" isSquare={true}/>
                             </div>
                             <div className="space-y-4">
-                                <div><label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label><select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg"><option value="romantic">Romantic</option></select></div>
-                                <div><label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label><select value={environment} onChange={e => setEnvironment(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg"><option value="sunny">Sunny</option></select></div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
+                                    <select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
+                                        {soulStyles.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
+                                    <select value={environment} onChange={e => setEnvironment(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
+                                        {soulEnvironments.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div className="p-4 border-t border-gray-200/80">
                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
                            {generatedImage ? (
                                 <div className="grid grid-cols-2 gap-4">
-                                    {/* FIX: Changed onClick to call the new handleDownloadClick function. */}
                                     <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                    <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 font-bold py-3 px-4 rounded-xl"><RetryIcon className="w-5 h-5"/> Start Over</button>
+                                    <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-3 px-4 rounded-xl"><RetryIcon className="w-5 h-5"/> Start Over</button>
                                 </div>
                            ) : (
                                 <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
@@ -2198,15 +2208,14 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
         setIsThinking(true);
         
         try {
-            const history: HistoryItem[] = messages
+            const apiHistory: { role: 'user' | 'model'; text: string }[] = messages
                 .filter(m => m.speaker === 'user' || m.speaker === 'pixa')
-                // FIX: Map `speaker` to the required `role` property.
                 .map(m => ({
                     role: m.speaker === 'user' ? 'user' : 'model',
                     text: m.text
                 }));
 
-            const responseText = await generateSupportResponse(history, messageText);
+            const responseText = await generateSupportResponse(apiHistory, messageText);
             const pixaResponse: Message = { speaker: 'pixa', text: responseText, isFinal: true };
             setMessages(prev => [...prev, pixaResponse]);
 
@@ -2276,16 +2285,11 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
                     });
                 }
                 
-                // FIX: The `isFinal` property does not exist on the `Transcription` type. We derive finality from `turnComplete`.
                 if (message.serverContent?.turnComplete) {
-                     const finalInput = currentInputTranscriptionRef.current;
-                     const finalOutput = currentOutputTranscriptionRef.current;
                      setMessages(prev => {
                          const updated = [...prev];
-                         // FIX: Replace `findLast` with a compatible equivalent (`slice().reverse().find()`) to support older TS/JS targets.
                          const lastUser = updated.slice().reverse().find(m => m.speaker === 'user');
                          if (lastUser) lastUser.isFinal = true;
-                         // FIX: Replace `findLast` with a compatible equivalent (`slice().reverse().find()`) to support older TS/JS targets.
                          const lastPixa = updated.slice().reverse().find(m => m.speaker === 'pixa');
                          if (lastPixa) lastPixa.isFinal = true;
                          return updated;
@@ -2511,3 +2515,4 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
 };
 
 export default DashboardPage;
+// Minor change for deployment.
