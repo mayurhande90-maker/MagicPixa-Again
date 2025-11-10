@@ -1,8 +1,11 @@
 
 
+
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -2177,7 +2180,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   
   const ConversationPanel: React.FC<{ user: User; onClose: () => void; }> = ({ user, onClose }) => {
     const [isRecording, setIsRecording] = useState(false);
-    const [transcription, setTranscription] = useState<{ speaker: 'user' | 'pixa'; text: string; isFinal: boolean }[]>([]);
+    const [messages, setMessages] = useState<{ speaker: 'user' | 'pixa'; text: string; isFinal?: boolean }[]>([]);
+    const [textInput, setTextInput] = useState('');
+    const [isThinking, setIsThinking] = useState(false);
 
     const sessionPromiseRef = useRef<any>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -2198,8 +2203,41 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [transcription]);
+    }, [messages]);
 
+    const prebuiltQuestions = [
+        "How do credits work?",
+        "What is Magic Photo Studio?",
+        "How do I use the background eraser?",
+        "Tell me about Magic Apparel."
+    ];
+
+    const handleSendText = async (message: string) => {
+        if (!message.trim() || isThinking || isRecording) return;
+        
+        const userMessage = { speaker: 'user' as const, text: message.trim(), isFinal: true };
+        setTextInput('');
+        setMessages(prev => [...prev, userMessage]);
+        setIsThinking(true);
+
+// FIX: Map the local message history (`speaker: 'user' | 'pixa'`) to the format expected by the geminiService (`role: 'user' | 'model'`).
+        const historyForApi = [...messages, userMessage]
+            .filter(m => m.isFinal)
+            .map(({ speaker, text }) => ({
+                role: speaker === 'user' ? ('user' as const) : ('model' as const),
+                text,
+            }));
+
+        try {
+            const aiResponse = await generateSupportResponse(historyForApi.slice(0, -1), message.trim());
+            setMessages(prev => [...prev, { speaker: 'pixa', text: aiResponse, isFinal: true }]);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+            setMessages(prev => [...prev, { speaker: 'pixa', text: `Sorry, I ran into an error: ${errorMessage}`, isFinal: true }]);
+        } finally {
+            setIsThinking(false);
+        }
+    };
 
     const stopSession = useCallback(() => {
         if (sessionPromiseRef.current) {
@@ -2234,13 +2272,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
     const startSession = useCallback(async () => {
         try {
+            if (isThinking) return;
+            setMessages([]);
+            setTextInput('');
             inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
 
             sessionPromiseRef.current = startLiveSession({
                 onopen: () => {
-                    console.log('Session opened.');
                     if (!inputAudioContextRef.current || !mediaStreamRef.current) return;
                     
                     mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
@@ -2274,41 +2314,35 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                         audioSourcesRef.current.add(source);
                     }
                     if (message.serverContent?.inputTranscription) {
-// FIX: The 'isFinal' property does not exist on the Transcription type.
-// Finality of a turn is handled by the 'turnComplete' event.
                         const { text } = message.serverContent.inputTranscription;
-                        const isFinal = false; // This is a partial transcription
                         currentInputTranscriptionRef.current += text;
-                        setTranscription(prev => {
+                        setMessages(prev => {
                             const last = prev[prev.length - 1];
                             if (last?.speaker === 'user' && !last.isFinal) {
-                                return [...prev.slice(0, -1), { ...last, text: currentInputTranscriptionRef.current, isFinal }];
+                                return [...prev.slice(0, -1), { ...last, text: currentInputTranscriptionRef.current, isFinal: false }];
                             }
-                            return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current, isFinal }];
+                            return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current, isFinal: false }];
                         });
                     }
                     if (message.serverContent?.outputTranscription) {
-// FIX: The 'isFinal' property does not exist on the Transcription type.
-// Finality of a turn is handled by the 'turnComplete' event.
                         const { text } = message.serverContent.outputTranscription;
-                        const isFinal = false; // This is a partial transcription
                         currentOutputTranscriptionRef.current += text;
-                         setTranscription(prev => {
+                         setMessages(prev => {
                             const last = prev[prev.length - 1];
                             if (last?.speaker === 'pixa' && !last.isFinal) {
-                                return [...prev.slice(0, -1), { ...last, text: currentOutputTranscriptionRef.current, isFinal }];
+                                return [...prev.slice(0, -1), { ...last, text: currentOutputTranscriptionRef.current, isFinal: false }];
                             }
-                            return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current, isFinal }];
+                            return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current, isFinal: false }];
                         });
                     }
                     if (message.serverContent?.turnComplete) {
-// FIX: Mark the last transcription entry as final when a turn is complete.
-                        setTranscription(prev => {
-                            const last = prev[prev.length - 1];
-                            if (last && !last.isFinal) {
-                                return [...prev.slice(0, -1), { ...last, isFinal: true }];
-                            }
-                            return prev;
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastUser = newMessages.reverse().find(m => m.speaker === 'user');
+                            if (lastUser) lastUser.isFinal = true;
+                            const lastPixa = newMessages.reverse().find(m => m.speaker === 'pixa');
+                            if (lastPixa) lastPixa.isFinal = true;
+                            return newMessages.reverse();
                         });
                         currentInputTranscriptionRef.current = '';
                         currentOutputTranscriptionRef.current = '';
@@ -2327,7 +2361,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     stopSession();
                 },
                 onclose: (e: CloseEvent) => {
-                    console.log('Session closed.');
                     stopSession();
                 },
             });
@@ -2336,7 +2369,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             console.error('Failed to start session:', error);
             setError('Could not access microphone. Please check your browser permissions.');
         }
-    }, [stopSession]);
+    }, [stopSession, isThinking]);
 
     useEffect(() => {
         return () => stopSession();
@@ -2346,12 +2379,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         if (isRecording) {
             stopSession();
         } else {
-            setTranscription([]);
-            setError(null);
             startSession();
         }
     };
-
+    
     return (
       <div className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center">
          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose}></div>
@@ -2370,7 +2401,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
 
               <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
-                 {transcription.map((item, index) => (
+                 {messages.map((item, index) => (
                     <div key={index} className={`flex gap-3 ${item.speaker === 'user' ? 'justify-end' : 'items-end'}`}>
                         {item.speaker === 'pixa' && (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-blue-400 flex items-center justify-center flex-shrink-0">
@@ -2378,7 +2409,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                             </div>
                         )}
                         <div className={`max-w-xs md:max-w-sm p-3 rounded-2xl ${item.speaker === 'user' ? 'bg-[#0079F2] text-white rounded-br-lg' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-lg'}`}>
-                            <p className="text-sm">{item.text || '...'}</p>
+                            <p className="text-sm whitespace-pre-wrap">{item.text || '...'}</p>
                         </div>
                          {item.speaker === 'user' && (
                             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-blue-600 font-bold flex-shrink-0">
@@ -2387,21 +2418,39 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                         )}
                     </div>
                  ))}
-                 {!isRecording && transcription.length === 0 && (
-                     <div className="text-center text-gray-400 pt-16">
-                         <p>Tap the mic to start a conversation.</p>
-                         <p className="text-xs mt-1">e.g., "How does Magic Apparel work?"</p>
+                 {!isRecording && messages.length === 0 && !isThinking && (
+                     <div className="pt-8 px-4">
+                         <p className="text-center text-sm font-semibold text-gray-500 mb-4">Or ask one of these common questions:</p>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {prebuiltQuestions.map(q => (
+                                <button key={q} onClick={() => handleSendText(q)} className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 text-left transition-colors">
+                                    {q}
+                                </button>
+                            ))}
+                         </div>
                      </div>
                  )}
+                 {isThinking && <div className="flex justify-start items-end gap-3"><div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-blue-400 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-white"/></div><div className="p-3 rounded-2xl bg-gray-100 text-[#1E1E1E] rounded-bl-lg"><div className="flex gap-1.5 items-center"><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-300"></div></div></div></div>}
                  {error && <div className="text-center text-red-500 text-sm p-2 bg-red-50 rounded-lg">{error}</div>}
               </div>
 
               <div className="p-4 border-t border-gray-200/80 flex-shrink-0">
-                  <div className="flex justify-center items-center">
-                     <button onClick={handleMicClick} className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0079F2] hover:bg-blue-700'}`}>
-                         {isRecording ? <StopIcon className="w-8 h-8 text-white" /> : <MicrophoneIcon className="w-8 h-8 text-white"/>}
+                  <form onSubmit={(e) => { e.preventDefault(); handleSendText(textInput);}} className="flex items-center gap-2">
+                     <input
+                        type="text"
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                        placeholder="Type your question..."
+                        disabled={isRecording}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0079F2] disabled:bg-gray-100"
+                     />
+                     <button type="submit" disabled={!textInput.trim() || isThinking || isRecording} className="p-2.5 bg-[#0079F2] text-white rounded-lg disabled:opacity-50 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                      </button>
-                  </div>
+                     <button type="button" onClick={handleMicClick} disabled={isThinking} className={`p-2.5 rounded-lg transition-colors shadow ${isRecording ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'} disabled:opacity-50`}>
+                         {isRecording ? <StopIcon className="w-5 h-5" /> : <MicrophoneIcon className="w-5 h-5"/>}
+                     </button>
+                  </form>
               </div>
          </div>
       </div>

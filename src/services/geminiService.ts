@@ -13,6 +13,8 @@ if (apiKey && apiKey !== 'undefined') {
   ai = new GoogleGenAI({ apiKey: apiKey });
 }
 
+const SUPPORT_SYSTEM_INSTRUCTION = 'You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app\'s features effectively, including Photo Studio, Interior AI, and Apparel Try-On. You can also answer questions about account management, credits, and billing. Keep your answers helpful, friendly, and concise.';
+
 // FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
     onopen: () => void;
@@ -35,9 +37,41 @@ export const startLiveSession = (callbacks: {
             },
             outputAudioTranscription: {},
             inputAudioTranscription: {},
-            systemInstruction: 'You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app\'s features effectively, including Photo Studio, Interior AI, and Apparel Try-On. You can also answer questions about account management, credits, and billing. Keep your answers helpful, friendly, and concise.',
+            systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
         },
     });
+};
+
+export const generateSupportResponse = async (
+  history: { role: 'user' | 'model', text: string }[],
+  newMessage: string
+): Promise<string> => {
+    if (!ai) {
+        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+
+    try {
+        const chat = ai.chats.create({
+            model: 'gemini-2.5-flash',
+            config: {
+                systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
+            },
+            history: history.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            }))
+        });
+
+        const response = await chat.sendMessage({ message: newMessage });
+        return response.text;
+
+    } catch (error) {
+        console.error("Error generating support response:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to get response: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while getting support response.");
+    }
 };
 
 export const generateCaptions = async (
