@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User } from '../App';
+import { User } from '../types';
 import { addCredits } from '../firebase';
 import { SparklesIcon, CheckIcon } from './icons';
 

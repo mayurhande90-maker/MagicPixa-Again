@@ -1,4 +1,3 @@
-
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -46,6 +45,9 @@ const allConfigKeys = {
 const missingKeys = Object.entries(allConfigKeys)
     .filter(([_, value]) => !checkConfigValue(value as string | undefined))
     .map(([key, _]) => key);
+
+// FIX: Export the getMissingConfigKeys function as expected by App.tsx.
+export const getMissingConfigKeys = (): string[] => missingKeys;
 
 export const isConfigValid = missingKeys.length === 0;
 

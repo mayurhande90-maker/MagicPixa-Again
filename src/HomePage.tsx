@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Page, AuthProps, View } from './App';
+import { Page, AuthProps, View } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.

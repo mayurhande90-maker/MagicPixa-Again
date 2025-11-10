@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a default import to resolve a circular dependency.
@@ -10,30 +6,8 @@ import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig } from './firebase'; 
-
-
-
 import ConfigurationError from './components/ConfigurationError';
-
-export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'eraser' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard';
-
-export interface User {
-  uid: string;
-  name: string;
-  email: string;
-  avatar: string;
-  credits: number;
-  signUpDate?: { seconds: number; nanoseconds: number };
-}
-
-export interface AuthProps {
-  isAuthenticated: boolean;
-  user: User | null;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
-  handleLogout: () => void;
-  openAuthModal: () => void;
-}
+import { Page, View, User, AuthProps } from './types';
 
 const App: React.FC = () => {
   if (!isConfigValid) {
@@ -245,7 +219,7 @@ const App: React.FC = () => {
   if (isLoadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
-        <svg className="animate-spin h-8 w-8 text-[#0079F2]" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-8 w-8 text-[#0079F2]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>

@@ -1,10 +1,5 @@
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, AuthProps, View, User } from './App';
+import { Page, AuthProps, View, User } from './types';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';

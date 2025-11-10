@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User } from '../App';
+import { User } from '../types';
 
 interface EditProfileModalProps {
   user: User;

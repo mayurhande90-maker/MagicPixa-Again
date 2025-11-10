@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-// FIX: Import `View` from `../App` where it is defined, instead of `../DashboardPage` which does not export it.
-import { Page, AuthProps, View } from '../App';
+import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
 import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon } from './icons';
 

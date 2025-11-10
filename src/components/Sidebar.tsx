@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Page, View } from '../App';
+import { User, Page, View } from '../types';
 import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
 
 interface SidebarProps {
