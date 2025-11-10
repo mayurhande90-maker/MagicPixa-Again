@@ -4,6 +4,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1413,6 +1415,16 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
     }, [isGuest, guestCredits]);
 
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_apparel_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'top' | 'bottom') => {
         const file = event.target.files?.[0];
         if (file) {
@@ -1628,9 +1640,20 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                         
                         <div className="p-4 border-t border-gray-200/80">
                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
-                           <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
-                            </button>
+                           {generatedImage ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                        <DownloadIcon className="w-5 h-5" /> Download
+                                    </button>
+                                    <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors">
+                                        <RetryIcon className="w-5 h-5" /> Start Over
+                                    </button>
+                                </div>
+                           ) : (
+                                <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                                </button>
+                           )}
                         </div>
                     </div>
                 </div>
