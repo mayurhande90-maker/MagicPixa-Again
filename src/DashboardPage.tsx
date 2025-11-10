@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -2092,6 +2084,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   setIsConversationOpen,
 }) => {
   const [showBackButton, setShowBackButton] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setShowBackButton(activeView !== 'dashboard' && activeView !== 'home_dashboard');
@@ -2117,9 +2110,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     if (!user) return null;
 
     const profileLinks = [
-        { label: 'Edit Profile', icon: <PencilIcon className="w-5 h-5 text-gray-500"/>, action: openEditProfileModal },
-        { label: 'Billing & Credits', icon: <CreditCardIcon className="w-5 h-5 text-gray-500"/>, action: () => setActiveView('billing') },
-        { label: 'Help & Support', icon: <HelpIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
+        { label: 'Edit Profile', icon: <PencilIcon className="w-5 h-5 text-gray-500"/>, action: openEditProfileModal, disabled: false },
+        { label: 'Billing & Credits', icon: <CreditCardIcon className="w-5 h-5 text-gray-500"/>, action: () => setActiveView('billing'), disabled: false },
+        { label: 'Help & Support', icon: <HelpIcon className="w-5 h-5 text-gray-500"/>, action: () => setIsConversationOpen(true), disabled: false },
         { label: 'Privacy Policy', icon: <ShieldCheckIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
         { label: 'Terms of Service', icon: <DocumentTextIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
     ];
@@ -2182,15 +2175,235 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     );
   };
   
-  // Undefined component
   const ConversationPanel: React.FC<{ user: User; onClose: () => void; }> = ({ user, onClose }) => {
-    // ... implementation
+    const [isRecording, setIsRecording] = useState(false);
+    const [transcription, setTranscription] = useState<{ speaker: 'user' | 'pixa'; text: string; isFinal: boolean }[]>([]);
+
+    const sessionPromiseRef = useRef<any>(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+    const nextStartTimeRef = useRef(0);
+    const audioSourcesRef = useRef(new Set<AudioBufferSourceNode>());
+
+    const currentInputTranscriptionRef = useRef('');
+    const currentOutputTranscriptionRef = useRef('');
+
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [transcription]);
+
+
+    const stopSession = useCallback(() => {
+        if (sessionPromiseRef.current) {
+            sessionPromiseRef.current.then((session: any) => session.close());
+            sessionPromiseRef.current = null;
+        }
+        
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
+        }
+        if (mediaStreamSourceRef.current) {
+            mediaStreamSourceRef.current.disconnect();
+            mediaStreamSourceRef.current = null;
+        }
+
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
+        }
+        
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            inputAudioContextRef.current.close();
+            inputAudioContextRef.current = null;
+        }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close();
+            outputAudioContextRef.current = null;
+        }
+        setIsRecording(false);
+    }, []);
+
+    const startSession = useCallback(async () => {
+        try {
+            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            sessionPromiseRef.current = startLiveSession({
+                onopen: () => {
+                    console.log('Session opened.');
+                    if (!inputAudioContextRef.current || !mediaStreamRef.current) return;
+                    
+                    mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
+                    scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                    
+                    scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
+                        };
+                        sessionPromiseRef.current?.then((session: any) => {
+                             session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    };
+                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                    scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (base64Audio && outputAudioContextRef.current) {
+                        const outputCtx = outputAudioContextRef.current;
+                        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+                        const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
+                        const source = outputCtx.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputCtx.destination);
+                        source.addEventListener('ended', () => { audioSourcesRef.current.delete(source); });
+                        source.start(nextStartTimeRef.current);
+                        nextStartTimeRef.current += audioBuffer.duration;
+                        audioSourcesRef.current.add(source);
+                    }
+                    if (message.serverContent?.inputTranscription) {
+// FIX: The 'isFinal' property does not exist on the Transcription type.
+// Finality of a turn is handled by the 'turnComplete' event.
+                        const { text } = message.serverContent.inputTranscription;
+                        const isFinal = false; // This is a partial transcription
+                        currentInputTranscriptionRef.current += text;
+                        setTranscription(prev => {
+                            const last = prev[prev.length - 1];
+                            if (last?.speaker === 'user' && !last.isFinal) {
+                                return [...prev.slice(0, -1), { ...last, text: currentInputTranscriptionRef.current, isFinal }];
+                            }
+                            return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current, isFinal }];
+                        });
+                    }
+                    if (message.serverContent?.outputTranscription) {
+// FIX: The 'isFinal' property does not exist on the Transcription type.
+// Finality of a turn is handled by the 'turnComplete' event.
+                        const { text } = message.serverContent.outputTranscription;
+                        const isFinal = false; // This is a partial transcription
+                        currentOutputTranscriptionRef.current += text;
+                         setTranscription(prev => {
+                            const last = prev[prev.length - 1];
+                            if (last?.speaker === 'pixa' && !last.isFinal) {
+                                return [...prev.slice(0, -1), { ...last, text: currentOutputTranscriptionRef.current, isFinal }];
+                            }
+                            return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current, isFinal }];
+                        });
+                    }
+                    if (message.serverContent?.turnComplete) {
+// FIX: Mark the last transcription entry as final when a turn is complete.
+                        setTranscription(prev => {
+                            const last = prev[prev.length - 1];
+                            if (last && !last.isFinal) {
+                                return [...prev.slice(0, -1), { ...last, isFinal: true }];
+                            }
+                            return prev;
+                        });
+                        currentInputTranscriptionRef.current = '';
+                        currentOutputTranscriptionRef.current = '';
+                    }
+                    if (message.serverContent?.interrupted) {
+                        for (const source of audioSourcesRef.current.values()) {
+                            source.stop();
+                        }
+                        audioSourcesRef.current.clear();
+                        nextStartTimeRef.current = 0;
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error('Session error:', e);
+                    setError('A connection error occurred. Please try again.');
+                    stopSession();
+                },
+                onclose: (e: CloseEvent) => {
+                    console.log('Session closed.');
+                    stopSession();
+                },
+            });
+            setIsRecording(true);
+        } catch (error) {
+            console.error('Failed to start session:', error);
+            setError('Could not access microphone. Please check your browser permissions.');
+        }
+    }, [stopSession]);
+
+    useEffect(() => {
+        return () => stopSession();
+    }, [stopSession]);
+    
+    const handleMicClick = () => {
+        if (isRecording) {
+            stopSession();
+        } else {
+            setTranscription([]);
+            setError(null);
+            startSession();
+        }
+    };
+
     return (
-      <div className="fixed inset-0 z-[100] lg:inset-auto lg:top-0 lg:right-0 lg:bottom-0 lg:w-[400px] bg-white shadow-2xl flex flex-col">
-          <div className="p-4 border-b">
-              <button onClick={onClose}>Close</button>
-              <h3 className="text-lg font-bold">Magic Conversation</h3>
-          </div>
+      <div className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center">
+         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose}></div>
+         <div className="relative bg-white w-full max-w-md h-[80vh] sm:h-[70vh] sm:max-h-[600px] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200/80 flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-blue-400 flex items-center justify-center">
+                        <SparklesIcon className="w-6 h-6 text-white"/>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1E1E1E]">Magic Helper</h3>
+                      <p className="text-sm text-[#5F6368] -mt-1">Ask me anything about the app!</p>
+                    </div>
+                  </div>
+                  <button onClick={onClose} className="p-2 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors"><XIcon className="w-5 h-5"/></button>
+              </div>
+
+              <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
+                 {transcription.map((item, index) => (
+                    <div key={index} className={`flex gap-3 ${item.speaker === 'user' ? 'justify-end' : 'items-end'}`}>
+                        {item.speaker === 'pixa' && (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-blue-400 flex items-center justify-center flex-shrink-0">
+                                <SparklesIcon className="w-5 h-5 text-white"/>
+                            </div>
+                        )}
+                        <div className={`max-w-xs md:max-w-sm p-3 rounded-2xl ${item.speaker === 'user' ? 'bg-[#0079F2] text-white rounded-br-lg' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-lg'}`}>
+                            <p className="text-sm">{item.text || '...'}</p>
+                        </div>
+                         {item.speaker === 'user' && (
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-blue-600 font-bold flex-shrink-0">
+                                {user.avatar}
+                            </div>
+                        )}
+                    </div>
+                 ))}
+                 {!isRecording && transcription.length === 0 && (
+                     <div className="text-center text-gray-400 pt-16">
+                         <p>Tap the mic to start a conversation.</p>
+                         <p className="text-xs mt-1">e.g., "How does Magic Apparel work?"</p>
+                     </div>
+                 )}
+                 {error && <div className="text-center text-red-500 text-sm p-2 bg-red-50 rounded-lg">{error}</div>}
+              </div>
+
+              <div className="p-4 border-t border-gray-200/80 flex-shrink-0">
+                  <div className="flex justify-center items-center">
+                     <button onClick={handleMicClick} className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0079F2] hover:bg-blue-700'}`}>
+                         {isRecording ? <StopIcon className="w-8 h-8 text-white" /> : <MicrophoneIcon className="w-8 h-8 text-white"/>}
+                     </button>
+                  </div>
+              </div>
+         </div>
       </div>
     );
   };

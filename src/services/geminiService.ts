@@ -35,7 +35,7 @@ export const startLiveSession = (callbacks: {
             },
             outputAudioTranscription: {},
             inputAudioTranscription: {},
-            systemInstruction: 'You are a friendly and helpful conversational AI named Pixa. Keep your responses concise and engaging.',
+            systemInstruction: 'You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app\'s features effectively, including Photo Studio, Interior AI, and Apparel Try-On. You can also answer questions about account management, credits, and billing. Keep your answers helpful, friendly, and concise.',
         },
     });
 };
