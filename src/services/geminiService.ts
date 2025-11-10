@@ -97,9 +97,9 @@ export const generateSupportResponse = async (
                 const ticketId = `MP-${Math.floor(10000 + Math.random() * 90000)}`;
 
                 // Send the result back to the model to get a natural language response
-                // FIX: Corrected the `sendMessage` call to use the `parts` property with a `FunctionResponsePart` as required by the API.
+                // FIX: The `sendMessage` method for the Chat SDK expects a `message` property, not `parts`.
                 response = await chat.sendMessage({
-                    parts: [{
+                    message: [{
                         functionResponse: {
                             name: fc.name,
                             response: { ticketId: ticketId, status: 'created' }
