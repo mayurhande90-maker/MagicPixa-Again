@@ -1,7 +1,6 @@
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
-// FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
-import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
@@ -50,34 +49,6 @@ const createSupportTicket: FunctionDeclaration = {
         },
         required: ['issueType', 'description'],
     },
-};
-
-// FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
-export const startLiveSession = (callbacks: {
-    onopen: () => void;
-    onmessage: (message: LiveServerMessage) => Promise<void>;
-    onerror: (e: ErrorEvent) => void;
-    onclose: (e: CloseEvent) => void;
-}) => {
-    if (!ai) {
-        // FIX: Updated error message to reflect correct environment variable.
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
-    return ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        callbacks,
-        config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
-            },
-            outputAudioTranscription: {},
-            inputAudioTranscription: {},
-            systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
-            tools: [{ functionDeclarations: [createSupportTicket] }],
-        },
-    });
 };
 
 export const generateSupportResponse = async (
@@ -271,7 +242,7 @@ ${apparelPromptInstructions}
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        responseModalities: [Modality.IMAGE],
+        responseModalities: ['IMAGE'],
       },
     });
     
@@ -340,7 +311,7 @@ export const editImageWithPrompt = async (
         ],
       },
       config: {
-        responseModalities: [Modality.IMAGE],
+        responseModalities: ['IMAGE'],
       },
     });
 
@@ -402,7 +373,7 @@ Focus on nostalgia, warmth, and realism.`;
         ],
       },
       config: {
-        responseModalities: [Modality.IMAGE],
+        responseModalities: ['IMAGE'],
       },
     });
 
@@ -459,7 +430,7 @@ The only change to the original image should be the removal of its background, m
         ],
       },
       config: {
-        responseModalities: [Modality.IMAGE],
+        responseModalities: ['IMAGE'],
       },
     });
 
@@ -523,7 +494,7 @@ Output format: square image (1:1 aspect ratio), high resolution, suitable for ex
         ],
       },
       config: {
-        responseModalities: [Modality.IMAGE],
+        responseModalities: ['IMAGE'],
       },
     });
 
@@ -640,7 +611,7 @@ DESIGN INSTRUCTIONS:
                 ],
             },
             config: {
-                responseModalities: [Modality.IMAGE],
+                responseModalities: ['IMAGE'],
             },
         });
 

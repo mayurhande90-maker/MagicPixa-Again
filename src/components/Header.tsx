@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
-import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon } from './icons';
+import { SparklesIcon, MagicPixaLogo, MenuIcon, XIcon, ArrowLeftIcon, HelpIcon } from './icons';
 
 // Add `setActiveView` to AuthProps for the dashboard context
 interface DashboardAuthProps extends AuthProps {
@@ -100,8 +100,8 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                             onClick={auth.openConversation}
                             className="flex items-center gap-2 bg-white text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
                         >
-                            <AudioWaveIcon className="w-4 h-4" />
-                            <span>Magic Conversation</span>
+                            <HelpIcon className="w-4 h-4" />
+                            <span>Help & Support</span>
                         </button>
                         <div className="flex items-center gap-2 bg-yellow-100/80 text-yellow-900 font-semibold px-3 py-1.5 rounded-full text-sm border border-yellow-300/50">
                             <SparklesIcon className="w-4 h-4 text-yellow-600" />
