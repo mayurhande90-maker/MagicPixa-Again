@@ -6,6 +6,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -1875,12 +1877,11 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedCaptions(null);
             setError(null);
-            handleGenerate(true, file); // Auto-generate on new file upload
         }
     };
     
-    const handleGenerate = async (isNewUpload = false, newFile?: File) => {
-        const currentFile = newFile || originalImage?.file;
+    const handleGenerate = async () => {
+        const currentFile = originalImage?.file;
         if (!currentFile) {
             setError("Please upload an image.");
             return;
@@ -1894,7 +1895,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         
         setIsLoading(true);
         setError(null);
-        if(!isNewUpload) setGeneratedCaptions(null);
+        setGeneratedCaptions(null);
 
         try {
             const b64Data = await fileToBase64(currentFile);
