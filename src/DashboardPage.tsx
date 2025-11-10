@@ -1323,15 +1323,23 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                         </div>
                         <div className={!hasImages ? 'opacity-50' : ''}>
                             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
-                            <select value={style} onChange={e => setStyle(e.target.value)} disabled={!hasImages} className="w-full p-2 border border-gray-300 rounded-lg">
-                                {soulStyles.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                            </select>
+                            <div className="grid grid-cols-3 gap-2">
+                                {soulStyles.map(s => (
+                                    <button key={s.key} onClick={() => setStyle(s.key)} disabled={!hasImages} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                        {s.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className={!hasImages ? 'opacity-50' : ''}>
                             <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
-                            <select value={environment} onChange={e => setEnvironment(e.target.value)} disabled={!hasImages} className="w-full p-2 border border-gray-300 rounded-lg">
-                                {soulEnvironments.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-                            </select>
+                            <div className="grid grid-cols-3 gap-2">
+                                {soulEnvironments.map(e => (
+                                    <button key={e.key} onClick={() => setEnvironment(e.key)} disabled={!hasImages} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${environment === e.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                        {e.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
                             <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
@@ -1354,15 +1362,23 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
-                                    <select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
-                                        {soulStyles.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                                    </select>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {soulStyles.map(s => (
+                                            <button key={s.key} onClick={() => setStyle(s.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
+                                                {s.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
-                                    <select value={environment} onChange={e => setEnvironment(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
-                                        {soulEnvironments.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-                                    </select>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {soulEnvironments.map(e => (
+                                            <button key={e.key} onClick={() => setEnvironment(e.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${environment === e.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
+                                                {e.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
