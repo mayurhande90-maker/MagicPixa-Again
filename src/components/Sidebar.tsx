@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Page, View } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, ScissorsIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon } from './icons';
 
 interface SidebarProps {
   user: User | null;
@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
-    { id: 'eraser', label: 'Magic Background Eraser', icon: ScissorsIcon, disabled: false },
+    { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },
     { id: 'colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: false },
     { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },

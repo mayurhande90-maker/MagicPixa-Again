@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './types';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -10,7 +10,7 @@ import Billing from './components/Billing';
 import ThemeToggle from './components/ThemeToggle';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
-    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ScissorsIcon,
+    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
@@ -97,7 +97,7 @@ const mockupTypes = [
 
 const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?: string}>; gradient: string; disabled?: boolean }[] = [
     { view: 'studio', title: 'Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500' },
-    { view: 'eraser', title: 'BG Eraser', icon: ScissorsIcon, gradient: 'from-emerald-400 to-emerald-500' },
+    { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500' },
     { view: 'colour', title: 'Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500' },
     { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500' },
     { view: 'interior', title: 'Interior AI', icon: HomeIcon, gradient: 'from-orange-400 to-orange-500' },
@@ -1184,204 +1184,199 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 };
 
-const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
+const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [personA, setPersonA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [personB, setPersonB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
-    
-    const [guestCredits, setGuestCredits] = useState<number>(() => {
-        const saved = sessionStorage.getItem('magicpixa-guest-credits-eraser');
-        return saved ? parseInt(saved, 10) : 2;
-    });
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [style, setStyle] = useState('romantic');
+    const [environment, setEnvironment] = useState('sunny');
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileInputARef = useRef<HTMLInputElement>(null);
+    const fileInputBRef = useRef<HTMLInputElement>(null);
     
-    const EDIT_COST = 1;
-
+    const EDIT_COST = 3;
     const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-soul') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-soul')!, 10) : 3);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasImage = originalImage !== null;
-    
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const hasImages = personA !== null && personB !== null;
+
+    const soulStyles = [{key: 'romantic', label: 'Romantic'}, {key: 'adventurous', label: 'Adventurous'}, {key: 'fun', label: 'Fun'}, {key: 'formal', label: 'Formal'}, {key: 'cinematic', label: 'Cinematic'}, {key: 'artistic', label: 'Artistic'}];
+    const soulEnvironments = [{key: 'sunny', label: 'Sunny'}, {key: 'rainy', label: 'Rainy'}, {key: 'snowy', label: 'Snowy'}, {key: 'beach', label: 'Beach'}, {key: 'mountain', label: 'Mountain'}, {key: 'urban', label: 'Urban'}, {key: 'indoor', label: 'Indoor'}, {key: 'night city lights', label: 'Night City'}, {key: 'forest', label: 'Forest'}];
+
     useEffect(() => {
-        if (isGuest) {
-            sessionStorage.setItem('magicpixa-guest-credits-eraser', guestCredits.toString());
-        }
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-soul', guestCredits.toString());
     }, [isGuest, guestCredits]);
 
-    const handleGenerate = useCallback(async (b64Data: Base64File) => {
-        if (currentCredits < EDIT_COST) {
-            if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
-            return;
-        }
+    // FIX: Added missing handleDownloadClick function to allow downloading the generated image.
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_soul_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
 
-        setIsLoading(true);
-        setError(null);
-        setGeneratedImage(null);
-        
-        try {
-            const newBase64 = await removeImageBackground(b64Data.base64, b64Data.mimeType);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
-            
-            if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
-                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
-            } else {
-                setGuestCredits(prev => prev - EDIT_COST);
-            }
-
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-            setIsControlPanelVisible(true);
-        }
-    }, [currentCredits, auth, isGuest, navigateTo]);
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, person: 'A' | 'B') => {
         const file = event.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
                 setError('Please upload a valid image file.');
                 return;
             }
-            const newOriginalImage = { file, url: URL.createObjectURL(file) };
-            setOriginalImage(newOriginalImage);
+            const base64 = await fileToBase64(file);
+            const data = { file, url: URL.createObjectURL(file), base64 };
+            if (person === 'A') setPersonA(data);
+            else setPersonB(data);
             setGeneratedImage(null);
             setError(null);
-            setIsControlPanelVisible(false);
-
-            const base64File = await fileToBase64(newOriginalImage.file);
-            setBase64Data(base64File);
-            handleGenerate(base64File);
+            if(personA || personB) setIsPanelOpen(true);
+        }
+    };
+    
+    const handleGenerate = async () => {
+        if (!personA || !personB) {
+            setError("Please upload photos for both people.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsPanelOpen(false);
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const newBase64 = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, environment);
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleStartOver = useCallback(() => {
+    const handleStartOver = () => {
+        setPersonA(null);
+        setPersonB(null);
         setGeneratedImage(null);
         setError(null);
-        setOriginalImage(null);
-        setBase64Data(null);
-        setIsControlPanelVisible(false);
-        if (fileInputRef.current) fileInputRef.current.value = ""; 
-    }, []);
-
-    const handleDownloadClick = useCallback(() => {
-        if (!generatedImage) return;
-        const link = document.createElement('a');
-        link.href = generatedImage;
-        link.download = `magicpixa_transparent_${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }, [generatedImage]);
-
-    const triggerFileInput = () => {
-        if (isLoading) return;
-        fileInputRef.current?.click();
+        setIsPanelOpen(false);
     };
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
+    const ImageUploadBox: React.FC<{
+        image: { url: string } | null;
+        inputRef: React.RefObject<HTMLInputElement>;
+        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        title: string;
+    }> = ({ image, inputRef, onFileChange, title }) => {
+        const triggerFileInput = () => inputRef.current?.click();
+        return (
+            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? triggerFileInput : undefined}>
+                <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+                {image ? (
+                    <>
+                        <img src={image.url} alt={title} className="w-full h-full object-cover" />
+                        <button onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-sm text-gray-700">{title}</span></div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 pb-48'>
-             <div className='w-full max-w-7xl mx-auto'>
+            <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
-                    <p className="text-[#5F6368] mt-2">Remove the background from any image with a single click.</p>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Soul</h2>
+                    <p className="text-[#5F6368] mt-2">Combine two people into one hyper-realistic photo.</p>
                 </div>
-                
-                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3">
-                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                            <div
-                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
-                                onClick={!hasImage ? triggerFileInput : undefined}
-                            >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
-                                
-                                {generatedImage ? (
-                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Transparent Background" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" style={{backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none'%3e%3cpath d='M0 0h16v16H0z' fill='%23f1f5f9'/%3e%3cpath d='M16 16h16v16H16z' fill='%23f1f5f9'/%3e%3c/svg%3e")`}} />
-                                    </div>
-                                ) : originalImage ? (
-                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
-                                ) : (
-                                    <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                        <div className="flex flex-col items-center gap-2 text-[#5F6368]">
-                                            <UploadIcon className="w-12 h-12" />
-                                            <span className='font-semibold text-lg text-[#1E1E1E]'>Drop your photo here</span>
-                                            <span className="text-sm">or click to upload</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {hasImage && !isLoading && (
-                                    <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo">
-                                        <ArrowUpCircleIcon className="w-6 h-6" />
-                                    </button>
-                                )}
-
-                                {isLoading && (
-                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
-                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
-                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">Removing background...</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center">
+                        {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Creating your magic moment...</p></div>
+                        : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain rounded-lg"/></div>
+                        : <div className="text-center text-gray-400"><UsersIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated photo will appear here.</p></div>}
                     </div>
-                    
-                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                        <div className='text-center'>
-                            <h3 className="text-xl font-bold text-[#1E1E1E]">Background Eraser</h3>
-                            <p className='text-sm text-[#5F6368]'>Instant transparent backgrounds</p>
-                        </div>
-                        <div className="pt-4 border-t border-gray-200/80 mt-4 text-center">
-                            {!hasImage && <p className="text-sm text-[#5F6368]">Upload an image to get started. The background will be removed automatically.</p>}
-                            {generatedImage && (
-                                <div className="space-y-2">
-                                    <p className="text-sm text-[#5F6368]">Your transparent PNG is ready!</p>
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                        <DownloadIcon className="w-5 h-5" /> Download
-                                    </button>
-                                    <button onClick={handleStartOver} className="w-full text-sm text-gray-600 hover:text-black">Upload another image</button>
-                                </div>
-                            )}
-                            {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
-                        </div>
-                    </div>
-                </div>
 
-                {/* Mobile Sliding Panel */}
-                <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <div className="p-4">
-                        {generatedImage ? (
-                            <div className="space-y-2 text-center">
-                                <p className="font-semibold">Your transparent image is ready!</p>
-                                <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                    <DownloadIcon className="w-5 h-5" /> Download
-                                </button>
-                                <button onClick={handleStartOver} className="w-full text-sm text-gray-600 p-2">Upload another</button>
-                            </div>
-                        ) : (
-                            <button onClick={triggerFileInput} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                <UploadIcon className="w-5 h-5" /> Upload Image
+                    <div className="hidden lg:col-span-2 lg:flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" />
+                            <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" />
+                        </div>
+                        <div className={!hasImages ? 'opacity-50' : ''}>
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
+                            <select value={style} onChange={e => setStyle(e.target.value)} disabled={!hasImages} className="w-full p-2 border border-gray-300 rounded-lg">
+                                {soulStyles.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                            </select>
+                        </div>
+                        <div className={!hasImages ? 'opacity-50' : ''}>
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
+                            <select value={environment} onChange={e => setEnvironment(e.target.value)} disabled={!hasImages} className="w-full p-2 border border-gray-300 rounded-lg">
+                                {soulEnvironments.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                            <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate
                             </button>
-                        )}
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </div>
+
+                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                        <div onClick={() => (personA || personB) && setIsPanelOpen(!isPanelOpen)} className={`w-full py-2 flex justify-center ${(personA || personB) ? 'cursor-pointer' : ''}`} aria-expanded={isPanelOpen}>
+                            {(personA || personB) ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        </div>
+                        <div className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && (personA || personB) ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" />
+                                <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" />
+                            </div>
+                            <div className="space-y-4">
+                                <div><label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label><select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg"><option value="romantic">Romantic</option></select></div>
+                                <div><label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label><select value={environment} onChange={e => setEnvironment(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg"><option value="sunny">Sunny</option></select></div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-200/80">
+                           {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                           {generatedImage ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* FIX: Changed onClick to call the new handleDownloadClick function. */}
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                    <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 font-bold py-3 px-4 rounded-xl"><RetryIcon className="w-5 h-5"/> Start Over</button>
+                                </div>
+                           ) : (
+                                <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5"/> Generate
+                                </button>
+                           )}
+                        </div>
                     </div>
                 </div>
             </div>
-            {isModalOpen && generatedImage && (
-                <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
-            )}
+            {isModalOpen && generatedImage && (<ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />)}
         </div>
     );
 };
+
 const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [personImage, setPersonImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [topImage, setTopImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
@@ -2490,7 +2485,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
         'creations': <Creations />,
         'billing': <Billing user={user} setUser={setUser} />,
         'colour': <MagicPhotoColour auth={auth} navigateTo={navigateTo} />,
-        'eraser': <MagicBackgroundEraser auth={auth} navigateTo={navigateTo} />,
+        'soul': <MagicSoul auth={auth} navigateTo={navigateTo} />,
         'apparel': <MagicApparel auth={auth} navigateTo={navigateTo} />,
         'mockup': <MagicMockup auth={auth} navigateTo={navigateTo} />,
         'profile': <Profile auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} setIsConversationOpen={setIsConversationOpen} />,

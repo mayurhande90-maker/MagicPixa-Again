@@ -22,11 +22,11 @@ const features = [
         disabled: false,
     },
     {
-        id: 'eraser',
-        icon: <ScissorsIcon className="w-10 h-10 text-white" />,
-        title: "Magic Background Eraser",
-        description: "Remove the background of any image and receive a transparent PNG, ready for any project.",
-        color: "bg-emerald-500",
+        id: 'soul',
+        icon: <UsersIcon className="w-10 h-10 text-white" />,
+        title: "Magic Soul",
+        description: "Combine two people into one hyper-realistic photo, choosing a theme and environment.",
+        color: "bg-pink-500",
         disabled: false,
     },
     {

@@ -428,33 +428,50 @@ Focus on nostalgia, warmth, and realism.`;
   }
 };
 
-export const removeImageBackground = async (
-  base64ImageData: string,
-  mimeType: string
+export const generateMagicSoul = async (
+  personABase64: string,
+  personAMimeType: string,
+  personBBase64: string,
+  personBMimeType: string,
+  style: string,
+  environment: string
 ): Promise<string> => {
   if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
     throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
   }
 
   try {
-    const prompt = `Your single and most important task is to remove the background from this image, resulting in a transparent PNG.
+    const prompt = `Create a hyper-realistic, high-resolution photograph featuring two people — subject A and subject B — based on the uploaded reference photos.
 
-You are an expert photo editing AI. You will receive an image and you MUST return the same image with the background completely removed.
+Deeply analyze both uploaded images to accurately capture:
+- their real facial features, skin tone, hair texture, hairstyle, and body proportions.
+- maintain their exact facial identity with zero alterations. No AI re-sculpting, smoothing, or beautification.
+- ensure both faces remain untouched and unchanged, preserving natural imperfections and expressions.
 
-CRITICAL INSTRUCTIONS:
-1.  **TRANSPARENT BACKGROUND ONLY:** The output image's background must be 100% transparent. Do NOT add any color, especially not white. The background must be pure alpha transparency.
-2.  **PRESERVE SUBJECT:** The main subject (person, product, etc.) must be perfectly preserved. Do not alter the subject in any way.
-3.  **HIGH-QUALITY MASKING:** Create a precise, clean mask around the subject. Pay special attention to fine details like hair, fur, and semi-transparent edges. The edge quality must be professional.
-4.  **NO ADDITIONS:** Do not add any shadows, outlines, borders, or any other visual effects.
+Scene context:
+- Style: ${style}
+- Environment: ${environment}
+- Lighting should match the selected environment and blend naturally with both subjects.
 
-The only change to the original image should be the removal of its background, making it transparent. The final output must have a valid alpha channel for transparency.`;
+Technical requirements:
+- Match the perspective, camera angle, and depth-of-field as in the reference images.
+- Ensure consistent and realistic shadow casting.
+- Render hyper-real skin texture, fabric detail, and environmental reflection.
+- Do not generate artificial blur or cartoonish tones.
+- Maintain photo-realistic color grading — should look like a DSLR photo clicked by a professional photographer.
+- Faces and hairstyles must remain unchanged and true to the uploaded references.
+
+Output:
+A single cohesive photograph of both subjects in the selected style and environment, ultra-realistic, naturally lit, and studio-quality.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
-          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: "Subject A:" },
+          { inlineData: { data: personABase64, mimeType: personAMimeType } },
+          { text: "Subject B:" },
+          { inlineData: { data: personBBase64, mimeType: personBMimeType } },
           { text: prompt },
         ],
       },
@@ -477,7 +494,7 @@ The only change to the original image should be the removal of its background, m
     throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
 
   } catch (error) {
-    console.error("Error removing background with Gemini:", error);
+    console.error("Error generating Magic Soul image with Gemini:", error);
     if (error instanceof Error) {
       throw new Error(`Failed to generate image: ${error.message}`);
     }
