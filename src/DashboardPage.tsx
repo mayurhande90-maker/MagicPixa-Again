@@ -1831,4 +1831,454 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
-    const [generatedCaptions, setGeneratedCaptions] = useState<{ caption: string; hashtags:
+    const [generatedCaptions, setGeneratedCaptions] = useState<{ caption: string; hashtags: string; }[] | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const EDIT_COST = 1;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-caption') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-caption')!, 10) : 2);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const hasImage = originalImage !== null;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (originalImage) {
+            fileToBase64(originalImage.file).then(setBase64Data);
+        }
+    }, [originalImage]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
+            setGeneratedCaptions(null);
+            setError(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        setGeneratedCaptions(null);
+
+        try {
+            const captions = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            setGeneratedCaptions(captions);
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+    
+    const handleStartOver = () => {
+        setOriginalImage(null);
+        setGeneratedCaptions(null);
+        setError(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 pb-32'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions for your photos instantly.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* Left Column: Image and Button */}
+                    <div className="space-y-4">
+                        <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="cursor-pointer aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5 flex items-center justify-center text-center text-gray-500 hover:border-[#0079F2] relative"
+                        >
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
+                             {originalImage ? (
+                                <img src={originalImage.url} alt="Uploaded" className="max-h-full object-contain rounded-lg"/>
+                             ) : (
+                                <span>+ Upload Photo</span>
+                             )}
+                        </div>
+                        <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                            {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Captions</>}
+                        </button>
+                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                        <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-500' : 'text-gray-500'}`}>{hasInsufficientCredits ? 'Insufficient credits' : `Costs ${EDIT_COST} credit.`}</p>
+                    </div>
+                    {/* Right Column: Results */}
+                    <div className="bg-white p-6 rounded-2xl border min-h-[300px] flex flex-col">
+                        <h3 className="font-bold text-lg mb-4 text-center">Generated Captions</h3>
+                        <div className="flex-grow space-y-4">
+                            {isLoading ? (
+                                <div className="text-center text-gray-500">Generating...</div>
+                            ) : generatedCaptions ? (
+                                generatedCaptions.map((item, index) => (
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                                        <p className="text-gray-800">{item.caption}</p>
+                                        <p className="text-blue-600 text-sm mt-2">{item.hashtags}</p>
+                                        <button onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)} className="text-xs font-semibold mt-2 text-gray-500 hover:text-black flex items-center gap-1">
+                                            {copiedIndex === index ? <><CheckIcon className="w-4 h-4 text-green-500"/> Copied!</> : <><CopyIcon className="w-4 h-4"/> Copy</>}
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                                    <CaptionIcon className="w-12 h-12 mb-2"/>
+                                    <p>Your captions will appear here.</p>
+                                </div>
+                            )}
+                        </div>
+                        {generatedCaptions && <button onClick={handleStartOver} className="text-sm text-gray-600 hover:text-black mt-4">Clear</button>}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MarkdownRenderer: React.FC<{ content: string; onButtonClick: (message: string) => void; }> = ({ content, onButtonClick }) => {
+    // Regex to find markdown elements
+    const parts = content.split(/(\[button:.+?\]|###\s.*|\*\*.*?\*\*|\n)/g).filter(part => part);
+
+    const handleButtonClick = (text: string) => {
+        // Extract the button text from the markdown syntax
+        const buttonText = text.match(/\[button:(.+)\]/)?.[1];
+        if(buttonText) {
+            onButtonClick(buttonText);
+        }
+    };
+    
+    return (
+        <div>
+            {parts.map((part, index) => {
+                if (part.startsWith('### ')) {
+                    return <h3 key={index} className="text-lg font-bold mt-4 mb-2">{part.substring(4)}</h3>;
+                }
+                if (part.startsWith('**') && part.endsWith('**')) {
+                    return <strong key={index}>{part.substring(2, part.length - 2)}</strong>;
+                }
+                if (part.startsWith('[button:') && part.endsWith(']')) {
+                    const buttonText = part.match(/\[button:(.+)\]/)?.[1];
+                    return (
+                        <button 
+                            key={index} 
+                            onClick={() => handleButtonClick(part)}
+                            className="w-full text-left bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-4 py-2.5 rounded-lg my-1 transition-colors text-sm"
+                        >
+                            {buttonText}
+                        </button>
+                    );
+                }
+                if (part === '\n') {
+                    return <br key={index} />;
+                }
+                return <span key={index}>{part}</span>;
+            })}
+        </div>
+    );
+};
+
+const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProps; }> = ({ isOpen, onClose, auth }) => {
+    const [history, setHistory] = useState<{ speaker: 'user' | 'pixa', text: string }[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const commonQuestions = [
+        "How do credits work?",
+        "What is Magic Photo Studio?",
+        "Can I get a refund?",
+    ];
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(scrollToBottom, [history]);
+
+    const handleSendMessage = async (messageText?: string) => {
+        const message = (messageText || input).trim();
+        if (!message || isLoading) return;
+
+        setInput('');
+        setHistory(prev => [...prev, { speaker: 'user', text: message }]);
+        setIsLoading(true);
+        setError(null);
+        
+        // Prepare history for the API call
+        // FIX: Explicitly type `apiHistory` to prevent TypeScript from widening the `role` property to a generic `string`,
+        // ensuring it matches the `{ role: 'user' | 'model', ... }[]` type expected by the `generateSupportResponse` function.
+        const apiHistory: { role: 'user' | 'model'; text: string }[] = history.map(msg => ({
+            role: msg.speaker === 'user' ? 'user' : 'model',
+            text: msg.text
+        }));
+
+        try {
+            const response = await generateSupportResponse(apiHistory, message);
+            setHistory(prev => [...prev, { speaker: 'pixa', text: response }]);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Sorry, I'm having trouble connecting right now. Please try again later.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleReportIssue = () => {
+        handleSendMessage("I want to report an issue");
+    };
+
+    return (
+        <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="absolute inset-0 bg-black/30" onClick={onClose}></div>
+            <div className={`absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <SparklesIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h2 className="font-bold text-lg">Magic Helper</h2>
+                            <p className="text-sm text-gray-500">AI-powered support</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-6 h-6"/></button>
+                </div>
+                {/* Chat Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {history.length === 0 ? (
+                        <div className="text-center text-gray-500 p-8">
+                            <h3 className="font-semibold text-lg text-gray-800 mb-2">How can I help you, {auth.user?.name.split(' ')[0]}?</h3>
+                            <p className="text-sm mb-6">Ask me anything about features, credits, or your account.</p>
+                            <div className="space-y-2">
+                                {commonQuestions.map(q => <button key={q} onClick={() => handleSendMessage(q)} className="w-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 p-3 rounded-lg">{q}</button>)}
+                                <button onClick={handleReportIssue} className="w-full text-sm bg-red-50 text-red-700 hover:bg-red-100 p-3 rounded-lg flex items-center justify-center gap-2"><FlagIcon className="w-4 h-4"/> Report an Issue</button>
+                            </div>
+                        </div>
+                    ) : (
+                         history.map((msg, index) => (
+                            <div key={index} className={`flex items-start gap-3 ${msg.speaker === 'user' ? 'justify-end' : ''}`}>
+                                {msg.speaker === 'pixa' && <div className="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center"><SparklesIcon className="w-5 h-5 text-blue-600"/></div>}
+                                <div className={`max-w-xs md:max-w-sm p-3 rounded-2xl ${msg.speaker === 'user' ? 'bg-blue-600 text-white rounded-br-lg' : 'bg-gray-100 text-gray-800 rounded-bl-lg'}`}>
+                                   <MarkdownRenderer content={msg.text} onButtonClick={handleSendMessage} />
+                                </div>
+                            </div>
+                        ))
+                    )}
+                    {isLoading && <div className="flex items-start gap-3"><div className="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center"><SparklesIcon className="w-5 h-5 text-blue-600"/></div><div className="max-w-xs md:max-w-sm p-3 rounded-2xl bg-gray-100"><span className="animate-pulse">...</span></div></div>}
+                    {error && <div className="text-center text-red-600 bg-red-50 p-3 rounded-lg">{error}</div>}
+                    <div ref={messagesEndRef} />
+                </div>
+                {/* Input Area */}
+                <div className="p-4 border-t">
+                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }}>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={e => setInput(e.target.value)}
+                                placeholder="Type your question..."
+                                className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                disabled={isLoading}
+                            />
+                            <button type="submit" disabled={!input || isLoading} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-md disabled:opacity-50"><ArrowUpCircleIcon className="w-5 h-5"/></button>
+                        </div>
+                     </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+const MobileProfile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ auth, openEditProfileModal, setActiveView }) => {
+    const { user, handleLogout } = auth;
+
+    const menuItems = [
+        { icon: <CreditCardIcon className="w-6 h-6 text-gray-500" />, label: 'Credits & Billing', action: () => setActiveView('billing') },
+        { icon: <ShieldCheckIcon className="w-6 h-6 text-gray-500" />, label: 'Privacy & Security', action: () => {} },
+        { icon: <DocumentTextIcon className="w-6 h-6 text-gray-500" />, label: 'Terms of Service', action: () => {} },
+        { icon: <InformationCircleIcon className="w-6 h-6 text-gray-500" />, label: 'About MagicPixa', action: () => {} },
+    ];
+
+    if (!user) return null;
+
+    return (
+        <div className="p-4">
+            <div className="flex items-center gap-4 mb-8">
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-3xl font-bold text-[#0079F2]">
+                    {user.avatar}
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-[#1E1E1E]">{user.name}</h1>
+                    <p className="text-[#5F6368]">{user.email}</p>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <button onClick={openEditProfileModal} className="w-full flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200/80 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <AvatarUserIcon className="w-6 h-6 text-gray-500" />
+                        <span className="font-semibold text-gray-800">Edit Profile</span>
+                    </div>
+                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                </button>
+                <button onClick={() => setActiveView('billing')} className="w-full flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200/80 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <CreditCardIcon className="w-6 h-6 text-gray-500" />
+                        <span className="font-semibold text-gray-800">Credits & Billing</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                         <span className="text-sm font-bold text-[#0079F2]">{user.credits}</span>
+                         <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                </button>
+            </div>
+            
+             <div className="mt-8 bg-white rounded-xl border border-gray-200/80 shadow-sm">
+                <button onClick={() => { /* Open Help Panel */ }} className="w-full flex justify-between items-center p-4 border-b border-gray-200/80">
+                    <div className="flex items-center gap-4">
+                        <HelpIcon className="w-6 h-6 text-gray-500" />
+                        <span className="font-semibold text-gray-800">Help & Support</span>
+                    </div>
+                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                </button>
+                {/* Additional list items can be mapped here if needed */}
+            </div>
+
+            <div className="mt-8">
+                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 p-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-200/80">
+                    <LogoutIcon className="w-5 h-5" />
+                    Logout
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+    
+    const handleBack = () => {
+        // This logic decides where the back button should go.
+        // If we are on a feature page, it goes back to the dashboard list.
+        if (['studio', 'interior', 'creations', 'billing', 'colour', 'eraser', 'apparel', 'mockup', 'caption'].includes(activeView)) {
+            setActiveView('dashboard');
+        } 
+        // If we are on the dashboard list or profile, it goes to the home_dashboard.
+        else if (['dashboard', 'profile'].includes(activeView)) {
+            setActiveView('home_dashboard');
+        }
+    };
+    
+    const isFeatureView = !['dashboard', 'home_dashboard', 'profile', 'billing'].includes(activeView);
+    const showBackButton = activeView !== 'home_dashboard';
+
+    const headerAuthProps = { 
+        ...auth, 
+        setActiveView, 
+        isDashboard: true, 
+        openConversation: () => setIsConversationOpen(true),
+        showBackButton,
+        handleBack,
+    };
+    
+    const renderContent = () => {
+        switch (activeView) {
+            case 'dashboard':
+                return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+            case 'home_dashboard':
+                return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+            case 'studio':
+                return <MagicPhotoStudio auth={auth} navigateTo={navigateTo}/>;
+            case 'interior':
+                return <MagicInterior auth={auth} navigateTo={navigateTo}/>;
+            case 'colour':
+                return <MagicPhotoColour auth={auth} navigateTo={navigateTo}/>;
+            case 'eraser':
+                 return <MagicBackgroundEraser auth={auth} navigateTo={navigateTo}/>;
+            case 'apparel':
+                return <MagicApparel auth={auth} navigateTo={navigateTo}/>;
+            case 'mockup':
+                return <MagicMockup auth={auth} navigateTo={navigateTo}/>;
+            case 'caption':
+                return <CaptionAI auth={auth} navigateTo={navigateTo}/>;
+            case 'billing':
+                return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
+            case 'profile':
+                return <MobileProfile auth={auth} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+            default:
+                return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+        }
+    };
+
+    const MobileBottomNav: React.FC = () => {
+        const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
+            { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+            { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+            { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+            { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+        ];
+        
+        return (
+            <div className={`fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[45] lg:hidden ${isFeatureView ? 'hidden' : 'block'}`}>
+                <div className="flex justify-around items-center h-full">
+                    {navItems.map(item => (
+                        <button key={item.label} onClick={() => setActiveView(item.view)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
+                            <item.icon className="w-6 h-6" />
+                            <span className="text-xs font-medium">{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col lg:flex-row bg-[#F9FAFB]">
+            <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+            <div className="flex-1 flex flex-col">
+                <Header navigateTo={navigateTo} auth={headerAuthProps} />
+                <main className={`flex-1 overflow-y-auto ${isFeatureView ? 'pb-20 lg:pb-0' : 'pb-20'}`}>{renderContent()}</main>
+            </div>
+            <MobileBottomNav />
+            <HelpPanel isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} auth={auth} />
+        </div>
+    );
+};
+
+export default DashboardPage;
