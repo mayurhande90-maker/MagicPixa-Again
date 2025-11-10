@@ -441,28 +441,33 @@ export const generateMagicSoul = async (
   }
 
   try {
-    const prompt = `Create a hyper-realistic, high-resolution photograph featuring two people — subject A and subject B — based on the uploaded reference photos.
+    const prompt = `TASK: You are an expert photo compositing AI and a master of photorealism. Your task is to create a single, cohesive, hyper-realistic photograph featuring two people, subject A and subject B, seamlessly integrated into a new scene. The final image MUST be indistinguishable from a real photograph taken by a professional photographer with a high-end DSLR camera.
 
-Deeply analyze both uploaded images to accurately capture:
-- their real facial features, skin tone, hair texture, hairstyle, and body proportions.
-- maintain their exact facial identity with zero alterations. No AI re-sculpting, smoothing, or beautification.
-- ensure both faces remain untouched and unchanged, preserving natural imperfections and expressions.
+**CRITICAL INSTRUCTIONS (MUST BE FOLLOWED WITH ABSOLUTE PRECISION):**
 
-Scene context:
-- Style: ${style}
-- Environment: ${environment}
-- Lighting should match the selected environment and blend naturally with both subjects.
+1.  **IDENTITY PRESERVATION IS THE #1 RULE:** You must perform a deep, meticulous analysis of both uploaded photos to preserve the exact identity and likeness of each person.
+    *   **FACE:** Replicate their facial features, skin tone, age, and unique characteristics (moles, freckles, wrinkles) with 100% accuracy. **ABSOLUTELY NO** changes, "beautification," smoothing, or re-sculpting of their faces. Their faces in the output must be a perfect, untouched match to the source images.
+    *   **HAIR:** Maintain the exact hair color, texture, style, and length from the reference photos.
+    *   **BODY:** Preserve their natural body shape, proportions, and height accurately.
 
-Technical requirements:
-- Match the perspective, camera angle, and depth-of-field as in the reference images.
-- Ensure consistent and realistic shadow casting.
-- Render hyper-real skin texture, fabric detail, and environmental reflection.
-- Do not generate artificial blur or cartoonish tones.
-- Maintain photo-realistic color grading — should look like a DSLR photo clicked by a professional photographer.
-- Faces and hairstyles must remain unchanged and true to the uploaded references.
+2.  **SEAMLESS SCENE INTEGRATION:**
+    *   **STYLE:** The overall mood and aesthetic of the photo must be: **${style}**.
+    *   **ENVIRONMENT:** The setting for the photograph is: **${environment}**.
+    *   **LIGHTING & SHADOWS:** This is critical for realism. Analyze the chosen environment and create lighting that is natural and consistent. Both subjects must be illuminated by the same light source. They must cast soft, realistic, and physically accurate shadows onto the environment and each other. The lighting must wrap around them naturally.
 
-Output:
-A single cohesive photograph of both subjects in the selected style and environment, ultra-realistic, naturally lit, and studio-quality.`;
+3.  **PHOTOREALISM DIRECTIVES:**
+    *   **TEXTURES:** Render hyper-realistic textures for everything. Skin should have pores and fine lines, not look like plastic. Fabric should show its weave and folds. Environmental surfaces (wood, stone, etc.) must have high-fidelity detail.
+    *   **CAMERA & LENS:** Simulate the properties of a professional photograph. This includes natural depth-of-field (bokeh), correct perspective, and no wide-angle distortion unless it's a specific stylistic choice.
+    *   **COLOR GRADING:** Apply professional, photo-realistic color grading that matches the style and environment. Avoid overly saturated, cartoonish, or artificial tones. The result should feel like a memory, not an illustration.
+
+**STRICT NEGATIVE CONSTRAINTS (DO NOT DO ANY OF THE FOLLOWING):**
+-   **DO NOT** create a "cut and paste" or collage-like image. The subjects must be part of the scene.
+-   **DO NOT** generate an image that looks "edited" or "AI-generated". Aim for 100% photorealism.
+-   **DO NOT** change the identities of the people in the photos.
+-   **DO NOT** add watermarks, text, or artifacts.
+-   **DO NOT** output a blurry or low-resolution image.
+
+**FINAL GOAL:** Produce a single, studio-quality photograph of both subjects together in the selected style and environment, looking completely natural, authentic, and emotionally resonant.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
