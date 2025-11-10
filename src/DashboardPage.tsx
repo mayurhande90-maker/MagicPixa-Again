@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -523,7 +525,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
@@ -866,7 +868,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
@@ -1157,7 +1159,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
     
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2>
@@ -1329,7 +1331,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
@@ -1544,7 +1546,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
@@ -1724,7 +1726,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const triggerFileInput = () => fileInputRef.current?.click();
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
@@ -1863,7 +1865,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const triggerFileInput = () => fileInputRef.current?.click();
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8'>
+        <div className='p-4 sm:p-6 lg:p-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
@@ -1947,6 +1949,36 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
+const DashboardMobileNav: React.FC<{ activeView: View; setActiveView: (view: View) => void; }> = ({ activeView, setActiveView }) => {
+    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
+        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+    ];
+    
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItems.map(item => (
+                    <button 
+                        key={item.label} 
+                        onClick={() => setActiveView(item.view as View)} 
+                        disabled={item.disabled} 
+                        className={`flex flex-col items-center gap-1 p-2 w-1/4 transition-colors ${
+                            activeView === item.view 
+                                ? 'text-[#0079F2]' 
+                                : 'text-gray-500'
+                        } disabled:text-gray-300`}
+                    >
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const DashboardPage: React.FC<DashboardPageProps> = ({
   navigateTo,
@@ -1965,24 +1997,89 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleBack = () => {
     if (activeView === 'profile' || activeView === 'billing') {
-        setActiveView('dashboard');
+        setActiveView('home_dashboard');
     } else {
         setActiveView('dashboard'); // Default back action
     }
   };
 
+  // FIX: Added missing properties `showBackButton` and `handleBack` to fix type error.
   const headerAuthProps: AuthProps & { isDashboard: boolean; openConversation: () => void; showBackButton: boolean; handleBack: () => void; } = {
     ...auth,
     isDashboard: true,
     openConversation: () => setIsConversationOpen(true),
+    showBackButton: showBackButton,
+    handleBack: handleBack,
   };
 
-  // Undefined component
-  const ProfilePage: React.FC<{ user: User | null; onLogout: () => void; openEditProfileModal: () => void; }> = ({ user, onLogout, openEditProfileModal }) => (
-    <div className="p-4 sm:p-6 lg:p-8">
-        <h2 className="text-3xl font-bold text-[#1E1E1E]">Profile</h2>
-    </div>
-  );
+  const ProfilePage: React.FC<{ user: User | null; onLogout: () => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ user, onLogout, openEditProfileModal, setActiveView }) => {
+    if (!user) return null;
+
+    const profileLinks = [
+        { label: 'Edit Profile', icon: <PencilIcon className="w-5 h-5 text-gray-500"/>, action: openEditProfileModal },
+        { label: 'Billing & Credits', icon: <CreditCardIcon className="w-5 h-5 text-gray-500"/>, action: () => setActiveView('billing') },
+        { label: 'Help & Support', icon: <HelpIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
+        { label: 'Privacy Policy', icon: <ShieldCheckIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
+        { label: 'Terms of Service', icon: <DocumentTextIcon className="w-5 h-5 text-gray-500"/>, action: () => {}, disabled: true },
+    ];
+    
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 h-full bg-gray-50 lg:bg-transparent">
+            <div className="max-w-md mx-auto">
+                {/* User Info Header */}
+                <div className="flex flex-col items-center gap-2 mb-8">
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl ring-4 ring-white shadow-md">
+                        {user.avatar}
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#1E1E1E]">{user.name}</h2>
+                    <p className="text-[#5F6368]">{user.email}</p>
+                </div>
+
+                {/* Credits Section */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200/80 mb-6">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-sm text-gray-500">Current Balance</p>
+                            <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits} Credits</p>
+                        </div>
+                        <button onClick={() => setActiveView('billing')} className="bg-[#f9d230] text-[#1E1E1E] font-semibold text-sm px-4 py-2 rounded-lg transition-transform transform active:scale-95">
+                            Get More
+                        </button>
+                    </div>
+                </div>
+
+                {/* Links Section */}
+                <div className="bg-white rounded-xl border border-gray-200/80">
+                    {profileLinks.map((link, index) => (
+                        <button 
+                            key={link.label} 
+                            onClick={link.action}
+                            disabled={link.disabled}
+                            className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed ${index > 0 ? 'border-t border-gray-200/80' : ''}`}
+                        >
+                            <div className="flex items-center gap-4">
+                                {link.icon}
+                                <span className="font-semibold text-[#1E1E1E]">{link.label}</span>
+                            </div>
+                             {!link.disabled && <ChevronRightIcon className="w-5 h-5 text-gray-400" />}
+                        </button>
+                    ))}
+                </div>
+                
+                {/* Logout Button */}
+                <div className="mt-8">
+                    <button 
+                        onClick={onLogout}
+                        className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-gray-100 text-red-600 font-bold rounded-xl transition-colors hover:bg-red-50"
+                    >
+                        <LogoutIcon className="w-5 h-5" />
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+  };
   
   // Undefined component
   const ConversationPanel: React.FC<{ user: User; onClose: () => void; }> = ({ user, onClose }) => {
@@ -2001,8 +2098,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     <div className="flex h-screen bg-[#F9FAFB]">
       <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header navigateTo={navigateTo} auth={{...headerAuthProps, showBackButton: showBackButton, handleBack: handleBack}} />
-        <main className="flex-1 overflow-y-auto">
+        <Header navigateTo={navigateTo} auth={{...headerAuthProps}} />
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
           {activeView === 'dashboard' && <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />}
           {activeView === 'home_dashboard' && <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />}
           {activeView === 'studio' && <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />}
@@ -2012,9 +2109,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           {activeView === 'apparel' && <MagicApparel auth={auth} navigateTo={navigateTo} />}
           {activeView === 'mockup' && <MagicMockup auth={auth} navigateTo={navigateTo} />}
           {activeView === 'caption' && <CaptionAI auth={auth} navigateTo={navigateTo} />}
-          {activeView === 'profile' && <ProfilePage user={auth.user} onLogout={auth.handleLogout} openEditProfileModal={openEditProfileModal} />}
+          {activeView === 'profile' && <ProfilePage user={auth.user} onLogout={auth.handleLogout} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />}
           {activeView === 'billing' && auth.user && <Billing user={auth.user} setUser={auth.setUser} />}
         </main>
+        <DashboardMobileNav activeView={activeView} setActiveView={setActiveView} />
       </div>
        {isConversationOpen && auth.user && <ConversationPanel user={auth.user} onClose={() => setIsConversationOpen(false)} />}
     </div>
