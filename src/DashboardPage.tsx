@@ -2099,6 +2099,51 @@ const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; nav
     );
 };
 
+const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
+    const renderTextWithBold = (line: string) => {
+        return line.split(/(\*\*.*?\*\*)/g).map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={index}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+    };
+
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: React.ReactNode[] = [];
+
+    const flushList = () => {
+        if (listItems.length > 0) {
+            elements.push(<ul key={`ul-${elements.length}`} className="space-y-2 my-2">{listItems}</ul>);
+            listItems = [];
+        }
+    };
+
+    lines.forEach((line, i) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+            listItems.push(
+                <li key={i} className="text-sm flex items-start">
+                    <span className="mr-3 mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500"></span>
+                    <span>{renderTextWithBold(trimmedLine.substring(2))}</span>
+                </li>
+            );
+        } else {
+            flushList();
+            if (line.startsWith('### ')) {
+                elements.push(<h3 key={i} className="text-base font-bold mt-4 mb-2">{renderTextWithBold(line.substring(4))}</h3>);
+            } else if (trimmedLine !== '') {
+                elements.push(<p key={i} className="text-sm">{renderTextWithBold(line)}</p>);
+            }
+        }
+    });
+
+    flushList();
+
+    return <div className="space-y-2">{elements}</div>;
+};
+
 const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProps; }> = ({ isOpen, onClose, auth }) => {
     type Message = { speaker: 'user' | 'pixa' | 'system'; text: string; id?: string; isFinal?: boolean; };
     type HistoryItem = { role: 'user' | 'model'; text: string };
@@ -2307,7 +2352,11 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`p-3 rounded-xl max-w-xs ${msg.speaker === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'} ${msg.speaker === 'system' ? 'bg-red-50 text-red-700 w-full' : ''}`}>
-                            <p className="text-sm">{msg.text}</p>
+                             {msg.speaker === 'user' ? (
+                                <p className="text-sm">{msg.text}</p>
+                            ) : (
+                                <MarkdownRenderer text={msg.text} />
+                            )}
                         </div>
                     </div>
                 ))}
@@ -2384,7 +2433,7 @@ const MobileBottomNav: React.FC<{ activeView: View; setActiveView: (view: View) 
                         onClick={() => setActiveView(item.view as View)} 
                         disabled={item.disabled} 
                         className={`flex flex-col items-center justify-center gap-1 p-2 w-16 h-16 rounded-2xl transition-colors ${isActive(item.view) ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}
-                        aria-current={isActive(item.view)}
+                        aria-current={isActive(item.view) ? 'page' : undefined}
                     >
                         <item.icon className="w-6 h-6" />
                         <span className="text-xs font-medium">{item.label}</span>
