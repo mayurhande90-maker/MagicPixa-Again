@@ -2099,7 +2099,7 @@ const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; nav
     );
 };
 
-const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
+const MarkdownRenderer: React.FC<{ text: string; onButtonClick: (text: string) => void; }> = ({ text, onButtonClick }) => {
     const renderTextWithBold = (line: string) => {
         return line.split(/(\*\*.*?\*\*)/g).map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
@@ -2122,7 +2122,21 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
 
     lines.forEach((line, i) => {
         const trimmedLine = line.trim();
-        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        const buttonMatch = trimmedLine.match(/^\[button:(.*?)\]$/);
+
+        if (buttonMatch) {
+            flushList();
+            const buttonText = buttonMatch[1];
+            elements.push(
+                <button
+                    key={`btn-${i}`}
+                    onClick={() => onButtonClick(buttonText)}
+                    className="w-full text-left text-sm p-3 my-1 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 text-blue-600 font-semibold"
+                >
+                    {buttonText}
+                </button>
+            );
+        } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
             listItems.push(
                 <li key={i} className="text-sm flex items-start">
                     <span className="mr-3 mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500"></span>
@@ -2355,7 +2369,7 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
                              {msg.speaker === 'user' ? (
                                 <p className="text-sm">{msg.text}</p>
                             ) : (
-                                <MarkdownRenderer text={msg.text} />
+                                <MarkdownRenderer text={msg.text} onButtonClick={handleSendMessage} />
                             )}
                         </div>
                     </div>
