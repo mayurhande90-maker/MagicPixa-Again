@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './App';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, removeImageBackground, generateApparelTryOn, generateMockup, generateCaptions } from './services/geminiService';
@@ -320,7 +322,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     
     const [theme, setTheme] = useState<string>('automatic');
     
@@ -394,7 +396,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
             setError(null);
-            setIsControlPanelVisible(true);
+            setIsPanelOpen(true);
         }
     };
 
@@ -404,7 +406,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setOriginalImage(null);
         setBase64Data(null);
         setTheme('automatic');
-        setIsControlPanelVisible(false);
+        setIsPanelOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
 
@@ -419,6 +421,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             return;
         }
 
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
         setGeneratedImage(null);
@@ -525,10 +528,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         </div>
     );
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
-
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Studio</h2>
@@ -588,40 +589,47 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     
                     <DesktopControlPanel />
                     
-                    {/* Mobile Sliding Control Panel */}
-                    <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                        <div className="p-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2 text-center">Scene Theme</label>
-                                <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
-                                    {themes.map(t => (
-                                        <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2 w-20 text-xs font-semibold rounded-lg border-2 transition-colors ${theme === t.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
-                                            {t.icon} {t.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    {/* Mobile Unified Control Area */}
+                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                        <div 
+                            onClick={() => hasImage && setIsPanelOpen(!isPanelOpen)}
+                            className={`w-full py-2 flex justify-center ${hasImage ? 'cursor-pointer' : ''}`}
+                            aria-controls="mobile-controls-panel-studio"
+                            aria-expanded={isPanelOpen}
+                        >
+                            {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        </div>
 
-                            <div>
-                                {generatedImage ? (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                            <DownloadIcon className="w-5 h-5" /> Download
-                                        </button>
-                                        <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                            <RetryIcon className="w-5 h-5" /> Another Look
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button onClick={handleImageEdit} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                        <SparklesIcon className="w-5 h-5" /> Generate
+                        <div id="mobile-controls-panel-studio" className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen && hasImage ? 'max-h-96 pb-4' : 'max-h-0'}`}>
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2 text-center">Scene Theme</label>
+                            <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
+                                {themes.map(t => (
+                                    <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2 w-20 text-xs font-semibold rounded-lg border-2 transition-colors ${theme === t.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
+                                        {t.icon} {t.label}
                                     </button>
-                                )}
+                                ))}
                             </div>
                         </div>
+                        
+                        <div className="p-4 border-t border-gray-200/80">
+                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                            {generatedImage ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
+                                        <DownloadIcon className="w-5 h-5" /> Download
+                                    </button>
+                                    <button onClick={handleImageEdit} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                                        <RetryIcon className="w-5 h-5" /> Another Look
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={handleImageEdit} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
+                                    <SparklesIcon className="w-5 h-5" /> Generate
+                                </button>
+                            )}
+                        </div>
                     </div>
+
                 </div>
             </div>
             {isModalOpen && generatedImage && (
@@ -641,7 +649,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [guestCredits, setGuestCredits] = useState<number>(() => {
@@ -708,7 +716,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
             setError(null);
-            setIsControlPanelVisible(true);
+            setIsPanelOpen(true);
         }
     };
 
@@ -720,7 +728,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setStyle(null);
         setSpaceType(null);
         setRoomType(null);
-        setIsControlPanelVisible(false);
+        setIsPanelOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     }, []);
 
@@ -739,6 +747,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             return;
         }
 
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
         setGeneratedImage(null);
@@ -839,11 +848,9 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to get 10 free credits!' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
         </div>
     );
-    
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Interior</h2>
@@ -878,15 +885,24 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}
                     </div>
                     
-                    {/* Mobile Sliding Control Panel */}
-                    <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                        <div className="p-4 space-y-4">
-                            <h3 className="text-lg font-bold text-center text-[#1E1E1E]">Design Controls</h3>
+                    {/* Mobile Unified Control Area */}
+                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                        <div 
+                            onClick={() => hasImage && setIsPanelOpen(!isPanelOpen)}
+                            className={`w-full py-2 flex justify-center ${hasImage ? 'cursor-pointer' : ''}`}
+                            aria-controls="mobile-controls-panel-interior"
+                            aria-expanded={isPanelOpen}
+                        >
+                            {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        </div>
+
+                        <div id="mobile-controls-panel-interior" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && hasImage ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
                             <Controls isMobile={true}/>
-                            {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
-                            <div className="pt-2 border-t border-gray-200/80">
-                                <ActionButtons />
-                            </div>
+                        </div>
+                        
+                        <div className="p-4 border-t border-gray-200/80">
+                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                            <ActionButtons />
                         </div>
                     </div>
                 </div>
@@ -906,7 +922,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [guestCredits, setGuestCredits] = useState<number>(() => {
@@ -973,7 +989,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                 } else {
                     setOriginalImage({ file, url: URL.createObjectURL(file) });
                     setGeneratedImage(null);
-                    setIsControlPanelVisible(true);
+                    setIsPanelOpen(true);
                 }
             };
             img.onerror = () => {
@@ -989,7 +1005,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         setOriginalImage(null);
         setBase64Data(null);
         setMode('restore');
-        setIsControlPanelVisible(false);
+        setIsPanelOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
     }, []);
 
@@ -1004,6 +1020,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             return;
         }
 
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
         setGeneratedImage(null);
@@ -1083,10 +1100,8 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         </div>
     );
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
-    
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Photo Colour</h2>
@@ -1146,14 +1161,24 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                         {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200/80'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" />Try Again</button></div>}
                     </div>
                     
-                    {/* Mobile Sliding Control Panel */}
-                    <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                        <div className="p-4 space-y-4">
-                            <Controls />
-                            {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
-                            <div className="pt-2 border-t border-gray-200/80">
-                                <ActionButtons />
-                            </div>
+                    {/* Mobile Unified Control Area */}
+                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                        <div 
+                            onClick={() => hasImage && setIsPanelOpen(!isPanelOpen)}
+                            className={`w-full py-2 flex justify-center ${hasImage ? 'cursor-pointer' : ''}`}
+                            aria-controls="mobile-controls-panel-colour"
+                            aria-expanded={isPanelOpen}
+                        >
+                            {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        </div>
+
+                        <div id="mobile-controls-panel-colour" className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen && hasImage ? 'max-h-96 pb-4' : 'max-h-0'}`}>
+                           <Controls />
+                        </div>
+                        
+                        <div className="p-4 border-t border-gray-200/80">
+                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                            <ActionButtons />
                         </div>
                     </div>
                 </div>
@@ -1269,7 +1294,7 @@ const MagicBackgroundEraser: React.FC<{ auth: AuthProps; navigateTo: (page: Page
     const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
              <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Background Eraser</h2>
@@ -1371,7 +1396,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
 
     const personFileInputRef = useRef<HTMLInputElement>(null);
     const topFileInputRef = useRef<HTMLInputElement>(null);
@@ -1382,6 +1407,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-apparel') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-apparel')!, 10) : 2);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const hasImage = personImage !== null;
 
     useEffect(() => {
         if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
@@ -1399,7 +1425,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             if (type === 'person') {
                 setPersonImage(data);
                 setGeneratedImage(null);
-                setIsControlPanelVisible(true);
+                setIsPanelOpen(true);
             }
             else if (type === 'top') setTopImage(data);
             else if (type === 'bottom') setBottomImage(data);
@@ -1422,6 +1448,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             return;
         }
         
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
         
@@ -1451,7 +1478,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         setBottomImage(null);
         setGeneratedImage(null);
         setError(null);
-        setIsControlPanelVisible(false);
+        setIsPanelOpen(false);
     };
     
     const ImageUploadBox: React.FC<{
@@ -1492,10 +1519,8 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         );
     };
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
-
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
@@ -1582,25 +1607,32 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                          </div>
                     </div>
 
-                    {/* Mobile Sliding Panel */}
-                    <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                        <div className="p-4 space-y-4">
-                            <div>
-                                <h3 className="text-lg font-bold text-[#1E1E1E] text-center mb-3">Upload Clothing</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" isSquare={true} />
-                                    <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" isSquare={true} />
-                                </div>
-                            </div>
-                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                            <div className="pt-2 border-t border-gray-200/80">
-                                <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                    <SparklesIcon className="w-5 h-5"/> Generate Try-On
-                                </button>
+                    {/* Mobile Unified Control Area */}
+                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                        <div 
+                            onClick={() => hasImage && setIsPanelOpen(!isPanelOpen)}
+                            className={`w-full py-2 flex justify-center ${hasImage ? 'cursor-pointer' : ''}`}
+                            aria-controls="mobile-controls-panel-apparel"
+                            aria-expanded={isPanelOpen}
+                        >
+                            {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                        </div>
+
+                        <div id="mobile-controls-panel-apparel" className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen && hasImage ? 'max-h-96 pb-4' : 'max-h-0'}`}>
+                            <h3 className="text-lg font-bold text-[#1E1E1E] text-center mb-3">Upload Clothing</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <ImageUploadBox image={topImage} inputRef={topFileInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Upload Top" isSquare={true} />
+                                <ImageUploadBox image={bottomImage} inputRef={bottomFileInputRef} onFileChange={e => handleFileChange(e, 'bottom')} title="Upload Bottom" isSquare={true} />
                             </div>
                         </div>
+                        
+                        <div className="p-4 border-t border-gray-200/80">
+                           {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                           <button onClick={handleGenerate} disabled={isLoading || !personImage || (!topImage && !bottomImage) || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                <SparklesIcon className="w-5 h-5"/> Generate Try-On
+                            </button>
+                        </div>
                     </div>
-
                 </div>
             </div>
             {isModalOpen && generatedImage && (
@@ -1617,7 +1649,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-mockup') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-mockup')!, 10) : 2);
 
@@ -1627,6 +1659,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const hasImage = originalImage !== null;
 
     useEffect(() => {
         if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-mockup', guestCredits.toString());
@@ -1648,7 +1681,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
             setError(null);
-            setIsControlPanelVisible(true);
+            setIsPanelOpen(true);
         }
     };
 
@@ -1663,6 +1696,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             return;
         }
         
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
         setGeneratedImage(null);
@@ -1687,15 +1721,13 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
         setOriginalImage(null);
         setGeneratedImage(null);
         setError(null);
-        setIsControlPanelVisible(false);
+        setIsPanelOpen(false);
     };
 
     const triggerFileInput = () => fileInputRef.current?.click();
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
-
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
@@ -1747,12 +1779,21 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             {isModalOpen && generatedImage && (
                 <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
             )}
-             <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                 <div className="p-4 space-y-4">
-                    <div onClick={triggerFileInput} className="cursor-pointer bg-gray-50 border-2 border-dashed rounded-lg flex items-center justify-center text-center text-gray-500 hover:border-[#0079F2] p-2">
+            {/* Mobile Unified Control Area */}
+             <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                <div 
+                    onClick={() => hasImage && setIsPanelOpen(!isPanelOpen)}
+                    className={`w-full py-2 flex justify-center ${hasImage ? 'cursor-pointer' : ''}`}
+                    aria-controls="mobile-controls-panel-mockup"
+                    aria-expanded={isPanelOpen}
+                >
+                    {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                </div>
+                 <div id="mobile-controls-panel-mockup" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && hasImage ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
+                    <div onClick={triggerFileInput} className="cursor-pointer bg-gray-50 border-2 border-dashed rounded-lg flex items-center justify-center text-center text-gray-500 hover:border-[#0079F2] p-2 mb-4">
                         {originalImage ? <img src={originalImage.url} alt="Uploaded design" className="h-12 object-contain"/> : <span>+ Upload Design</span>}
                     </div>
-                    <div className={` ${!originalImage ? 'opacity-50' : ''}`}>
+                    <div className={`${!originalImage ? 'opacity-50' : ''}`}>
                         <h3 className="font-bold mb-2 text-center">Choose a mockup</h3>
                         <div className="grid grid-cols-4 gap-2">
                             {mockupTypes.slice(0, 8).map(m => (
@@ -1762,12 +1803,12 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                             ))}
                         </div>
                     </div>
-                    {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    <div className="pt-2 border-t">
-                        <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                            <SparklesIcon className="w-5 h-5"/> Generate Mockup
-                        </button>
-                    </div>
+                </div>
+                <div className="p-4 border-t border-gray-200/80">
+                    {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
+                    <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                        <SparklesIcon className="w-5 h-5"/> Generate Mockup
+                    </button>
                 </div>
             </div>
         </div>
@@ -1780,7 +1821,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-    const [isControlPanelVisible, setIsControlPanelVisible] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1789,6 +1830,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-caption') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-caption')!, 10) : 2);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const hasImage = originalImage !== null;
 
     useEffect(() => {
         if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
@@ -1810,15 +1852,17 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedCaptions(null);
             setError(null);
-            setIsControlPanelVisible(true);
+            handleGenerate(true, file); // Auto-generate on new file upload
         }
     };
     
-    const handleGenerate = async () => {
-        if (!base64Data) {
+    const handleGenerate = async (isNewUpload = false, newFile?: File) => {
+        const currentFile = newFile || originalImage?.file;
+        if (!currentFile) {
             setError("Please upload an image.");
             return;
         }
+
         if (hasInsufficientCredits) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
@@ -1827,11 +1871,13 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         
         setIsLoading(true);
         setError(null);
-        setGeneratedCaptions(null);
+        if(!isNewUpload) setGeneratedCaptions(null);
 
         try {
-            const captions = await generateCaptions(base64Data.base64, base64Data.mimeType);
+            const b64Data = await fileToBase64(currentFile);
+            const captions = await generateCaptions(b64Data.base64, b64Data.mimeType);
             setGeneratedCaptions(captions);
+            setIsPanelOpen(true); // Show results
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
@@ -1853,10 +1899,8 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
     const triggerFileInput = () => fileInputRef.current?.click();
 
-    const mobilePanelClasses = "lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] transform transition-transform duration-500 ease-out";
-
     return (
-        <div className='p-4 sm:p-6 lg:p-8'>
+        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
@@ -1910,7 +1954,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                             </button>
                                         </div>
                                     ))}
-                                    <button onClick={handleGenerate} disabled={hasInsufficientCredits} className="w-full text-sm font-semibold flex items-center justify-center gap-2 text-blue-600 p-2 rounded-lg hover:bg-blue-50">
+                                    <button onClick={() => handleGenerate()} disabled={hasInsufficientCredits} className="w-full text-sm font-semibold flex items-center justify-center gap-2 text-blue-600 p-2 rounded-lg hover:bg-blue-50">
                                         <RetryIcon className="w-4 h-4"/> Regenerate
                                     </button>
                                 </div>
@@ -1923,7 +1967,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
                             <div className="hidden lg:block mt-auto pt-4 border-t">
                                 <button 
-                                    onClick={handleGenerate} 
+                                    onClick={() => handleGenerate()} 
                                     disabled={!originalImage || isLoading || hasInsufficientCredits}
                                     className="w-full bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"
                                 >
@@ -1935,14 +1979,45 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     </div>
                 </div>
 
-                <div className={`${mobilePanelClasses} ${isControlPanelVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <div className="p-4">
-                        <button 
-                            onClick={handleGenerate} 
+                 {/* Mobile Unified Control Area */}
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+                    <div 
+                        onClick={() => hasImage && generatedCaptions && setIsPanelOpen(!isPanelOpen)}
+                        className={`w-full py-2 flex justify-center ${hasImage && generatedCaptions ? 'cursor-pointer' : ''}`}
+                        aria-controls="mobile-controls-panel-caption"
+                        aria-expanded={isPanelOpen}
+                    >
+                        {hasImage && generatedCaptions ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
+                    </div>
+
+                    <div id="mobile-controls-panel-caption" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && hasImage ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
+                        {generatedCaptions && (
+                            <div className="space-y-4">
+                                {generatedCaptions.map((item, index) => (
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg border">
+                                        <p className="text-sm text-gray-800">{item.caption}</p>
+                                        <p className="text-xs text-blue-600 mt-2 font-mono">{item.hashtags}</p>
+                                        <button 
+                                            onClick={() => handleCopy(`${item.caption}\n\n${item.hashtags}`, index)}
+                                            className="mt-3 text-xs font-semibold flex items-center gap-1 text-gray-500 hover:text-black"
+                                        >
+                                            {copiedIndex === index ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4"/>}
+                                            {copiedIndex === index ? 'Copied!' : 'Copy'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="p-4 border-t border-gray-200/80">
+                         <button 
+                            onClick={() => handleGenerate()} 
                             disabled={!originalImage || isLoading || hasInsufficientCredits}
-                            className="w-full bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"
                         >
-                            {generatedCaptions ? 'Regenerate' : 'Generate Captions'}
+                            <RetryIcon className="w-5 h-5" />
+                            {generatedCaptions ? 'Regenerate' : 'Generate'}
                         </button>
                     </div>
                 </div>
