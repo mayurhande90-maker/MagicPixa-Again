@@ -1,7 +1,7 @@
 // FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
-import { GoogleGenAI, Modality, LiveServerMessage, Type } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
@@ -13,7 +13,28 @@ if (apiKey && apiKey !== 'undefined') {
   ai = new GoogleGenAI({ apiKey: apiKey });
 }
 
-const SUPPORT_SYSTEM_INSTRUCTION = 'You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app\'s features effectively, including Photo Studio, Interior AI, and Apparel Try-On. You can also answer questions about account management, credits, and billing. Keep your answers helpful, friendly, and concise.';
+const SUPPORT_SYSTEM_INSTRUCTION = `You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app's features effectively, including Photo Studio, Interior AI, and Apparel Try-On. You can also answer questions about account management, credits, and billing.
+
+If a user wants to report an issue or file a complaint, your primary goal is to use the 'createSupportTicket' function. To do this, you MUST collect the 'issueType' and a 'description' of the problem from the user. Guide them through the process conversationally. Do not call the function until you have all the required information. Once the ticket is created, confirm it with the user by providing the ticketId from the function's return value.`;
+
+const createSupportTicket: FunctionDeclaration = {
+    name: 'createSupportTicket',
+    parameters: {
+        type: Type.OBJECT,
+        description: 'Creates a new support ticket for a user issue.',
+        properties: {
+            issueType: {
+                type: Type.STRING,
+                description: 'The category of the issue. e.g., "Billing", "Technical Bug", "Feature Request", "General Inquiry".',
+            },
+            description: {
+                type: Type.STRING,
+                description: 'A detailed description of the issue the user is facing.',
+            },
+        },
+        required: ['issueType', 'description'],
+    },
+};
 
 // FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
@@ -38,6 +59,7 @@ export const startLiveSession = (callbacks: {
             outputAudioTranscription: {},
             inputAudioTranscription: {},
             systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
+            tools: [{ functionDeclarations: [createSupportTicket] }],
         },
     });
 };
@@ -55,6 +77,7 @@ export const generateSupportResponse = async (
             model: 'gemini-2.5-flash',
             config: {
                 systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
+                tools: [{ functionDeclarations: [createSupportTicket] }],
             },
             history: history.map(msg => ({
                 role: msg.role,
@@ -62,7 +85,31 @@ export const generateSupportResponse = async (
             }))
         });
 
-        const response = await chat.sendMessage({ message: newMessage });
+        let response = await chat.sendMessage({ message: newMessage });
+
+        // Handle potential function calls
+        if (response.functionCalls && response.functionCalls.length > 0) {
+            const fc = response.functionCalls[0];
+            if (fc.name === 'createSupportTicket') {
+                // In a real app, you would save this to a database.
+                // Here, we'll simulate it and return a confirmation.
+                console.log("Simulating ticket creation:", fc.args);
+                const ticketId = `MP-${Math.floor(10000 + Math.random() * 90000)}`;
+
+                // Send the result back to the model to get a natural language response
+                // FIX: Corrected the property name from `tool_responses` to `toolResponse` and structured the data correctly for the API.
+                response = await chat.sendMessage({
+                    toolResponse: {
+                        functionResponses: [{
+                            id: fc.id,
+                            name: fc.name,
+                            response: { ticketId: ticketId, status: 'created' }
+                        }]
+                    }
+                });
+            }
+        }
+        
         return response.text;
 
     } catch (error) {
