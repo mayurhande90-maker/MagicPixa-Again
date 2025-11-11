@@ -41,6 +41,34 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [isYearly, setIsYearly] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isRazorpayReady, setIsRazorpayReady] = useState(false);
+
+  useEffect(() => {
+    // Check if script already exists to avoid duplicates
+    if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+      setIsRazorpayReady(true);
+      return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => setIsRazorpayReady(true);
+    script.onerror = () => {
+      console.error("Razorpay Checkout script failed to load.");
+      alert("Could not connect to payment gateway. Please refresh the page and try again.");
+      setIsRazorpayReady(false);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existingScript) {
+        // Only remove if it's the one we added, check with a data attribute if needed
+        // For simplicity, we assume we can remove it on unmount
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -59,25 +87,13 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     fetchHistory();
   }, [user]);
 
-  const loadScript = (src: string) => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   const handlePurchase = async (pkg: any, index: number) => {
     setLoadingPackage(index);
 
-    const isScriptLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-
-    if (!isScriptLoaded) {
-      alert('Could not load payment gateway. Please check your internet connection and try again.');
-      setLoadingPackage(null);
-      return;
+    if (!isRazorpayReady) {
+        alert("Payment gateway is initializing. Please wait a moment and try again.");
+        setLoadingPackage(null);
+        return;
     }
 
     if (!import.meta.env.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY_ID === 'undefined') {
@@ -227,7 +243,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 </ul>
                 <button
                     onClick={() => handlePurchase(plan, index)}
-                    disabled={loadingPackage !== null}
+                    disabled={loadingPackage !== null || !isRazorpayReady}
                     className={`w-full font-semibold py-2.5 md:py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
                     purchasedPackage === index
                         ? 'bg-green-500 text-white'
@@ -240,6 +256,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                       <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : purchasedPackage === index ? (
                       <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
+                    ) : !isRazorpayReady ? (
+                      'Initializing...'
                     ) : (
                       'Choose Plan'
                     )}
