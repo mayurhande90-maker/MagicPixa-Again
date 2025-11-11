@@ -1,6 +1,13 @@
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
+// Add Razorpay to the global window interface
+declare global {
+    interface Window {
+      Razorpay: any;
+    }
+}
+
 export type Page = 'home' | 'dashboard';
 export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard';
 

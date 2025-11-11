@@ -60,23 +60,63 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   }, [user]);
 
   const handlePurchase = async (pkg: any, index: number) => {
-    const creditsToAdd = parseInt(pkg.credits, 10);
-    if (isNaN(creditsToAdd)) {
-        console.error("Invalid credit amount in package:", pkg.credits);
+    setLoadingPackage(index);
+
+    if (!import.meta.env.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY_ID === 'undefined') {
+        alert("Payment gateway is not configured. Please contact support.");
+        console.error("VITE_RAZORPAY_KEY_ID is not set in environment variables.");
+        setLoadingPackage(null);
         return;
     }
 
-    setLoadingPackage(index);
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount: parseInt(pkg.price) * 100, // Amount in the smallest currency unit (paise)
+      currency: "INR",
+      name: "MagicPixa",
+      description: `Purchase ${pkg.name} Plan`,
+      image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg", // Replace with your logo
+      handler: async (response: any) => {
+        // In a real production app, you would send `response.razorpay_payment_id`
+        // to your backend to verify the payment signature and amount to prevent fraud.
+        console.log("Razorpay Response:", response);
+        
+        try {
+            const creditsToAdd = parseInt(pkg.credits, 10);
+            if (isNaN(creditsToAdd)) throw new Error("Invalid credits amount.");
+
+            const updatedProfile = await addCredits(user.uid, creditsToAdd);
+            setUser(prev => prev ? { ...prev, credits: updatedProfile.credits, plan: updatedProfile.plan } : null);
+            setPurchasedPackage(index);
+            setTimeout(() => setPurchasedPackage(null), 3000);
+        } catch (error) {
+            console.error("Failed to add credits after payment:", error);
+            alert("Payment was successful, but there was an issue updating your credits. Please contact support.");
+        } finally {
+            setLoadingPackage(null);
+        }
+      },
+      prefill: {
+        name: user.name,
+        email: user.email,
+      },
+      theme: {
+        color: "#0079F2"
+      },
+      modal: {
+        ondismiss: () => {
+            setLoadingPackage(null);
+        }
+      }
+    };
+
     try {
-      const updatedProfile = await addCredits(user.uid, creditsToAdd);
-      setUser(prev => prev ? { ...prev, credits: updatedProfile.credits, plan: updatedProfile.plan } : null);
-      setPurchasedPackage(index);
-      setTimeout(() => setPurchasedPackage(null), 3000);
+        const rzp = new window.Razorpay(options);
+        rzp.open();
     } catch (error) {
-      console.error("Failed to add credits:", error);
-      alert("There was an issue processing your purchase. Please try again.");
-    } finally {
-      setLoadingPackage(null);
+        console.error("Error opening Razorpay checkout:", error);
+        alert("Could not initiate payment. Please try again.");
+        setLoadingPackage(null);
     }
   };
   
