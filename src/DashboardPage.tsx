@@ -425,7 +425,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Photo Studio');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -751,7 +751,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
 
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Interior');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1024,7 +1024,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             setGeneratedImage(`data:image/jpeg;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, currentCost, 'Magic Photo Colour');
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - currentCost);
@@ -1257,7 +1257,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             const newBase64 = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, environment);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Soul');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1503,7 +1503,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Apparel');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1759,7 +1759,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, mockupType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Mockup');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1932,7 +1932,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             setGeneratedCaptions(captions);
             setIsPanelOpen(true); // Show results
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'CaptionAI');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);

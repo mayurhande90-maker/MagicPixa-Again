@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, Transaction } from '../types';
-import { addCredits, getCreditHistory } from '../firebase';
+import React, { useState } from 'react';
+import { User } from '../types';
+import { addCredits } from '../firebase';
 import { SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, PlusCircleIcon, ChevronRightIcon, XIcon } from './icons';
 
 interface BillingProps {
@@ -18,15 +18,14 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [purchasedPackage, setPurchasedPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  useEffect(() => {
-    if (user) {
-        getCreditHistory(user.uid)
-            .then(setTransactions)
-            .catch(console.error);
-    }
-  }, [user]);
+  // Mock data for new sections
+  const transactions = [
+    { feature: 'Magic Photo Studio', cost: 2, date: '2024-07-28' },
+    { feature: 'CaptionAI', cost: 1, date: '2024-07-28' },
+    { feature: 'Magic Interior', cost: 2, date: '2024-07-27' },
+    { feature: 'Magic Soul', cost: 3, date: '2024-07-25' },
+  ];
 
   const earnOpportunities = [
     { title: 'Invite a Friend', credits: 5, action: 'Invite' },
@@ -47,7 +46,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     setLoadingPackage(index);
     try {
       const updatedProfile = await addCredits(user.uid, credits);
-      setUser(prev => prev ? { ...prev, credits: updatedProfile.credits, plan: updatedProfile.plan } : null);
+      setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
       setPurchasedPackage(index);
       setTimeout(() => setPurchasedPackage(null), 3000);
     } catch (error) {
@@ -58,7 +57,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
   };
 
-  const maxCreditsForMeter = user.plan === 'Free' ? 10 : 100;
+  const maxCreditsForMeter = 100; // An arbitrary max for the visual meter's scale
   const creditPercentage = Math.min((user.credits / maxCreditsForMeter) * 100, 100);
 
   return (
@@ -154,15 +153,15 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
             <div>
                 <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Credit Usage History</h3>
                 <div className="bg-white p-4 rounded-xl border border-gray-200/80 space-y-3">
-                    {transactions.length > 0 ? transactions.map((tx) => (
-                        <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
+                    {transactions.length > 0 ? transactions.map((tx, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
                            <div className="flex items-center gap-3">
                                <div className="p-2 bg-gray-100 rounded-full">
                                    <TicketIcon className="w-5 h-5 text-gray-500"/>
                                </div>
                                <div>
                                     <p className="font-semibold text-[#1E1E1E]">{tx.feature}</p>
-                                    <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                    <p className="text-xs text-gray-500">{new Date(tx.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                                </div>
                            </div>
                             <span className="font-bold text-red-500">-{tx.cost}</span>
