@@ -441,7 +441,48 @@ export const generateMagicSoul = async (
   }
 
   try {
-    const prompt = `PRIMARY OBJECTIVE:
+    let prompt: string;
+
+    if (style === 'adventurous' && environment === 'sunny') {
+      prompt = `Create a highly realistic, natural-looking photograph of Person A and Person B together in an adventurous outdoor environment under bright sunny daylight. Maintain the exact real facial structure, expressions, skin tone, hairstyle, and body proportions of both individuals — do not modify, beautify, stylize, or change their appearance in any way. Their faces and features must remain identical to the provided reference photos, with precise likeness and natural texture.
+
+The atmosphere should feel vivid, adventurous, and dynamic — with sunlight, natural shadows, warm tones, and a cinematic but realistic depth of field. Clothing should suit the theme: casual outdoor wear such as jackets, sunglasses, or travel accessories.
+
+The photo must look 100% real, not AI-generated — realistic skin pores, natural light reflections in the eyes, and genuine texture detail. Use realistic human lighting, soft shadows, and a DSLR-style depth of field.
+
+Environment example ideas (choose one that fits):
+
+standing on a mountain trail
+
+sitting near a cliff edge with blue sky behind
+
+walking through a desert road
+
+exploring a coastal viewpoint with sunlight
+
+Style: Ultra-realistic photography, cinematic natural tones, no filters or artistic effects, no fantasy elements.
+Mood: Adventurous, sunny, natural.
+Camera settings (for realism): 35mm lens, f/2.8, ISO 200, natural light, shallow depth of field, realistic color balance, 8K resolution.
+
+Strict rules:
+
+Keep Person A and Person B’s faces, bodies, and hairstyles unchanged and fully accurate.
+
+No exaggeration, no idealization, no digital smoothening.
+
+The final result should be indistinguishable from a real DSLR photo.
+
+⚙️ Optional Parameters (if your tool supports them):
+
+Style strength: 0.25 (to prevent face alteration)
+
+Reference adherence / image guidance weight: 0.9–1.0
+
+Lighting direction: front or 45° natural sunlight
+
+Aspect ratio: 3:2 or 16:9 for landscape-style adventurous shots`;
+    } else {
+      prompt = `PRIMARY OBJECTIVE:
 Generate one ultra-realistic, high-resolution photograph of Subject A and Subject B together in the chosen STYLE and ENVIRONMENT. The output must be indistinguishable from a professional DSLR photograph.
 
 **MASTER PROMPT (CORE INSTRUCTIONS):**
@@ -473,6 +514,7 @@ Generate one ultra-realistic, high-resolution photograph of Subject A and Subjec
 
 **NEGATIVE PROMPT (STRICTLY FORBIDDEN):**
 DO NOT: change facial geometry, swap faces, alter hair or hairline, smooth pores, remove natural marks, create cartoonification, create painterly textures, produce halo/fringe, produce floating or mis-scaled subjects, mis-match shadows, leave hard cutout edges, create inconsistent grain/noise, exaggerate eyes/teeth, or generate unrealistic lens artifacts.`;
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
