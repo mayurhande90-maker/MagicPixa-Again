@@ -117,14 +117,23 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
         console.log("Razorpay Response:", response);
         
         try {
+            // First, perform the critical action: updating credits.
             const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setPurchasedPackage(index);
-            // Fetch history again to show the new purchase
-            const history = await getCreditHistory(user.uid);
-            setTransactions(history as Transaction[]);
             setTimeout(() => setPurchasedPackage(null), 3000);
+
+            // Separately, try to refresh the transaction history. A failure here
+            // should not block the user or show a scary error, as the purchase was successful.
+            try {
+                const history = await getCreditHistory(user.uid);
+                setTransactions(history as Transaction[]);
+            } catch (historyError) {
+                console.error("Purchase successful, but failed to refresh transaction history:", historyError);
+                // Optional: Show a subtle, non-blocking notification about history failing to update.
+            }
         } catch (error) {
+            // This block now only catches errors from the critical purchaseTopUp function.
             console.error("Failed to add credits after payment:", error);
             alert("Payment was successful, but there was an issue updating your credits. Please contact support.");
         } finally {
@@ -203,7 +212,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 </div>
                 <div className="text-center sm:text-left">
                      <p className="text-5xl font-bold text-[#1E1E1E] leading-none">{user.credits}</p>
-                     <p className="text-[#5F6368] text-lg">Available Credits</p>
+                     <p className="text-lg text-[#5F6368]">Available Credits</p>
                 </div>
             </div>
         </div>

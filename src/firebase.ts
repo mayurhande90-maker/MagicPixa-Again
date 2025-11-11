@@ -172,26 +172,31 @@ export const deductCredits = async (uid: string, amount: number, feature: string
  * @returns The updated user profile.
  */
 export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
-    if (!db || !auth) throw new Error("Firestore is not initialized.");
+    if (!db) throw new Error("Firestore is not initialized.");
     
-    const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
-  
     const userRef = doc(db, "users", uid);
+    
+    // Atomically increment the user's credits.
     await setDoc(userRef, {
       credits: increment(creditsToAdd),
     }, { merge: true });
   
-    // Log the purchase as a transaction
+    // Log the purchase as a transaction in a subcollection.
     const transactionsRef = collection(db, "users", uid, "transactions");
     await addDoc(transactionsRef, {
         feature: `Purchased: ${packName}`,
-        cost: amountPaid, // For purchases, cost is the INR amount
+        cost: amountPaid,
         creditChange: `+${creditsToAdd}`,
         date: serverTimestamp(),
     });
   
-    const newCreditTotal = userProfile.credits + creditsToAdd;
-    return { ...userProfile, credits: newCreditTotal, plan: 'Free' };
+    // After the update, fetch the latest user profile data to ensure the
+    // value returned to the UI is fresh and not stale.
+    const updatedDoc = await getDoc(userRef);
+    if (!updatedDoc.exists()) {
+        throw new Error("Failed to retrieve updated user profile.");
+    }
+    return updatedDoc.data();
 };
 
 
