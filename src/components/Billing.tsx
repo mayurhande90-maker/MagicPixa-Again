@@ -151,18 +151,18 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
-              <div key={index} className={`relative bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-1 ${plan.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
+              <div key={index} className={`relative bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-1 ${plan.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
                 {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</div>}
-                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2 text-center">{plan.name}</h3>
-                <p className="text-[#5F6368] mb-4 text-center">{plan.credits}</p>
-                <p className="mb-6 text-center">
-                    <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                    <span className="text-[#5F6368]">/ month</span>
+                <h3 className="text-lg md:text-xl font-bold text-[#1E1E1E] mb-1 md:mb-2 text-center">{plan.name}</h3>
+                <p className="text-sm md:text-base text-[#5F6368] mb-2 md:mb-4 text-center">{plan.credits}</p>
+                <p className="mb-4 md:mb-6 text-center">
+                    <span className="text-3xl md:text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
+                    <span className="text-sm md:text-base text-[#5F6368]">/ month</span>
                 </p>
-                <ul className="space-y-3 text-[#5F6368] flex-grow mb-6">
+                <ul className="space-y-2 md:space-y-3 text-sm text-[#5F6368] flex-grow mb-6">
                     {plan.features.map((feature: string, i: number) => (
                         <li key={i} className="flex items-center gap-3">
-                            <CheckIcon className="w-5 h-5 text-emerald-500" />
+                            <CheckIcon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                             <span>{feature}</span>
                         </li>
                     ))}
@@ -170,7 +170,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 <button
                     onClick={() => handlePurchase(plan, index)}
                     disabled={loadingPackage !== null}
-                    className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
+                    className={`w-full font-semibold py-2.5 md:py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
                     purchasedPackage === index
                         ? 'bg-green-500 text-white'
                         : plan.popular
