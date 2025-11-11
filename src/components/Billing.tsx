@@ -59,8 +59,26 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     fetchHistory();
   }, [user]);
 
+  const loadScript = (src: string) => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePurchase = async (pkg: any, index: number) => {
     setLoadingPackage(index);
+
+    const isScriptLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+
+    if (!isScriptLoaded) {
+      alert('Could not load payment gateway. Please check your internet connection and try again.');
+      setLoadingPackage(null);
+      return;
+    }
 
     if (!import.meta.env.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY_ID === 'undefined') {
         alert("Payment gateway is not configured. Please contact support.");
