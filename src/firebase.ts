@@ -5,7 +5,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -129,7 +129,6 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       credits: 10,
       signUpDate: serverTimestamp(),
       lastCreditRenewal: serverTimestamp(),
-      plan: 'Free',
     };
     await setDoc(userRef, newUserProfile);
     // Return the profile data (timestamps will be null until server processes them, which is fine)
@@ -149,15 +148,16 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
 };
 
 /**
- * Atomically deducts credits and logs the transaction.
+ * Atomically deducts credits. It will create the user profile if it doesn't exist.
+ * This is now the primary function for any action that costs credits.
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
- * @param feature The name of the feature that consumed the credits.
  * @returns The updated user profile data after deduction.
  */
-export const deductCredits = async (uid: string, amount: number, feature: string) => {
+export const deductCredits = async (uid: string, amount: number) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
+  // First, ensure the profile exists and is up-to-date
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
   
   if (userProfile.credits < amount) {
@@ -169,22 +169,11 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     credits: increment(-amount),
   });
 
-  try {
-    const transactionsRef = collection(db, "users", uid, "transactions");
-    await addDoc(transactionsRef, {
-      feature: feature,
-      cost: amount,
-      date: serverTimestamp(),
-    });
-  } catch (error) {
-      console.error("Failed to log transaction:", error);
-  }
-
   return { ...userProfile, credits: userProfile.credits - amount };
 };
 
 /**
- * Atomically adds credits to a user's account and updates their plan status.
+ * Atomically adds credits to a user's account.
  * @param uid The user's unique ID.
  * @param amount The number of credits to add.
  * @returns The updated user profile data after addition.
@@ -192,33 +181,16 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 export const addCredits = async (uid: string, amount: number) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
+  // Ensure the user profile exists.
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
 
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     credits: increment(amount),
-    plan: 'Paid',
   });
 
-  return { ...userProfile, credits: userProfile.credits + amount, plan: 'Paid' };
+  // Return the new profile state
+  return { ...userProfile, credits: userProfile.credits + amount };
 };
-
-/**
- * Retrieves the credit usage history for a user.
- * @param uid The user's unique ID.
- * @returns A promise that resolves to an array of transaction objects.
- */
-export const getCreditHistory = async (uid: string) => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const transactionsRef = collection(db, "users", uid, "transactions");
-    const q = query(transactionsRef, orderBy("date", "desc"), limit(5));
-    const querySnapshot = await getDocs(q);
-    const history: any[] = [];
-    querySnapshot.forEach((doc) => {
-        history.push({ id: doc.id, ...doc.data() });
-    });
-    return history;
-};
-
 
 export { app, auth };

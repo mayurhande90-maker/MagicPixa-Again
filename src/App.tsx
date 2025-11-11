@@ -53,7 +53,6 @@ const App: React.FC = () => {
             avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
             credits: userProfile.credits,
             signUpDate: userProfile.signUpDate,
-            plan: userProfile.plan || 'Free',
           };
           setUser(userToSet);
           setIsAuthenticated(true);
