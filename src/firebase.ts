@@ -5,7 +5,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -110,10 +110,10 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
         const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
 
         if (new Date() >= oneMonthLater) {
-          await updateDoc(userRef, {
+          await setDoc(userRef, {
             credits: 10,
             lastCreditRenewal: serverTimestamp(),
-          });
+          }, { merge: true });
           console.log(`Credits renewed for user ${uid}`);
           return { ...userData, credits: 10 };
         }
@@ -145,7 +145,7 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
     const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, data);
+    await setDoc(userRef, data, { merge: true });
 };
 
 /**
@@ -165,9 +165,9 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   }
 
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     credits: increment(-amount),
-  });
+  }, { merge: true });
 
   const transactionsRef = collection(db, "users", uid, "transactions");
   await addDoc(transactionsRef, {
@@ -191,10 +191,10 @@ export const addCredits = async (uid: string, amount: number) => {
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
 
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     credits: increment(amount),
     plan: 'Paid',
-  });
+  }, { merge: true });
 
   return { ...userProfile, credits: userProfile.credits + amount, plan: 'Paid' };
 };
