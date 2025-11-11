@@ -61,12 +61,43 @@ const creditCosts = [
     { feature: 'Mockup AI', cost: '2 Credits' },
 ];
 
+const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => void; }> = ({ creditsAdded, onClose }) => {
+    return (
+        <div 
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            aria-labelledby="payment-success-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div className="bg-white w-full max-w-sm m-4 p-8 rounded-2xl shadow-xl text-center">
+                <div className="checkmark">
+                    <svg className="w-full h-full" viewBox="0 0 52 52">
+                        <circle className="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path className="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                <h2 id="payment-success-title" className="text-2xl font-bold text-[#1E1E1E] mt-6 mb-2">Payment Successful!</h2>
+                <p className="text-[#5F6368] mb-6">
+                    You're all set! We've added <span className="font-bold text-[#1E1E1E]">{creditsAdded} credits</span> to your account.
+                </p>
+                <button
+                    onClick={onClose}
+                    className="w-full bg-[#0079F2] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Continue Creating
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
-  const [purchasedPackage, setPurchasedPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmedPurchase, setConfirmedPurchase] = useState<{ totalCredits: number } | null>(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -112,28 +143,21 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       description: `One-time purchase of ${pkg.totalCredits} credits.`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
       handler: async (response: any) => {
-        // In a real production app, you would send `response.razorpay_payment_id`
-        // to your backend to verify the payment signature and amount to prevent fraud.
         console.log("Razorpay Response:", response);
         
         try {
-            // First, perform the critical action: updating credits.
             const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
-            setPurchasedPackage(index);
-            setTimeout(() => setPurchasedPackage(null), 3000);
-
-            // Separately, try to refresh the transaction history. A failure here
-            // should not block the user or show a scary error, as the purchase was successful.
+            setConfirmedPurchase({ totalCredits: pkg.totalCredits });
+            setShowConfirmation(true);
+            
             try {
                 const history = await getCreditHistory(user.uid);
                 setTransactions(history as Transaction[]);
             } catch (historyError) {
                 console.error("Purchase successful, but failed to refresh transaction history:", historyError);
-                // Optional: Show a subtle, non-blocking notification about history failing to update.
             }
         } catch (error) {
-            // This block now only catches errors from the critical purchaseTopUp function.
             console.error("Failed to add credits after payment:", error);
             alert("Payment was successful, but there was an issue updating your credits. Please contact support.");
         } finally {
@@ -254,17 +278,13 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                     onClick={() => handlePurchase(pack, index)}
                     disabled={loadingPackage !== null}
                     className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
-                    purchasedPackage === index
-                        ? 'bg-green-500 text-white'
-                        : pack.popular
+                    pack.popular
                         ? 'bg-[#0079F2] text-white hover:bg-blue-700'
                         : 'bg-[#f9d230] hover:scale-105 text-[#1E1E1E]'
                     }`}
                 >
                     {loadingPackage === index ? (
                       <svg className="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    ) : purchasedPackage === index ? (
-                      <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
                     ) : (
                       'Buy Now'
                     )}
@@ -339,6 +359,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                   </button>
               </div>
           </div>
+      )}
+      {showConfirmation && confirmedPurchase && (
+        <PaymentConfirmationModal
+            creditsAdded={confirmedPurchase.totalCredits}
+            onClose={() => setShowConfirmation(false)}
+        />
       )}
     </>
   );
