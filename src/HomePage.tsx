@@ -112,18 +112,19 @@ const reviews = [
 
 const pricingPlans = {
     yearly: [
-        { name: 'Free', price: '0', credits: '5 one-time', popular: false, features: ['5 Credits', 'Standard Resolution', 'AI Photo Studio', 'Background Remover', 'Limited Support'] },
-        { name: 'Pro', price: '299', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
-        { name: 'Pro Plus', price: '499', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
-        { name: 'VIP', price: '999', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+        { name: 'Free', price: '0', credits: 5, creditsText: '5 one-time credits', popular: false, features: ['5 Credits', 'Standard Resolution', 'Key AI Features', 'Limited Support'] },
+        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits / month', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits / month', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ],
     monthly: [
-        { name: 'Free', price: '0', credits: '5 one-time', popular: false, features: ['5 Credits', 'Standard Resolution', 'AI Photo Studio', 'Background Remover', 'Limited Support'] },
-        { name: 'Pro', price: '359', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
-        { name: 'Pro Plus', price: '599', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
-        { name: 'VIP', price: '1199', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+        { name: 'Free', price: '0', credits: 5, creditsText: '5 one-time credits', popular: false, features: ['5 Credits', 'Standard Resolution', 'Key AI Features', 'Limited Support'] },
+        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits / month', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ]
 };
+
 
 const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
     const handleNav = (view: View) => {
@@ -261,10 +262,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                             <div key={index} className={`bg-white p-8 rounded-2xl shadow-sm border-2 text-left flex flex-col ${plan.popular ? 'border-[#0079F2]' : 'border-gray-200/80'}`}>
                                 {plan.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-10 mb-4 mx-auto">Most Popular</p>}
                                 <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{plan.name}</h3>
-                                <p className="text-[#5F6368] mb-4">{plan.credits}</p>
+                                <p className="text-[#5F6368] mb-4">{plan.creditsText}</p>
                                 <p className="mb-6">
                                     <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                                    <span className="text-[#5F6368]">/ month</span>
+                                    {plan.name !== 'Free' && <span className="text-[#5F6368]">/ month</span>}
                                 </p>
                                 <ul className="space-y-3 text-[#5F6368] flex-grow">
                                     {plan.features.map((feature, i) => (
@@ -274,7 +275,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                                         </li>
                                     ))}
                                 </ul>
-                                <button className={`w-full mt-8 py-3 rounded-xl font-semibold transition-colors ${plan.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}>
+                                <button 
+                                    onClick={() => navigateTo('dashboard', 'billing')}
+                                    className={`w-full mt-8 py-3 rounded-xl font-semibold transition-colors ${plan.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}
+                                >
                                     {plan.name === 'Free' ? 'Get Started' : 'Choose Plan'}
                                 </button>
                             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Transaction } from '../types';
-import { addCredits, getCreditHistory } from '../firebase';
+import { upgradePlan, getCreditHistory } from '../firebase';
 import { SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon } from './icons';
 
 interface BillingProps {
@@ -13,14 +13,14 @@ const pricingPlans: {
   monthly: any[];
 } = {
     yearly: [
-        { name: 'Pro', price: '299', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
-        { name: 'Pro Plus', price: '499', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
-        { name: 'VIP', price: '999', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits / month', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits / month', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ],
     monthly: [
-        { name: 'Pro', price: '359', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
-        { name: 'Pro Plus', price: '599', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
-        { name: 'VIP', price: '1199', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits / month', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ]
 };
 
@@ -62,7 +62,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const handlePurchase = async (pkg: any, index: number) => {
     setLoadingPackage(index);
 
-    // Check 1: Is the Razorpay script loaded on the page?
     if (!window.Razorpay) {
         alert("Payment gateway is not available. Please check your internet connection and refresh the page.");
         console.error("window.Razorpay is not defined. The script might be blocked or failed to load.");
@@ -72,7 +71,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
 
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-    // Check 2: Is the API key configured in the environment variables?
     if (!razorpayKey || razorpayKey === 'undefined') {
         alert("Payment gateway is not configured correctly. If you are the administrator, please ensure the VITE_RAZORPAY_KEY_ID is set in your hosting environment and that the site has been redeployed.");
         console.error("VITE_RAZORPAY_KEY_ID is not set or is 'undefined'.");
@@ -80,12 +78,24 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
         return;
     }
 
+    // --- DEVELOPER NOTE: BACKEND REQUIRED FOR LIVE SUBSCRIPTIONS ---
+    // For a production application, you MUST create Razorpay Subscriptions on a secure backend server.
+    // 1. Your server would have an endpoint (e.g., /create-subscription) that takes a plan ID.
+    // 2. This endpoint uses your Razorpay API Secret to call Razorpay's API and create a subscription.
+    // 3. Razorpay returns a `subscription_id`, which your server sends back to the client.
+    // 4. That `subscription_id` would be used in the options below.
+    // This alert simulates this requirement for demonstration purposes.
+    alert("Developer Note: This is a simulated subscription purchase. In a real app, a backend server must create a Razorpay Subscription and provide a 'subscription_id' to this checkout flow. This transaction will be processed as a one-time payment for this demo.");
+    // --- END DEVELOPER NOTE ---
+
     const options = {
       key: razorpayKey,
-      amount: parseInt(pkg.price) * 100, // Amount in the smallest currency unit (paise)
+      // In production, you would use a subscription_id from your server instead of amount.
+      // "subscription_id": "sub_id_from_your_server",
+      amount: parseInt(pkg.price) * 100, // Amount in paise
       currency: "INR",
-      name: "MagicPixa",
-      description: `Purchase ${pkg.name} Plan`,
+      name: "MagicPixa Subscription",
+      description: `Billed for ${pkg.name} Plan`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
       handler: async (response: any) => {
         // In a real production app, you would send `response.razorpay_payment_id`
@@ -96,8 +106,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
             const creditsToAdd = parseInt(pkg.credits, 10);
             if (isNaN(creditsToAdd)) throw new Error("Invalid credits amount.");
 
-            const updatedProfile = await addCredits(user.uid, creditsToAdd);
-            setUser(prev => prev ? { ...prev, credits: updatedProfile.credits, plan: updatedProfile.plan } : null);
+            const updatedProfile = await upgradePlan(user.uid, pkg.name, creditsToAdd);
+            setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setPurchasedPackage(index);
             setTimeout(() => setPurchasedPackage(null), 3000);
         } catch (error) {
@@ -186,8 +196,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
 
         <div className="mb-8">
             <div className="text-center">
-                <h3 className="text-xl font-bold text-[#1E1E1E] mb-3">Choose Your Perfect Plan</h3>
-                <p className="text-lg text-[#5F6368] mb-8">Simple, transparent pricing for everyone.</p>
+                <h3 className="text-xl font-bold text-[#1E1E1E] mb-3">Upgrade Your Plan</h3>
+                <p className="text-lg text-[#5F6368] mb-8">Get more credits and unlock exclusive features.</p>
                 <div className="flex justify-center items-center gap-4 mb-12">
                     <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
                     <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
@@ -205,7 +215,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
               <div key={index} className={`relative bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-1 ${plan.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
                 {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</div>}
                 <h3 className="text-lg md:text-xl font-bold text-[#1E1E1E] mb-1 md:mb-2 text-center">{plan.name}</h3>
-                <p className="text-sm md:text-base text-[#5F6368] mb-2 md:mb-4 text-center">{plan.credits}</p>
+                <p className="text-sm md:text-base text-[#5F6368] mb-2 md:mb-4 text-center">{plan.creditsText}</p>
                 <p className="mb-4 md:mb-6 text-center">
                     <span className="text-3xl md:text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
                     <span className="text-sm md:text-base text-[#5F6368]">/ month</span>
@@ -230,7 +240,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                     }`}
                 >
                     {loadingPackage === index ? (
-                      <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : purchasedPackage === index ? (
                       <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
                     ) : (
@@ -258,7 +268,11 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                                 <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                            </div>
                        </div>
-                        <span className="font-bold text-red-500">-{tx.cost}</span>
+                        {tx.creditChange ? (
+                            <span className="font-bold text-green-500">{tx.creditChange}</span>
+                        ) : (
+                            <span className="font-bold text-red-500">-{tx.cost}</span>
+                        )}
                     </div>
                 )) : (
                     <p className="text-sm text-gray-500 text-center py-4">No recent transactions.</p>

@@ -18,7 +18,7 @@ export interface User {
   avatar: string;
   credits: number;
   signUpDate?: { seconds: number; nanoseconds: number };
-  plan?: 'Free' | 'Paid';
+  plan?: string;
 }
 
 export interface AuthProps {
@@ -34,4 +34,5 @@ export interface Transaction {
     feature: string;
     cost: number;
     date: Timestamp;
+    creditChange?: string;
 }

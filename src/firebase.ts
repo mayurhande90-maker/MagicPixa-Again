@@ -108,14 +108,22 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     if (lastRenewal) {
         const lastRenewalDate = lastRenewal.toDate();
         const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
+        
+        const monthlyCredits: { [key: string]: number } = {
+            'Pro': 100,
+            'Pro Plus': 500,
+            'VIP': 1000,
+            'Free': 10,
+        };
 
-        if (new Date() >= oneMonthLater && userData.plan === 'Free') { // Only renew for Free plan
-          await setDoc(userRef, {
-            credits: 10,
-            lastCreditRenewal: serverTimestamp(),
-          }, { merge: true });
-          console.log(`Credits renewed for user ${uid}`);
-          return { ...userData, credits: 10 };
+        if (new Date() >= oneMonthLater && userData.plan && monthlyCredits[userData.plan]) {
+            const creditsToAdd = monthlyCredits[userData.plan];
+            await setDoc(userRef, {
+                credits: increment(creditsToAdd),
+                lastCreditRenewal: serverTimestamp(),
+            }, { merge: true });
+            console.log(`Credits renewed for user ${uid}. Added ${creditsToAdd}.`);
+            return { ...userData, credits: userData.credits + creditsToAdd };
         }
     }
     return userData;
@@ -181,24 +189,39 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 };
 
 /**
- * Atomically adds credits to a user's account and updates their plan.
+ * Upgrades a user's plan, adds credits, and resets their billing cycle.
  * @param uid The user's unique ID.
- * @param amount The number of credits to add.
- * @returns The updated user profile data after addition.
+ * @param planName The name of the new plan.
+ * @param creditsInPlan The number of credits included in the plan.
+ * @returns The updated user profile.
  */
-export const addCredits = async (uid: string, amount: number) => {
-  if (!db || !auth) throw new Error("Firestore is not initialized.");
+export const upgradePlan = async (uid: string, planName: string, creditsInPlan: number) => {
+    if (!db || !auth) throw new Error("Firestore is not initialized.");
+    
+    const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
   
-  const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
-
-  const userRef = doc(db, "users", uid);
-  await setDoc(userRef, {
-    credits: increment(amount),
-    plan: 'Paid',
-  }, { merge: true });
-
-  return { ...userProfile, credits: userProfile.credits + amount, plan: 'Paid' };
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, {
+      // Add the new credits to their existing balance
+      credits: increment(creditsInPlan),
+      plan: planName,
+      // Start the new monthly billing/renewal cycle from today
+      lastCreditRenewal: serverTimestamp(),
+    }, { merge: true });
+  
+    // Log the purchase as a transaction
+    const transactionsRef = collection(db, "users", uid, "transactions");
+    await addDoc(transactionsRef, {
+        feature: `Purchased ${planName} Plan`,
+        cost: 0,
+        creditChange: `+${creditsInPlan}`,
+        date: serverTimestamp(),
+    });
+  
+    const newCreditTotal = userProfile.credits + creditsInPlan;
+    return { ...userProfile, credits: newCreditTotal, plan: planName };
 };
+
 
 export const getCreditHistory = async (uid: string): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
