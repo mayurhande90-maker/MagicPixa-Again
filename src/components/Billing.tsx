@@ -1,52 +1,75 @@
-import React, { useState } from 'react';
-import { User } from '../types';
-import { addCredits } from '../firebase';
-import { SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, PlusCircleIcon, ChevronRightIcon, XIcon } from './icons';
+import React, { useState, useEffect } from 'react';
+import { User, Transaction } from '../types';
+import { addCredits, getCreditHistory } from '../firebase';
+import { SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon } from './icons';
 
 interface BillingProps {
   user: User;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
-const creditPackages = [
-  { credits: 100, price: 4.99, bestValue: false, description: "Perfect for casual users" },
-  { credits: 250, price: 9.99, bestValue: true, description: "Most popular choice for creators" },
-  { credits: 600, price: 19.99, bestValue: false, description: "For heavy users and small teams" },
+const pricingPlans: {
+  yearly: any[];
+  monthly: any[];
+} = {
+    yearly: [
+        { name: 'Pro', price: '299', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
+        { name: 'Pro Plus', price: '499', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
+        { name: 'VIP', price: '999', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+    ],
+    monthly: [
+        { name: 'Pro', price: '359', credits: '100 / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'AI Photo Studio', 'Background Remover', 'Image Upscaler (2x)', 'Email Support'] },
+        { name: 'Pro Plus', price: '599', credits: '500 / month', popular: true, features: ['500 Credits/month', 'High Resolution', 'Full Feature Access', 'Image Upscaler (4x)', 'Priority Support'] },
+        { name: 'VIP', price: '1199', credits: '1000 / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Image Upscaler (8x)', 'Dedicated Support'] }
+    ]
+};
+
+const creditCosts = [
+    { feature: 'Photo Studio', cost: '2 Credits' },
+    { feature: 'Magic Soul', cost: '3 Credits' },
+    { feature: 'Photo Colour', cost: '2 Credits' },
+    { feature: 'CaptionAI', cost: '1 Credit' },
+    { feature: 'Interior AI', cost: '2 Credits' },
+    { feature: 'Apparel AI', cost: '3 Credits' },
+    { feature: 'Mockup AI', cost: '2 Credits' },
 ];
 
 const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [purchasedPackage, setPurchasedPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isYearly, setIsYearly] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  // Mock data for new sections
-  const transactions = [
-    { feature: 'Magic Photo Studio', cost: 2, date: '2024-07-28' },
-    { feature: 'CaptionAI', cost: 1, date: '2024-07-28' },
-    { feature: 'Magic Interior', cost: 2, date: '2024-07-27' },
-    { feature: 'Magic Soul', cost: 3, date: '2024-07-25' },
-  ];
+  useEffect(() => {
+    const fetchHistory = async () => {
+        if (user) {
+            setIsLoadingHistory(true);
+            try {
+                const history = await getCreditHistory(user.uid);
+                setTransactions(history as Transaction[]);
+            } catch (error) {
+                console.error("Failed to fetch credit history:", error);
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        }
+    };
+    fetchHistory();
+  }, [user]);
 
-  const earnOpportunities = [
-    { title: 'Invite a Friend', credits: 5, action: 'Invite' },
-    { title: 'Follow us on Social Media', credits: 2, action: 'Follow' },
-  ];
+  const handlePurchase = async (pkg: any, index: number) => {
+    const creditsToAdd = parseInt(pkg.credits, 10);
+    if (isNaN(creditsToAdd)) {
+        console.error("Invalid credit amount in package:", pkg.credits);
+        return;
+    }
 
-  const creditCosts = [
-      { feature: 'Photo Studio', cost: '2 Credits' },
-      { feature: 'Magic Soul', cost: '3 Credits' },
-      { feature: 'Photo Colour', cost: '2 Credits' },
-      { feature: 'CaptionAI', cost: '1 Credit' },
-      { feature: 'Interior AI', cost: '2 Credits' },
-      { feature: 'Apparel AI', cost: '3 Credits' },
-      { feature: 'Mockup AI', cost: '2 Credits' },
-  ];
-
-  const handlePurchase = async (credits: number, index: number) => {
     setLoadingPackage(index);
     try {
-      const updatedProfile = await addCredits(user.uid, credits);
-      setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+      const updatedProfile = await addCredits(user.uid, creditsToAdd);
+      setUser(prev => prev ? { ...prev, credits: updatedProfile.credits, plan: updatedProfile.plan } : null);
       setPurchasedPackage(index);
       setTimeout(() => setPurchasedPackage(null), 3000);
     } catch (error) {
@@ -56,8 +79,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       setLoadingPackage(null);
     }
   };
-
-  const maxCreditsForMeter = 100; // An arbitrary max for the visual meter's scale
+  
+  const maxCreditsForMeter = user.plan === 'Free' ? 10 : 100;
   const creditPercentage = Math.min((user.credits / maxCreditsForMeter) * 100, 100);
 
   return (
@@ -65,7 +88,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
         <div className='mb-8'>
           <h2 className="text-3xl font-bold text-[#1E1E1E]">Billing & Credits</h2>
-          <p className="text-[#5F6368] mt-1">Manage your credits and purchase new packages.</p>
+          <p className="text-[#5F6368] mt-1">Manage your plan and review your credit usage.</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 mb-8">
@@ -75,9 +98,9 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                     <InformationCircleIcon className="w-6 h-6"/>
                 </button>
             </div>
-            <div className="flex items-end gap-4">
+            <div className="flex items-center sm:items-end gap-4 flex-col sm:flex-row">
                 <div className="relative w-24 h-24">
-                    <svg className="w-full h-full" viewBox="0 0 36 36">
+                    <svg className="w-full h-full" viewBox="0 0 36 36" transform="rotate(-90)">
                         <path
                             className="text-gray-200"
                             strokeWidth="3.5"
@@ -99,97 +122,96 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                             a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center" style={{transform: 'rotate(90deg)'}}>
                         <SparklesIcon className="w-8 h-8 text-[#f9d230]"/>
                     </div>
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                      <p className="text-5xl font-bold text-[#1E1E1E] leading-none">{user.credits}</p>
-                     <p className="text-[#5F6368] text-lg">Credits</p>
+                     <p className="text-[#5F6368] text-lg">{user.plan} Plan</p>
                 </div>
             </div>
         </div>
 
         <div className="mb-8">
-          <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Top Up Your Credits</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {creditPackages.map((pkg, index) => (
-              <div key={index} className={`relative bg-white p-6 rounded-xl border-2 transition-transform transform hover:-translate-y-1 ${pkg.bestValue ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
-                {pkg.bestValue && (
-                  <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Most Popular
-                  </div>
-                )}
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold mb-2 flex items-center justify-center gap-2 text-[#1E1E1E]"><SparklesIcon className="w-5 h-5 text-yellow-400"/> {pkg.credits} Credits</h3>
-                  <p className="text-4xl font-bold mb-2 text-[#1E1E1E]">${pkg.price}</p>
-                  <p className="text-[#5F6368] text-sm h-10 mb-4">{pkg.description}</p>
-                  <button
-                    onClick={() => handlePurchase(pkg.credits, index)}
+            <div className="text-center">
+                <h3 className="text-xl font-bold text-[#1E1E1E] mb-3">Choose Your Perfect Plan</h3>
+                <p className="text-lg text-[#5F6368] mb-8">Simple, transparent pricing for everyone.</p>
+                <div className="flex justify-center items-center gap-4 mb-12">
+                    <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
+                    <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="billing-toggle" className="sr-only peer" checked={isYearly} onChange={() => setIsYearly(!isYearly)} />
+                        <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0079F2]"></div>
+                    </label>
+                    <span className={`font-semibold ${isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>
+                        Yearly <span className="text-sm font-normal bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Save 20%</span>
+                    </span>
+                </div>
+            </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
+              <div key={index} className={`relative bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-1 ${plan.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
+                {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</div>}
+                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2 text-center">{plan.name}</h3>
+                <p className="text-[#5F6368] mb-4 text-center">{plan.credits}</p>
+                <p className="mb-6 text-center">
+                    <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
+                    <span className="text-[#5F6368]">/ month</span>
+                </p>
+                <ul className="space-y-3 text-[#5F6368] flex-grow mb-6">
+                    {plan.features.map((feature: string, i: number) => (
+                        <li key={i} className="flex items-center gap-3">
+                            <CheckIcon className="w-5 h-5 text-emerald-500" />
+                            <span>{feature}</span>
+                        </li>
+                    ))}
+                </ul>
+                <button
+                    onClick={() => handlePurchase(plan, index)}
                     disabled={loadingPackage !== null}
                     className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
-                      purchasedPackage === index
+                    purchasedPackage === index
                         ? 'bg-green-500 text-white'
-                        : pkg.bestValue
+                        : plan.popular
                         ? 'bg-[#0079F2] text-white hover:bg-blue-700'
                         : 'bg-gray-100 hover:bg-gray-200 text-[#1E1E1E]'
                     }`}
-                  >
+                >
                     {loadingPackage === index ? (
                       <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : purchasedPackage === index ? (
                       <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
                     ) : (
-                      'Purchase'
+                      'Choose Plan'
                     )}
-                  </button>
-                </div>
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-                <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Credit Usage History</h3>
-                <div className="bg-white p-4 rounded-xl border border-gray-200/80 space-y-3">
-                    {transactions.length > 0 ? transactions.map((tx, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
-                           <div className="flex items-center gap-3">
-                               <div className="p-2 bg-gray-100 rounded-full">
-                                   <TicketIcon className="w-5 h-5 text-gray-500"/>
-                               </div>
-                               <div>
-                                    <p className="font-semibold text-[#1E1E1E]">{tx.feature}</p>
-                                    <p className="text-xs text-gray-500">{new Date(tx.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                               </div>
+        <div>
+            <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Credit Usage History</h3>
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80 space-y-3">
+                {isLoadingHistory ? (
+                    <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
+                ) : transactions.length > 0 ? transactions.map((tx) => (
+                    <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
+                       <div className="flex items-center gap-3">
+                           <div className="p-2 bg-gray-100 rounded-full">
+                               <TicketIcon className="w-5 h-5 text-gray-500"/>
                            </div>
-                            <span className="font-bold text-red-500">-{tx.cost}</span>
-                        </div>
-                    )) : (
-                        <p className="text-sm text-gray-500 text-center py-4">No recent transactions.</p>
-                    )}
-                </div>
-            </div>
-
-            <div>
-                <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Earn Free Credits</h3>
-                 <div className="bg-white p-4 rounded-xl border border-gray-200/80 space-y-3">
-                     {earnOpportunities.map((op, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
-                           <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-100 rounded-full">
-                                    <PlusCircleIcon className="w-5 h-5 text-green-600"/>
-                                </div>
-                               <div>
-                                    <p className="font-semibold text-[#1E1E1E]">{op.title}</p>
-                                    <p className="text-xs text-green-600 font-bold">Earn +{op.credits} Credits</p>
-                               </div>
+                           <div>
+                                <p className="font-semibold text-[#1E1E1E]">{tx.feature}</p>
+                                <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                            </div>
-                           <button className="text-xs font-bold text-white bg-[#0079F2] rounded-full px-4 py-1.5">{op.action}</button>
-                        </div>
-                     ))}
-                 </div>
+                       </div>
+                        <span className="font-bold text-red-500">-{tx.cost}</span>
+                    </div>
+                )) : (
+                    <p className="text-sm text-gray-500 text-center py-4">No recent transactions.</p>
+                )}
             </div>
         </div>
       </div>

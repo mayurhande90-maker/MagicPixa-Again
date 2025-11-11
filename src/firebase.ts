@@ -5,7 +5,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment, Timestamp, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -109,11 +109,11 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
         const lastRenewalDate = lastRenewal.toDate();
         const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
 
-        if (new Date() >= oneMonthLater) {
-          await updateDoc(userRef, {
+        if (new Date() >= oneMonthLater && userData.plan === 'Free') { // Only renew for Free plan
+          await setDoc(userRef, {
             credits: 10,
             lastCreditRenewal: serverTimestamp(),
-          });
+          }, { merge: true });
           console.log(`Credits renewed for user ${uid}`);
           return { ...userData, credits: 10 };
         }
@@ -127,12 +127,13 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       name: name || 'New User',
       email: email || 'No Email',
       credits: 10,
+      plan: 'Free',
       signUpDate: serverTimestamp(),
       lastCreditRenewal: serverTimestamp(),
     };
     await setDoc(userRef, newUserProfile);
     // Return the profile data (timestamps will be null until server processes them, which is fine)
-    return { ...newUserProfile, credits: 10 };
+    return { ...newUserProfile, credits: 10, plan: 'Free' };
   }
 };
 
@@ -144,20 +145,19 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
     const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, data);
+    await setDoc(userRef, data, { merge: true });
 };
 
 /**
- * Atomically deducts credits. It will create the user profile if it doesn't exist.
- * This is now the primary function for any action that costs credits.
+ * Atomically deducts credits and logs the transaction.
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
+ * @param feature The name of the feature used.
  * @returns The updated user profile data after deduction.
  */
-export const deductCredits = async (uid: string, amount: number) => {
+export const deductCredits = async (uid: string, amount: number, feature: string) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
-  // First, ensure the profile exists and is up-to-date
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
   
   if (userProfile.credits < amount) {
@@ -165,15 +165,23 @@ export const deductCredits = async (uid: string, amount: number) => {
   }
 
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     credits: increment(-amount),
+  }, { merge: true });
+
+  // Log the transaction
+  const transactionsRef = collection(db, "users", uid, "transactions");
+  await addDoc(transactionsRef, {
+      feature,
+      cost: amount,
+      date: serverTimestamp(),
   });
 
   return { ...userProfile, credits: userProfile.credits - amount };
 };
 
 /**
- * Atomically adds credits to a user's account.
+ * Atomically adds credits to a user's account and updates their plan.
  * @param uid The user's unique ID.
  * @param amount The number of credits to add.
  * @returns The updated user profile data after addition.
@@ -181,16 +189,27 @@ export const deductCredits = async (uid: string, amount: number) => {
 export const addCredits = async (uid: string, amount: number) => {
   if (!db || !auth) throw new Error("Firestore is not initialized.");
   
-  // Ensure the user profile exists.
   const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
 
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     credits: increment(amount),
-  });
+    plan: 'Paid',
+  }, { merge: true });
 
-  // Return the new profile state
-  return { ...userProfile, credits: userProfile.credits + amount };
+  return { ...userProfile, credits: userProfile.credits + amount, plan: 'Paid' };
+};
+
+export const getCreditHistory = async (uid: string): Promise<any[]> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const transactionsRef = collection(db, "users", uid, "transactions");
+    const q = query(transactionsRef, orderBy("date", "desc"), limit(10));
+    const querySnapshot = await getDocs(q);
+    const history: any[] = [];
+    querySnapshot.forEach((doc) => {
+        history.push({ id: doc.id, ...doc.data() });
+    });
+    return history;
 };
 
 export { app, auth };
