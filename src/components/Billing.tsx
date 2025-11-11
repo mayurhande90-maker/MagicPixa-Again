@@ -13,14 +13,14 @@ const pricingPlans: {
   monthly: any[];
 } = {
     yearly: [
-        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits / month', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits / month', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
+        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ],
     monthly: [
-        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits / month', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits / month', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits / month', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
+        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
+        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
+        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
     ]
 };
 
@@ -79,13 +79,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
 
     // --- DEVELOPER NOTE: BACKEND REQUIRED FOR LIVE SUBSCRIPTIONS ---
-    // For a production application, you MUST create Razorpay Subscriptions on a secure backend server.
-    // 1. Your server would have an endpoint (e.g., /create-subscription) that takes a plan ID.
-    // 2. This endpoint uses your Razorpay API Secret to call Razorpay's API and create a subscription.
-    // 3. Razorpay returns a `subscription_id`, which your server sends back to the client.
-    // 4. That `subscription_id` would be used in the options below.
-    // This alert simulates this requirement for demonstration purposes.
-    alert("Developer Note: This is a simulated subscription purchase. In a real app, a backend server must create a Razorpay Subscription and provide a 'subscription_id' to this checkout flow. This transaction will be processed as a one-time payment for this demo.");
+    alert("DEVELOPER NOTE: This is a simulated subscription purchase.\n\nFor a real recurring subscription, you MUST:\n1. Create a Plan in your Razorpay Dashboard.\n2. Create a backend endpoint (e.g., /api/create-subscription).\n3. In that endpoint, use your Razorpay Secret Key to call their API and create a subscription for the user's chosen plan.\n4. Razorpay will return a `subscription_id`.\n5. Send this `subscription_id` to the frontend.\n6. Use `subscription_id` here in the Razorpay options instead of `amount`.\n\nThis is critical for security and to enable automatic recurring payments. The current flow will proceed as a one-time payment for demonstration purposes.");
     // --- END DEVELOPER NOTE ---
 
     const options = {
@@ -94,8 +88,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       // "subscription_id": "sub_id_from_your_server",
       amount: parseInt(pkg.price) * 100, // Amount in paise
       currency: "INR",
-      name: "MagicPixa Subscription",
-      description: `Billed for ${pkg.name} Plan`,
+      name: `MagicPixa: ${pkg.name} Plan`,
+      description: `Recurring ${isYearly ? 'Yearly' : 'Monthly'} Subscription`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
       handler: async (response: any) => {
         // In a real production app, you would send `response.razorpay_payment_id`
@@ -216,10 +210,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</div>}
                 <h3 className="text-lg md:text-xl font-bold text-[#1E1E1E] mb-1 md:mb-2 text-center">{plan.name}</h3>
                 <p className="text-sm md:text-base text-[#5F6368] mb-2 md:mb-4 text-center">{plan.creditsText}</p>
-                <p className="mb-4 md:mb-6 text-center">
+                <div>
                     <span className="text-3xl md:text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                    <span className="text-sm md:text-base text-[#5F6368]">/ month</span>
-                </p>
+                    <span className="text-sm md:text-base text-[#5F6368]">/mo</span>
+                </div>
+                <p className="text-xs text-gray-500 mb-6">{isYearly ? 'Billed annually' : 'Billed monthly'}</p>
+
                 <ul className="space-y-2 md:space-y-3 text-sm text-[#5F6368] flex-grow mb-6">
                     {plan.features.map((feature: string, i: number) => (
                         <li key={i} className="flex items-center gap-3">
@@ -240,11 +236,11 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                     }`}
                 >
                     {loadingPackage === index ? (
-                      <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : purchasedPackage === index ? (
-                      <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
+                      <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Subscribed!</span>
                     ) : (
-                      'Choose Plan'
+                      'Subscribe'
                     )}
                 </button>
               </div>
