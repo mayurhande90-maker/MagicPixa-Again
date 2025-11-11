@@ -10,6 +10,7 @@ export interface User {
   avatar: string;
   credits: number;
   signUpDate?: { seconds: number; nanoseconds: number };
+  plan?: string;
 }
 
 export interface AuthProps {

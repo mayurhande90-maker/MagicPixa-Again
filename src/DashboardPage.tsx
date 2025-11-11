@@ -425,7 +425,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Photo Studio');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -751,7 +751,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
 
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Interior');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1024,7 +1024,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
             setGeneratedImage(`data:image/jpeg;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, currentCost);
+                const updatedProfile = await deductCredits(auth.user.uid, currentCost, 'Magic Photo Colour');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - currentCost);
@@ -1257,7 +1257,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             const newBase64 = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, environment);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Soul');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1503,7 +1503,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             const newBase64 = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, apparelItems);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Apparel');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1759,7 +1759,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
             const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, mockupType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Mockup');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -1932,7 +1932,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
             setGeneratedCaptions(captions);
             setIsPanelOpen(true); // Show results
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'CaptionAI');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
@@ -2201,7 +2201,6 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
     type Message = { speaker: 'user' | 'pixa' | 'system'; text: string; id?: string; isFinal?: boolean; };
     type HistoryItem = { role: 'user' | 'model'; text: string };
     
-    // FIX: LiveSession is not a public type, use the inferred type from the promise.
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
@@ -2265,6 +2264,28 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
     const handleQuestionClick = (question: string) => {
         handleSendMessage(question);
     };
+    
+    const stopAudio = useCallback(() => {
+        setIsListening(false);
+        setIsThinking(false);
+        sessionPromiseRef.current?.then(session => session.close());
+        sessionPromiseRef.current = null;
+        
+        scriptProcessorRef.current?.disconnect();
+        mediaStreamSourceRef.current?.disconnect();
+        
+        audioContextRef.current?.close().catch(e => console.error("Error closing input audio context:", e));
+        outputAudioContextRef.current?.close().catch(e => console.error("Error closing output audio context:", e));
+        
+        sourcesRef.current.forEach(source => source.stop());
+        sourcesRef.current.clear();
+        
+        audioContextRef.current = null;
+        outputAudioContextRef.current = null;
+        scriptProcessorRef.current = null;
+        mediaStreamSourceRef.current = null;
+        nextStartTimeRef.current = 0;
+    }, []);
 
     const startAudio = async () => {
         setIsListening(true);
@@ -2318,235 +2339,176 @@ const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProp
                         return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current, isFinal: false }];
                     });
                 }
-                
-                if (message.serverContent?.turnComplete) {
-                     setMessages(prev => {
-                         const updated = [...prev];
-                         const lastUser = updated.slice().reverse().find(m => m.speaker === 'user');
-                         if (lastUser) lastUser.isFinal = true;
-                         const lastPixa = updated.slice().reverse().find(m => m.speaker === 'pixa');
-                         if (lastPixa) lastPixa.isFinal = true;
-                         return updated;
-                     });
 
+                if (message.serverContent?.turnComplete) {
+                    setMessages(prev => prev.map(m => ({ ...m, isFinal: true })));
                     currentInputTranscriptionRef.current = '';
                     currentOutputTranscriptionRef.current = '';
                 }
 
-                const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                if (base64Audio && outputAudioContextRef.current) {
-                    const outCtx = outputAudioContextRef.current;
-                    nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outCtx.currentTime);
-                    const audioBuffer = await decodeAudioData(decode(base64Audio), outCtx, 24000, 1);
-                    const source = outCtx.createBufferSource();
+                const base64EncodedAudioString = message.serverContent?.modelTurn?.parts[0]?.inlineData.data;
+                if (base64EncodedAudioString && outputAudioContextRef.current) {
+                    const ctx = outputAudioContextRef.current;
+                    nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                    const audioBuffer = await decodeAudioData(
+                        decode(base64EncodedAudioString),
+                        ctx,
+                        24000,
+                        1,
+                    );
+                    const source = ctx.createBufferSource();
                     source.buffer = audioBuffer;
-                    source.connect(outCtx.destination);
-                    source.addEventListener('ended', () => sourcesRef.current.delete(source));
+                    source.connect(ctx.destination);
+                    source.addEventListener('ended', () => {
+                        sourcesRef.current.delete(source);
+                    });
                     source.start(nextStartTimeRef.current);
                     nextStartTimeRef.current += audioBuffer.duration;
                     sourcesRef.current.add(source);
                 }
+
+                const interrupted = message.serverContent?.interrupted;
+                if (interrupted) {
+                    for (const source of sourcesRef.current.values()) {
+                        source.stop();
+                        sourcesRef.current.delete(source);
+                    }
+                    nextStartTimeRef.current = 0;
+                }
             },
-            onerror: (e) => {
+            onerror: (e: ErrorEvent) => {
                 console.error('Session error:', e);
-                setMessages(prev => [...prev, { speaker: 'system', text: 'An error occurred during the session.' }]);
+                setMessages(prev => [...prev, { speaker: 'system', text: "Sorry, there was a connection error." }]);
                 stopAudio();
             },
-            onclose: () => {
+            onclose: (e: CloseEvent) => {
                 console.debug('Session closed.');
                 stopAudio();
             },
         });
     };
 
-    const stopAudio = () => {
-        setIsListening(false);
-        setIsThinking(false);
-        sessionPromiseRef.current?.then(session => session.close());
-        scriptProcessorRef.current?.disconnect();
-        mediaStreamSourceRef.current?.disconnect();
-        audioContextRef.current?.close();
-        outputAudioContextRef.current?.close();
-        sessionPromiseRef.current = null;
-    };
-    
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 lg:inset-auto lg:bottom-8 lg:right-8 z-[100] flex flex-col bg-white rounded-none lg:rounded-2xl shadow-2xl w-full h-full lg:w-[400px] lg:h-[600px] border border-gray-200/80">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200/80 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative">
-                        <SparklesIcon className="w-6 h-6 text-white"/>
-                        <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    </div>
-                    <div>
-                        <h2 className="font-bold text-lg text-[#1E1E1E]">Magic Helper</h2>
-                        <p className="text-sm text-gray-500">Online</p>
-                    </div>
-                </div>
-                <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700"><XIcon className="w-6 h-6"/></button>
-            </div>
-            
-            {/* Chat Body */}
-            <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
-                <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-800 p-3 rounded-xl max-w-xs">
-                        <p className="text-sm">Hi {user?.name.split(' ')[0]}! I'm Pixa, your personal AI assistant. How can I help you today?</p>
-                    </div>
-                </div>
-                {messages.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`p-3 rounded-xl max-w-xs ${msg.speaker === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'} ${msg.speaker === 'system' ? 'bg-red-50 text-red-700 w-full' : ''}`}>
-                             {msg.speaker === 'user' ? (
-                                <p className="text-sm">{msg.text}</p>
-                            ) : (
-                                <MarkdownRenderer text={msg.text} onButtonClick={handleSendMessage} />
-                            )}
-                        </div>
-                    </div>
-                ))}
-                {isThinking && (
-                     <div className="flex justify-start">
-                        <div className="bg-gray-100 text-gray-800 p-3 rounded-xl max-w-xs">
-                           <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                           </div>
-                        </div>
-                    </div>
-                )}
-
-                 {messages.length === 0 && !isListening && (
-                    <div className="pt-4 space-y-2">
-                        <p className="text-sm font-semibold text-gray-500">Or ask one of these common questions:</p>
-                        {commonQuestions.map(q => (
-                             <button key={q} onClick={() => handleQuestionClick(q)} className="w-full text-left text-sm p-3 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 text-blue-600">
-                                {q}
-                            </button>
-                        ))}
-                    </div>
-                 )}
-            </div>
-
-             <div className="p-4 border-t border-gray-200/80 flex-shrink-0 space-y-2">
-                <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
-                    <button onClick={() => { if(isListening) stopAudio(); setCurrentMode('text'); }} className={`flex-1 py-1.5 text-sm font-semibold rounded-md ${currentMode === 'text' ? 'bg-white shadow-sm' : ''}`}>Text</button>
-                    <button onClick={() => { if(!isListening) startAudio(); setCurrentMode('voice');}} className={`flex-1 py-1.5 text-sm font-semibold rounded-md ${currentMode === 'voice' ? 'bg-white shadow-sm' : ''}`}>Voice</button>
-                </div>
-                 {currentMode === 'text' && (
-                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }} className="flex items-center gap-2">
-                        <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} placeholder="Type your message..." className="flex-1 w-full px-4 py-2 bg-gray-50 border border-gray-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                        <button type="submit" className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50" disabled={isThinking || !inputValue.trim()}><ChevronRightIcon className="w-6 h-6 transform -rotate-180"/></button>
-                     </form>
-                 )}
-                {currentMode === 'voice' && (
-                     <button onClick={isListening ? stopAudio : startAudio} className={`w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-white font-semibold ${isListening ? 'bg-red-500' : 'bg-blue-500'}`}>
-                        {isListening ? <><StopIcon className="w-5 h-5"/> Stop Listening</> : <><MicrophoneIcon className="w-5 h-5"/> Start Listening</>}
-                    </button>
-                )}
-                 <div className="flex justify-center gap-4 pt-2">
-                     <button onClick={() => handleSendMessage("I want to report an issue.")} className="flex items-center gap-2 text-xs text-gray-500 hover:text-black">
-                         <FlagIcon className="w-4 h-4" /> Report an Issue
-                     </button>
-                 </div>
-            </div>
-        </div>
-    );
-};
-
-const MobileBottomNav: React.FC<{ activeView: View; setActiveView: (view: View) => void; }> = ({ activeView, setActiveView }) => {
-    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'dashboard', label: 'Tools', icon: DashboardIcon },
-        { view: 'creations', label: 'Creations', icon: ProjectsIcon, disabled: true },
-        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
-    ];
-    
-    const isActive = (view: View) => {
-        if (view === 'home_dashboard') return activeView === 'home_dashboard';
-        if (view === 'dashboard') return activeView !== 'home_dashboard' && activeView !== 'creations' && activeView !== 'profile';
-        return activeView === view;
-    }
-
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-lg border-t border-gray-200/80 z-[80] lg:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button 
-                        key={item.label} 
-                        onClick={() => setActiveView(item.view as View)} 
-                        disabled={item.disabled} 
-                        className={`flex flex-col items-center justify-center gap-1 p-2 w-16 h-16 rounded-2xl transition-colors ${isActive(item.view) ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}
-                        aria-current={isActive(item.view) ? 'page' : undefined}
-                    >
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-    
-    const handleBack = () => {
-        if (['dashboard', 'home_dashboard', 'creations', 'profile'].includes(activeView)) {
-            navigateTo('home'); // Go to marketing page if on a main dashboard view
+    const handleModeToggle = () => {
+        if (currentMode === 'voice') {
+            setCurrentMode('text');
+            if (isListening) stopAudio();
         } else {
-            setActiveView('dashboard'); // Go back to the tools grid from a specific tool
+            setCurrentMode('voice');
         }
     };
     
-    const isMainView = ['dashboard', 'home_dashboard', 'creations', 'billing', 'profile'].includes(activeView);
-
-    const headerAuthProps = {
-        ...auth,
-        setActiveView,
-        openConversation: () => setIsConversationOpen(true),
-        isDashboard: true,
-        showBackButton: !isMainView,
-        handleBack: handleBack
+    const handleReportIssue = () => {
+        handleSendMessage("I want to report an issue.");
     };
-    
-    const { user, setUser } = auth;
-    if (!user) return null; // Should be handled by App.tsx, but good practice
 
-    const ViewComponent = {
-        'dashboard': <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />,
-        'home_dashboard': <MobileHomeDashboard user={user} setActiveView={setActiveView} />,
-        'studio': <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />,
-        'interior': <MagicInterior auth={auth} navigateTo={navigateTo} />,
-        'creations': <Creations />,
-        'billing': <Billing user={user} setUser={setUser} />,
-        'colour': <MagicPhotoColour auth={auth} navigateTo={navigateTo} />,
-        'soul': <MagicSoul auth={auth} navigateTo={navigateTo} />,
-        'apparel': <MagicApparel auth={auth} navigateTo={navigateTo} />,
-        'mockup': <MagicMockup auth={auth} navigateTo={navigateTo} />,
-        'profile': <Profile auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} setIsConversationOpen={setIsConversationOpen} />,
-        'caption': <CaptionAI auth={auth} navigateTo={navigateTo} />
-    }[activeView];
+    if (!isOpen) return null;
 
     return (
-        <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
-            <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-            <div className="flex-1 flex flex-col">
-                <Header navigateTo={navigateTo} auth={headerAuthProps} />
-                <main className="flex-1 lg:overflow-y-auto">
-                    {/* The pb-20 is padding for the mobile bottom nav */}
-                    <div className="pb-20 lg:pb-0">
-                         {ViewComponent}
+        <div className="fixed inset-0 lg:inset-auto lg:bottom-8 lg:right-8 z-[100] w-full h-full lg:w-[400px] lg:h-[650px] bg-white lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200/80">
+            {/* Header */}
+            <div className="flex-shrink-0 p-4 flex justify-between items-center border-b border-gray-200/80 bg-gray-50">
+                <div>
+                    <h3 className="text-lg font-bold text-[#1E1E1E]">Magic Helper</h3>
+                    <p className="text-sm text-gray-500">How can I help you today?</p>
+                </div>
+                <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-6 h-6"/></button>
+            </div>
+
+            {/* Chat Body */}
+            <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                {messages.length === 0 && !isListening && (
+                    <div className="text-center text-gray-500 h-full flex flex-col justify-center">
+                        <div className="space-y-2">
+                             {commonQuestions.map((q, i) => (
+                                <button key={i} onClick={() => handleQuestionClick(q)} className="w-full text-left text-sm p-3 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50">{q}</button>
+                            ))}
+                            <button onClick={handleReportIssue} className="w-full flex items-center justify-between text-left text-sm p-3 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 text-blue-600 font-semibold">
+                                <span>Report an Issue</span>
+                                <FlagIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
                     </div>
+                )}
+                {messages.map((msg, index) => (
+                    <div key={index} className={`flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {msg.speaker === 'system' ? (
+                            <div className="text-center text-xs text-gray-500 w-full py-2">{msg.text}</div>
+                        ) : (
+                            <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.speaker === 'user' ? 'bg-[#0079F2] text-white rounded-br-lg' : 'bg-gray-100 text-[#1E1E1E] rounded-bl-lg'}`}>
+                                <MarkdownRenderer text={msg.text} onButtonClick={handleSendMessage} />
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {isThinking && <div className="flex justify-start"><div className="p-3 rounded-2xl bg-gray-100 rounded-bl-lg"><div className="flex gap-1.5 items-center"><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-300"></div></div></div></div>}
+            </div>
+
+            {/* Footer / Input */}
+            <div className="p-4 border-t border-gray-200/80 bg-gray-50">
+                {currentMode === 'text' ? (
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }} className="flex items-center gap-2">
+                        <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} placeholder="Type your message..." className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0079F2] focus:outline-none text-sm"/>
+                        <button type="submit" disabled={!inputValue.trim()} className="p-2.5 bg-[#0079F2] text-white rounded-lg disabled:opacity-50"><ArrowUpCircleIcon className="w-6 h-6"/></button>
+                    </form>
+                ) : (
+                    <div className="flex justify-center">
+                        <button onClick={isListening ? stopAudio : startAudio} className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-[#0079F2] text-white'}`}>
+                            {isListening ? <StopIcon className="w-8 h-8"/> : <MicrophoneIcon className="w-8 h-8"/>}
+                        </button>
+                    </div>
+                )}
+                 <button onClick={handleModeToggle} className="text-xs text-gray-500 hover:text-black mt-2 w-full text-center">
+                    Switch to {currentMode === 'voice' ? 'Text Input' : 'Voice Input'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+    
+    // On mobile, when a feature is selected, we need a way to go back to the main feature list.
+    const isMobileFeatureView = activeView !== 'dashboard' && activeView !== 'home_dashboard' && activeView !== 'profile' && activeView !== 'billing' && activeView !== 'creations';
+    
+    const handleMobileBack = () => {
+        // Return to the list of features on mobile
+        setActiveView('dashboard');
+    };
+
+    const renderView = () => {
+        switch (activeView) {
+            case 'home_dashboard': return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+            case 'dashboard': return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView}/>;
+            case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
+            case 'interior': return <MagicInterior auth={auth} navigateTo={navigateTo} />;
+            case 'colour': return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
+            case 'soul': return <MagicSoul auth={auth} navigateTo={navigateTo} />;
+            case 'apparel': return <MagicApparel auth={auth} navigateTo={navigateTo} />;
+            case 'mockup': return <MagicMockup auth={auth} navigateTo={navigateTo} />;
+            case 'caption': return <CaptionAI auth={auth} navigateTo={navigateTo} />;
+            case 'creations': return <Creations />;
+            case 'billing': return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
+            case 'profile': return <Profile auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} setIsConversationOpen={setIsConversationOpen} />;
+            default: return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView}/>;
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F9FAFB]">
+            <Header
+                navigateTo={navigateTo}
+                auth={{ ...auth, setActiveView, openConversation: () => setIsConversationOpen(true), isDashboard: true, showBackButton: isMobileFeatureView, handleBack: handleMobileBack }}
+            />
+            <div className="flex h-[calc(100vh-69px)]">
+                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+                <main className="flex-1 overflow-y-auto">
+                    {renderView()}
                 </main>
             </div>
-             <HelpPanel isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} auth={auth} />
-            <MobileBottomNav activeView={activeView} setActiveView={setActiveView} />
+             {isConversationOpen && <HelpPanel isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} auth={auth} />}
         </div>
     );
 };
 
 export default DashboardPage;
-// Minor change for deployment.
