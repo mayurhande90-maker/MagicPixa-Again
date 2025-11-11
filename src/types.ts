@@ -32,7 +32,9 @@ export interface AuthProps {
 export interface Transaction {
     id: string;
     feature: string;
-    cost: number;
+    // Cost is now the INR amount for purchases, or credit amount for deductions
+    cost: number; 
     date: Timestamp;
-    creditChange?: string;
+    // creditChange stores the string representation, e.g., "+165"
+    creditChange?: string; 
 }

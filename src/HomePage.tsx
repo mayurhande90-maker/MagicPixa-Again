@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Page, AuthProps, View } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, ScissorsIcon, NotesIcon, CaptionIcon, PaletteIcon, ScannerIcon, HomeIcon, UsersIcon, MockupIcon, CreditCardIcon, UserIcon as AvatarUserIcon, ProjectsIcon, MicrophoneIcon, DashboardIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -110,21 +110,48 @@ const reviews = [
     },
 ];
 
-const pricingPlans = {
-    yearly: [
-        { name: 'Free', price: '0', credits: 5, creditsText: '5 one-time credits', popular: false, features: ['5 Credits', 'Standard Resolution', 'Key AI Features', 'Limited Support'] },
-        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
-    ],
-    monthly: [
-        { name: 'Free', price: '0', credits: 5, creditsText: '5 one-time credits', popular: false, features: ['5 Credits', 'Standard Resolution', 'Key AI Features', 'Limited Support'] },
-        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
-    ]
-};
-
+const creditPacks = [
+  {
+    name: 'Starter Pack',
+    price: '99',
+    credits: 50,
+    totalCredits: 50,
+    bonus: 0,
+    tagline: 'For quick tests & personal use',
+    popular: false,
+    value: 1.98,
+  },
+  {
+    name: 'Creator Pack',
+    price: '249',
+    credits: 150,
+    totalCredits: 165,
+    bonus: 15,
+    tagline: 'For creators & influencers — extra credits included!',
+    popular: true,
+    value: 1.51,
+  },
+  {
+    name: 'Studio Pack',
+    price: '699',
+    credits: 500,
+    totalCredits: 575,
+    bonus: 75,
+    tagline: 'For professional video and design teams',
+    popular: false,
+    value: 1.21,
+  },
+  {
+    name: 'Agency Pack',
+    price: '1199',
+    credits: 1000,
+    totalCredits: 1200,
+    bonus: 200,
+    tagline: 'For studios and agencies — biggest savings!',
+    popular: false,
+    value: 0.99,
+  },
+];
 
 const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
     const handleNav = (view: View) => {
@@ -158,8 +185,6 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
 
 
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
-  const [isYearly, setIsYearly] = useState(true);
-  
   return (
     <>
       <Header navigateTo={navigateTo} auth={auth} />
@@ -185,6 +210,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     >
                         Start Creating for Free
                     </button>
+                    <p className="text-sm text-gray-500 mt-4">Get 10 free credits on sign up!</p>
                 </div>
             </div>
         </section>
@@ -244,44 +270,38 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
             {/* Pricing Section */}
             <section id="pricing" className="py-20 px-4 bg-[#F9FAFB]">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Choose Your Perfect Plan</h2>
-                    <p className="text-lg text-[#5F6368] mb-8">Simple, transparent pricing for everyone.</p>
-                    <div className="flex justify-center items-center gap-4 mb-12">
-                        <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
-                        <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="billing-toggle" className="sr-only peer" checked={isYearly} onChange={() => setIsYearly(!isYearly)} />
-                            <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0079F2]"></div>
-                        </label>
-                        <span className={`font-semibold ${isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>
-                            Yearly <span className="text-sm font-normal bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Save 20%</span>
-                        </span>
-                    </div>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Recharge Your Creative Energy</h2>
+                    <p className="text-lg text-[#5F6368] mb-12">Simple, one-time credit packs. No subscriptions needed.</p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
-                            <div key={index} className={`bg-white p-8 rounded-2xl shadow-sm border-2 text-left flex flex-col ${plan.popular ? 'border-[#0079F2]' : 'border-gray-200/80'}`}>
-                                {plan.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-10 mb-4 mx-auto">Most Popular</p>}
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{plan.name}</h3>
-                                <p className="text-[#5F6368] mb-4">{plan.creditsText}</p>
-                                <div>
-                                    <span className="text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                                    {plan.name !== 'Free' && <span className="text-[#5F6368]">/mo</span>}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
+                        {creditPacks.map((pack, index) => (
+                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
+                                {pack.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{pack.name}</h3>
+                                <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
+                                
+                                <div className="my-2">
+                                    <span className="text-4xl font-bold text-[#1E1E1E]">
+                                        {pack.totalCredits}
+                                    </span>
+                                    <span className="text-[#5F6368] ml-1">Credits</span>
                                 </div>
-                                {plan.name !== 'Free' && <p className="text-xs text-gray-500 mb-6">{isYearly ? 'Billed annually' : 'Billed monthly'}</p>}
-
-                                <ul className="space-y-3 text-[#5F6368] flex-grow mt-2">
-                                    {plan.features.map((feature, i) => (
-                                        <li key={i} className="flex items-center gap-3">
-                                            <CheckIcon className="w-5 h-5 text-emerald-500" />
-                                            <span>{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                {pack.bonus > 0 && (
+                                    <p className="text-sm font-semibold text-emerald-500 mb-4">
+                                        {pack.credits} + {pack.bonus} Bonus!
+                                    </p>
+                                )}
+                                
+                                <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
+                                    <span className="text-2xl font-bold text-[#1E1E1E]">₹{pack.price}</span>
+                                    <p className="text-xs text-gray-500">One-time payment</p>
+                                </div>
+                                
                                 <button 
                                     onClick={() => navigateTo('dashboard', 'billing')}
-                                    className={`w-full mt-8 py-3 rounded-xl font-semibold transition-colors ${plan.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}
+                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}
                                 >
-                                    {plan.name === 'Free' ? 'Get Started' : 'Subscribe'}
+                                    Buy Now
                                 </button>
                             </div>
                         ))}

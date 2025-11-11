@@ -89,8 +89,7 @@ export const signInWithGoogle = async () => {
 
 /**
  * Gets a user's profile from Firestore. If it doesn't exist, it creates one on-the-fly.
- * This "on-demand" creation is the core fix for the sign-up race condition.
- * It also handles the monthly credit renewal logic.
+ * It now provides a one-time signup bonus of 10 credits and does not handle recurring renewals.
  * @param uid The user's unique ID from Firebase Auth.
  * @param name The user's display name (optional, used for creation).
  * @param email The user's email (optional, used for creation).
@@ -102,45 +101,21 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
   const docSnap = await getDoc(userRef);
 
   if (docSnap.exists()) {
-    // Profile exists, check for credit renewal
-    const userData = docSnap.data();
-    const lastRenewal = userData.lastCreditRenewal as Timestamp;
-    if (lastRenewal) {
-        const lastRenewalDate = lastRenewal.toDate();
-        const oneMonthLater = new Date(lastRenewalDate.getFullYear(), lastRenewalDate.getMonth() + 1, lastRenewalDate.getDate());
-        
-        const monthlyCredits: { [key: string]: number } = {
-            'Pro': 100,
-            'Pro Plus': 500,
-            'VIP': 1000,
-            'Free': 10,
-        };
-
-        if (new Date() >= oneMonthLater && userData.plan && monthlyCredits[userData.plan]) {
-            const creditsToAdd = monthlyCredits[userData.plan];
-            await setDoc(userRef, {
-                credits: increment(creditsToAdd),
-                lastCreditRenewal: serverTimestamp(),
-            }, { merge: true });
-            console.log(`Credits renewed for user ${uid}. Added ${creditsToAdd}.`);
-            return { ...userData, credits: userData.credits + creditsToAdd };
-        }
-    }
-    return userData;
+    // Profile exists, just return the data.
+    return docSnap.data();
   } else {
-    // Profile does not exist, create it now
+    // Profile does not exist, create it with a 10 credit sign-up bonus.
     console.log(`Creating new user profile for UID: ${uid}`);
     const newUserProfile = {
       uid,
       name: name || 'New User',
       email: email || 'No Email',
-      credits: 10,
-      plan: 'Free',
+      credits: 10, // New user sign-up bonus
+      plan: 'Free', // All users are on a pay-as-you-go model now
       signUpDate: serverTimestamp(),
-      lastCreditRenewal: serverTimestamp(),
     };
     await setDoc(userRef, newUserProfile);
-    // Return the profile data (timestamps will be null until server processes them, which is fine)
+    // Return the profile data
     return { ...newUserProfile, credits: 10, plan: 'Free' };
   }
 };
@@ -181,7 +156,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   const transactionsRef = collection(db, "users", uid, "transactions");
   await addDoc(transactionsRef, {
       feature,
-      cost: amount,
+      cost: amount, // For deductions, cost is the credit amount
       date: serverTimestamp(),
   });
 
@@ -189,44 +164,41 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 };
 
 /**
- * Upgrades a user's plan, adds credits, and resets their billing cycle.
+ * Adds purchased credits to a user's account and logs the transaction.
  * @param uid The user's unique ID.
- * @param planName The name of the new plan.
- * @param creditsInPlan The number of credits included in the plan.
+ * @param packName The name of the purchased credit pack.
+ * @param creditsToAdd The number of credits to add.
+ * @param amountPaid The amount in INR paid for the pack.
  * @returns The updated user profile.
  */
-export const upgradePlan = async (uid: string, planName: string, creditsInPlan: number) => {
+export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
     if (!db || !auth) throw new Error("Firestore is not initialized.");
     
     const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
   
     const userRef = doc(db, "users", uid);
     await setDoc(userRef, {
-      // Add the new credits to their existing balance
-      credits: increment(creditsInPlan),
-      plan: planName,
-      // Start the new monthly billing/renewal cycle from today
-      lastCreditRenewal: serverTimestamp(),
+      credits: increment(creditsToAdd),
     }, { merge: true });
   
     // Log the purchase as a transaction
     const transactionsRef = collection(db, "users", uid, "transactions");
     await addDoc(transactionsRef, {
-        feature: `Purchased ${planName} Plan`,
-        cost: 0,
-        creditChange: `+${creditsInPlan}`,
+        feature: `Purchased: ${packName}`,
+        cost: amountPaid, // For purchases, cost is the INR amount
+        creditChange: `+${creditsToAdd}`,
         date: serverTimestamp(),
     });
   
-    const newCreditTotal = userProfile.credits + creditsInPlan;
-    return { ...userProfile, credits: newCreditTotal, plan: planName };
+    const newCreditTotal = userProfile.credits + creditsToAdd;
+    return { ...userProfile, credits: newCreditTotal, plan: 'Free' };
 };
 
 
 export const getCreditHistory = async (uid: string): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
     const transactionsRef = collection(db, "users", uid, "transactions");
-    const q = query(transactionsRef, orderBy("date", "desc"), limit(10));
+    const q = query(transactionsRef, orderBy("date", "desc"), limit(20));
     const querySnapshot = await getDocs(q);
     const history: any[] = [];
     querySnapshot.forEach((doc) => {

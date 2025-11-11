@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Transaction } from '../types';
-import { upgradePlan, getCreditHistory } from '../firebase';
+import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon } from './icons';
 
 interface BillingProps {
@@ -8,21 +8,48 @@ interface BillingProps {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
-const pricingPlans: {
-  yearly: any[];
-  monthly: any[];
-} = {
-    yearly: [
-        { name: 'Pro', price: '299', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['1200 Credits/year', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '499', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['6000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '999', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['12000 Credits/year', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
-    ],
-    monthly: [
-        { name: 'Pro', price: '359', credits: 100, creditsText: '100 credits/mo', popular: false, features: ['100 Credits/month', 'High Resolution', 'Full Feature Access', 'Priority Support'] },
-        { name: 'Pro Plus', price: '599', credits: 500, creditsText: '500 credits/mo', popular: true, features: ['500 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] },
-        { name: 'VIP', price: '1199', credits: 1000, creditsText: '1000 credits/mo', popular: false, features: ['1000 Credits/month', '4K Resolution', 'Full Feature Access', 'Dedicated Support'] }
-    ]
-};
+const creditPacks = [
+  {
+    name: 'Starter Pack',
+    price: 99,
+    credits: 50,
+    totalCredits: 50,
+    bonus: 0,
+    tagline: 'For quick tests & personal use',
+    popular: false,
+    value: 1.98,
+  },
+  {
+    name: 'Creator Pack',
+    price: 249,
+    credits: 150,
+    totalCredits: 165,
+    bonus: 15,
+    tagline: 'For creators & influencers — extra credits included!',
+    popular: true,
+    value: 1.51,
+  },
+  {
+    name: 'Studio Pack',
+    price: 699,
+    credits: 500,
+    totalCredits: 575,
+    bonus: 75,
+    tagline: 'For professional video and design teams',
+    popular: false,
+    value: 1.21,
+  },
+  {
+    name: 'Agency Pack',
+    price: 1199,
+    credits: 1000,
+    totalCredits: 1200,
+    bonus: 200,
+    tagline: 'For studios and agencies — biggest savings!',
+    popular: false,
+    value: 0.99,
+  },
+];
 
 const creditCosts = [
     { feature: 'Photo Studio', cost: '2 Credits' },
@@ -38,7 +65,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [purchasedPackage, setPurchasedPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isYearly, setIsYearly] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -78,18 +104,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
         return;
     }
 
-    // --- DEVELOPER NOTE: BACKEND REQUIRED FOR LIVE SUBSCRIPTIONS ---
-    alert("DEVELOPER NOTE: This is a simulated subscription purchase.\n\nFor a real recurring subscription, you MUST:\n1. Create a Plan in your Razorpay Dashboard.\n2. Create a backend endpoint (e.g., /api/create-subscription).\n3. In that endpoint, use your Razorpay Secret Key to call their API and create a subscription for the user's chosen plan.\n4. Razorpay will return a `subscription_id`.\n5. Send this `subscription_id` to the frontend.\n6. Use `subscription_id` here in the Razorpay options instead of `amount`.\n\nThis is critical for security and to enable automatic recurring payments. The current flow will proceed as a one-time payment for demonstration purposes.");
-    // --- END DEVELOPER NOTE ---
-
     const options = {
       key: razorpayKey,
-      // In production, you would use a subscription_id from your server instead of amount.
-      // "subscription_id": "sub_id_from_your_server",
-      amount: parseInt(pkg.price) * 100, // Amount in paise
+      amount: pkg.price * 100, // Amount in paise
       currency: "INR",
-      name: `MagicPixa: ${pkg.name} Plan`,
-      description: `Recurring ${isYearly ? 'Yearly' : 'Monthly'} Subscription`,
+      name: `MagicPixa: ${pkg.name}`,
+      description: `One-time purchase of ${pkg.totalCredits} credits.`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
       handler: async (response: any) => {
         // In a real production app, you would send `response.razorpay_payment_id`
@@ -97,12 +117,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
         console.log("Razorpay Response:", response);
         
         try {
-            const creditsToAdd = parseInt(pkg.credits, 10);
-            if (isNaN(creditsToAdd)) throw new Error("Invalid credits amount.");
-
-            const updatedProfile = await upgradePlan(user.uid, pkg.name, creditsToAdd);
+            const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setPurchasedPackage(index);
+            // Fetch history again to show the new purchase
+            const history = await getCreditHistory(user.uid);
+            setTransactions(history as Transaction[]);
             setTimeout(() => setPurchasedPackage(null), 3000);
         } catch (error) {
             console.error("Failed to add credits after payment:", error);
@@ -135,7 +155,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
   };
   
-  const maxCreditsForMeter = user.plan === 'Free' ? 10 : 100;
+  const maxCreditsForMeter = 100;
   const creditPercentage = Math.min((user.credits / maxCreditsForMeter) * 100, 100);
 
   return (
@@ -143,7 +163,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
         <div className='mb-8'>
           <h2 className="text-3xl font-bold text-[#1E1E1E]">Billing & Credits</h2>
-          <p className="text-[#5F6368] mt-1">Manage your plan and review your credit usage.</p>
+          <p className="text-[#5F6368] mt-1">Top up your credits or review your usage history.</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 mb-8">
@@ -183,64 +203,61 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 </div>
                 <div className="text-center sm:text-left">
                      <p className="text-5xl font-bold text-[#1E1E1E] leading-none">{user.credits}</p>
-                     <p className="text-[#5F6368] text-lg">{user.plan} Plan</p>
+                     <p className="text-[#5F6368] text-lg">Available Credits</p>
                 </div>
             </div>
         </div>
 
         <div className="mb-8">
-            <div className="text-center">
-                <h3 className="text-xl font-bold text-[#1E1E1E] mb-3">Upgrade Your Plan</h3>
-                <p className="text-lg text-[#5F6368] mb-8">Get more credits and unlock exclusive features.</p>
-                <div className="flex justify-center items-center gap-4 mb-12">
-                    <span className={`font-semibold ${!isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>Monthly</span>
-                    <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="billing-toggle" className="sr-only peer" checked={isYearly} onChange={() => setIsYearly(!isYearly)} />
-                        <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0079F2]"></div>
-                    </label>
-                    <span className={`font-semibold ${isYearly ? 'text-[#0079F2]' : 'text-[#5F6368]'}`}>
-                        Yearly <span className="text-sm font-normal bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Save 20%</span>
-                    </span>
-                </div>
+            <div className="text-center mb-12">
+                <h3 className="text-2xl font-bold text-[#1E1E1E] mb-2">Recharge Your Creative Energy</h3>
+                <p className="text-lg text-[#5F6368]">Choose a credit pack that fits your needs. No subscriptions.</p>
             </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {(isYearly ? pricingPlans.yearly : pricingPlans.monthly).map((plan, index) => (
-              <div key={index} className={`relative bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-1 ${plan.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
-                {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</div>}
-                <h3 className="text-lg md:text-xl font-bold text-[#1E1E1E] mb-1 md:mb-2 text-center">{plan.name}</h3>
-                <p className="text-sm md:text-base text-[#5F6368] mb-2 md:mb-4 text-center">{plan.creditsText}</p>
-                <div>
-                    <span className="text-3xl md:text-4xl font-bold text-[#1E1E1E]">₹{plan.price}</span>
-                    <span className="text-sm md:text-base text-[#5F6368]">/mo</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
+            {creditPacks.map((pack, index) => (
+              <div key={index} className={`relative bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
+                {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
+                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{pack.name}</h3>
+                <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
+                
+                <div className="my-2 text-center">
+                    <span className="text-5xl font-bold text-[#1E1E1E]">
+                        {pack.totalCredits}
+                    </span>
+                    <span className="text-lg text-[#5F6368] ml-1">Credits</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-6">{isYearly ? 'Billed annually' : 'Billed monthly'}</p>
 
-                <ul className="space-y-2 md:space-y-3 text-sm text-[#5F6368] flex-grow mb-6">
-                    {plan.features.map((feature: string, i: number) => (
-                        <li key={i} className="flex items-center gap-3">
-                            <CheckIcon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                            <span>{feature}</span>
-                        </li>
-                    ))}
-                </ul>
+                {pack.bonus > 0 && (
+                    <p className="text-sm font-semibold text-emerald-500 mb-4 text-center">
+                        ({pack.credits} + {pack.bonus} Bonus!)
+                    </p>
+                )}
+                
+                <div className="flex-grow"></div>
+
+                <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6 mt-4">
+                    <span className="text-3xl font-bold text-[#1E1E1E]">₹{pack.price}</span>
+                    <p className="text-xs text-gray-500">One-time payment</p>
+                </div>
+
                 <button
-                    onClick={() => handlePurchase(plan, index)}
+                    onClick={() => handlePurchase(pack, index)}
                     disabled={loadingPackage !== null}
-                    className={`w-full font-semibold py-2.5 md:py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
+                    className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${
                     purchasedPackage === index
                         ? 'bg-green-500 text-white'
-                        : plan.popular
+                        : pack.popular
                         ? 'bg-[#0079F2] text-white hover:bg-blue-700'
-                        : 'bg-gray-100 hover:bg-gray-200 text-[#1E1E1E]'
+                        : 'bg-[#f9d230] hover:scale-105 text-[#1E1E1E]'
                     }`}
                 >
                     {loadingPackage === index ? (
-                      <svg className="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <svg className="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : purchasedPackage === index ? (
-                      <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Subscribed!</span>
+                      <span className="flex items-center justify-center gap-2"><CheckIcon className="w-5 h-5"/> Purchased!</span>
                     ) : (
-                      'Subscribe'
+                      'Buy Now'
                     )}
                 </button>
               </div>
@@ -279,7 +296,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
       
       {isInfoModalOpen && (
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm"
             onClick={() => setIsInfoModalOpen(false)}
           >
               <div 
