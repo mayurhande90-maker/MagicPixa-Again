@@ -196,12 +196,23 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     }
     return updatedDoc.data();
 
-  } catch (error) {
-    console.error("Credit deduction transaction failed:", error);
-    if (error instanceof Error && (error.message.includes("Insufficient credits") || error.message.includes("data error") || error.message.includes("does not exist"))) {
-      throw error; // Re-throw specific, known errors to be displayed in the UI.
+  } catch (error: any) {
+    // DETAILED LOGGING: Log the entire error object to the console for debugging.
+    // This will show specific Firestore error codes like 'permission-denied'.
+    console.error("Credit deduction transaction failed. Full error object:", error);
+
+    // Check for specific error codes or messages to give user-friendly feedback
+    if (error.code === 'permission-denied') {
+        throw new Error("A permissions error occurred. Please check your Firestore security rules.");
     }
-    // For all other more obscure transaction failures, throw the generic message.
+    if (error.message?.includes("Insufficient credits")) {
+      throw new Error("You don't have enough credits for this action.");
+    }
+    if (error.message?.includes("User profile does not exist")) {
+        throw new Error("Your user profile could not be found. Please try signing out and in again.");
+    }
+    
+    // For all other transaction failures, throw the generic message.
     throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
