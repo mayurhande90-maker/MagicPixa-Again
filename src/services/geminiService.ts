@@ -799,7 +799,7 @@ export const generateProductPackPlan = async (
         inlineData: { data: img.base64, mimeType: img.mimeType },
     }));
 
-    const prompt = `You are an expert AI Creative Director for e-commerce. Your task is to create a complete, marketplace-ready product pack plan from the provided images, product name, and description. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
+    const prompt = `You are an expert AI Creative Director for e-commerce. Your task is to create a complete, marketplace-ready product pack plan. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
 
 **USER INPUT:**
 - Product Name/Brand: "${productName}"
@@ -807,14 +807,17 @@ export const generateProductPackPlan = async (
 - Product Images are attached.
 
 **YOUR TASK:**
-1.  **Analyze Product Deeply:** Meticulously analyze the provided images and text to understand the product's category, materials, primary color, inferred use case, and target audience. Also analyze the lighting of the original photo (e.g., 'soft indoor lighting', 'bright outdoor sunlight').
-2.  **Devise Creative Direction:** Based on this deep analysis, devise a professional and unique creative direction. Choose two distinct, contextually relevant lifestyle scenes and a suitable model archetype for the "With Model" shot.
+1.  **Analyze Product Deeply:** Meticulously analyze the provided images and text to understand the product's category, materials, primary color, inferred use case, and target audience.
+2.  **Devise Creative Direction:** Based on this analysis, devise a professional and unique creative direction. Choose two distinct lifestyle scenes and a model archetype.
 3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets.
-4.  **Formulate Hyper-Realistic Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model. These prompts are critical and must be engineered for hyper-realism.
-    -   **CRITICAL:** ALL prompts must instruct the AI to maintain the original product's appearance (shape, logos, text) with perfect fidelity.
-    -   **Hero Image:** This prompt should describe professional studio lighting (e.g., three-point lighting), a clean, subtly complementary gradient background, and soft, realistic shadows. The goal is a high-end, polished look.
-    -   **With Model Image:** This prompt is for a hyper-realistic shot. It must specify a model that fits the product's target audience (e.g., age, gender, style), a natural pose, and an environment that tells a story. The prompt must explicitly demand the final image be indistinguishable from a professional DSLR photograph, mentioning details like realistic skin texture, lighting, and natural depth of field.
-    -   **Infographic Image:** This prompt must generate an image with the product strategically placed on one side, leaving significant, clean negative space on the other side. This space is intended for text and callouts. It should specify a clean, non-distracting background.
+4.  **Formulate Hyper-Realistic Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model.
+
+**CRITICAL RULES FOR ALL IMAGE PROMPTS:**
+-   **ABSOLUTE TOP PRIORITY: BRAND PRESERVATION.** ALL generated images MUST preserve the product's packaging, logos, labels, and text with 100% accuracy. The product itself must look EXACTLY like the original upload. DO NOT alter, redraw, or modify the product's branding in any way. This is the most important rule.
+-   **MODEL SELECTION:** For the "With Model" shot, you MUST specify an **Indian model** that fits the product's target audience (e.g., age, gender, style).
+-   **HYPER-REALISM:** All prompts must be engineered for hyper-realism, aiming for results indistinguishable from a professional DSLR photograph. Mention details like realistic lighting, shadows, and textures.
+-   **HERO IMAGE:** This prompt must describe professional studio lighting, a clean, subtly complementary gradient background, and soft, realistic shadows for a high-end look.
+-   **INFOGRAPHIC IMAGE:** This prompt must generate an image with the product strategically placed to one side, leaving significant, clean negative space on the other side for text overlays.
 
 **OUTPUT:**
 Your final output MUST be a single, valid JSON object following the provided schema. Do not add any text before or after the JSON object.`;

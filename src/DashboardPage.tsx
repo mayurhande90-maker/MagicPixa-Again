@@ -2065,6 +2065,21 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
+// Moved outside the component to prevent re-creation on every render, fixing the focus loss bug.
+const InputField = ({ label, name, value, onChange, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+        <input type="text" id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" />
+    </div>
+);
+
+const TextAreaField = ({ label, name, value, onChange, placeholder, rows = 3 }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; rows?: number }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+        <textarea id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y" />
+    </div>
+);
+
 const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
     const [productImages, setProductImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
@@ -2175,20 +2190,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setModalImageUrl(url);
         setIsModalOpen(true);
     };
-
-    const InputField = ({ label, name, value, onChange, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }) => (
-        <div>
-            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-            <input type="text" id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" />
-        </div>
-    );
-    
-    const TextAreaField = ({ label, name, value, onChange, placeholder, rows = 3 }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; rows?: number }) => (
-        <div>
-            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-            <textarea id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y" />
-        </div>
-    );
 
     const renderInputStep = () => (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
