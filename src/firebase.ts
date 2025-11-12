@@ -4,8 +4,10 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
-import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+// FIX: Removed incorrect modular imports for 'firebase/auth' and switched to compat syntax.
+// The errors indicated these modular exports were not found, likely due to a build/dependency issue.
+// Using the namespaced compat API (e.g., `firebase.auth()`) is more reliable with the current setup.
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs, runTransaction } from 'firebase/firestore';
 
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -52,7 +54,8 @@ export const getMissingConfigKeys = (): string[] => missingKeys;
 export const isConfigValid = missingKeys.length === 0;
 
 let app;
-let auth: Auth | null = null;
+// FIX: Correctly typed `auth` using the compat library's namespace.
+let auth: firebase.auth.Auth | null = null;
 let db: Firestore | null = null;
 
 if (isConfigValid) {
@@ -60,7 +63,8 @@ if (isConfigValid) {
     // FIX: Use the compat `initializeApp` which is more resilient to environment issues.
     // The `getAuth` and `getFirestore` functions are compatible with the app object returned here.
     app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
-    auth = getAuth(app);
+    // FIX: Used compat `firebase.auth()` instead of modular `getAuth(app)`.
+    auth = firebase.auth();
     db = getFirestore(app);
   } catch (error) {
     console.error("Error initializing Firebase:", error);
@@ -76,9 +80,11 @@ if (isConfigValid) {
  */
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    const provider = new GoogleAuthProvider();
+    // FIX: Used compat `firebase.auth.GoogleAuthProvider()` instead of modular `GoogleAuthProvider()`.
+    const provider = new firebase.auth.GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
+        // FIX: Used compat `auth.signInWithPopup(provider)` instead of modular `signInWithPopup(auth, provider)`.
+        const result = await auth.signInWithPopup(provider);
         return result;
     } catch (error) {
         console.error("Error during Google Sign-In with Popup:", error);
@@ -132,35 +138,66 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
 };
 
 /**
- * Atomically deducts credits and logs the transaction.
+ * Atomically deducts credits and logs the transaction using a Firestore transaction.
+ * This prevents race conditions and ensures data integrity, fixing "permission denied" errors.
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
  * @param feature The name of the feature used.
  * @returns The updated user profile data after deduction.
  */
 export const deductCredits = async (uid: string, amount: number, feature: string) => {
-  if (!db || !auth) throw new Error("Firestore is not initialized.");
-  
-  const userProfile = await getOrCreateUserProfile(uid, auth.currentUser?.displayName, auth.currentUser?.email);
-  
-  if (userProfile.credits < amount) {
-    throw new Error("Insufficient credits.");
-  }
+  if (!db) throw new Error("Firestore is not initialized.");
 
   const userRef = doc(db, "users", uid);
-  await setDoc(userRef, {
-    credits: increment(-amount),
-  }, { merge: true });
 
-  // Log the transaction
-  const transactionsRef = collection(db, "users", uid, "transactions");
-  await addDoc(transactionsRef, {
-      feature,
-      cost: amount, // For deductions, cost is the credit amount
-      date: serverTimestamp(),
-  });
+  try {
+    // Using a transaction ensures atomicity of the read-check-update operations.
+    // This prevents race conditions where a user might spend more credits than they have,
+    // which can cause a "permission denied" error if security rules enforce a non-negative balance.
+    const updatedProfileData = await runTransaction(db, async (transaction) => {
+      const userDoc = await transaction.get(userRef);
 
-  return { ...userProfile, credits: userProfile.credits - amount };
+      if (!userDoc.exists()) {
+        throw new Error("User profile does not exist.");
+      }
+
+      const userProfile = userDoc.data();
+      const currentCredits = userProfile.credits;
+
+      if (currentCredits < amount) {
+        throw new Error("Insufficient credits.");
+      }
+
+      const newCredits = currentCredits - amount;
+
+      // 1. Update the user's credit balance.
+      transaction.update(userRef, { credits: newCredits });
+
+      // 2. Log the deduction in the transactions subcollection.
+      const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
+      transaction.set(newTransactionRef, {
+        feature,
+        cost: amount,
+        date: serverTimestamp(),
+      });
+
+      // Return the updated profile to the client state.
+      return { ...userProfile, credits: newCredits };
+    });
+
+    return updatedProfileData;
+
+  } catch (error) {
+    console.error("Credit deduction transaction failed:", error);
+
+    // Re-throw specific, user-friendly errors.
+    if (error instanceof Error && error.message === "Insufficient credits.") {
+      throw error;
+    }
+
+    // For other errors, including Firestore permission errors, provide a generic message.
+    throw new Error("A server error occurred while processing your request. Please try again.");
+  }
 };
 
 /**
