@@ -4,15 +4,20 @@
 import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
 import { Base64File } from "./utils/imageUtils";
 
-let ai: GoogleGenAI | null = null;
+/**
+ * Helper function to get a fresh AI client on every call.
+ * This ensures the latest API key is used, which is critical for features
+ * like video generation that may require the user to select a new key.
+ */
+const getAiClient = (): GoogleGenAI => {
+    // DEFINITIVE FIX: Use `import.meta.env.VITE_API_KEY` for the Gemini key, as required by the Vite build process.
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey || apiKey === 'undefined') {
+      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
-// DEFINITIVE FIX: Use `import.meta.env.VITE_API_KEY` for the Gemini key, as required by the Vite build process.
-const apiKey = import.meta.env.VITE_API_KEY;
-
-// Initialize the AI client only if the API key is available.
-if (apiKey && apiKey !== 'undefined') {
-  ai = new GoogleGenAI({ apiKey: apiKey });
-}
 
 const SUPPORT_SYSTEM_INSTRUCTION = `You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app's features effectively.
 
@@ -64,11 +69,7 @@ export const startLiveSession = (callbacks: {
     onerror: (e: ErrorEvent) => void;
     onclose: (e: CloseEvent) => void;
 }) => {
-    if (!ai) {
-        // FIX: Updated error message to reflect correct environment variable.
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
+    const ai = getAiClient();
     return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks,
@@ -89,10 +90,7 @@ export const generateSupportResponse = async (
   history: { role: 'user' | 'model', text: string }[],
   newMessage: string
 ): Promise<string> => {
-    if (!ai) {
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
+    const ai = getAiClient();
     try {
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
@@ -145,11 +143,7 @@ export const generateCaptions = async (
   base64ImageData: string,
   mimeType: string
 ): Promise<{ caption: string; hashtags: string }[]> => {
-  if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
+  const ai = getAiClient();
   try {
     const prompt = `Analyze this image and generate 3-5 distinct, engaging social media captions for it. For each caption, also provide a relevant, concise string of hashtags.
 
@@ -218,11 +212,7 @@ export const generateApparelTryOn = async (
   personMimeType: string,
   apparelItems: { type: string; base64: string; mimeType: string }[]
 ): Promise<string> => {
-  if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
+  const ai = getAiClient();
   try {
     const parts: any[] = [];
     
@@ -308,10 +298,7 @@ export const editImageWithPrompt = async (
   mimeType: string,
   theme: string
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-  
+  const ai = getAiClient();
   try {
     let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. The product must cast a natural, realistic shadow and the lighting should be balanced. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity. Place the product in an appealing, professional setting.`;
     
@@ -376,11 +363,7 @@ export const colourizeImage = async (
   mimeType: string,
   mode: 'restore' | 'colourize_only'
 ): Promise<string> => {
-  if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
+  const ai = getAiClient();
   try {
     let basePrompt = `Colourize the provided vintage photograph.
 Maintain the original composition, lighting, and emotional tone while bringing it to life in full colour.
@@ -441,10 +424,7 @@ export const generateMagicSoul = async (
   style: string,
   environment: string
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
+  const ai = getAiClient();
   try {
     let prompt: string;
 
@@ -564,11 +544,7 @@ export const generateMockup = async (
   mimeType: string,
   mockupType: string
 ): Promise<string> => {
-  if (!ai) {
-    // FIX: Updated error message to reflect correct environment variable.
-    throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-  }
-
+  const ai = getAiClient();
   try {
     const prompt = `Create a photo-realistic product mockup image based on the following inputs:
 
@@ -672,11 +648,7 @@ export const generateInteriorDesign = async (
     spaceType: string,
     roomType: string,
 ): Promise<string> => {
-    if (!ai) {
-        // FIX: Updated error message to reflect correct environment variable.
-        throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-
+    const ai = getAiClient();
     try {
         const specificInstruction = roomTypeSpecifics[roomType] || '';
 
@@ -820,8 +792,7 @@ export const generateProductPackPlan = async (
     competitorUrl?: string,
     inspirationImages?: Base64File[]
 ): Promise<any> => {
-    if (!ai) throw new Error("API key is not configured.");
-
+    const ai = getAiClient();
     const parts: any[] = [...images.map(img => ({ inlineData: { data: img.base64, mimeType: img.mimeType } }))];
 
     let prompt = `You are a world-class AI Creative Director. Your task is to create a complete, strategic, and marketplace-ready product pack plan. You will generate the detailed instructions (prompts) and text assets required to create a full suite of marketing materials.
@@ -904,10 +875,7 @@ export const generateStyledImage = async (
     referenceImages: Base64File[],
     prompt: string
   ): Promise<string> => {
-    if (!ai) {
-      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
-    }
-    
+    const ai = getAiClient();
     try {
       const parts = [
         ...referenceImages.map(img => ({
@@ -950,8 +918,7 @@ export const generateStyledImage = async (
 };
 
 export const generateVideo = async (prompt: string) => {
-    if (!ai) throw new Error("API key is not configured.");
-    
+    const ai = getAiClient();
     try {
         const operation = await ai.models.generateVideos({
             model: 'veo-3.1-fast-generate-preview',
@@ -973,7 +940,7 @@ export const generateVideo = async (prompt: string) => {
 };
 
 export const getVideoOperationStatus = async (operation: any) => {
-    if (!ai) throw new Error("API key is not configured.");
+    const ai = getAiClient();
     try {
         const updatedOperation = await ai.operations.getVideosOperation({ operation: operation });
         return updatedOperation;
