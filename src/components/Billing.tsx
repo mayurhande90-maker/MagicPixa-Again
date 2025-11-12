@@ -245,7 +245,17 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
   };
   
-  const maxCreditsForMeter = 100;
+  // FIX: The credit meter now uses a dynamic maximum value based on the user's current credits
+  // instead of a hardcoded '100', providing a more intuitive progress bar.
+  const getMeterMax = (credits: number) => {
+    if (credits <= 10) return 10;
+    if (credits <= 50) return 50;
+    if (credits <= 100) return 100;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(credits)));
+    return Math.ceil(credits / magnitude) * magnitude;
+  };
+
+  const maxCreditsForMeter = getMeterMax(user.credits);
   const creditPercentage = Math.min((user.credits / maxCreditsForMeter) * 100, 100);
   const groupedTransactions = groupTransactionsByDate(transactions);
 
@@ -264,7 +274,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
             <div className="relative z-10">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="font-bold text-lg">Credit Overview</h3>
-                    <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{user.plan} Plan</span>
+                    {/* FIX: Add a fallback for the user's plan to display 'Free' if not explicitly set. */}
+                    <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{user.plan || 'Free'} Plan</span>
                 </div>
                 <div>
                     <p className="text-5xl font-bold">{user.credits}</p>
@@ -275,7 +286,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                         <div className="bg-white h-2 rounded-full" style={{ width: `${creditPercentage}%` }}></div>
                     </div>
                      <p className="text-xs text-indigo-200 mt-1 text-right">
-                        {user.credits > maxCreditsForMeter ? `Over ${maxCreditsForMeter} credits` : `${user.credits} / ${maxCreditsForMeter}`}
+                        {user.credits} / {maxCreditsForMeter}
                     </p>
                 </div>
             </div>
