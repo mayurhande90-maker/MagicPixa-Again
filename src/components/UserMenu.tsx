@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Page, View } from '../types';
-import { LogoutIcon, DashboardIcon, ProjectsIcon } from './icons';
+import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon } from './icons';
 
 interface UserMenuProps {
   user: User;
@@ -55,6 +55,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             </button>
             <button onClick={() => handleNavigation('creations')} disabled className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
+            </button>
+            <button onClick={() => handleNavigation('billing')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
+              <CreditCardIcon className="w-5 h-5" /> Billing & Credits
             </button>
           </div>
           <div className="py-2 border-t border-gray-200/80">
