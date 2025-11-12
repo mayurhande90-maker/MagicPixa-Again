@@ -1967,7 +1967,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setError(null);
     };
 
-    const pollVideoStatus = useCallback(async (operation: any, videoKey: 'spin' | 'cinemagraph', apiKey: string) => {
+    const pollVideoStatus = useCallback(async (operation: any, videoKey: 'spin' | 'cinemagraph') => {
         setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Generating...' }));
 
         const intervalId = setInterval(async () => {
@@ -1982,8 +1982,8 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     } else {
                         const videoUri = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
                         if (videoUri) {
-                            const videoUrlWithKey = `${videoUri}&key=${apiKey}`;
-                            const response = await fetch(videoUrlWithKey);
+                            // The API key is now automatically appended by the service
+                            const response = await fetch(`${videoUri}&key=${import.meta.env.VITE_API_KEY}`);
                             const blob = await response.blob();
                             const videoObjectUrl = URL.createObjectURL(blob);
                             setGeneratedVideos(prev => ({ ...prev, [videoKey]: videoObjectUrl }));
@@ -1999,12 +1999,11 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                 setError(pollError.message || "Failed to get video status.");
                 setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Error' }));
                 clearInterval(intervalId);
-                // If API key is bad, prompt user to select a new one.
                 if (pollError.message.includes("API key")) {
                     await window.aistudio?.openSelectKey();
                 }
             }
-        }, 10000); // Poll every 10 seconds
+        }, 10000);
 
         return () => clearInterval(intervalId);
     }, []);
@@ -2059,7 +2058,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             });
             setGeneratedImages(newImages);
 
-            // After images are done, deduct credits and then start video generation
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Product Studio');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
@@ -2073,15 +2071,11 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                  }
 
                 setIsGeneratingVideos(true);
-                const apiKey = import.meta.env.VITE_API_KEY; // This should be the user-selected one
-                if (!apiKey || apiKey === 'undefined') {
-                    throw new Error("Video generation requires an API key. Please select one in the prompt.");
-                }
-
+                
                 const { video360Spin, videoCinemagraph } = plan.videoGenerationPrompts;
                 if (video360Spin) {
                     generateVideo(video360Spin)
-                        .then(op => pollVideoStatus(op, 'spin', apiKey))
+                        .then(op => pollVideoStatus(op, 'spin'))
                         .catch(e => {
                              setError(`Failed to start 360 Spin video: ${e.message}`);
                              setVideoStatuses(prev => ({...prev, spin: 'Error'}));
@@ -2089,7 +2083,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                 }
                 if (videoCinemagraph) {
                     generateVideo(videoCinemagraph)
-                        .then(op => pollVideoStatus(op, 'cinemagraph', apiKey))
+                        .then(op => pollVideoStatus(op, 'cinemagraph'))
                         .catch(e => {
                              setError(`Failed to start Cinemagraph video: ${e.message}`);
                              setVideoStatuses(prev => ({...prev, cinemagraph: 'Error'}));
@@ -2224,7 +2218,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {Object.entries(generatedImages).map(([key, src]) => (
                                      <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
-                                         <img src={src} alt={key} className="w-full h-full object-cover" />
+                                         <img src={src as string} alt={key} className="w-full h-full object-cover" />
                                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                              <p className="text-white font-bold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                                          </div>
