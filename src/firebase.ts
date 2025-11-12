@@ -153,8 +153,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
   try {
     // Using a transaction ensures atomicity of the read-check-update operations.
-    // This prevents race conditions where a user might spend more credits than they have,
-    // which can cause a "permission denied" error if security rules enforce a non-negative balance.
+    // This prevents race conditions where a user might spend more credits than they have.
     const updatedProfileData = await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userRef);
 
@@ -171,8 +170,9 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
       const newCredits = currentCredits - amount;
 
-      // 1. Update the user's credit balance.
-      transaction.update(userRef, { credits: newCredits });
+      // 1. Update the user's credit balance using Firestore's atomic increment.
+      // This is more robust than setting the value directly and helps prevent transaction failures.
+      transaction.update(userRef, { credits: increment(-amount) });
 
       // 2. Log the deduction in the transactions subcollection.
       const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
@@ -197,7 +197,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     }
 
     // For other errors, including Firestore permission errors, provide a generic message.
-    throw new Error("A server error occurred while processing your request. Please try again.");
+    throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
 
