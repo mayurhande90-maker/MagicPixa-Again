@@ -202,7 +202,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 };
 
 /**
- * Adds purchased credits to a user's account and logs the transaction.
+ * Adds purchased credits to a user's account and logs the transaction atomically.
  * @param uid The user's unique ID.
  * @param packName The name of the purchased credit pack.
  * @param creditsToAdd The number of credits to add.
@@ -214,26 +214,30 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
     
     const userRef = doc(db, "users", uid);
     
-    // Atomically increment the user's current credits and total acquired credits.
-    await setDoc(userRef, {
-      credits: increment(creditsToAdd),
-      totalCreditsAcquired: increment(creditsToAdd),
-    }, { merge: true });
-  
-    // Log the purchase as a transaction in a subcollection.
-    const transactionsRef = collection(db, "users", uid, "transactions");
-    await addDoc(transactionsRef, {
+    // Refactored to use a transaction, ensuring both credit update and logging are atomic.
+    // This resolves the error where payment succeeds but credits fail to update.
+    await runTransaction(db, async (transaction) => {
+      // 1. Update the user's credit and total credits acquired.
+      transaction.update(userRef, {
+        credits: increment(creditsToAdd),
+        totalCreditsAcquired: increment(creditsToAdd),
+      });
+
+      // 2. Log the purchase in the transactions subcollection.
+      const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
+      transaction.set(newTransactionRef, {
         feature: `Purchased: ${packName}`,
         cost: amountPaid,
         creditChange: `+${creditsToAdd}`,
         date: serverTimestamp(),
+      });
     });
   
-    // After the update, fetch the latest user profile data to ensure the
-    // value returned to the UI is fresh and not stale.
+    // After the transaction, fetch the latest user profile data to ensure the
+    // UI gets the freshest state.
     const updatedDoc = await getDoc(userRef);
     if (!updatedDoc.exists()) {
-        throw new Error("Failed to retrieve updated user profile.");
+        throw new Error("Failed to retrieve updated user profile after purchase.");
     }
     return updatedDoc.data();
 };
