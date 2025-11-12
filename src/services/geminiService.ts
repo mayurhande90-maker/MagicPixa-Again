@@ -743,89 +743,136 @@ DESIGN INSTRUCTIONS:
 const productPackSchema = {
     type: Type.OBJECT,
     properties: {
-      productAnalysis: {
-        type: Type.OBJECT,
-        properties: {
-          category: { type: Type.STRING, description: "e.g., Apparel, Kitchenware, Electronics" },
-          materials: { type: Type.STRING, description: "e.g., Cotton, Ceramic, Brushed Aluminum" },
-          primaryColorHex: { type: Type.STRING, description: "e.g., #FFFFFF" },
-          inferredUseCase: { type: Type.STRING, description: "e.g., Casual wear, Morning coffee, Professional photography" },
-        },
-      },
-      textAssets: {
-        type: Type.OBJECT,
-        properties: {
-          seoTitle: { type: Type.STRING, description: "Optimized title for search engines using product name and key attributes." },
-          altText: { type: Type.STRING, description: "Descriptive alt-text for the primary hero image for accessibility and SEO." },
-          captions: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                length: { type: Type.STRING, description: "'short', 'medium', or 'long'" },
-                text: { type: Type.STRING, description: "A social media or ad copy caption." },
-              },
+        productAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+                category: { type: Type.STRING },
+                materials: { type: Type.STRING },
+                primaryColorHex: { type: Type.STRING },
+                inferredUseCase: { type: Type.STRING },
+                targetAudience: { type: Type.STRING },
             },
-          },
-          keywords: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "A list of relevant keywords for SEO and tagging."
-          },
         },
-      },
-      imageGenerationPrompts: {
-        type: Type.OBJECT,
-        properties: {
-          heroImage: { type: Type.STRING, description: "A detailed prompt for a text-to-image model to generate a professional hero image with professional studio lighting on a clean, complementary gradient background." },
-          whiteBackgroundImage: { type: Type.STRING, description: "A prompt to generate the product on a pure #FFFFFF white background with soft, natural shadows. Must be compliant with Amazon/Flipkart main image rules." },
-          lifestyleScene1: { type: Type.STRING, description: "A detailed prompt for the first lifestyle scene. Describe a realistic environment, props, lighting, and mood that are contextually relevant to the product." },
-          lifestyleScene2: { type: Type.STRING, description: "A detailed prompt for a second, different lifestyle scene." },
-          modelImage: { type: Type.STRING, description: "A prompt to generate a hyper-realistic photo of a model using the product. The model should match the target audience. The image must look like a real DSLR photo, not AI-generated." },
-          infographicImage: { type: Type.STRING, description: "A prompt to generate an image with the product placed to one side, leaving clear negative space for text overlays. e.g., 'A close-up macro shot of the product's stitching, with empty space to the right.'" },
+        creativeStrategy: {
+            type: Type.OBJECT,
+            properties: {
+                uniqueAngle: { type: Type.STRING, description: "A unique creative angle to make the product stand out, especially if a competitor URL was provided." },
+                lifestyleScene1Theme: { type: Type.STRING },
+                lifestyleScene2Theme: { type: Type.STRING },
+                modelArchetype: { type: Type.STRING, description: "e.g., 'Young professional urban female', 'Active outdoor male'" },
+                aestheticVibe: { type: Type.STRING, description: "A description of the aesthetic learned from inspiration images." },
+            },
         },
-      },
+        textAssets: {
+            type: Type.OBJECT,
+            properties: {
+                seoTitle: { type: Type.STRING },
+                altText: { type: Type.STRING },
+                captions: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            length: { type: Type.STRING, description: "'short', 'medium', or 'long'" },
+                            text: { type: Type.STRING },
+                        },
+                    },
+                },
+                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+        },
+        imageGenerationPrompts: {
+            type: Type.OBJECT,
+            properties: {
+                heroImage: { type: Type.STRING },
+                whiteBackgroundImage: { type: Type.STRING },
+                lifestyleScene1: { type: Type.STRING },
+                lifestyleScene2: { type: Type.STRING },
+                modelImage: { type: Type.STRING },
+                infographicWithText: { type: Type.STRING, description: "A prompt to generate a complete infographic with text callouts, styled using the brand kit if provided." },
+                storyboardPanel1: { type: Type.STRING },
+                storyboardPanel2: { type: Type.STRING },
+                storyboardPanel3: { type: Type.STRING },
+            },
+        },
+        videoGenerationPrompts: {
+            type: Type.OBJECT,
+            properties: {
+                video360Spin: { type: Type.STRING, description: "A prompt for a 3-5 second video showing a 360-degree spin of the product." },
+                videoCinemagraph: { type: Type.STRING, description: "A prompt for a 4-second looping video (cinemagraph) based on one of the lifestyle scenes." },
+            },
+        },
     },
 };
 
 export const generateProductPackPlan = async (
     images: Base64File[],
     productName: string,
-    productDescription: string
+    productDescription: string,
+    brandKit?: { logo?: Base64File; colors?: string[]; fonts?: string[] },
+    competitorUrl?: string,
+    inspirationImages?: Base64File[]
 ): Promise<any> => {
     if (!ai) throw new Error("API key is not configured.");
 
-    const imageParts = images.map(img => ({
-        inlineData: { data: img.base64, mimeType: img.mimeType },
-    }));
+    const parts: any[] = [...images.map(img => ({ inlineData: { data: img.base64, mimeType: img.mimeType } }))];
 
-    const prompt = `You are an expert AI Creative Director for e-commerce. Your task is to create a complete, marketplace-ready product pack plan. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
+    let prompt = `You are a world-class AI Creative Director. Your task is to create a complete, strategic, and marketplace-ready product pack plan. You will generate the detailed instructions (prompts) and text assets required to create a full suite of marketing materials.
 
 **USER INPUT:**
 - Product Name/Brand: "${productName}"
 - Short Product Description: "${productDescription}"
 - Product Images are attached.
 
-**YOUR TASK:**
-1.  **Analyze Product Deeply:** Meticulously analyze the provided images and text to understand the product's category, materials, primary color, inferred use case, and target audience.
-2.  **Devise Creative Direction:** Based on this analysis, devise a professional and unique creative direction. Choose two distinct lifestyle scenes and a model archetype.
-3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets.
-4.  **Formulate Hyper-Realistic Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model.
+**ADVANCED CREATIVE INPUTS (IF PROVIDED):**
+`;
+    if (brandKit?.logo) {
+        prompt += `- Brand Logo is attached.\n`;
+        parts.push({ text: "Brand Logo:" }, { inlineData: { data: brandKit.logo.base64, mimeType: brandKit.logo.mimeType } });
+    }
+    if (brandKit?.colors && brandKit.colors.length > 0) {
+        prompt += `- Brand Colors: ${brandKit.colors.join(', ')}\n`;
+    }
+    if (brandKit?.fonts && brandKit.fonts.length > 0) {
+        prompt += `- Brand Fonts: ${brandKit.fonts.join(', ')}\n`;
+    }
+    if (competitorUrl) {
+        prompt += `- Competitor URL for analysis: ${competitorUrl}\n`;
+    }
+    if (inspirationImages && inspirationImages.length > 0) {
+        prompt += `- Inspiration images are attached to define the desired aesthetic "vibe".\n`;
+        parts.push({ text: "Inspiration Images:" });
+        inspirationImages.forEach(img => {
+            parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+        });
+    }
 
-**CRITICAL RULES FOR ALL IMAGE PROMPTS:**
--   **ABSOLUTE TOP PRIORITY: BRAND PRESERVATION.** ALL generated images MUST preserve the product's packaging, logos, labels, and text with 100% accuracy. The product itself must look EXACTLY like the original upload. DO NOT alter, redraw, or modify the product's branding in any way. This is the most important rule.
--   **MODEL SELECTION:** For the "With Model" shot, you MUST specify an **Indian model** that fits the product's target audience (e.g., age, gender, style).
--   **HYPER-REALISM:** All prompts must be engineered for hyper-realism, aiming for results indistinguishable from a professional DSLR photograph. Mention details like realistic lighting, shadows, and textures.
--   **HERO IMAGE:** This prompt must describe professional studio lighting, a clean, subtly complementary gradient background, and soft, realistic shadows for a high-end look.
--   **INFOGRAPHIC IMAGE:** This prompt must generate an image with the product strategically placed to one side, leaving significant, clean negative space on the other side for text overlays.
+    prompt += `
+**YOUR TASK & HIGH-LEVEL CREATIVE DIRECTION:**
+1.  **Analyze & Strategize:** Meticulously analyze ALL provided inputs. If a competitor URL is given, devise a unique visual strategy to make this product stand out. If a Brand Kit or inspiration images are provided, they are the primary source of truth for all creative decisions.
+2.  **Devise Creative Direction:** Based on your analysis, define a professional creative direction, including themes for two distinct lifestyle scenes, a model archetype, and an aesthetic vibe.
+3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets that align with the strategy.
+4.  **Formulate Top-Notch Prompts:** Create detailed, actionable prompts for a text-to-image and text-to-video AI. The quality of these prompts is paramount. They must be engineered to produce hyper-realistic, commercially viable, and unique results.
+
+**CRITICAL RULES FOR ALL GENERATION PROMPTS:**
+-   **#1 RULE - BRAND PRESERVATION:** This is the absolute top priority. ALL generated assets MUST preserve the product's packaging, logos, labels, and text with 100% accuracy. The product must look IDENTICAL to the original upload. This rule must be explicitly stated in every single image and video prompt.
+-   **MODEL SELECTION:** The "With Model" shot MUST specify an **Indian model** that fits the product's target audience (e.g., age, gender, style) as defined in your creative strategy.
+-   **HYPER-REALISM:** All prompts must aim for results indistinguishable from a professional DSLR photograph. Mention details like realistic lighting (e.g., "soft window light," "golden hour"), natural shadows, and high-fidelity textures.
+-   **COMPLETE INFOGRAPHIC:** The infographic prompt must be for a COMPLETE image. It should analyze the product description for key features (e.g., "100% organic cotton", "waterproof") and instruct the AI to generate the product on a clean background WITH text callouts, icons, and lines already on the image. If Brand Kit fonts/colors are provided, specify that they must be used.
+-   **STORYBOARD:** Generate three sequential prompts for a 3-panel storyboard that tells a simple story about the product's use or benefit.
+-   **VIDEO PROMPTS:**
+    -   *360 Spin:* A prompt for a 3-5 second, seamless loop video showing a 360-degree rotation of the product against a clean, professional studio background.
+    -   *Cinemagraph:* A prompt for a 4-second, seamlessly looping video based on one of the lifestyle scenes, where only one or two subtle elements are in motion (e.g., steam from a mug, leaves rustling in the wind).
 
 **OUTPUT:**
 Your final output MUST be a single, valid JSON object following the provided schema. Do not add any text before or after the JSON object.`;
     
+    parts.push({ text: prompt });
+    
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [...imageParts, { text: prompt }] },
+            contents: { parts },
             config: {
                 responseMimeType: "application/json",
                 responseSchema: productPackSchema,
@@ -892,6 +939,46 @@ export const generateStyledImage = async (
           throw new Error(`Failed to generate image: ${error.message}`);
       }
       throw new Error("An unknown error occurred while communicating with the image generation service.");
+    }
+};
+
+export const generateVideo = async (prompt: string) => {
+    if (!ai) throw new Error("API key is not configured.");
+    
+    try {
+        const operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: prompt,
+            config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: '1:1',
+            }
+        });
+        return operation;
+    } catch (error) {
+        console.error("Error initiating video generation:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to start video generation: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred during video generation.");
+    }
+};
+
+export const getVideoOperationStatus = async (operation: any) => {
+    if (!ai) throw new Error("API key is not configured.");
+    try {
+        const updatedOperation = await ai.operations.getVideosOperation({ operation: operation });
+        return updatedOperation;
+    } catch (error) {
+        console.error("Error polling video operation status:", error);
+        if (error instanceof Error) {
+            if(error.message.includes("Requested entity was not found")) {
+                 throw new Error("The video generation task could not be found. This might be due to an API key issue. Please try selecting your API key again.");
+            }
+            throw new Error(`Failed to get video status: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while checking video status.");
     }
 };
 // Minor change to allow commit.
