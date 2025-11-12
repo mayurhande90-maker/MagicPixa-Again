@@ -138,11 +138,10 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
 };
 
 /**
- * DEFINITIVE FIX: Atomically deducts credits using a corrected and robust transaction pattern.
- * The previous implementation failed because it attempted a write-like operation (`.doc()` to generate a new ID)
- * inside the transaction block, violating Firestore's "reads-before-writes" rule.
- * This version creates the new transaction document reference *before* the transaction begins,
- * ensuring the operation is atomic and reliable.
+ * DEFINITIVE FIX: Atomically deducts credits using a more robust transaction pattern.
+ * This version completes the transaction writes first, then re-fetches the user data.
+ * This avoids potential issues with returning values from inside a transaction handler
+ * and makes the function more resilient.
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
  * @param feature The name of the feature used.
@@ -152,12 +151,11 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   if (!db) throw new Error("Firestore is not initialized.");
 
   const userRef = db.collection("users").doc(uid);
-  // Create the reference for the new transaction log document *before* starting the transaction.
   const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
 
   try {
-    const updatedProfileData = await db.runTransaction(async (transaction) => {
-      // 1. READ phase: All reads must happen before any writes.
+    // Run the transaction to perform writes.
+    await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userRef);
 
       if (!userDoc.exists) {
@@ -170,7 +168,6 @@ export const deductCredits = async (uid: string, amount: number, feature: string
       }
 
       const currentCredits = userProfile.credits;
-
       if (typeof currentCredits !== 'number' || isNaN(currentCredits)) {
         console.error(`Data validation failed: User ${uid} has a non-numeric credit balance.`, userProfile);
         throw new Error("A data error occurred. Could not process your request.");
@@ -180,30 +177,31 @@ export const deductCredits = async (uid: string, amount: number, feature: string
         throw new Error("Insufficient credits.");
       }
 
-      // 2. WRITE phase: All writes happen after all reads.
-      // Update the user's credits.
+      // Perform writes
       transaction.update(userRef, {
-        credits: firebase.firestore.FieldValue.increment(-amount)
+        credits: firebase.firestore.FieldValue.increment(-amount),
       });
 
-      // Log the deduction using the pre-created reference.
       transaction.set(newTransactionRef, {
         feature,
         cost: amount,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
-
-      // Return the new profile state for immediate UI update.
-      return { ...userProfile, credits: currentCredits - amount };
     });
 
-    return updatedProfileData;
+    // After the transaction succeeds, fetch the latest user profile data.
+    const updatedDoc = await userRef.get();
+    if (!updatedDoc.exists) {
+      throw new Error("Failed to retrieve updated user profile after deduction.");
+    }
+    return updatedDoc.data();
 
   } catch (error) {
     console.error("Credit deduction transaction failed:", error);
-    if (error instanceof Error && (error.message === "Insufficient credits." || error.message.includes("data error"))) {
-      throw error;
+    if (error instanceof Error && (error.message.includes("Insufficient credits") || error.message.includes("data error") || error.message.includes("does not exist"))) {
+      throw error; // Re-throw specific, known errors to be displayed in the UI.
     }
+    // For all other more obscure transaction failures, throw the generic message.
     throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
