@@ -4,11 +4,6 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
-// FIX: Removed incorrect modular imports for 'firebase/auth' and switched to compat syntax.
-// The errors indicated these modular exports were not found, likely due to a build/dependency issue.
-// Using the namespaced compat API (e.g., `firebase.auth()`) is more reliable with the current setup.
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, increment, Timestamp, Firestore, collection, addDoc, query, orderBy, limit, getDocs, runTransaction } from 'firebase/firestore';
-
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -56,16 +51,17 @@ export const isConfigValid = missingKeys.length === 0;
 let app;
 // FIX: Correctly typed `auth` using the compat library's namespace.
 let auth: firebase.auth.Auth | null = null;
-let db: Firestore | null = null;
+// DEFINITIVE FIX: Switched the Firestore instance to use the 'compat' API to match the app initialization and eliminate library conflicts.
+let db: firebase.firestore.Firestore | null = null;
 
 if (isConfigValid) {
   try {
     // FIX: Use the compat `initializeApp` which is more resilient to environment issues.
-    // The `getAuth` and `getFirestore` functions are compatible with the app object returned here.
     app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
     // FIX: Used compat `firebase.auth()` instead of modular `getAuth(app)`.
     auth = firebase.auth();
-    db = getFirestore(app);
+    // DEFINITIVE FIX: Get the Firestore instance using the stable 'compat' API.
+    db = firebase.firestore();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
@@ -103,10 +99,11 @@ export const signInWithGoogle = async () => {
  */
 export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null) => {
   if (!db) throw new Error("Firestore is not initialized.");
-  const userRef = doc(db, "users", uid);
-  const docSnap = await getDoc(userRef);
+  // DEFINITIVE FIX: Switched to 'compat' API for document reference and retrieval.
+  const userRef = db.collection("users").doc(uid);
+  const docSnap = await userRef.get();
 
-  if (docSnap.exists()) {
+  if (docSnap.exists) {
     // Profile exists, just return the data.
     return docSnap.data();
   } else {
@@ -119,9 +116,10 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       credits: 10, // New user sign-up bonus
       totalCreditsAcquired: 10, // Track total credits for progress bar
       plan: 'Free', // All users are on a pay-as-you-go model now
-      signUpDate: serverTimestamp(),
+      signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
     };
-    await setDoc(userRef, newUserProfile);
+    // DEFINITIVE FIX: Used 'compat' set method.
+    await userRef.set(newUserProfile);
     // Return the profile data
     return { ...newUserProfile, credits: 10, plan: 'Free', totalCreditsAcquired: 10 };
   }
@@ -134,8 +132,9 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
  */
 export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
-    const userRef = doc(db, "users", uid);
-    await setDoc(userRef, data, { merge: true });
+    // DEFINITIVE FIX: Switched to 'compat' API for document reference and update.
+    const userRef = db.collection("users").doc(uid);
+    await userRef.set(data, { merge: true });
 };
 
 /**
@@ -149,14 +148,12 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
  * @returns The updated user profile data after deduction.
  */
 export const deductCredits = async (uid: string, amount: number, feature: string) => {
-  // Get the v8 compat firestore instance, matching the app's initialization.
-  const firestore = firebase.firestore();
-  if (!firestore) throw new Error("Firestore is not initialized.");
+  if (!db) throw new Error("Firestore is not initialized.");
 
-  const userRef = firestore.doc(`users/${uid}`);
+  const userRef = db.collection("users").doc(uid);
 
   try {
-    const updatedProfileData = await firestore.runTransaction(async (transaction) => {
+    const updatedProfileData = await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userRef);
 
       if (!userDoc.exists) {
@@ -186,7 +183,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
       });
 
       // 2. Log the deduction in the transactions subcollection using v8 compat syntax.
-      const newTransactionRef = firestore.collection(`users/${uid}/transactions`).doc();
+      const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
       transaction.set(newTransactionRef, {
         feature,
         cost: amount,
@@ -224,31 +221,31 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
     if (!db) throw new Error("Firestore is not initialized.");
     
-    const userRef = doc(db, "users", uid);
+    // DEFINITIVE FIX: Switched to 'compat' API for document reference.
+    const userRef = db.collection("users").doc(uid);
     
-    // Refactored to use a transaction, ensuring both credit update and logging are atomic.
-    // This resolves the error where payment succeeds but credits fail to update.
-    await runTransaction(db, async (transaction) => {
+    // DEFINITIVE FIX: Switched to 'compat' transaction API.
+    await db.runTransaction(async (transaction) => {
       // 1. Update the user's credit and total credits acquired.
       transaction.update(userRef, {
-        credits: increment(creditsToAdd),
-        totalCreditsAcquired: increment(creditsToAdd),
+        credits: firebase.firestore.FieldValue.increment(creditsToAdd),
+        totalCreditsAcquired: firebase.firestore.FieldValue.increment(creditsToAdd),
       });
 
       // 2. Log the purchase in the transactions subcollection.
-      const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
+      const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
       transaction.set(newTransactionRef, {
         feature: `Purchased: ${packName}`,
         cost: amountPaid,
         creditChange: `+${creditsToAdd}`,
-        date: serverTimestamp(),
+        date: firebase.firestore.FieldValue.serverTimestamp(),
       });
     });
   
     // After the transaction, fetch the latest user profile data to ensure the
     // UI gets the freshest state.
-    const updatedDoc = await getDoc(userRef);
-    if (!updatedDoc.exists()) {
+    const updatedDoc = await userRef.get();
+    if (!updatedDoc.exists) {
         throw new Error("Failed to retrieve updated user profile after purchase.");
     }
     return updatedDoc.data();
@@ -257,9 +254,10 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
 
 export const getCreditHistory = async (uid: string): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
-    const transactionsRef = collection(db, "users", uid, "transactions");
-    const q = query(transactionsRef, orderBy("date", "desc"), limit(20));
-    const querySnapshot = await getDocs(q);
+    // DEFINITIVE FIX: Switched to 'compat' API for collection query.
+    const transactionsRef = db.collection("users").doc(uid).collection("transactions");
+    const q = transactionsRef.orderBy("date", "desc").limit(20);
+    const querySnapshot = await q.get();
     const history: any[] = [];
     querySnapshot.forEach((doc) => {
         history.push({ id: doc.id, ...doc.data() });
