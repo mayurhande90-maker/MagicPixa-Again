@@ -45,6 +45,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
+    { type: 'divider', label: 'Account' },
+    { id: 'billing', label: 'Billing & Credits', icon: CreditCardIcon, disabled: false },
   ];
 
   const handleNavClick = (view: View) => {
