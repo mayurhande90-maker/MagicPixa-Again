@@ -161,16 +161,20 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
       const userProfile = userDoc.data();
       const currentCredits = userProfile.credits;
+      
+      // FIX: Implement a strict type check to validate the user's credit balance before deduction.
+      // This prevents transaction failures caused by malformed or non-numeric credit values, providing a permanent solution.
+      if (typeof currentCredits !== 'number' || isNaN(currentCredits)) {
+          console.error(`Data validation failed: User ${uid} has a non-numeric credit balance.`, userProfile);
+          throw new Error("A data error occurred. Could not process your request.");
+      }
 
       if (currentCredits < amount) {
         throw new Error("Insufficient credits.");
       }
 
-      const newCredits = currentCredits - amount;
-
-      // 1. Update the user's credit balance with the new, calculated value.
-      // This is safer within a read-modify-write transaction than using increment().
-      transaction.update(userRef, { credits: newCredits });
+      // 1. Atomically decrement the user's credit balance.
+      transaction.update(userRef, { credits: increment(-amount) });
 
       // 2. Log the deduction in the transactions subcollection.
       const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
@@ -181,7 +185,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
       });
 
       // Return the updated profile to the client state.
-      return { ...userProfile, credits: newCredits };
+      return { ...userProfile, credits: currentCredits - amount };
     });
 
     return updatedProfileData;
@@ -190,7 +194,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     console.error("Credit deduction transaction failed:", error);
 
     // Re-throw specific, user-friendly errors.
-    if (error instanceof Error && error.message === "Insufficient credits.") {
+    if (error instanceof Error && (error.message === "Insufficient credits." || error.message.includes("data error"))) {
       throw error;
     }
 
