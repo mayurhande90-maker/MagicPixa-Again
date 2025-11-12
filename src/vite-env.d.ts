@@ -1,5 +1,3 @@
-
-
 // FIX: Manually define ImportMeta and ImportMetaEnv to resolve TypeScript errors
 // related to `import.meta.env` not being found. This is a workaround for a
 // project configuration issue where "vite/client" types are not being resolved.
