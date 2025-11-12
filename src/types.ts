@@ -17,6 +17,7 @@ export interface User {
   email: string;
   avatar: string;
   credits: number;
+  totalCreditsAcquired?: number; // Add this optional field
   signUpDate?: { seconds: number; nanoseconds: number };
   plan?: string;
 }

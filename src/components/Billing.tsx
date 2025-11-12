@@ -245,9 +245,13 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
   };
   
-  // FIX: The credit meter now uses a dynamic maximum value based on the user's current credits
-  // instead of a hardcoded '100', providing a more intuitive progress bar.
-  const getMeterMax = (credits: number) => {
+  // This fallback creates a dynamic ceiling for the progress bar. It's used for older
+  // users who don't have the `totalCreditsAcquired` field yet.
+  const getMeterMaxFallback = (currentUser: User) => {
+    const credits = currentUser.credits;
+    if ((currentUser.plan === 'Free' || !currentUser.plan) && credits <= 10) {
+      return 10;
+    }
     if (credits <= 10) return 10;
     if (credits <= 50) return 50;
     if (credits <= 100) return 100;
@@ -255,8 +259,13 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     return Math.ceil(credits / magnitude) * magnitude;
   };
 
-  const maxCreditsForMeter = getMeterMax(user.credits);
-  const creditPercentage = Math.min((user.credits / maxCreditsForMeter) * 100, 100);
+  // Use the new `totalCreditsAcquired` field if it's valid, otherwise use the fallback.
+  // A valid value should be at least as large as the current number of credits.
+  const maxCreditsForMeter = (user.totalCreditsAcquired && user.totalCreditsAcquired >= user.credits)
+    ? user.totalCreditsAcquired
+    : getMeterMaxFallback(user);
+
+  const creditPercentage = maxCreditsForMeter > 0 ? Math.min((user.credits / maxCreditsForMeter) * 100, 100) : 0;
   const groupedTransactions = groupTransactionsByDate(transactions);
 
 
@@ -274,7 +283,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
             <div className="relative z-10">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="font-bold text-lg">Credit Overview</h3>
-                    {/* FIX: Add a fallback for the user's plan to display 'Free' if not explicitly set. */}
                     <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{user.plan || 'Free'} Plan</span>
                 </div>
                 <div>

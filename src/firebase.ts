@@ -117,12 +117,13 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       name: name || 'New User',
       email: email || 'No Email',
       credits: 10, // New user sign-up bonus
+      totalCreditsAcquired: 10, // Track total credits for progress bar
       plan: 'Free', // All users are on a pay-as-you-go model now
       signUpDate: serverTimestamp(),
     };
     await setDoc(userRef, newUserProfile);
     // Return the profile data
-    return { ...newUserProfile, credits: 10, plan: 'Free' };
+    return { ...newUserProfile, credits: 10, plan: 'Free', totalCreditsAcquired: 10 };
   }
 };
 
@@ -213,9 +214,10 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
     
     const userRef = doc(db, "users", uid);
     
-    // Atomically increment the user's credits.
+    // Atomically increment the user's current credits and total acquired credits.
     await setDoc(userRef, {
       credits: increment(creditsToAdd),
+      totalCreditsAcquired: increment(creditsToAdd),
     }, { merge: true });
   
     // Log the purchase as a transaction in a subcollection.

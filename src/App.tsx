@@ -55,6 +55,7 @@ const App: React.FC = () => {
             email: userProfile.email || firebaseUser.email || 'No Email',
             avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
             credits: userProfile.credits,
+            totalCreditsAcquired: userProfile.totalCreditsAcquired,
             signUpDate: userProfile.signUpDate,
             plan: userProfile.plan,
           };
