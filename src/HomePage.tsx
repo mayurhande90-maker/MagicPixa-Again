@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -19,6 +19,14 @@ const features = [
         title: "Magic Photo Studio",
         description: "Transform simple photos into professional, studio-quality product shots in one click.",
         color: "bg-blue-500",
+        disabled: false,
+    },
+    {
+        id: 'product_studio',
+        icon: <ProductStudioIcon className="w-10 h-10 text-white" />,
+        title: "Product Studio",
+        description: "Generate a complete, marketplace-ready product pack with scenes, mockups, and copy.",
+        color: "bg-green-500",
         disabled: false,
     },
     {
@@ -62,20 +70,20 @@ const features = [
         disabled: false,
     },
     {
-        id: null,
-        icon: <ScannerIcon className="w-10 h-10 text-white" />,
-        title: "Magic Scanner",
-        description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
-        color: "bg-sky-500",
-        disabled: true,
-    },
-    {
         id: 'mockup',
         icon: <MockupIcon className="w-10 h-10 text-white" />,
         title: "Magic Mockup",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",
         disabled: false,
+    },
+    {
+        id: null,
+        icon: <ScannerIcon className="w-10 h-10 text-white" />,
+        title: "Magic Scanner",
+        description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
+        color: "bg-sky-500",
+        disabled: true,
     },
     {
         id: null,

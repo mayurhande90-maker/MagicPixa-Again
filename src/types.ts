@@ -9,7 +9,7 @@ declare global {
 }
 
 export type Page = 'home' | 'dashboard';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'product_studio';
 
 export interface User {
   uid: string;

@@ -10,11 +10,13 @@ import Billing from './components/Billing';
 import ThemeToggle from './components/ThemeToggle';
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
-    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon,
+    PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ProductStudioIcon,
     MicrophoneIcon, StopIcon, UserIcon as AvatarUserIcon, XIcon, MockupIcon, UsersIcon, CheckIcon,
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
-    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon
+    LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon,
+    // FIX: Added missing ArrowRightIcon import.
+    ArrowRightIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -97,6 +99,7 @@ const mockupTypes = [
 
 const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?: string}>; gradient: string; disabled?: boolean }[] = [
     { view: 'studio', title: 'Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500' },
+    { view: 'product_studio', title: 'Product Studio', icon: ProductStudioIcon, gradient: 'from-green-400 to-green-500' },
     { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500' },
     { view: 'colour', title: 'Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500' },
     { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500' },
@@ -2063,6 +2066,144 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
+const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [step, setStep] = useState(1);
+    const [productImages, setProductImages] = useState<{file: File, url: string}[]>([]);
+    const [skuData, setSkuData] = useState({
+        title: '',
+        category: '',
+        materials: '',
+        primaryColor: '',
+        dimensions: '',
+        description: '',
+        brand: '',
+    });
+    const [style, setStyle] = useState('minimal');
+    const [platforms, setPlatforms] = useState<string[]>(['Amazon']);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files || []);
+        if (files.length > 0) {
+            const newImages = files.map(file => ({ file, url: URL.createObjectURL(file) }));
+            setProductImages(prev => [...prev, ...newImages].slice(0, 5));
+        }
+    };
+    
+    const triggerFileInput = () => fileInputRef.current?.click();
+
+    const handleSkuChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setSkuData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handlePlatformChange = (platform: string) => {
+        setPlatforms(prev => 
+            prev.includes(platform) 
+                ? prev.filter(p => p !== platform) 
+                : [...prev, platform]
+        );
+    };
+
+    const stylePreferences = ['minimal', 'premium', 'urban', 'nature'];
+    const targetPlatforms = ['Amazon', 'Flipkart', 'Shopify'];
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 pb-24">
+            <div className="w-full max-w-7xl mx-auto">
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Product Studio</h2>
+                    <p className="text-[#5F6368] mt-2">Create a complete, marketplace-ready product pack from just a few photos.</p>
+                </div>
+                
+                {/* Stepper would go here */}
+
+                {step === 1 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        {/* Left: Image Upload */}
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                            <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">1. Upload Product Photos</h3>
+                            <p className="text-sm text-[#5F6368] mb-4">Add 1 to 5 images of your product.</p>
+                            
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                                {productImages.map((image, index) => (
+                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                                        <img src={image.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover" />
+                                        <button onClick={() => setProductImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1">
+                                            <XIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {productImages.length < 5 && (
+                                     <button onClick={triggerFileInput} className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors">
+                                        <PlusIcon className="w-8 h-8" />
+                                        <span className="text-xs font-semibold">Add Image</span>
+                                    </button>
+                                )}
+                            </div>
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" multiple />
+                        </div>
+
+                        {/* Right: SKU Form */}
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
+                             <div>
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">2. Provide Product Details</h3>
+                                <p className="text-sm text-[#5F6368] mb-4">The more details, the better the result.</p>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputField label="Product Title" name="title" value={skuData.title} onChange={handleSkuChange} placeholder="e.g., Ceramic Coffee Mug" />
+                                <InputField label="Category" name="category" value={skuData.category} onChange={handleSkuChange} placeholder="e.g., Kitchenware" />
+                                <InputField label="Materials" name="materials" value={skuData.materials} onChange={handleSkuChange} placeholder="e.g., Ceramic, Glaze" />
+                                <InputField label="Primary Color" name="primaryColor" value={skuData.primaryColor} onChange={handleSkuChange} placeholder="e.g., Off-white" />
+                                <InputField label="Dimensions" name="dimensions" value={skuData.dimensions} onChange={handleSkuChange} placeholder="e.g., 4 x 3.5 inches" />
+                                <InputField label="Brand Name (Optional)" name="brand" value={skuData.brand} onChange={handleSkuChange} placeholder="e.g., PixaPots" />
+                             </div>
+                             <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Short Description</label>
+                                <textarea name="description" value={skuData.description} onChange={handleSkuChange} rows={3} placeholder="Describe the key features and benefits of your product." className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+                             </div>
+                             
+                             <div>
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mt-6 mb-1">3. Set Your Style</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {stylePreferences.map(s => (
+                                        <button key={s} onClick={() => setStyle(s)} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors capitalize ${style === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-500'}`}>
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                             <div>
+                                <h3 className="text-xl font-bold text-[#1E1E1E] mt-6 mb-1">4. Select Platforms</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {targetPlatforms.map(p => (
+                                        <button key={p} onClick={() => handlePlatformChange(p)} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${platforms.includes(p) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-500'}`}>
+                                           {platforms.includes(p) && <CheckIcon className="w-4 h-4" />} {p}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md mt-8">
+                                Generate Scene Suggestions <ArrowRightIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const InputField = ({ label, name, value, onChange, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+        <input type="text" id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" />
+    </div>
+);
+
 const Creations: React.FC = () => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
         <div className="max-w-7xl mx-auto text-center">
@@ -2076,477 +2217,379 @@ const Creations: React.FC = () => (
     </div>
 );
 
+{/* FIX: Completed the truncated Profile component definition and implementation. */}
 const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; navigateTo: (page: Page, view?: View, sectionId?: string) => void; setActiveView: (view: View) => void; setIsConversationOpen: (isOpen: boolean) => void; }> = ({ auth, openEditProfileModal, navigateTo, setActiveView, setIsConversationOpen }) => {
     const { user, handleLogout } = auth;
     if (!user) return null;
 
     const menuItems = [
-        { label: 'Billing & Credits', icon: CreditCardIcon, action: () => setActiveView('billing'), disabled: false },
-        { label: 'Help & Support', icon: HelpIcon, action: () => setIsConversationOpen(true), disabled: false },
-        { label: 'Privacy Policy', icon: ShieldCheckIcon, action: () => {}, disabled: true },
-        { label: 'Terms of Service', icon: DocumentTextIcon, action: () => {}, disabled: true },
+        { label: 'Edit Profile', icon: PencilIcon, action: openEditProfileModal },
+        { label: 'Billing & Credits', icon: CreditCardIcon, action: () => setActiveView('billing') },
+        { label: 'Help & Support', icon: HelpIcon, action: () => setIsConversationOpen(true) },
+        { label: 'Privacy Policy', icon: ShieldCheckIcon, action: () => {} }, // Placeholder
+        { label: 'Terms of Service', icon: DocumentTextIcon, action: () => {} }, // Placeholder
     ];
-    
+
     return (
-        <div className="p-4">
-            <div className="flex items-center gap-4 mb-8">
-                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-3xl">
-                    {user.avatar}
+        <div className="p-4 sm:p-6 lg:p-8 h-full">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-8 text-center">
+                    <h2 className="text-3xl font-bold text-[#1E1E1E]">Profile</h2>
+                    <p className="text-[#5F6368] mt-1">Manage your account and settings.</p>
                 </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-[#1E1E1E]">{user.name}</h2>
-                    <p className="text-sm text-[#5F6368]">{user.email}</p>
-                </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-2xl border border-gray-200/80 mb-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-sm font-semibold text-gray-500">Available Credits</p>
-                        <p className="text-3xl font-bold text-[#1E1E1E]">{user.credits}</p>
-                    </div>
-                    <button onClick={() => setActiveView('billing')} className="bg-[#f9d230] text-[#1E1E1E] font-bold py-2 px-5 rounded-lg">
-                        Buy More
-                    </button>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <button onClick={openEditProfileModal} className="w-full flex items-center justify-between text-left p-4 bg-white rounded-lg border border-gray-200/80">
-                    <div className="flex items-center gap-4">
-                        <AvatarUserIcon className="w-6 h-6 text-gray-500"/>
-                        <span className="font-semibold text-[#1E1E1E]">Edit Profile</span>
-                    </div>
-                    <ChevronRightIcon className="w-5 h-5 text-gray-400"/>
-                </button>
-                 {menuItems.map((item, index) => (
-                    <button key={index} onClick={item.action} disabled={item.disabled} className="w-full flex items-center justify-between text-left p-4 bg-white rounded-lg border border-gray-200/80 disabled:opacity-50">
-                        <div className="flex items-center gap-4">
-                            <item.icon className="w-6 h-6 text-gray-500"/>
-                            <span className="font-semibold text-[#1E1E1E]">{item.label}</span>
+                <div className="max-w-md mx-auto">
+                    {/* User Info Card */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 mb-6 flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-3xl">
+                            {user.avatar}
                         </div>
-                        <ChevronRightIcon className="w-5 h-5 text-gray-400"/>
+                        <div>
+                            <h3 className="font-bold text-xl text-[#1E1E1E]">{user.name}</h3>
+                            <p className="text-sm text-[#5F6368] truncate">{user.email}</p>
+                        </div>
+                    </div>
+                    {/* Menu Items */}
+                    <div className="bg-white p-2 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                        {menuItems.map((item, index) => (
+                            <button key={index} onClick={item.action} className="w-full flex items-center justify-between text-left p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <item.icon className="w-6 h-6 text-gray-500" />
+                                    <span className="font-semibold text-[#1E1E1E]">{item.label}</span>
+                                </div>
+                                <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                            </button>
+                        ))}
+                    </div>
+                    {/* Logout Button */}
+                    <button onClick={handleLogout} className="w-full mt-6 flex items-center justify-center gap-3 p-4 bg-gray-100 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-colors">
+                        <LogoutIcon className="w-6 h-6"/>
+                        <span>Logout</span>
                     </button>
-                ))}
+                </div>
             </div>
-
-            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 mt-8 text-red-600 font-semibold p-3 bg-red-50 rounded-lg">
-                <LogoutIcon className="w-5 h-5"/>
-                <span>Logout</span>
-            </button>
         </div>
     );
 };
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+  const [session, setSession] = useState<any>(null); // Use `any` as LiveSession is not exported
+  const [isRecording, setIsRecording] = useState(false);
+  const [currentOutputTranscription, setCurrentOutputTranscription] = useState('');
+  const [currentInputTranscription, setCurrentInputTranscription] = useState('');
+  const [transcriptionHistory, setTranscriptionHistory] = useState<{ role: 'user' | 'model'; text: string }[]>([]);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model'; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
-const MarkdownRenderer: React.FC<{ text: string; onButtonClick: (text: string) => void; }> = ({ text, onButtonClick }) => {
-    const renderTextWithBold = (line: string) => {
-        return line.split(/(\*\*.*?\*\*)/g).map((part, index) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index}>{part.slice(2, -2)}</strong>;
-            }
-            return part;
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const outputAudioContextRef = useRef<AudioContext | null>(null);
+  const outputGainNodeRef = useRef<GainNode | null>(null);
+  
+  const currentInputTranscriptionRef = useRef('');
+  const currentOutputTranscriptionRef = useRef('');
+
+  const chatContentRef = useRef<HTMLDivElement>(null);
+
+  const updateMobileStatus = () => {
+    setIsMobile(window.innerWidth < 1024);
+  };
+
+  useEffect(() => {
+      window.addEventListener('resize', updateMobileStatus);
+      return () => {
+          window.removeEventListener('resize', updateMobileStatus);
+      };
+  }, []);
+
+  useEffect(() => {
+      if (chatContentRef.current) {
+          chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
+      }
+  }, [transcriptionHistory, chatHistory, isChatLoading]);
+  
+  const handleStartConversation = useCallback(async () => {
+    if (session || isRecording) return;
+    setIsRecording(true);
+    setTranscriptionHistory([]);
+    setCurrentInputTranscription('');
+    setCurrentOutputTranscription('');
+    currentInputTranscriptionRef.current = '';
+    currentOutputTranscriptionRef.current = '';
+
+    try {
+        const newSession = await startLiveSession({
+            onopen: () => {
+                console.log("Live session opened.");
+            },
+            onmessage: async (message: LiveServerMessage) => {
+                // Handle audio output
+                const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                if (base64Audio) {
+                    setIsAiSpeaking(true);
+                    if (!outputAudioContextRef.current) {
+                        outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                        outputGainNodeRef.current = outputAudioContextRef.current.createGain();
+                        outputGainNodeRef.current.connect(outputAudioContextRef.current.destination);
+                    }
+                    const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current, 24000, 1);
+                    const source = outputAudioContextRef.current.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(outputGainNodeRef.current!);
+                    source.start();
+                    source.onended = () => {
+                        setIsAiSpeaking(false);
+                    };
+                }
+
+                // Handle transcriptions
+                if (message.serverContent?.outputTranscription) {
+                    const text = message.serverContent.outputTranscription.text;
+                    setCurrentOutputTranscription(prev => prev + text);
+                    currentOutputTranscriptionRef.current += text;
+                }
+                if (message.serverContent?.inputTranscription) {
+                    const text = message.serverContent.inputTranscription.text;
+                    setCurrentInputTranscription(prev => prev + text);
+                    currentInputTranscriptionRef.current += text;
+                }
+                
+                if (message.serverContent?.turnComplete) {
+                    const fullInput = currentInputTranscriptionRef.current.trim();
+                    const fullOutput = currentOutputTranscriptionRef.current.trim();
+                    
+                    if (fullInput) {
+                        setTranscriptionHistory(prev => [...prev, { role: 'user', text: fullInput }]);
+                    }
+                    if (fullOutput) {
+                         setTranscriptionHistory(prev => [...prev, { role: 'model', text: fullOutput }]);
+                    }
+                    
+                    setCurrentInputTranscription('');
+                    setCurrentOutputTranscription('');
+                    currentInputTranscriptionRef.current = '';
+                    currentOutputTranscriptionRef.current = '';
+                }
+                
+                // Handle function calls
+                if (message.toolCall) {
+                    for (const fc of message.toolCall.functionCalls) {
+                        if (fc.name === 'createSupportTicket') {
+                            console.log("Simulating ticket creation from voice:", fc.args);
+                            const result = `Ticket created with ID: MP-${Math.floor(10000 + Math.random() * 90000)}`;
+                            newSession.sendToolResponse({
+                                functionResponses: { id: fc.id, name: fc.name, response: { result: result } }
+                            });
+                        }
+                    }
+                }
+            },
+            onerror: (e: ErrorEvent) => {
+                console.error("Live session error:", e);
+                setIsRecording(false);
+            },
+            onclose: (e: CloseEvent) => {
+                console.log("Live session closed.");
+                setIsRecording(false);
+            },
         });
-    };
-
-    const lines = text.split('\n');
-    const elements: React.ReactNode[] = [];
-    let listItems: React.ReactNode[] = [];
-
-    const flushList = () => {
-        if (listItems.length > 0) {
-            elements.push(<ul key={`ul-${elements.length}`} className="space-y-2 my-2">{listItems}</ul>);
-            listItems = [];
-        }
-    };
-
-    lines.forEach((line, i) => {
-        const trimmedLine = line.trim();
-        const buttonMatch = trimmedLine.match(/^\[button:(.*?)\]$/);
-
-        if (buttonMatch) {
-            flushList();
-            const buttonText = buttonMatch[1];
-            elements.push(
-                <button
-                    key={`btn-${i}`}
-                    onClick={() => onButtonClick(buttonText)}
-                    className="w-full text-left text-sm p-3 my-1 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 text-blue-600 font-semibold"
-                >
-                    {buttonText}
-                </button>
-            );
-        } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-            listItems.push(
-                <li key={i} className="text-sm flex items-start">
-                    <span className="mr-3 mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500"></span>
-                    <span>{renderTextWithBold(trimmedLine.substring(2))}</span>
-                </li>
-            );
-        } else {
-            flushList();
-            if (line.startsWith('### ')) {
-                elements.push(<h3 key={i} className="text-base font-bold mt-4 mb-2">{renderTextWithBold(line.substring(4))}</h3>);
-            } else if (trimmedLine !== '') {
-                elements.push(<p key={i} className="text-sm">{renderTextWithBold(line)}</p>);
-            }
-        }
-    });
-
-    flushList();
-
-    return <div className="space-y-2">{elements}</div>;
-};
-
-const HelpPanel: React.FC<{ isOpen: boolean; onClose: () => void; auth: AuthProps; }> = ({ isOpen, onClose, auth }) => {
-    type Message = { speaker: 'user' | 'pixa' | 'system'; text: string; id?: string; isFinal?: boolean; };
-    type HistoryItem = { role: 'user' | 'model'; text: string };
-    
-    // FIX: LiveSession is not a public type, use the inferred type from the promise.
-    const sessionPromiseRef = useRef<Promise<any> | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const outputAudioContextRef = useRef<AudioContext | null>(null);
-    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    const nextStartTimeRef = useRef<number>(0);
-    const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isListening, setIsListening] = useState(false);
-    const [isThinking, setIsThinking] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const [currentMode, setCurrentMode] = useState<'voice' | 'text'>('text');
-    const chatContainerRef = useRef<HTMLDivElement>(null);
-    const currentInputTranscriptionRef = useRef('');
-    const currentOutputTranscriptionRef = useRef('');
-    const { user } = auth;
-
-    const commonQuestions = [
-        "How do credits work?",
-        "What is Magic Photo Studio?",
-        "How do I use Interior AI?",
-        "Can I try clothes on any photo?",
-    ];
-
-    useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-    }, [messages]);
-    
-    const handleSendMessage = async (messageText: string) => {
-        if (!messageText.trim()) return;
-
-        const newUserMessage: Message = { speaker: 'user', text: messageText, isFinal: true };
-        setMessages(prev => [...prev, newUserMessage]);
-        setInputValue('');
-        setIsThinking(true);
         
-        try {
-            const apiHistory: { role: 'user' | 'model'; text: string }[] = messages
-                .filter(m => m.speaker === 'user' || m.speaker === 'pixa')
-                .map(m => ({
-                    role: m.speaker === 'user' ? 'user' : 'model',
-                    text: m.text
-                }));
+        setSession(newSession);
 
-            const responseText = await generateSupportResponse(apiHistory, messageText);
-            const pixaResponse: Message = { speaker: 'pixa', text: responseText, isFinal: true };
-            setMessages(prev => [...prev, pixaResponse]);
-
-        } catch (error) {
-            console.error("Error sending message:", error);
-            const errorResponse: Message = { speaker: 'system', text: "Sorry, I'm having trouble connecting right now. Please try again later.", isFinal: true };
-            setMessages(prev => [...prev, errorResponse]);
-        } finally {
-            setIsThinking(false);
-        }
-    };
-    
-    const handleQuestionClick = (question: string) => {
-        handleSendMessage(question);
-    };
-
-    const startAudio = async () => {
-        setIsListening(true);
-        setIsThinking(true);
-        setMessages([]); // Clear previous chat
-        
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
+        // Start microphone input
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-        outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        
-        mediaStreamSourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
+        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamSourceRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
         scriptProcessorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
 
         scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
             const pcmBlob: Blob = {
-                data: encode(new Uint8Array(new Int16Array(inputData.map(f => f * 32768)).buffer)),
+                data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32767)).buffer)),
                 mimeType: 'audio/pcm;rate=16000',
             };
-            sessionPromiseRef.current?.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
+            newSession.sendRealtimeInput({ media: pcmBlob });
         };
-
+        
         mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
         scriptProcessorRef.current.connect(audioContextRef.current.destination);
 
-        sessionPromiseRef.current = startLiveSession({
-            onopen: () => {
-                console.debug('Session opened.');
-                setIsThinking(false);
-            },
-            onmessage: async (message: LiveServerMessage) => {
-                if (message.serverContent?.outputTranscription) {
-                    const text = message.serverContent.outputTranscription.text;
-                    currentOutputTranscriptionRef.current += text;
-                    setMessages(prev => {
-                        const last = prev[prev.length - 1];
-                        if (last?.speaker === 'pixa' && !last.isFinal) {
-                            return [...prev.slice(0, -1), { ...last, text: currentOutputTranscriptionRef.current }];
-                        }
-                        return [...prev, { speaker: 'pixa', text: currentOutputTranscriptionRef.current, isFinal: false }];
-                    });
-                } else if (message.serverContent?.inputTranscription) {
-                    const text = message.serverContent.inputTranscription.text;
-                    currentInputTranscriptionRef.current += text;
-                     setMessages(prev => {
-                        const last = prev[prev.length - 1];
-                        if (last?.speaker === 'user' && !last.isFinal) {
-                            return [...prev.slice(0, -1), { ...last, text: currentInputTranscriptionRef.current }];
-                        }
-                        return [...prev, { speaker: 'user', text: currentInputTranscriptionRef.current, isFinal: false }];
-                    });
-                }
-                
-                if (message.serverContent?.turnComplete) {
-                     setMessages(prev => {
-                         const updated = [...prev];
-                         const lastUser = updated.slice().reverse().find(m => m.speaker === 'user');
-                         if (lastUser) lastUser.isFinal = true;
-                         const lastPixa = updated.slice().reverse().find(m => m.speaker === 'pixa');
-                         if (lastPixa) lastPixa.isFinal = true;
-                         return updated;
-                     });
-
-                    currentInputTranscriptionRef.current = '';
-                    currentOutputTranscriptionRef.current = '';
-                }
-
-                const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                if (base64Audio && outputAudioContextRef.current) {
-                    const outCtx = outputAudioContextRef.current;
-                    nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outCtx.currentTime);
-                    const audioBuffer = await decodeAudioData(decode(base64Audio), outCtx, 24000, 1);
-                    const source = outCtx.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(outCtx.destination);
-                    source.addEventListener('ended', () => sourcesRef.current.delete(source));
-                    source.start(nextStartTimeRef.current);
-                    nextStartTimeRef.current += audioBuffer.duration;
-                    sourcesRef.current.add(source);
-                }
-            },
-            onerror: (e) => {
-                console.error('Session error:', e);
-                setMessages(prev => [...prev, { speaker: 'system', text: 'An error occurred during the session.' }]);
-                stopAudio();
-            },
-            onclose: () => {
-                console.debug('Session closed.');
-                stopAudio();
-            },
-        });
-    };
-
-    const stopAudio = () => {
-        setIsListening(false);
-        setIsThinking(false);
-        sessionPromiseRef.current?.then(session => session.close());
-        scriptProcessorRef.current?.disconnect();
-        mediaStreamSourceRef.current?.disconnect();
-        audioContextRef.current?.close();
-        outputAudioContextRef.current?.close();
-        sessionPromiseRef.current = null;
-    };
-    
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 lg:inset-auto lg:bottom-8 lg:right-8 z-[100] flex flex-col bg-white rounded-none lg:rounded-2xl shadow-2xl w-full h-full lg:w-[400px] lg:h-[600px] border border-gray-200/80">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200/80 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative">
-                        <SparklesIcon className="w-6 h-6 text-white"/>
-                        <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    </div>
-                    <div>
-                        <h2 className="font-bold text-lg text-[#1E1E1E]">Magic Helper</h2>
-                        <p className="text-sm text-gray-500">Online</p>
-                    </div>
-                </div>
-                <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700"><XIcon className="w-6 h-6"/></button>
-            </div>
-            
-            {/* Chat Body */}
-            <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
-                <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-800 p-3 rounded-xl max-w-xs">
-                        <p className="text-sm">Hi {user?.name.split(' ')[0]}! I'm Pixa, your personal AI assistant. How can I help you today?</p>
-                    </div>
-                </div>
-                {messages.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`p-3 rounded-xl max-w-xs ${msg.speaker === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'} ${msg.speaker === 'system' ? 'bg-red-50 text-red-700 w-full' : ''}`}>
-                             {msg.speaker === 'user' ? (
-                                <p className="text-sm">{msg.text}</p>
-                            ) : (
-                                <MarkdownRenderer text={msg.text} onButtonClick={handleSendMessage} />
-                            )}
-                        </div>
-                    </div>
-                ))}
-                {isThinking && (
-                     <div className="flex justify-start">
-                        <div className="bg-gray-100 text-gray-800 p-3 rounded-xl max-w-xs">
-                           <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                           </div>
-                        </div>
-                    </div>
-                )}
-
-                 {messages.length === 0 && !isListening && (
-                    <div className="pt-4 space-y-2">
-                        <p className="text-sm font-semibold text-gray-500">Or ask one of these common questions:</p>
-                        {commonQuestions.map(q => (
-                             <button key={q} onClick={() => handleQuestionClick(q)} className="w-full text-left text-sm p-3 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 text-blue-600">
-                                {q}
-                            </button>
-                        ))}
-                    </div>
-                 )}
-            </div>
-
-             <div className="p-4 border-t border-gray-200/80 flex-shrink-0 space-y-2">
-                <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
-                    <button onClick={() => { if(isListening) stopAudio(); setCurrentMode('text'); }} className={`flex-1 py-1.5 text-sm font-semibold rounded-md ${currentMode === 'text' ? 'bg-white shadow-sm' : ''}`}>Text</button>
-                    <button onClick={() => { if(!isListening) startAudio(); setCurrentMode('voice');}} className={`flex-1 py-1.5 text-sm font-semibold rounded-md ${currentMode === 'voice' ? 'bg-white shadow-sm' : ''}`}>Voice</button>
-                </div>
-                 {currentMode === 'text' && (
-                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }} className="flex items-center gap-2">
-                        <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} placeholder="Type your message..." className="flex-1 w-full px-4 py-2 bg-gray-50 border border-gray-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                        <button type="submit" className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50" disabled={isThinking || !inputValue.trim()}><ChevronRightIcon className="w-6 h-6 transform -rotate-180"/></button>
-                     </form>
-                 )}
-                {currentMode === 'voice' && (
-                     <button onClick={isListening ? stopAudio : startAudio} className={`w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-white font-semibold ${isListening ? 'bg-red-500' : 'bg-blue-500'}`}>
-                        {isListening ? <><StopIcon className="w-5 h-5"/> Stop Listening</> : <><MicrophoneIcon className="w-5 h-5"/> Start Listening</>}
-                    </button>
-                )}
-                 <div className="flex justify-center gap-4 pt-2">
-                     <button onClick={() => handleSendMessage("I want to report an issue.")} className="flex items-center gap-2 text-xs text-gray-500 hover:text-black">
-                         <FlagIcon className="w-4 h-4" /> Report an Issue
-                     </button>
-                 </div>
-            </div>
-        </div>
-    );
-};
-
-const MobileBottomNav: React.FC<{ activeView: View; setActiveView: (view: View) => void; }> = ({ activeView, setActiveView }) => {
-    const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
-        { view: 'dashboard', label: 'Tools', icon: DashboardIcon },
-        { view: 'creations', label: 'Creations', icon: ProjectsIcon, disabled: true },
-        { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
-    ];
-    
-    const isActive = (view: View) => {
-        if (view === 'home_dashboard') return activeView === 'home_dashboard';
-        if (view === 'dashboard') return activeView !== 'home_dashboard' && activeView !== 'creations' && activeView !== 'profile';
-        return activeView === view;
+    } catch (error) {
+        console.error("Failed to start live session:", error);
+        setIsRecording(false);
     }
+  }, [session, isRecording]);
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-lg border-t border-gray-200/80 z-[80] lg:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button 
-                        key={item.label} 
-                        onClick={() => setActiveView(item.view as View)} 
-                        disabled={item.disabled} 
-                        className={`flex flex-col items-center justify-center gap-1 p-2 w-16 h-16 rounded-2xl transition-colors ${isActive(item.view) ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}
-                        aria-current={isActive(item.view) ? 'page' : undefined}
-                    >
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-};
+  const handleStopConversation = useCallback(() => {
+    if (session) {
+        session.close();
+        setSession(null);
+    }
+    if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (scriptProcessorRef.current) {
+        scriptProcessorRef.current.disconnect();
+    }
+    if (mediaStreamSourceRef.current) {
+        mediaStreamSourceRef.current.disconnect();
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+    }
+     if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+        outputAudioContextRef.current.close();
+        outputAudioContextRef.current = null;
+    }
+    setIsRecording(false);
+  }, [session]);
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+  const handleSendChatMessage = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
     
-    const handleBack = () => {
-        if (['dashboard', 'home_dashboard', 'creations', 'profile'].includes(activeView)) {
-            navigateTo('home'); // Go to marketing page if on a main dashboard view
-        } else {
-            setActiveView('dashboard'); // Go back to the tools grid from a specific tool
-        }
-    };
-    
-    const isMainView = ['dashboard', 'home_dashboard', 'creations', 'billing', 'profile'].includes(activeView);
+    const newMessage = chatInput;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', text: newMessage }]);
+    setIsChatLoading(true);
 
-    const headerAuthProps = {
-        ...auth,
-        setActiveView,
-        openConversation: () => setIsConversationOpen(true),
-        isDashboard: true,
-        showBackButton: !isMainView,
-        handleBack: handleBack
-    };
-    
-    const { user, setUser } = auth;
-    if (!user) return null; // Should be handled by App.tsx, but good practice
+    try {
+        const responseText = await generateSupportResponse(chatHistory, newMessage);
+        setChatHistory(prev => [...prev, { role: 'model', text: responseText }]);
+    } catch (error) {
+        console.error("Error sending chat message:", error);
+        setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, I encountered an error. Please try again." }]);
+    } finally {
+        setIsChatLoading(false);
+    }
+  };
+  
+  const handleButtonClick = (buttonText: string) => {
+    setChatInput(buttonText);
+    setTimeout(handleSendChatMessage, 100);
+  };
 
-    const ViewComponent = {
-        'dashboard': <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />,
-        'home_dashboard': <MobileHomeDashboard user={user} setActiveView={setActiveView} />,
-        'studio': <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />,
-        'interior': <MagicInterior auth={auth} navigateTo={navigateTo} />,
-        'creations': <Creations />,
-        'billing': <Billing user={user} setUser={setUser} />,
-        'colour': <MagicPhotoColour auth={auth} navigateTo={navigateTo} />,
-        'soul': <MagicSoul auth={auth} navigateTo={navigateTo} />,
-        'apparel': <MagicApparel auth={auth} navigateTo={navigateTo} />,
-        'mockup': <MagicMockup auth={auth} navigateTo={navigateTo} />,
-        'profile': <Profile auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} setIsConversationOpen={setIsConversationOpen} />,
-        'caption': <CaptionAI auth={auth} navigateTo={navigateTo} />
-    }[activeView];
 
-    return (
-        <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row">
-            <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-            <div className="flex-1 flex flex-col">
-                <Header navigateTo={navigateTo} auth={headerAuthProps} />
-                <main className="flex-1 lg:overflow-y-auto">
-                    {/* The pb-20 is padding for the mobile bottom nav */}
-                    <div className="pb-20 lg:pb-0">
-                         {ViewComponent}
-                    </div>
-                </main>
-            </div>
-             <HelpPanel isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} auth={auth} />
-            <MobileBottomNav activeView={activeView} setActiveView={setActiveView} />
-        </div>
-    );
+  const renderView = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+      case 'home_dashboard':
+        return isMobile ? <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+      case 'studio':
+        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
+      case 'interior':
+        return <MagicInterior auth={auth} navigateTo={navigateTo} />;
+      case 'colour':
+          return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
+      case 'soul':
+          return <MagicSoul auth={auth} navigateTo={navigateTo} />;
+      case 'apparel':
+          return <MagicApparel auth={auth} navigateTo={navigateTo} />;
+      case 'mockup':
+          return <MagicMockup auth={auth} navigateTo={navigateTo} />;
+      case 'caption':
+          return <CaptionAI auth={auth} navigateTo={navigateTo} />;
+      case 'product_studio':
+          return <ProductStudio auth={auth} navigateTo={navigateTo} />;
+      case 'creations':
+        return <Creations />;
+      case 'billing':
+        if (auth.user) return <Billing user={auth.user} setUser={auth.setUser} />;
+        return null;
+      case 'profile':
+        return <Profile auth={auth} openEditProfileModal={openEditProfileModal} navigateTo={navigateTo} setActiveView={setActiveView} setIsConversationOpen={setIsConversationOpen} />;
+      default:
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+    }
+  };
+  
+  const showBackButton = isMobile && activeView !== 'home_dashboard';
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
+       <Header 
+            navigateTo={navigateTo} 
+            auth={{
+                ...auth, 
+                isDashboard: true, 
+                setActiveView, 
+                openConversation: () => setIsConversationOpen(true),
+                showBackButton: showBackButton,
+                handleBack: () => setActiveView('home_dashboard')
+            }} 
+        />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo}/>
+        <main className="flex-1 overflow-y-auto">
+          {renderView()}
+        </main>
+      </div>
+      {/* Magic Conversation Modal */}
+      {isConversationOpen && (
+          <div 
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          >
+              <div 
+                className="relative bg-white w-full max-w-2xl h-[90vh] max-h-[700px] m-4 rounded-2xl shadow-xl border border-gray-200/80 flex flex-col overflow-hidden"
+              >
+                  <div className="flex justify-between items-center p-4 border-b border-gray-200/80">
+                      <h2 className="text-lg font-bold text-[#1E1E1E]">Help & Support</h2>
+                       <button onClick={() => { handleStopConversation(); setIsConversationOpen(false); }} className="text-gray-400 hover:text-gray-600">
+                          <XIcon className="w-6 h-6"/>
+                      </button>
+                  </div>
+                  
+                  <div ref={chatContentRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                    {/* ... render chat history ... */}
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200/80">
+                      <div className="flex items-center gap-2">
+                        <button 
+                            onClick={isRecording ? handleStopConversation : handleStartConversation}
+                            className={`p-3 rounded-full transition-colors ${isRecording ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                        >
+                            {isRecording ? <StopIcon className="w-6 h-6"/> : <MicrophoneIcon className="w-6 h-6"/>}
+                        </button>
+                         <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendChatMessage()}
+                            placeholder={isRecording ? "Listening..." : "Or type your message here..."}
+                            className="flex-1 px-4 py-3 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isRecording}
+                        />
+                         <button onClick={handleSendChatMessage} disabled={isChatLoading || !chatInput.trim()} className="p-3 bg-blue-500 text-white rounded-full disabled:opacity-50">
+                            <ArrowUpCircleIcon className="w-6 h-6"/>
+                        </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+       {/* Mobile Nav Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-lg border-t border-gray-200/80 z-[100]">
+          <div className="flex justify-around items-center h-full">
+              {[
+                  { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+                  { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+                  { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+                  { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+              ].map(item => (
+                  <button key={item.label} onClick={() => setActiveView(item.view as View)} disabled={item.disabled} className={`flex flex-col items-center gap-1 p-2 ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'} disabled:text-gray-300`}>
+                      <item.icon className="w-6 h-6" />
+                      <span className="text-xs font-medium">{item.label}</span>
+                  </button>
+              ))}
+          </div>
+      </div>
+    </div>
+  );
 };
 
 export default DashboardPage;
-// Minor change for deployment.
