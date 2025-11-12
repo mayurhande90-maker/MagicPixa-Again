@@ -25,7 +25,7 @@ const features = [
         id: 'product_studio',
         icon: <ProductStudioIcon className="w-10 h-10 text-white" />,
         title: "Product Studio",
-        description: "Generate a complete, marketplace-ready product pack with scenes, mockups, and copy.",
+        description: "Automatically create a full product pack from just a photo and product name.",
         color: "bg-green-500",
         disabled: false,
     },

@@ -5,6 +5,7 @@ MagicPixa is a modern web application that leverages the power of Google's Gemin
 ## ✨ Features
 
 - **Magic Photo Studio**: Create professional, studio-quality product shots from simple photos.
+- **Product Studio**: Automatically generate a complete, marketplace-ready product pack including hero shots, lifestyle mockups, and SEO-optimized text from just a product photo.
 - **Magic Interior**: Redesign any room by uploading a photo and choosing a style.
 - **Magic Photo Colour**: Colourize and restore old black and white photos.
 - **Magic Soul**: Combine two people into a single, hyper-realistic photo in a chosen theme.

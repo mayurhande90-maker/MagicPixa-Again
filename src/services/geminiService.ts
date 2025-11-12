@@ -2,6 +2,7 @@
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
+import { Base64File } from "./utils/imageUtils";
 
 let ai: GoogleGenAI | null = null;
 
@@ -35,7 +36,7 @@ This is a strict, multi-step process that you only begin when explicitly asked t
 4.  After the user selects a category (their next message will be the category name), your next response MUST be to ask them for a detailed description of the problem.
 5.  Only after you have received both the 'issueType' (from the button selection) and the 'description' (from their text input), you MUST call the 'createSupportTicket' function.
 
-Do not deviate from this flow. Do not ask for the description and category at the same time. For all other conversations, be a helpful, conversational assistant.`;
+Do not deviate from this flow. For all other conversations, be a helpful, conversational assistant.`;
 
 const createSupportTicket: FunctionDeclaration = {
     name: 'createSupportTicket',
@@ -736,6 +737,151 @@ DESIGN INSTRUCTIONS:
             throw new Error(`Failed to generate image: ${error.message}`);
         }
         throw new Error("An unknown error occurred while communicating with the image generation service.");
+    }
+};
+
+const productPackSchema = {
+    type: Type.OBJECT,
+    properties: {
+      productAnalysis: {
+        type: Type.OBJECT,
+        properties: {
+          category: { type: Type.STRING, description: "e.g., Apparel, Kitchenware, Electronics" },
+          materials: { type: Type.STRING, description: "e.g., Cotton, Ceramic, Brushed Aluminum" },
+          primaryColorHex: { type: Type.STRING, description: "e.g., #FFFFFF" },
+          inferredUseCase: { type: Type.STRING, description: "e.g., Casual wear, Morning coffee, Professional photography" },
+        },
+      },
+      textAssets: {
+        type: Type.OBJECT,
+        properties: {
+          seoTitle: { type: Type.STRING, description: "Optimized title for search engines using product name and key attributes." },
+          altText: { type: Type.STRING, description: "Descriptive alt-text for the primary hero image for accessibility and SEO." },
+          captions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                length: { type: Type.STRING, description: "'short', 'medium', or 'long'" },
+                text: { type: Type.STRING, description: "A social media or ad copy caption." },
+              },
+            },
+          },
+          keywords: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list of relevant keywords for SEO and tagging."
+          },
+        },
+      },
+      imageGenerationPrompts: {
+        type: Type.OBJECT,
+        properties: {
+          heroImage: { type: Type.STRING, description: "A detailed prompt for a text-to-image model to generate a professional hero image on a neutral, subtly textured background. It must include instructions to preserve product fidelity and match original lighting." },
+          whiteBackgroundImage: { type: Type.STRING, description: "A prompt to generate the product on a pure #FFFFFF white background with soft, natural shadows. Must be compliant with Amazon/Flipkart main image rules." },
+          lifestyleScene1: { type: Type.STRING, description: "A detailed prompt for the first lifestyle scene. Describe a realistic environment, props, lighting, and mood that are contextually relevant to the product." },
+          lifestyleScene2: { type: Type.STRING, description: "A detailed prompt for a second, different lifestyle scene." },
+          infographicImage: { type: Type.STRING, description: "A prompt to generate an image with clear space for text overlays, focusing on a key feature. e.g., 'A close-up macro shot of the product's stitching, with empty space to the right.'" },
+        },
+      },
+    },
+};
+
+export const generateProductPackPlan = async (
+    images: Base64File[],
+    productName: string
+): Promise<any> => {
+    if (!ai) throw new Error("API key is not configured.");
+
+    const imageParts = images.map(img => ({
+        inlineData: { data: img.base64, mimeType: img.mimeType },
+    }));
+
+    const prompt = `You are an expert e-commerce content strategist and creative director. Your task is to create a complete, marketplace-ready product pack plan from the provided image(s) and product name. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
+
+**USER INPUT:**
+- Product Name/Brand: "${productName}"
+- Product Images are attached.
+
+**YOUR TASK:**
+1.  **Analyze Product:** Meticulously analyze the provided image(s) to identify the product's category, materials, primary color, and inferred use case. Also analyze the lighting of the original photo (e.g., 'soft indoor lighting', 'bright outdoor sunlight').
+2.  **Devise Creative Direction:** Based on the analysis, devise a professional creative direction. Choose two distinct, contextually relevant lifestyle scenes.
+3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets.
+4.  **Formulate Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model. These prompts MUST instruct the AI to maintain the original product's appearance with perfect fidelity.
+
+**OUTPUT:**
+Your final output MUST be a single, valid JSON object following the provided schema. Do not add any text before or after the JSON object.`;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [...imageParts, { text: prompt }] },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: productPackSchema,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        if (!jsonText) {
+            throw new Error("The model did not return a valid plan.");
+        }
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error generating Product Pack Plan:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to generate plan: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while generating the product pack plan.");
+    }
+};
+
+export const generateStyledImage = async (
+    referenceImages: Base64File[],
+    prompt: string
+  ): Promise<string> => {
+    if (!ai) {
+      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+    
+    try {
+      const parts = [
+        ...referenceImages.map(img => ({
+          inlineData: {
+            data: img.base64,
+            mimeType: img.mimeType,
+          },
+        })),
+        { text: prompt },
+      ];
+  
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts },
+        config: {
+          responseModalities: [Modality.IMAGE],
+        },
+      });
+  
+      if (response.promptFeedback?.blockReason) {
+          throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different prompt or image.`);
+      }
+  
+      const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+  
+      if (imagePart?.inlineData?.data) {
+          return imagePart.inlineData.data;
+      }
+      
+      console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
+      throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
+  
+    } catch (error) {
+      console.error("Error generating styled image with Gemini:", error);
+      if (error instanceof Error) {
+          throw new Error(`Failed to generate image: ${error.message}`);
+      }
+      throw new Error("An unknown error occurred while communicating with the image generation service.");
     }
 };
 // Minor change to allow commit.
