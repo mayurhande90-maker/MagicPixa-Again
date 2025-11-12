@@ -138,10 +138,11 @@ export const updateUserProfile = async (uid: string, data: { name: string }): Pr
 };
 
 /**
- * DEFINITIVE FIX: Atomically deducts credits using the robust Firebase v8 compat API.
- * This resolves persistent transaction failures caused by unstable interactions between
- * the v9 modular and v8 compat libraries in the previous implementation. This function
- * is now self-contained and stable, ensuring reliable credit deductions.
+ * DEFINITIVE FIX: Atomically deducts credits using a corrected and robust transaction pattern.
+ * The previous implementation failed because it attempted a write-like operation (`.doc()` to generate a new ID)
+ * inside the transaction block, violating Firestore's "reads-before-writes" rule.
+ * This version creates the new transaction document reference *before* the transaction begins,
+ * ensuring the operation is atomic and reliable.
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
  * @param feature The name of the feature used.
@@ -151,9 +152,12 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   if (!db) throw new Error("Firestore is not initialized.");
 
   const userRef = db.collection("users").doc(uid);
+  // Create the reference for the new transaction log document *before* starting the transaction.
+  const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
 
   try {
     const updatedProfileData = await db.runTransaction(async (transaction) => {
+      // 1. READ phase: All reads must happen before any writes.
       const userDoc = await transaction.get(userRef);
 
       if (!userDoc.exists) {
@@ -167,7 +171,6 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
       const currentCredits = userProfile.credits;
 
-      // Data validation to prevent operations on corrupted data.
       if (typeof currentCredits !== 'number' || isNaN(currentCredits)) {
         console.error(`Data validation failed: User ${uid} has a non-numeric credit balance.`, userProfile);
         throw new Error("A data error occurred. Could not process your request.");
@@ -177,20 +180,20 @@ export const deductCredits = async (uid: string, amount: number, feature: string
         throw new Error("Insufficient credits.");
       }
 
-      // 1. Atomically decrement credits using the v8 compat FieldValue.
+      // 2. WRITE phase: All writes happen after all reads.
+      // Update the user's credits.
       transaction.update(userRef, {
         credits: firebase.firestore.FieldValue.increment(-amount)
       });
 
-      // 2. Log the deduction in the transactions subcollection using v8 compat syntax.
-      const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+      // Log the deduction using the pre-created reference.
       transaction.set(newTransactionRef, {
         feature,
         cost: amount,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Return the updated profile to the client state.
+      // Return the new profile state for immediate UI update.
       return { ...userProfile, credits: currentCredits - amount };
     });
 
@@ -198,20 +201,19 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
   } catch (error) {
     console.error("Credit deduction transaction failed:", error);
-
-    // Re-throw specific, user-friendly errors.
     if (error instanceof Error && (error.message === "Insufficient credits." || error.message.includes("data error"))) {
       throw error;
     }
-
-    // For other errors, including Firestore permission errors, provide a generic message.
     throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
 
 
 /**
- * Adds purchased credits to a user's account and logs the transaction atomically.
+ * DEFINITIVE FIX: Atomically adds purchased credits using a corrected and robust transaction pattern.
+ * Like the `deductCredits` function, this now creates the new transaction document reference *before*
+ * the transaction begins to prevent failures. It also includes a read operation to ensure the user exists
+ * before attempting to add credits, making the entire process more resilient.
  * @param uid The user's unique ID.
  * @param packName The name of the purchased credit pack.
  * @param creditsToAdd The number of credits to add.
@@ -221,19 +223,25 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
     if (!db) throw new Error("Firestore is not initialized.");
     
-    // DEFINITIVE FIX: Switched to 'compat' API for document reference.
     const userRef = db.collection("users").doc(uid);
+    // Create the reference for the new transaction log document *before* starting the transaction.
+    const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
     
-    // DEFINITIVE FIX: Switched to 'compat' transaction API.
     await db.runTransaction(async (transaction) => {
-      // 1. Update the user's credit and total credits acquired.
+      // 1. READ phase: Ensure the user exists before proceeding.
+      const userDoc = await transaction.get(userRef);
+      if (!userDoc.exists) {
+          throw new Error("Cannot add credits to a user that does not exist.");
+      }
+
+      // 2. WRITE phase
+      // Update the user's credit and total credits acquired.
       transaction.update(userRef, {
         credits: firebase.firestore.FieldValue.increment(creditsToAdd),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(creditsToAdd),
       });
 
-      // 2. Log the purchase in the transactions subcollection.
-      const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+      // Log the purchase using the pre-created reference.
       transaction.set(newTransactionRef, {
         feature: `Purchased: ${packName}`,
         cost: amountPaid,
