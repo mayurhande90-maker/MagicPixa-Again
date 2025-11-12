@@ -752,6 +752,7 @@ const productPackSchema = {
                 inferredUseCase: { type: Type.STRING },
                 targetAudience: { type: Type.STRING },
             },
+            required: ['category', 'materials', 'primaryColorHex', 'inferredUseCase', 'targetAudience'],
         },
         creativeStrategy: {
             type: Type.OBJECT,
@@ -762,6 +763,7 @@ const productPackSchema = {
                 modelArchetype: { type: Type.STRING, description: "e.g., 'Young professional urban female', 'Active outdoor male'" },
                 aestheticVibe: { type: Type.STRING, description: "A description of the aesthetic learned from inspiration images." },
             },
+            required: ['uniqueAngle', 'lifestyleScene1Theme', 'lifestyleScene2Theme', 'modelArchetype', 'aestheticVibe'],
         },
         textAssets: {
             type: Type.OBJECT,
@@ -776,10 +778,12 @@ const productPackSchema = {
                             length: { type: Type.STRING, description: "'short', 'medium', or 'long'" },
                             text: { type: Type.STRING },
                         },
+                        required: ['length', 'text'],
                     },
                 },
                 keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
             },
+            required: ['seoTitle', 'altText', 'captions', 'keywords'],
         },
         imageGenerationPrompts: {
             type: Type.OBJECT,
@@ -789,11 +793,12 @@ const productPackSchema = {
                 lifestyleScene1: { type: Type.STRING },
                 lifestyleScene2: { type: Type.STRING },
                 modelImage: { type: Type.STRING },
-                infographicWithText: { type: Type.STRING, description: "A prompt to generate a complete infographic with text callouts, styled using the brand kit if provided." },
+                infographicImage: { type: Type.STRING, description: "A prompt for an 'Infographic Base' image: product on one side, clean negative space on the other for text." },
                 storyboardPanel1: { type: Type.STRING },
                 storyboardPanel2: { type: Type.STRING },
                 storyboardPanel3: { type: Type.STRING },
             },
+            required: ['heroImage', 'whiteBackgroundImage', 'lifestyleScene1', 'lifestyleScene2', 'modelImage', 'infographicImage', 'storyboardPanel1', 'storyboardPanel2', 'storyboardPanel3'],
         },
         videoGenerationPrompts: {
             type: Type.OBJECT,
@@ -801,8 +806,10 @@ const productPackSchema = {
                 video360Spin: { type: Type.STRING, description: "A prompt for a 3-5 second video showing a 360-degree spin of the product." },
                 videoCinemagraph: { type: Type.STRING, description: "A prompt for a 4-second looping video (cinemagraph) based on one of the lifestyle scenes." },
             },
+            required: ['video360Spin', 'videoCinemagraph'],
         },
     },
+    required: ['productAnalysis', 'creativeStrategy', 'textAssets', 'imageGenerationPrompts', 'videoGenerationPrompts'],
 };
 
 export const generateProductPackPlan = async (
@@ -858,14 +865,14 @@ export const generateProductPackPlan = async (
 -   **#1 RULE - BRAND PRESERVATION:** This is the absolute top priority. ALL generated assets MUST preserve the product's packaging, logos, labels, and text with 100% accuracy. The product must look IDENTICAL to the original upload. This rule must be explicitly stated in every single image and video prompt.
 -   **MODEL SELECTION:** The "With Model" shot MUST specify an **Indian model** that fits the product's target audience (e.g., age, gender, style) as defined in your creative strategy.
 -   **HYPER-REALISM:** All prompts must aim for results indistinguishable from a professional DSLR photograph. Mention details like realistic lighting (e.g., "soft window light," "golden hour"), natural shadows, and high-fidelity textures.
--   **COMPLETE INFOGRAPHIC:** The infographic prompt must be for a COMPLETE image. It should analyze the product description for key features (e.g., "100% organic cotton", "waterproof") and instruct the AI to generate the product on a clean background WITH text callouts, icons, and lines already on the image. If Brand Kit fonts/colors are provided, specify that they must be used.
+-   **INFOGRAPHIC BASE:** The infographic prompt must be for an **"Infographic Base"** image. This image should be strategically composed with the product on one side and clean, professional negative space on the other. This negative space is a canvas where a user can add text and callouts later. DO NOT generate text directly onto the image.
 -   **STORYBOARD:** Generate three sequential prompts for a 3-panel storyboard that tells a simple story about the product's use or benefit.
 -   **VIDEO PROMPTS:**
     -   *360 Spin:* A prompt for a 3-5 second, seamless loop video showing a 360-degree rotation of the product against a clean, professional studio background.
     -   *Cinemagraph:* A prompt for a 4-second, seamlessly looping video based on one of the lifestyle scenes, where only one or two subtle elements are in motion (e.g., steam from a mug, leaves rustling in the wind).
 
 **OUTPUT:**
-Your final output MUST be a single, valid JSON object following the provided schema. Do not add any text before or after the JSON object.`;
+Your final output MUST be a single, valid JSON object following the provided schema. You are required to provide a value for every field in the schema. Do not add any text before or after the JSON object.`;
     
     parts.push({ text: prompt });
     
