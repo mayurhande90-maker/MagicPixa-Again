@@ -273,7 +273,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Recharge Your Creative Energy</h2>
                     <p className="text-lg text-[#5F6368] mb-12">Simple, one-time credit packs. No subscriptions needed.</p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
                         {creditPacks.map((pack, index) => (
                             <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
                                 {pack.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
@@ -286,11 +286,13 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                                     </span>
                                     <span className="text-[#5F6368] ml-1">Credits</span>
                                 </div>
-                                {pack.bonus > 0 && (
-                                    <p className="text-sm font-semibold text-emerald-500 mb-4">
-                                        {pack.credits} + {pack.bonus} Bonus!
-                                    </p>
-                                )}
+                                <div className="h-5 mb-4">
+                                  {pack.bonus > 0 && (
+                                      <p className="text-sm font-semibold text-emerald-500">
+                                          {pack.credits} + {pack.bonus} Bonus!
+                                      </p>
+                                  )}
+                                </div>
                                 
                                 <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
                                     <span className="text-2xl font-bold text-[#1E1E1E]">₹{pack.price}</span>
