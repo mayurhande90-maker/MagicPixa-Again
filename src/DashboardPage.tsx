@@ -2069,6 +2069,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
     const [productImages, setProductImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
     const [productName, setProductName] = useState('');
+    const [productDescription, setProductDescription] = useState('');
     const [loadingMessage, setLoadingMessage] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [generatedPack, setGeneratedPack] = useState<any | null>(null);
@@ -2104,8 +2105,8 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     };
 
     const handleGenerate = async () => {
-        if (productImages.length === 0 || !productName.trim()) {
-            setError("Please upload at least one image and provide a product name.");
+        if (productImages.length === 0 || !productName.trim() || !productDescription.trim()) {
+            setError("Please upload at least one image and fill out all fields.");
             return;
         }
         if (hasInsufficientCredits) {
@@ -2121,17 +2122,18 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         try {
             setLoadingMessage("Analyzing product and creating content plan...");
             const imageB64s = productImages.map(img => img.base64);
-            const plan = await generateProductPackPlan(imageB64s, productName);
+            const plan = await generateProductPackPlan(imageB64s, productName, productDescription);
 
             setLoadingMessage("Generating visual assets (this may take a minute)...");
-            const imagePrompts = plan.imageGenerationPrompts;
+            const { heroImage, whiteBackgroundImage, lifestyleScene1, lifestyleScene2, modelImage, infographicImage } = plan.imageGenerationPrompts;
             
-            const [hero, whiteBg, lifestyle1, lifestyle2, infographic] = await Promise.all([
-                generateStyledImage(imageB64s, imagePrompts.heroImage),
-                generateStyledImage(imageB64s, imagePrompts.whiteBackgroundImage),
-                generateStyledImage(imageB64s, imagePrompts.lifestyleScene1),
-                generateStyledImage(imageB64s, imagePrompts.lifestyleScene2),
-                generateStyledImage(imageB64s, imagePrompts.infographicImage),
+            const [hero, whiteBg, lifestyle1, lifestyle2, model, infographic] = await Promise.all([
+                generateStyledImage(imageB64s, heroImage),
+                generateStyledImage(imageB64s, whiteBackgroundImage),
+                generateStyledImage(imageB64s, lifestyleScene1),
+                generateStyledImage(imageB64s, lifestyleScene2),
+                generateStyledImage(imageB64s, modelImage),
+                generateStyledImage(imageB64s, infographicImage),
             ]);
 
             if (!isGuest && auth.user) {
@@ -2143,7 +2145,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 
             setGeneratedPack({
                 plan,
-                images: { hero, whiteBackground: whiteBg, lifestyle1, lifestyle2, infographic }
+                images: { hero, whiteBackground: whiteBg, lifestyle1, lifestyle2, model, infographic }
             });
             setStep('result');
         } catch (err) {
@@ -2158,6 +2160,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setStep('input');
         setProductImages([]);
         setProductName('');
+        setProductDescription('');
         setError(null);
         setGeneratedPack(null);
     };
@@ -2172,6 +2175,20 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setModalImageUrl(url);
         setIsModalOpen(true);
     };
+
+    const InputField = ({ label, name, value, onChange, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }) => (
+        <div>
+            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+            <input type="text" id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        </div>
+    );
+    
+    const TextAreaField = ({ label, name, value, onChange, placeholder, rows = 3 }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; rows?: number }) => (
+        <div>
+            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+            <textarea id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y" />
+        </div>
+    );
 
     const renderInputStep = () => (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -2198,12 +2215,15 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
                 <div>
-                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">2. Enter Product Name</h3>
-                    <p className="text-sm text-[#5F6368] mb-4">Provide a name or brand for context.</p>
-                    <InputField label="Product Name / Brand" name="productName" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'Classic White T-Shirt' or 'PixaWear'" />
+                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">2. Provide Product Details</h3>
+                    <p className="text-sm text-[#5F6368] mb-4">This context helps the AI Creative Director.</p>
+                    <div className="space-y-4">
+                        <InputField label="Brand name / Product Name" name="productName" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'PixaWear' or 'Classic White T-Shirt'" />
+                        <TextAreaField label="Short Product Description" name="productDescription" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A comfortable, 100% cotton t-shirt for daily wear' or 'Ayurvedic digestive tablets for gut health'" />
+                    </div>
                 </div>
                  <div className="pt-4">
-                    <button onClick={handleGenerate} disabled={hasInsufficientCredits || productImages.length === 0 || !productName.trim()} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                    <button onClick={handleGenerate} disabled={hasInsufficientCredits || productImages.length === 0 || !productName.trim() || !productDescription.trim()} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                         Generate Product Pack <ArrowRightIcon className="w-5 h-5"/>
                     </button>
                     <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for more credits!' : 'Insufficient credits.') : `This generation will cost ${GENERATE_COST} credits.`}</p>
@@ -2230,9 +2250,10 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         const imageAssets = [
             { title: 'Hero Image', url: `data:image/png;base64,${images.hero}`, icon: <StarIcon className="w-5 h-5"/> },
             { title: 'White Background', url: `data:image/png;base64,${images.whiteBackground}`, icon: <CheckIcon className="w-5 h-5"/> },
+            { title: 'With Model', url: `data:image/png;base64,${images.model}`, icon: <UsersIcon className="w-5 h-5"/> },
             { title: 'Lifestyle 1', url: `data:image/png;base64,${images.lifestyle1}`, icon: <SunIcon className="w-5 h-5"/> },
             { title: 'Lifestyle 2', url: `data:image/png;base64,${images.lifestyle2}`, icon: <LeafIcon className="w-5 h-5"/> },
-            { title: 'Infographic', url: `data:image/png;base64,${images.infographic}`, icon: <ZoomInIcon className="w-5 h-5"/> },
+            { title: 'Infographic Base', url: `data:image/png;base64,${images.infographic}`, icon: <ZoomInIcon className="w-5 h-5"/> },
         ];
         
         return (
@@ -2248,7 +2269,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     {/* Visual Assets */}
                     <div className="space-y-6">
                         <h4 className="text-xl font-bold text-[#1E1E1E]">Visual Assets</h4>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {imageAssets.map(img => (
                                 <div key={img.title} className="bg-white rounded-lg shadow-md border border-gray-200/80 overflow-hidden group">
                                     <div onClick={() => openImageModal(img.url)} className="aspect-square bg-gray-100 cursor-pointer flex items-center justify-center">
@@ -2313,13 +2334,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         </div>
     );
 };
-
-const InputField = ({ label, name, value, onChange, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }) => (
-    <div>
-        <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-        <input type="text" id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" />
-    </div>
-);
 
 const Creations: React.FC = () => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">

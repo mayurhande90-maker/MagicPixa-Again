@@ -777,11 +777,12 @@ const productPackSchema = {
       imageGenerationPrompts: {
         type: Type.OBJECT,
         properties: {
-          heroImage: { type: Type.STRING, description: "A detailed prompt for a text-to-image model to generate a professional hero image on a neutral, subtly textured background. It must include instructions to preserve product fidelity and match original lighting." },
+          heroImage: { type: Type.STRING, description: "A detailed prompt for a text-to-image model to generate a professional hero image with professional studio lighting on a clean, complementary gradient background." },
           whiteBackgroundImage: { type: Type.STRING, description: "A prompt to generate the product on a pure #FFFFFF white background with soft, natural shadows. Must be compliant with Amazon/Flipkart main image rules." },
           lifestyleScene1: { type: Type.STRING, description: "A detailed prompt for the first lifestyle scene. Describe a realistic environment, props, lighting, and mood that are contextually relevant to the product." },
           lifestyleScene2: { type: Type.STRING, description: "A detailed prompt for a second, different lifestyle scene." },
-          infographicImage: { type: Type.STRING, description: "A prompt to generate an image with clear space for text overlays, focusing on a key feature. e.g., 'A close-up macro shot of the product's stitching, with empty space to the right.'" },
+          modelImage: { type: Type.STRING, description: "A prompt to generate a hyper-realistic photo of a model using the product. The model should match the target audience. The image must look like a real DSLR photo, not AI-generated." },
+          infographicImage: { type: Type.STRING, description: "A prompt to generate an image with the product placed to one side, leaving clear negative space for text overlays. e.g., 'A close-up macro shot of the product's stitching, with empty space to the right.'" },
         },
       },
     },
@@ -789,7 +790,8 @@ const productPackSchema = {
 
 export const generateProductPackPlan = async (
     images: Base64File[],
-    productName: string
+    productName: string,
+    productDescription: string
 ): Promise<any> => {
     if (!ai) throw new Error("API key is not configured.");
 
@@ -797,17 +799,22 @@ export const generateProductPackPlan = async (
         inlineData: { data: img.base64, mimeType: img.mimeType },
     }));
 
-    const prompt = `You are an expert e-commerce content strategist and creative director. Your task is to create a complete, marketplace-ready product pack plan from the provided image(s) and product name. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
+    const prompt = `You are an expert AI Creative Director for e-commerce. Your task is to create a complete, marketplace-ready product pack plan from the provided images, product name, and description. You will not generate the images themselves, but rather the detailed instructions (prompts) and text assets required to create them.
 
 **USER INPUT:**
 - Product Name/Brand: "${productName}"
+- Short Product Description: "${productDescription}"
 - Product Images are attached.
 
 **YOUR TASK:**
-1.  **Analyze Product:** Meticulously analyze the provided image(s) to identify the product's category, materials, primary color, and inferred use case. Also analyze the lighting of the original photo (e.g., 'soft indoor lighting', 'bright outdoor sunlight').
-2.  **Devise Creative Direction:** Based on the analysis, devise a professional creative direction. Choose two distinct, contextually relevant lifestyle scenes.
+1.  **Analyze Product Deeply:** Meticulously analyze the provided images and text to understand the product's category, materials, primary color, inferred use case, and target audience. Also analyze the lighting of the original photo (e.g., 'soft indoor lighting', 'bright outdoor sunlight').
+2.  **Devise Creative Direction:** Based on this deep analysis, devise a professional and unique creative direction. Choose two distinct, contextually relevant lifestyle scenes and a suitable model archetype for the "With Model" shot.
 3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets.
-4.  **Formulate Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model. These prompts MUST instruct the AI to maintain the original product's appearance with perfect fidelity.
+4.  **Formulate Hyper-Realistic Image Prompts:** Create detailed, actionable prompts for a text-to-image AI model. These prompts are critical and must be engineered for hyper-realism.
+    -   **CRITICAL:** ALL prompts must instruct the AI to maintain the original product's appearance (shape, logos, text) with perfect fidelity.
+    -   **Hero Image:** This prompt should describe professional studio lighting (e.g., three-point lighting), a clean, subtly complementary gradient background, and soft, realistic shadows. The goal is a high-end, polished look.
+    -   **With Model Image:** This prompt is for a hyper-realistic shot. It must specify a model that fits the product's target audience (e.g., age, gender, style), a natural pose, and an environment that tells a story. The prompt must explicitly demand the final image be indistinguishable from a professional DSLR photograph, mentioning details like realistic skin texture, lighting, and natural depth of field.
+    -   **Infographic Image:** This prompt must generate an image with the product strategically placed on one side, leaving significant, clean negative space on the other side. This space is intended for text and callouts. It should specify a clean, non-distracting background.
 
 **OUTPUT:**
 Your final output MUST be a single, valid JSON object following the provided schema. Do not add any text before or after the JSON object.`;
