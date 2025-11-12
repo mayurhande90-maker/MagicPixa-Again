@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './types';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -15,8 +15,7 @@ import {
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
     LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon,
-    // FIX: Added missing ArrowRightIcon import.
-    ArrowRightIcon
+    ArrowRightIcon, ZoomInIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -2067,132 +2066,250 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 };
 
 const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [step, setStep] = useState(1);
-    const [productImages, setProductImages] = useState<{file: File, url: string}[]>([]);
-    const [skuData, setSkuData] = useState({
-        title: '',
-        category: '',
-        materials: '',
-        primaryColor: '',
-        dimensions: '',
-        description: '',
-        brand: '',
-    });
-    const [style, setStyle] = useState('minimal');
-    const [platforms, setPlatforms] = useState<string[]>(['Amazon']);
-    
+    const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
+    const [productImages, setProductImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
+    const [productName, setProductName] = useState('');
+    const [loadingMessage, setLoadingMessage] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [generatedPack, setGeneratedPack] = useState<any | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalImageUrl, setModalImageUrl] = useState('');
+    const [copiedStates, setCopiedStates] = useState<{ [key: string]: boolean }>({});
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const GENERATE_COST = 5;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-product-studio') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-product-studio')!, 10) : 5);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < GENERATE_COST;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-product-studio', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
         if (files.length > 0) {
-            const newImages = files.map(file => ({ file, url: URL.createObjectURL(file) }));
-            setProductImages(prev => [...prev, ...newImages].slice(0, 5));
+            try {
+                const newImages = await Promise.all(files.map(async file => {
+                    const base64 = await fileToBase64(file);
+                    return { file, url: URL.createObjectURL(file), base64 };
+                }));
+                setProductImages(prev => [...prev, ...newImages].slice(0, 5));
+            } catch (err) {
+                setError("Could not process one or more images. Please try again.");
+            }
         }
     };
-    
-    const triggerFileInput = () => fileInputRef.current?.click();
 
-    const handleSkuChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setSkuData(prev => ({ ...prev, [name]: value }));
+    const handleGenerate = async () => {
+        if (productImages.length === 0 || !productName.trim()) {
+            setError("Please upload at least one image and provide a product name.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setStep('loading');
+        setError(null);
+        setGeneratedPack(null);
+
+        try {
+            setLoadingMessage("Analyzing product and creating content plan...");
+            const imageB64s = productImages.map(img => img.base64);
+            const plan = await generateProductPackPlan(imageB64s, productName);
+
+            setLoadingMessage("Generating visual assets (this may take a minute)...");
+            const imagePrompts = plan.imageGenerationPrompts;
+            
+            const [hero, whiteBg, lifestyle1, lifestyle2, infographic] = await Promise.all([
+                generateStyledImage(imageB64s, imagePrompts.heroImage),
+                generateStyledImage(imageB64s, imagePrompts.whiteBackgroundImage),
+                generateStyledImage(imageB64s, imagePrompts.lifestyleScene1),
+                generateStyledImage(imageB64s, imagePrompts.lifestyleScene2),
+                generateStyledImage(imageB64s, imagePrompts.infographicImage),
+            ]);
+
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, GENERATE_COST, 'Product Studio');
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - GENERATE_COST);
+            }
+
+            setGeneratedPack({
+                plan,
+                images: { hero, whiteBackground: whiteBg, lifestyle1, lifestyle2, infographic }
+            });
+            setStep('result');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            setStep('input');
+        } finally {
+            setLoadingMessage('');
+        }
     };
 
-    const handlePlatformChange = (platform: string) => {
-        setPlatforms(prev => 
-            prev.includes(platform) 
-                ? prev.filter(p => p !== platform) 
-                : [...prev, platform]
+    const handleStartOver = () => {
+        setStep('input');
+        setProductImages([]);
+        setProductName('');
+        setError(null);
+        setGeneratedPack(null);
+    };
+    
+    const handleCopy = (text: string, key: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedStates(prev => ({ ...prev, [key]: true }));
+        setTimeout(() => setCopiedStates(prev => ({ ...prev, [key]: false })), 2000);
+    };
+
+    const openImageModal = (url: string) => {
+        setModalImageUrl(url);
+        setIsModalOpen(true);
+    };
+
+    const renderInputStep = () => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">1. Upload Product Photos</h3>
+                <p className="text-sm text-[#5F6368] mb-4">Add 1 to 5 images. Clear, well-lit photos work best.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                    {productImages.map((image, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                            <img src={image.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover" />
+                            <button onClick={() => setProductImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black transition-colors">
+                                <XIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    {productImages.length < 5 && (
+                         <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors">
+                            <PlusIcon className="w-8 h-8" />
+                            <span className="text-xs font-semibold mt-1">Add Image</span>
+                        </button>
+                    )}
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" multiple />
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
+                <div>
+                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">2. Enter Product Name</h3>
+                    <p className="text-sm text-[#5F6368] mb-4">Provide a name or brand for context.</p>
+                    <InputField label="Product Name / Brand" name="productName" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'Classic White T-Shirt' or 'PixaWear'" />
+                </div>
+                 <div className="pt-4">
+                    <button onClick={handleGenerate} disabled={hasInsufficientCredits || productImages.length === 0 || !productName.trim()} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                        Generate Product Pack <ArrowRightIcon className="w-5 h-5"/>
+                    </button>
+                    <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for more credits!' : 'Insufficient credits.') : `This generation will cost ${GENERATE_COST} credits.`}</p>
+                </div>
+                 {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
+            </div>
+        </div>
+    );
+
+    const renderLoadingStep = () => (
+        <div className="flex flex-col items-center justify-center text-center py-20">
+            <SparklesIcon className="w-16 h-16 text-[#f9d230] animate-pulse" />
+            <h3 className="text-2xl font-bold mt-4 text-[#1E1E1E]">Generating your Product Pack...</h3>
+            <p className="text-[#5F6368] mt-2">{loadingMessage}</p>
+            <div className="w-full max-w-md bg-gray-200 rounded-full h-2.5 mt-6"><div className="bg-blue-600 h-2.5 rounded-full progress-bar-animated" style={{width: '75%'}}></div></div>
+        </div>
+    );
+    
+    const renderResultStep = () => {
+        if (!generatedPack) return null;
+        const { plan, images } = generatedPack;
+        const textAssets = plan.textAssets;
+        
+        const imageAssets = [
+            { title: 'Hero Image', url: `data:image/png;base64,${images.hero}`, icon: <StarIcon className="w-5 h-5"/> },
+            { title: 'White Background', url: `data:image/png;base64,${images.whiteBackground}`, icon: <CheckIcon className="w-5 h-5"/> },
+            { title: 'Lifestyle 1', url: `data:image/png;base64,${images.lifestyle1}`, icon: <SunIcon className="w-5 h-5"/> },
+            { title: 'Lifestyle 2', url: `data:image/png;base64,${images.lifestyle2}`, icon: <LeafIcon className="w-5 h-5"/> },
+            { title: 'Infographic', url: `data:image/png;base64,${images.infographic}`, icon: <ZoomInIcon className="w-5 h-5"/> },
+        ];
+        
+        return (
+            <div>
+                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                     <h3 className="text-2xl font-bold text-[#1E1E1E] text-center sm:text-left">Your Product Pack is Ready!</h3>
+                    <button onClick={handleStartOver} className="flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-2 px-4 rounded-xl transition-colors">
+                        <RetryIcon className="w-5 h-5" /> Create New Pack
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Visual Assets */}
+                    <div className="space-y-6">
+                        <h4 className="text-xl font-bold text-[#1E1E1E]">Visual Assets</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            {imageAssets.map(img => (
+                                <div key={img.title} className="bg-white rounded-lg shadow-md border border-gray-200/80 overflow-hidden group">
+                                    <div onClick={() => openImageModal(img.url)} className="aspect-square bg-gray-100 cursor-pointer flex items-center justify-center">
+                                         <img src={img.url} alt={img.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"/>
+                                    </div>
+                                    <div className="p-3 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            {img.icon}
+                                            <span className="text-sm font-semibold">{img.title}</span>
+                                        </div>
+                                        <a href={img.url} download={`${productName.replace(/ /g, '_')}_${img.title.replace(/ /g, '_')}.png`} className="p-1.5 rounded-full hover:bg-gray-100"><DownloadIcon className="w-5 h-5 text-gray-500"/></a>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Text Assets */}
+                    <div className="space-y-6">
+                        <h4 className="text-xl font-bold text-[#1E1E1E]">Text & Copy Assets</h4>
+                        <div className="space-y-4">
+                            <TextAsset title="SEO Title" content={textAssets.seoTitle} onCopy={() => handleCopy(textAssets.seoTitle, 'title')} isCopied={copiedStates['title']} />
+                            <TextAsset title="Alt-Text" content={textAssets.altText} onCopy={() => handleCopy(textAssets.altText, 'alt')} isCopied={copiedStates['alt']} />
+                             {textAssets.captions.map((cap: any) => (
+                                <TextAsset key={cap.length} title={`Caption (${cap.length})`} content={cap.text} onCopy={() => handleCopy(cap.text, cap.length)} isCopied={copiedStates[cap.length]} />
+                            ))}
+                            <TextAsset title="Keywords" content={textAssets.keywords.join(', ')} onCopy={() => handleCopy(textAssets.keywords.join(', '), 'keys')} isCopied={copiedStates['keys']} />
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
     };
-
-    const stylePreferences = ['minimal', 'premium', 'urban', 'nature'];
-    const targetPlatforms = ['Amazon', 'Flipkart', 'Shopify'];
+    
+    const TextAsset = ({ title, content, onCopy, isCopied }: { title: string, content: string, onCopy: () => void, isCopied: boolean }) => (
+        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200/80">
+            <div className="flex justify-between items-center mb-2">
+                <h5 className="font-bold text-gray-800">{title}</h5>
+                <button onClick={onCopy} className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-black transition-colors">
+                    {isCopied ? <CheckIcon className="w-4 h-4 text-green-500"/> : <CopyIcon className="w-4 h-4"/>}
+                    {isCopied ? 'Copied' : 'Copy'}
+                </button>
+            </div>
+            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{content}</p>
+        </div>
+    );
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 pb-24">
             <div className="w-full max-w-7xl mx-auto">
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Product Studio</h2>
-                    <p className="text-[#5F6368] mt-2">Create a complete, marketplace-ready product pack from just a few photos.</p>
+                    <p className="text-[#5F6368] mt-2">Create a full product pack from just a photo and product name.</p>
                 </div>
-                
-                {/* Stepper would go here */}
 
-                {step === 1 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        {/* Left: Image Upload */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">1. Upload Product Photos</h3>
-                            <p className="text-sm text-[#5F6368] mb-4">Add 1 to 5 images of your product.</p>
-                            
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-                                {productImages.map((image, index) => (
-                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                                        <img src={image.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover" />
-                                        <button onClick={() => setProductImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1">
-                                            <XIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                                {productImages.length < 5 && (
-                                     <button onClick={triggerFileInput} className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors">
-                                        <PlusIcon className="w-8 h-8" />
-                                        <span className="text-xs font-semibold">Add Image</span>
-                                    </button>
-                                )}
-                            </div>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" multiple />
-                        </div>
-
-                        {/* Right: SKU Form */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 space-y-4">
-                             <div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-1">2. Provide Product Details</h3>
-                                <p className="text-sm text-[#5F6368] mb-4">The more details, the better the result.</p>
-                             </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputField label="Product Title" name="title" value={skuData.title} onChange={handleSkuChange} placeholder="e.g., Ceramic Coffee Mug" />
-                                <InputField label="Category" name="category" value={skuData.category} onChange={handleSkuChange} placeholder="e.g., Kitchenware" />
-                                <InputField label="Materials" name="materials" value={skuData.materials} onChange={handleSkuChange} placeholder="e.g., Ceramic, Glaze" />
-                                <InputField label="Primary Color" name="primaryColor" value={skuData.primaryColor} onChange={handleSkuChange} placeholder="e.g., Off-white" />
-                                <InputField label="Dimensions" name="dimensions" value={skuData.dimensions} onChange={handleSkuChange} placeholder="e.g., 4 x 3.5 inches" />
-                                <InputField label="Brand Name (Optional)" name="brand" value={skuData.brand} onChange={handleSkuChange} placeholder="e.g., PixaPots" />
-                             </div>
-                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Short Description</label>
-                                <textarea name="description" value={skuData.description} onChange={handleSkuChange} rows={3} placeholder="Describe the key features and benefits of your product." className="w-full text-sm p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
-                             </div>
-                             
-                             <div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mt-6 mb-1">3. Set Your Style</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    {stylePreferences.map(s => (
-                                        <button key={s} onClick={() => setStyle(s)} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors capitalize ${style === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-500'}`}>
-                                            {s}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                             <div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mt-6 mb-1">4. Select Platforms</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    {targetPlatforms.map(p => (
-                                        <button key={p} onClick={() => handlePlatformChange(p)} className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${platforms.includes(p) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-500'}`}>
-                                           {platforms.includes(p) && <CheckIcon className="w-4 h-4" />} {p}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md mt-8">
-                                Generate Scene Suggestions <ArrowRightIcon className="w-5 h-5"/>
-                            </button>
-                        </div>
-                    </div>
-                )}
+                {step === 'input' && renderInputStep()}
+                {step === 'loading' && renderLoadingStep()}
+                {step === 'result' && renderResultStep()}
             </div>
+             {isModalOpen && (
+                <ImageModal imageUrl={modalImageUrl} onClose={() => setIsModalOpen(false)} />
+            )}
         </div>
     );
 };
@@ -2217,7 +2334,6 @@ const Creations: React.FC = () => (
     </div>
 );
 
-{/* FIX: Completed the truncated Profile component definition and implementation. */}
 const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; navigateTo: (page: Page, view?: View, sectionId?: string) => void; setActiveView: (view: View) => void; setIsConversationOpen: (isOpen: boolean) => void; }> = ({ auth, openEditProfileModal, navigateTo, setActiveView, setIsConversationOpen }) => {
     const { user, handleLogout } = auth;
     if (!user) return null;
