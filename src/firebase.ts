@@ -152,8 +152,6 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   const userRef = doc(db, "users", uid);
 
   try {
-    // Using a transaction ensures atomicity of the read-check-update operations.
-    // This prevents race conditions where a user might spend more credits than they have.
     const updatedProfileData = await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userRef);
 
@@ -170,9 +168,9 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
       const newCredits = currentCredits - amount;
 
-      // 1. Update the user's credit balance using Firestore's atomic increment.
-      // This is more robust than setting the value directly and helps prevent transaction failures.
-      transaction.update(userRef, { credits: increment(-amount) });
+      // 1. Update the user's credit balance with the new, calculated value.
+      // This is safer within a read-modify-write transaction than using increment().
+      transaction.update(userRef, { credits: newCredits });
 
       // 2. Log the deduction in the transactions subcollection.
       const newTransactionRef = doc(collection(db, `users/${uid}/transactions`));
@@ -200,6 +198,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
+
 
 /**
  * Adds purchased credits to a user's account and logs the transaction atomically.
