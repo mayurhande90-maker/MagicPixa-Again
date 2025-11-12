@@ -75,23 +75,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
             );
             })}
         </nav>
-        {user && (
-            <div className="mt-auto p-4 bg-gray-50 rounded-lg border border-gray-200/80">
-            <p className="text-sm text-[#5F6368] mb-1">Credits</p>
-            <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits}</p>
-            <button 
-                onClick={() => {
-                    navigateTo('home', undefined, 'pricing');
-                }}
-                className="w-full mt-3 bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 rounded-lg hover:scale-105 transform transition-transform"
-            >
-                Get More Credits
-            </button>
-            </div>
-        )}
     </aside>
   );
 };
 
 export default Sidebar;
-// Minor change for deployment.
+// Removed credits display from sidebar.
