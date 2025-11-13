@@ -1006,7 +1006,8 @@ export const generateBrandStylistImage = async (
     *   Any alteration to the product itself is a failure. This is the most important rule.
 
 2.  **SUBJECT OF THE GRAPHIC:**
-    *   Place the clean, untouched product cutout into the designated image area of the replicated layout.
+    *   The final generated graphic MUST feature the product from the {product_image}. This is the hero, the subject, the entire point of the image.
+    *   Place the clean, untouched product cutout from {product_image} into the designated image area of the replicated layout.
     *   Add a subtle, realistic drop shadow to the product that is consistent with the lighting of the new design.
     *   **STRICT NEGATIVE CONSTRAINT:** You MUST NOT use any product or key visual content from the {reference_image}. Your task is to insert the user's product into the replicated layout.
 
@@ -1015,7 +1016,7 @@ export const generateBrandStylistImage = async (
     *   Use the brand colors "${colors}" throughout the design.
     *   All text MUST be rendered in a font style described as "${fonts}". Text must be crisp, legible, and perfectly aligned within the replicated layout grid.
 
-3.  **STRATEGIC COPYWRITING:**
+4.  **STRATEGIC COPYWRITING:**
     *   Act as a senior marketing copywriter. Analyze the theme of the reference (e.g., "New Arrival," "Limited Time Offer," "How-To Guide").
     *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.
 

@@ -2376,7 +2376,8 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
         setIsLoading(true);
         setError(null);
-        setGeneratedImage(null); // Clear previous image before generating new one
+        // Do not clear previous image for re-generation, only if starting over.
+        // setGeneratedImage(null); 
 
         try {
             const newBase64 = await generateBrandStylistImage({
@@ -2419,7 +2420,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
     const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; isProcessing: boolean; }> = ({ image, inputRef, onFileChange, title, isProcessing }) => (
         <div>
-            <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
+            <label className="block text-sm font-bold text-center text-[#1E1E1E] mb-1.5">{title}</label>
             <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : 'cursor-pointer'}`} onClick={() => inputRef.current?.click()}>
                 <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
                 {image ? (
@@ -2430,7 +2431,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         </div>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">{title}</span></div>
+                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">Upload</span></div>
                 )}
                 {isProcessing && (
                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -2457,33 +2458,43 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                            <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" isProcessing={processing.logo} />
-                            <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" isProcessing={processing.product} />
-                            <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" isProcessing={processing.reference} />
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div>
+                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">1. Upload Your Assets</h3>
+                           <div className="grid grid-cols-3 gap-4">
+                               <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" isProcessing={processing.logo} />
+                               <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" isProcessing={processing.product} />
+                               <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" isProcessing={processing.reference} />
+                           </div>
                         </div>
-                        <div className="space-y-3">
-                            <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
-                            <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
-                            <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
-                            <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
+                        
+                        <div>
+                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">2. Provide Brand Details</h3>
+                           <div className="space-y-4">
+                               <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
+                               <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
+                               <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
+                               <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
+                           </div>
                         </div>
-                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                            {generatedImage ? (
-                                <div className="space-y-2">
-                                    <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                        <RetryIcon className="w-5 h-5"/> Re-generate
-                                    </button>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg">Start Over</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                            )}
-                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        
+                         <div className="flex-grow flex flex-col justify-end">
+                            <div className="space-y-2 pt-6 border-t border-gray-200/80">
+                               {generatedImage ? (
+                                   <div className="space-y-2">
+                                       <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                           <RetryIcon className="w-5 h-5"/> Re-generate
+                                       </button>
+                                       <div className="grid grid-cols-2 gap-2">
+                                           <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                           <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg">Start Over</button>
+                                       </div>
+                                   </div>
+                               ) : (
+                                   <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
+                               )}
+                               <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                           </div>
                         </div>
                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </div>
