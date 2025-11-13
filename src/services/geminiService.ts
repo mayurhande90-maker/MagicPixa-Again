@@ -918,14 +918,17 @@ export const generateStyledImage = async (
 };
 
 export const generateBrandStylistImage = async (
-    { logo, product, reference, name, description, colors, fonts }: {
+    { logo, product, reference, name, description, colors, fonts, website, contact, email }: {
         logo: Base64File,
         product: Base64File,
         reference: Base64File,
         name: string,
         description: string,
         colors: string,
-        fonts: string
+        fonts: string,
+        website?: string,
+        contact?: string,
+        email?: string
     }
 ): Promise<string> => {
     const ai = getAiClient();
@@ -1018,8 +1021,20 @@ export const generateBrandStylistImage = async (
 
 4.  **STRATEGIC COPYWRITING:**
     *   Act as a senior marketing copywriter. Analyze the theme of the reference (e.g., "New Arrival," "Limited Time Offer," "How-To Guide").
-    *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.
+    *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.`;
 
+            if (website || contact || email) {
+                generationPrompt += `
+5.  **CONTACT INFORMATION INTEGRATION:**
+    - You MUST integrate the following contact details into the design in a clean, professional, and conventional location (e.g., the footer of the ad).
+    - Ensure the text is legible and fits the overall aesthetic.
+`;
+                if (website) generationPrompt += `    - Website: ${website}\n`;
+                if (contact) generationPrompt += `    - Contact: ${contact}\n`;
+                if (email) generationPrompt += `    - Email: ${email}\n`;
+            }
+
+            generationPrompt += `
 **FINAL OUTPUT REQUIREMENTS:**
 - The result must be a single, high-resolution, pixel-perfect graphic ready for a major brand's social media campaign.
 - No jagged edges, no blurry text, no misplaced elements. The quality must be impeccable.`;

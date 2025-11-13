@@ -2313,6 +2313,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const [productDescription, setProductDescription] = useState('');
     const [brandColors, setBrandColors] = useState('');
     const [brandFonts, setBrandFonts] = useState('');
+    const [website, setWebsite] = useState('');
+    const [contactDetails, setContactDetails] = useState('');
+    const [emailId, setEmailId] = useState('');
 
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -2385,7 +2388,10 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                 name: brandName,
                 description: productDescription,
                 colors: brandColors,
-                fonts: brandFonts
+                fonts: brandFonts,
+                website: website,
+                contact: contactDetails,
+                email: emailId
             });
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
              if (!isGuest && auth.user) {
@@ -2409,6 +2415,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         setProductDescription('');
         setBrandColors('');
         setBrandFonts('');
+        setWebsite('');
+        setContactDetails('');
+        setEmailId('');
         setGeneratedImage(null);
         setError(null);
         if(brandLogoRef.current) brandLogoRef.current.value = "";
@@ -2479,6 +2488,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                                <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
                                <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
                                <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
+                               <InputField id="brandWebsite" label="Website (Optional)" value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g., www.auraglow.com" />
+                               <InputField id="brandContact" label="Contact Number (Optional)" value={contactDetails} onChange={e => setContactDetails(e.target.value)} placeholder="e.g., +91 98765 43210" />
+                               <InputField id="brandEmail" label="Email ID (Optional)" value={emailId} onChange={e => setEmailId(e.target.value)} placeholder="e.g., contact@auraglow.com" />
                            </div>
                         </div>
                         
