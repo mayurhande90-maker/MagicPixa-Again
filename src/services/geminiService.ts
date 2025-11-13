@@ -933,112 +933,52 @@ export const generateBrandStylistImage = async (
 ): Promise<string> => {
     const ai = getAiClient();
     try {
-        // Step 1: Classify the reference image
-        const classificationPrompt = "Analyze the attached image. Is it a 'product_shot' (a photograph focusing on a product in a scene) or a 'graphical_post' (a design that includes text, layouts, and graphics, like a social media ad)? Respond with ONLY the JSON: {\"type\": \"product_shot\"} or {\"type\": \"graphical_post\"}.";
-        
-        const classificationResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { data: reference.base64, mimeType: reference.mimeType } },
-                    { text: classificationPrompt },
-                ]
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: { type: { type: Type.STRING } }
-                }
-            }
-        });
+        const generationPrompt = `You are a world-class AI Creative Director and Visual Analyst. Your mission is to create a new, commercially-ready visual that is a perfect stylistic replica of the {reference_image}, but features the user's unique brand content.
 
-        const classificationResult = JSON.parse(classificationResponse.text.trim());
-        const imageType = classificationResult.type;
+**ASSET DEFINITIONS & ROLES (MANDATORY):**
+-   **{product_image}:** This is the HERO ASSET. It is SACRED, UNCHANGEABLE, and LOCKED. Your primary job is to **COMPOSITE** this exact image into the new scene with perfect realism, not to redraw or reinterpret it. The product's packaging, design, labels, logos, and colors MUST remain 100% IDENTICAL to the upload. This is the most important rule.
+-   **{reference_image}:** This is for STYLE, MOOD, AND COMPOSITION ONLY. **STRICT NEGATIVE CONSTRAINT:** You are FORBIDDEN from using the product or any recognizable content from this image in the final output. Replicate its *style*, not its *content*.
+-   **{brand_logo}:** This is a separate branding element to be placed intelligently if the context is appropriate.
 
-        if (!['product_shot', 'graphical_post'].includes(imageType)) {
-            throw new Error("Could not determine the type of reference image.");
-        }
+**STEP 1: CONTEXTUAL ANALYSIS (THINK FIRST):**
+Before generating, you MUST analyze both the {reference_image} and {product_image} to determine their context and apply the following conditional logic:
 
-        // Step 2: Construct the generation prompt based on classification
-        let generationPrompt = '';
-        if (imageType === 'product_shot') {
-            generationPrompt = `You are an elite-level AI art director and virtual photographer, specializing in hyper-realistic product commercials. Your task is to generate a new, breathtaking photograph that flawlessly matches the artistic style of the {reference_image}, but features the user's product.
+1.  **Analyze Reference for Ad Elements:**
+    *   **IF** the {reference_image} is a clean photograph (e.g., a lifestyle shot, a simple product photo without text overlays or contact info), **THEN** you MUST NOT add the user's optional \`website\`, \`contact\`, or \`email\` details, even if provided. The output must be a clean photograph.
+    *   **ONLY IF** the {reference_image} is clearly a graphical ad (containing text, logos, calls-to-action), should you consider adding the optional contact details.
 
-**MASTER DIRECTIVE: PHOTOREALISM & STYLE REPLICATION**
-1.  **Forensic Style Analysis:** Meticulously deconstruct the {reference_image}. Identify and replicate its exact photographic DNA:
-    *   **Lighting:** Is it soft window light, a hard studio keylight, golden hour sun? Recreate the exact number of light sources, their direction, softness, and color temperature.
-    *   **Composition & Framing:** Adhere to the rule of thirds, leading lines, or other compositional principles used.
-    *   **Lens & Camera Settings:** Emulate the depth of field (e.g., f/1.8 for blurry background, f/11 for sharp focus), focal length (e.g., wide-angle, macro), and film grain.
-    *   **Color Grading:** Match the mood, hue, saturation, and contrast of the reference.
+2.  **Analyze Product for Context:**
+    *   **IF** the {product_image} is a lifestyle shot that already features the product in a natural context (e.g., held by a model, placed on a styled surface), **THEN** do NOT add the separate {brand_logo} to the final image, as it would be redundant and unprofessional.
+    *   **ONLY IF** the {product_image} is a simple cutout on a plain background, should you consider creatively integrating the {brand_logo} into the scene.
 
-**ASSET INTEGRATION (CRITICAL RULES):**
-1.  **RULE #1 - PIXEL-PERFECT PRODUCT PRESERVATION (NON-NEGOTIABLE):**
-    *   The user's uploaded {product_image} is a SACRED, UNCHANGEABLE, LOCKED asset.
-    *   Your primary task is to **COMPOSITE** this image realistically into the new scene, NOT to redraw or reinterpret it.
-    *   The product's packaging, design, labels, logos, text, and colors in the {product_image} MUST remain **100% IDENTICAL** to the source.
-    *   Any alteration to the product itself is a failure. This is the most important rule. The product must look exactly as it was uploaded.
-    *   You MUST achieve this by treating the {product_image} as a final element and building the scene around it, complete with photorealistic lighting and shadows that fall *onto* the product.
+**STEP 2: EXECUTION (GENERATE BASED ON ANALYSIS):**
+Based on your analysis, determine if the {reference_image} is a 'Photograph' or a 'Graphical Post' and execute the corresponding directive below.
 
-2.  **SUBJECT & FOCAL POINT:**
-    *   The final generated photograph MUST feature the product from the {product_image}. This is the hero, the subject, the entire point of the image.
-    *   Make the user's product the clear focal point of the composition. Use lighting and depth of field to draw the viewer's eye to it.
+---
+**DIRECTIVE A: IF REFERENCE IS A PHOTOGRAPH**
 
-3.  **STYLE REFERENCE ONLY (CRITICAL DISTINCTION):**
-    *   The {reference_image} is provided ONLY for stylistic inspiration (lighting, composition, mood, color).
-    *   **STRICT NEGATIVE CONSTRAINT:** You MUST NOT, under any circumstances, include the product, brand, or any recognizable content from the {reference_image} in your final output. Your sole focus is to replicate its *style*, not its *content*.
+You are an elite AI virtual photographer.
+1.  **Forensic Style Replication:** Meticulously deconstruct and replicate the {reference_image}'s exact photographic DNA: lighting (direction, softness, color), composition, lens effects (depth of field, focal length), and color grading.
+2.  **Photorealistic Compositing (Rule #1):** Composite the UNCHANGED {product_image} into the new scene. It must look completely real. Apply realistic lighting and shadows *onto* the product to blend it perfectly. The product itself must not be altered.
+3.  **Hero the Subject:** The user's product from {product_image} MUST be the clear focal point.
+4.  **Conditional Branding:**
+    *   If your analysis in Step 1 allows, integrate the {brand_logo} into the scene with extreme realism (e.g., subtly embossed on a surface, realistically reflected in water). Do not make it look like a sticker.
+    *   Render the brand name "${name}" into the scene as a physical element (e.g., formed by light and shadow, written in condensation). The style should be inspired by "${fonts}".
+---
+**DIRECTIVE B: IF REFERENCE IS A GRAPHICAL POST**
 
-4.  **INTELLIGENT LOGO & TEXT PLACEMENT (BRANDING ELEMENTS):**
-    *   The {brand_logo} (the separate logo file, NOT the logo on the product) must be integrated into the scene with extreme realism. It should not look like a sticker. Creative ideas: subtly embossed on a surface, realistically reflected in water, engraved on stone.
-    *   Render the brand name "${name}" into the scene as a physical element, not a simple text overlay. Creative ideas: formed by light and shadow, written in condensation on a surface, assembled from natural elements that fit the scene. The style should be inspired by "${fonts}".
-
-**FINAL OUTPUT REQUIREMENTS:**
-- The result must be a single, flawless, high-resolution photograph ready for a major brand's advertising campaign.`;
-        } else { // graphical_post
-            generationPrompt = `You are a world-class AI graphic designer and marketing strategist. Your mission is to create a new, commercially-ready graphical post (e.g., for Instagram, Facebook) that is a perfect stylistic replica of the {reference_image}, but is filled with the user's unique brand content.
-
-**MASTER DIRECTIVE: LAYOUT & STYLE REPLICATION**
-1.  **Deconstruct the Layout:** Perform a forensic analysis of the {reference_image}'s design grid. Recreate its exact structure: the precise placement, dimensions, alignment, and layering of all text blocks, image containers, logos, shapes, and background elements.
-2.  **Replicate the Aesthetic:** Match the visual style flawlessly. This includes typography choices (weight, size, spacing), color palettes, use of gradients, corner radii on shapes, and any textures or patterns. The mood must be identical.
-
-**ASSET INTEGRATION (CRITICAL RULES):**
-1.  **RULE #1 - PIXEL-PERFECT PRODUCT PRESERVATION (NON-NEGOTIABLE):**
-    *   The user's uploaded {product_image} is a SACRED, UNCHANGEABLE, LOCKED asset.
-    *   Your task is to perform a professional-grade background removal on the {product_image} and place the resulting **UNTOUCHED product cutout** into the new design.
-    *   The product's packaging, design, labels, logos, text, and colors on the cutout MUST remain **100% IDENTICAL** to the source {product_image}.
-    *   Any alteration to the product itself is a failure. This is the most important rule.
-
-2.  **SUBJECT OF THE GRAPHIC:**
-    *   The final generated graphic MUST feature the product from the {product_image}. This is the hero, the subject, the entire point of the image.
-    *   Place the clean, untouched product cutout from {product_image} into the designated image area of the replicated layout.
-    *   Add a subtle, realistic drop shadow to the product that is consistent with the lighting of the new design.
-    *   **STRICT NEGATIVE CONSTRAINT:** You MUST NOT use any product or key visual content from the {reference_image}. Your task is to insert the user's product into the replicated layout.
-
-3.  **FLAWLESS BRAND & TEXT APPLICATION:**
-    *   Integrate the {brand_logo} cleanly and at high resolution, typically where the original logo was placed.
+You are a world-class AI graphic designer.
+1.  **Layout & Style Deconstruction:** Perform a forensic analysis of the {reference_image}'s design. Recreate its exact grid, layout, typography (style, weight, size), color palette, and shapes. The mood must be identical.
+2.  **Asset Integration (Rule #1):** Perform a professional-grade background removal on the {product_image} and place the resulting UNTOUCHED product cutout into the new design. Add a subtle, realistic drop shadow consistent with the design's lighting.
+3.  **Flawless Branding:**
+    *   Integrate the {brand_logo} cleanly and at high resolution, but only if your Step 1 analysis allows it.
     *   Use the brand colors "${colors}" throughout the design.
-    *   All text MUST be rendered in a font style described as "${fonts}". Text must be crisp, legible, and perfectly aligned within the replicated layout grid.
+    *   All text MUST be rendered crisply in a font style described as "${fonts}".
+4.  **Strategic Copywriting:** Write new, compelling ad copy for the product "${name}" ("${description}"). The tone must match the reference image. If your Step 1 analysis allows, smartly integrate the optional contact details (\`website\`: ${website}, \`contact\`: ${contact}, \`email\`: ${email}) into a conventional location like the footer.
+---
 
-4.  **STRATEGIC COPYWRITING:**
-    *   Act as a senior marketing copywriter. Analyze the theme of the reference (e.g., "New Arrival," "Limited Time Offer," "How-To Guide").
-    *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.`;
-
-            if (website || contact || email) {
-                generationPrompt += `
-5.  **CONTACT INFORMATION INTEGRATION:**
-    - You MUST integrate the following contact details into the design in a clean, professional, and conventional location (e.g., the footer of the ad).
-    - Ensure the text is legible and fits the overall aesthetic.
-`;
-                if (website) generationPrompt += `    - Website: ${website}\n`;
-                if (contact) generationPrompt += `    - Contact: ${contact}\n`;
-                if (email) generationPrompt += `    - Email: ${email}\n`;
-            }
-
-            generationPrompt += `
 **FINAL OUTPUT REQUIREMENTS:**
-- The result must be a single, high-resolution, pixel-perfect graphic ready for a major brand's social media campaign.
-- No jagged edges, no blurry text, no misplaced elements. The quality must be impeccable.`;
-        }
+The result must be a single, flawless, high-resolution visual ready for a major brand's campaign. The quality must be impeccable.`;
         
         const parts = [
             { text: "{reference_image}:" },
@@ -1050,7 +990,6 @@ export const generateBrandStylistImage = async (
             { text: generationPrompt }
         ];
 
-        // Step 3: Generate the final image
         const generationResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts },
