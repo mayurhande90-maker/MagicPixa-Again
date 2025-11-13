@@ -1018,6 +1018,55 @@ The result must be a single, flawless, high-resolution visual ready for a major 
     }
 };
 
+export const removeElementFromImage = async (
+    base64ImageData: string,
+    mimeType: string,
+    maskBase64Data: string
+): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        const prompt = `You are an expert photo restoration AI specializing in inpainting. The user has provided an image and a corresponding mask. Your task is to intelligently remove the element defined by the white area in the mask and seamlessly reconstruct the background behind it.
+
+**CRITICAL INSTRUCTIONS:**
+1.  **Perfect Reconstruction:** The filled-in area must perfectly match the surrounding lighting, texture, shadows, and patterns.
+2.  **Photorealism:** The result must be photorealistic and show absolutely no signs of editing or artifacts.
+3.  **Preserve Unmasked Areas:** Do not alter any part of the image that is outside the masked (white) area. The rest of the image must remain identical.
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { inlineData: { data: maskBase64Data, mimeType: 'image/png' } },
+                    { text: prompt },
+                ],
+            },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+
+        if (response.promptFeedback?.blockReason) {
+            throw new Error(`Image editing blocked due to: ${response.promptFeedback.blockReason}. Please try a different selection.`);
+        }
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) {
+            return imagePart.inlineData.data;
+        }
+
+        throw new Error("The model did not return an edited image. The selection may have been too large or complex.");
+
+    } catch (error) {
+        console.error("Error removing element from image:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to edit image: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while editing the image.");
+    }
+};
+
 
 export const generateVideo = async (prompt: string) => {
     const ai = getAiClient();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './types';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -2322,6 +2322,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const [processing, setProcessing] = useState<{ logo: boolean; product: boolean; reference: boolean }>({ logo: false, product: false, reference: false });
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const brandLogoRef = useRef<HTMLInputElement>(null);
     const productImageRef = useRef<HTMLInputElement>(null);
@@ -2440,7 +2441,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
             )}
             {isProcessing && (
                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 * 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
             )}
         </div>
@@ -2503,8 +2504,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                                        </button>
                                        <div className="grid grid-cols-2 gap-2">
                                            <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                           <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg">Start Over</button>
+                                           <button onClick={() => setIsEditModalOpen(true)} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><PencilIcon className="w-5 h-5"/> Edit</button>
                                        </div>
+                                       <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-gray-800 pt-2">Start Over</button>
                                    </div>
                                ) : (
                                    <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
@@ -2517,6 +2519,231 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                 </div>
             </div>
              {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+             {isEditModalOpen && generatedImage && (
+                <ImageEditModal 
+                    imageUrl={generatedImage} 
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSave={(newImage) => {
+                        setGeneratedImage(newImage);
+                        setIsEditModalOpen(false);
+                    }}
+                    auth={auth}
+                    navigateTo={navigateTo}
+                />
+             )}
+        </div>
+    );
+};
+
+interface ImageEditModalProps {
+    imageUrl: string;
+    onClose: () => void;
+    onSave: (newImageUrl: string) => void;
+    auth: AuthProps;
+    navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+}
+
+const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const EDIT_COST = 1;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    const drawImageOnCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imageUrl;
+        img.onload = () => {
+            const container = canvas.parentElement;
+            if (!container) return;
+            
+            const canvasAspect = 1; // Square canvas for the mask
+            const imageAspect = img.width / img.height;
+            
+            let drawWidth, drawHeight, drawX, drawY;
+
+            if (imageAspect > canvasAspect) { // Image is wider than canvas
+                drawWidth = container.clientWidth;
+                drawHeight = drawWidth / imageAspect;
+                drawX = 0;
+                drawY = (container.clientHeight - drawHeight) / 2;
+            } else { // Image is taller than canvas
+                drawHeight = container.clientHeight;
+                drawWidth = drawHeight * imageAspect;
+                drawY = 0;
+                drawX = (container.clientWidth - drawWidth) / 2;
+            }
+
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        };
+    };
+    
+    useEffect(() => {
+        drawImageOnCanvas();
+        window.addEventListener('resize', drawImageOnCanvas);
+        return () => window.removeEventListener('resize', drawImageOnCanvas);
+    }, [imageUrl]);
+
+    const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    };
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        setIsDrawing(true);
+        const pos = getBrushPos(e);
+        if (pos) draw(pos.x, pos.y);
+    };
+
+    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        setIsDrawing(false);
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx) ctx.beginPath();
+    };
+
+    const draw = (x: number, y: number) => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (!ctx || !isDrawing) return;
+        
+        ctx.lineWidth = 30;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.globalCompositeOperation = 'source-over';
+        
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    };
+
+    const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        const pos = getBrushPos(e);
+        if (pos) draw(pos.x, pos.y);
+    };
+
+    const handleRemoveElement = async () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        if (hasInsufficientCredits) {
+            setError(`This action costs ${EDIT_COST} credit. Please top up.`);
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        // Create a mask from the drawing
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        const maskCtx = maskCanvas.getContext('2d');
+        if (!maskCtx) {
+            setError("Could not create mask.");
+            setIsLoading(false);
+            return;
+        }
+
+        // Fill mask with black
+        maskCtx.fillStyle = 'black';
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+        
+        // Use the drawing from the main canvas as the white part of the mask
+        maskCtx.globalCompositeOperation = 'source-over';
+        maskCtx.drawImage(canvas, 0, 0);
+
+        // Make the drawing pure white for a clear mask
+        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            // If the pixel is not black (i.e., it's part of the drawing), make it white
+            if (data[i] !== 0 || data[i+1] !== 0 || data[i+2] !== 0) {
+                data[i] = 255;     // R
+                data[i + 1] = 255; // G
+                data[i + 2] = 255; // B
+            }
+        }
+        maskCtx.putImageData(imageData, 0, 0);
+
+        const maskDataUrl = maskCanvas.toDataURL('image/png');
+        const maskBase64 = maskDataUrl.split(',')[1];
+        
+        const originalBase64 = imageUrl.split(',')[1];
+        const originalMimeType = imageUrl.match(/data:(.*);/)?.[1] || 'image/png';
+
+        try {
+            const newBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
+            onSave(`data:image/png;base64,${newBase64}`);
+
+            if (!isGuest && auth.user) {
+                await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
+            }
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to edit image.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+            <div className="relative w-full max-w-3xl bg-gray-800 rounded-2xl p-4 space-y-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-white text-lg font-bold text-center">Magic Eraser</h3>
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden cursor-crosshair">
+                     <canvas 
+                        ref={canvasRef}
+                        onMouseDown={startDrawing}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onMouseMove={handleDrawing}
+                        onTouchStart={startDrawing}
+                        onTouchEnd={stopDrawing}
+                        onTouchMove={handleDrawing}
+                     />
+                     {isLoading && (
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                            <SparklesIcon className="w-10 h-10 text-yellow-400 animate-pulse" />
+                            <p className="text-white mt-2">Removing element...</p>
+                        </div>
+                     )}
+                </div>
+                {error && <p className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded-md">{error}</p>}
+                <div className="flex justify-center gap-4">
+                     <button onClick={drawImageOnCanvas} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors">Clear</button>
+                    <button onClick={handleRemoveElement} disabled={isLoading || hasInsufficientCredits} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <SparklesIcon className="w-5 h-5"/>
+                        Remove Element
+                    </button>
+                </div>
+                 <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+            </div>
         </div>
     );
 };
