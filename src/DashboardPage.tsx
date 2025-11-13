@@ -2456,17 +2456,17 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                     <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
                         <div>
                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">1. Upload Your Assets</h3>
-                           <div className="flex justify-between items-start gap-4">
-                               <div className="flex-1 text-center">
-                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Brand Logo</label>
+                           <div className="flex items-start justify-center gap-4 text-center">
+                               <div className="flex flex-col items-center gap-1.5 w-1/3">
+                                   <label className="block text-sm font-bold text-[#1E1E1E]">Brand Logo</label>
                                    <ImageUploadControl image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} isProcessing={processing.logo} altText="Brand Logo"/>
                                </div>
-                               <div className="flex-1 text-center">
-                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Product Photo</label>
+                               <div className="flex flex-col items-center gap-1.5 w-1/3">
+                                   <label className="block text-sm font-bold text-[#1E1E1E]">Product Photo</label>
                                    <ImageUploadControl image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} isProcessing={processing.product} altText="Product Photo"/>
                                </div>
-                               <div className="flex-1 text-center">
-                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Reference Style</label>
+                               <div className="flex flex-col items-center gap-1.5 w-1/3">
+                                   <label className="block text-sm font-bold text-[#1E1E1E]">Reference Style</label>
                                    <ImageUploadControl image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} isProcessing={processing.reference} altText="Reference Style"/>
                                </div>
                            </div>
