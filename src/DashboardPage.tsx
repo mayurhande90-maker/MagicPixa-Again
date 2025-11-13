@@ -2376,8 +2376,6 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
         setIsLoading(true);
         setError(null);
-        // Do not clear previous image for re-generation, only if starting over.
-        // setGeneratedImage(null); 
 
         try {
             const newBase64 = await generateBrandStylistImage({
