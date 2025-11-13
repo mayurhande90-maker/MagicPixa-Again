@@ -2316,6 +2316,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [processing, setProcessing] = useState<{ logo: boolean; product: boolean; reference: boolean }>({ logo: false, product: false, reference: false });
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -2328,6 +2329,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-stylist') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-stylist')!, 10) : 4);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const isProcessingFile = processing.logo || processing.product || processing.reference;
     const canGenerate = brandLogo && productImage && referenceImage && brandName && productDescription;
 
     useEffect(() => {
@@ -2337,17 +2339,28 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
         const file = event.target.files?.[0];
         if (!file) return;
+
+        setProcessing(prev => ({ ...prev, [type]: true }));
+        setError(null);
+
         if (!file.type.startsWith('image/')) {
             setError('Please upload a valid image file.');
+            setProcessing(prev => ({ ...prev, [type]: false }));
             return;
         }
-        const base64 = await fileToBase64(file);
-        const data = { file, url: URL.createObjectURL(file), base64 };
-        if (type === 'logo') setBrandLogo(data);
-        else if (type === 'product') setProductImage(data);
-        else setReferenceImage(data);
-        // Do not clear generated image on file change for re-generation flow
-        setError(null);
+        
+        try {
+            const base64 = await fileToBase64(file);
+            const data = { file, url: URL.createObjectURL(file), base64 };
+            if (type === 'logo') setBrandLogo(data);
+            else if (type === 'product') setProductImage(data);
+            else setReferenceImage(data);
+        } catch(err) {
+            setError("Failed to process the image. Please try again.");
+            console.error(err);
+        } finally {
+            setProcessing(prev => ({ ...prev, [type]: false }));
+        }
     };
 
     const handleGenerate = async () => {
@@ -2404,7 +2417,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         if(referenceImageRef.current) referenceImageRef.current.value = "";
     };
 
-    const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; }> = ({ image, inputRef, onFileChange, title }) => (
+    const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; isProcessing: boolean; }> = ({ image, inputRef, onFileChange, title, isProcessing }) => (
         <div>
             <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
             <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : 'cursor-pointer'}`} onClick={() => inputRef.current?.click()}>
@@ -2418,6 +2431,11 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                     </>
                 ) : (
                     <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">{title}</span></div>
+                )}
+                {isProcessing && (
+                     <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
                 )}
             </div>
         </div>
@@ -2441,9 +2459,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
                     <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
                         <div className="grid grid-cols-3 gap-4">
-                            <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" />
-                            <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" />
-                            <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" />
+                            <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" isProcessing={processing.logo} />
+                            <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" isProcessing={processing.product} />
+                            <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" isProcessing={processing.reference} />
                         </div>
                         <div className="space-y-3">
                             <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
@@ -2454,7 +2472,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                          <div className="space-y-2 pt-4 border-t border-gray-200/80">
                             {generatedImage ? (
                                 <div className="space-y-2">
-                                    <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                    <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                         <RetryIcon className="w-5 h-5"/> Re-generate
                                     </button>
                                     <div className="grid grid-cols-2 gap-2">
@@ -2463,7 +2481,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                                     </div>
                                 </div>
                             ) : (
-                                <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
+                                <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
                             )}
                             <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
