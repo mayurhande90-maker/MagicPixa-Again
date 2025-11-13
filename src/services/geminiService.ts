@@ -2,7 +2,8 @@
 
 // FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
-import { Base64File } from "./utils/imageUtils";
+// FIX: Corrected import path for Base64File to navigate up one directory.
+import { Base64File } from "../utils/imageUtils";
 
 /**
  * Helper function to get a fresh AI client on every call.
@@ -773,83 +774,59 @@ const productPackSchema = {
             required: ['heroImage', 'whiteBackgroundImage', 'lifestyleScene1', 'lifestyleScene2', 'modelImage', 'infographicImage', 'storyboardPanel1', 'storyboardPanel2', 'storyboardPanel3'],
         },
         videoGenerationPrompts: {
-            type: Type.OBJECT,
-            properties: {
-                video360Spin: { type: Type.STRING, description: "A prompt for a 3-5 second video showing a 360-degree spin of the product." },
-                videoCinemagraph: { type: Type.STRING, description: "A prompt for a 4-second looping video (cinemagraph) based on one of the lifestyle scenes." },
-            },
-            required: ['video360Spin', 'videoCinemagraph'],
-        },
+             type: Type.OBJECT,
+             properties: {
+                video360Spin: { type: Type.STRING, description: "A prompt for a 5-second video showing a 360-degree spin of the product on a clean background." },
+                videoCinemagraph: { type: Type.STRING, description: "A prompt for a 5-second cinemagraph video featuring the product in a lifestyle scene with a subtle motion element." },
+             },
+             required: ['video360Spin', 'videoCinemagraph'],
+        }
     },
     required: ['productAnalysis', 'creativeStrategy', 'textAssets', 'imageGenerationPrompts', 'videoGenerationPrompts'],
 };
 
 export const generateProductPackPlan = async (
-    images: Base64File[],
+    productImages: Base64File[],
     productName: string,
     productDescription: string,
-    brandKit?: { logo?: Base64File; colors?: string[]; fonts?: string[] },
+    brandKit: { logo?: Base64File; colors?: string[]; fonts?: string[] },
     competitorUrl?: string,
     inspirationImages?: Base64File[]
 ): Promise<any> => {
     const ai = getAiClient();
-    const parts: any[] = [...images.map(img => ({ inlineData: { data: img.base64, mimeType: img.mimeType } }))];
+    try {
+        const parts: any[] = [];
+        parts.push({ text: `Analyze the following product and create a complete marketing product pack plan. The output must conform to the provided JSON schema.` });
+        parts.push({ text: `\n\n**Product Details:**\n- Name: ${productName}\n- Description: ${productDescription}` });
 
-    let prompt = `You are a world-class AI Creative Director. Your task is to create a complete, strategic, and marketplace-ready product pack plan. You will generate the detailed instructions (prompts) and text assets required to create a full suite of marketing materials.
-
-**USER INPUT:**
-- Product Name/Brand: "${productName}"
-- Short Product Description: "${productDescription}"
-- Product Images are attached.
-
-**ADVANCED CREATIVE INPUTS (IF PROVIDED):**
-`;
-    if (brandKit?.logo) {
-        prompt += `- Brand Logo is attached.\n`;
-        parts.push({ text: "Brand Logo:" }, { inlineData: { data: brandKit.logo.base64, mimeType: brandKit.logo.mimeType } });
-    }
-    if (brandKit?.colors && brandKit.colors.length > 0) {
-        prompt += `- Brand Colors: ${brandKit.colors.join(', ')}\n`;
-    }
-    if (brandKit?.fonts && brandKit.fonts.length > 0) {
-        prompt += `- Brand Fonts: ${brandKit.fonts.join(', ')}\n`;
-    }
-    if (competitorUrl) {
-        prompt += `- Competitor URL for analysis: ${competitorUrl}\n`;
-    }
-    if (inspirationImages && inspirationImages.length > 0) {
-        prompt += `- Inspiration images are attached to define the desired aesthetic "vibe".\n`;
-        parts.push({ text: "Inspiration Images:" });
-        inspirationImages.forEach(img => {
+        productImages.forEach((img, i) => {
+            parts.push({ text: `\n\nProduct Image ${i + 1}:` });
             parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
         });
-    }
 
-    prompt += `
-**YOUR TASK & HIGH-LEVEL CREATIVE DIRECTION:**
-1.  **Analyze & Strategize:** Meticulously analyze ALL provided inputs. If a competitor URL is given, devise a unique visual strategy to make this product stand out. If a Brand Kit or inspiration images are provided, they are the primary source of truth for all creative decisions.
-2.  **Devise Creative Direction:** Based on your analysis, define a professional creative direction, including themes for two distinct lifestyle scenes, a model archetype, and an aesthetic vibe.
-3.  **Generate Text Assets:** Write compelling, SEO-friendly text assets that align with the strategy.
-4.  **Formulate Top-Notch Prompts:** Create detailed, actionable prompts for a text-to-image and text-to-video AI. The quality of these prompts is paramount. They must be engineered to produce hyper-realistic, commercially viable, and unique results.
+        if (brandKit.logo || (brandKit.colors && brandKit.colors.length > 0) || (brandKit.fonts && brandKit.fonts.length > 0)) {
+            parts.push({ text: `\n\n**Brand Kit:**` });
+            if (brandKit.logo) {
+                parts.push({ text: `\n- Logo:` });
+                parts.push({ inlineData: { data: brandKit.logo.base64, mimeType: brandKit.logo.mimeType } });
+            }
+            if (brandKit.colors?.length) parts.push({ text: `\n- Colors: ${brandKit.colors.join(', ')}` });
+            if (brandKit.fonts?.length) parts.push({ text: `\n- Fonts: ${brandKit.fonts.join(', ')}` });
+        }
 
-**CRITICAL RULES FOR ALL GENERATION PROMPTS:**
--   **#1 RULE - BRAND PRESERVATION:** This is the absolute top priority. ALL generated assets MUST preserve the product's packaging, logos, labels, and text with 100% accuracy. The product must look IDENTICAL to the original upload. This rule must be explicitly stated in every single image and video prompt.
--   **MODEL SELECTION:** The "With Model" shot MUST specify an **Indian model** that fits the product's target audience (e.g., age, gender, style) as defined in your creative strategy.
--   **HYPER-REALISM:** All prompts must aim for results indistinguishable from a professional DSLR photograph. Mention details like realistic lighting (e.g., "soft window light," "golden hour"), natural shadows, and high-fidelity textures.
--   **INFOGRAPHIC BASE:** The infographic prompt must be for an **"Infographic Base"** image. This image should be strategically composed with the product on one side and clean, professional negative space on the other. This negative space is a canvas where a user can add text and callouts later. DO NOT generate text directly onto the image.
--   **STORYBOARD:** Generate three sequential prompts for a 3-panel storyboard that tells a simple story about the product's use or benefit.
--   **VIDEO PROMPTS:**
-    -   *360 Spin:* A prompt for a 3-5 second, seamless loop video showing a 360-degree rotation of the product against a clean, professional studio background.
-    -   *Cinemagraph:* A prompt for a 4-second, seamlessly looping video based on one of the lifestyle scenes, where only one or two subtle elements are in motion (e.g., steam from a mug, leaves rustling in the wind).
+        if (competitorUrl) {
+            parts.push({ text: `\n\n**Competitor Reference:** ${competitorUrl}` });
+        }
 
-**OUTPUT:**
-Your final output MUST be a single, valid JSON object following the provided schema. You are required to provide a value for every field in the schema. Do not add any text before or after the JSON object.`;
-    
-    parts.push({ text: prompt });
-    
-    try {
+        if (inspirationImages?.length) {
+            inspirationImages.forEach((img, i) => {
+                parts.push({ text: `\n\nInspiration Image ${i + 1}:` });
+                parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+            });
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents: { parts },
             config: {
                 responseMimeType: "application/json",
@@ -857,218 +834,75 @@ Your final output MUST be a single, valid JSON object following the provided sch
             },
         });
 
+        if (response.promptFeedback?.blockReason) {
+            throw new Error(`Plan generation blocked due to: ${response.promptFeedback.blockReason}.`);
+        }
+        
         const jsonText = response.text.trim();
         if (!jsonText) {
-            throw new Error("The model did not return a valid plan.");
+            throw new Error("The model did not return any plan data.");
         }
+
         return JSON.parse(jsonText);
+
     } catch (error) {
-        console.error("Error generating Product Pack Plan:", error);
+        console.error("Error generating product pack plan with Gemini:", error);
         if (error instanceof Error) {
+            if (error.message.includes("JSON")) {
+                throw new Error("Failed to generate a valid plan. The model's response was not in the expected format. Please try again.");
+            }
             throw new Error(`Failed to generate plan: ${error.message}`);
         }
-        throw new Error("An unknown error occurred while generating the product pack plan.");
+        throw new Error("An unknown error occurred while communicating with the plan generation service.");
     }
 };
 
 export const generateStyledImage = async (
-    referenceImages: Base64File[],
+    productImages: Base64File[],
     prompt: string
-  ): Promise<string> => {
-    const ai = getAiClient();
-    try {
-      const parts = [
-        ...referenceImages.map(img => ({
-          inlineData: {
-            data: img.base64,
-            mimeType: img.mimeType,
-          },
-        })),
-        { text: prompt },
-      ];
-  
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts },
-        config: {
-          responseModalities: [Modality.IMAGE],
-        },
-      });
-  
-      if (response.promptFeedback?.blockReason) {
-          throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different prompt or image.`);
-      }
-  
-      const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-  
-      if (imagePart?.inlineData?.data) {
-          return imagePart.inlineData.data;
-      }
-      
-      console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-      throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-  
-    } catch (error) {
-      console.error("Error generating styled image with Gemini:", error);
-      if (error instanceof Error) {
-          throw new Error(`Failed to generate image: ${error.message}`);
-      }
-      throw new Error("An unknown error occurred while communicating with the image generation service.");
-    }
-};
-
-export const generateBrandStylistImage = async (
-    { logo, product, reference, name, description, colors, fonts, website, contact, email }: {
-        logo: Base64File,
-        product: Base64File,
-        reference: Base64File,
-        name: string,
-        description: string,
-        colors: string,
-        fonts: string,
-        website?: string,
-        contact?: string,
-        email?: string
-    }
 ): Promise<string> => {
     const ai = getAiClient();
     try {
-        const generationPrompt = `You are a world-class AI Creative Director and Visual Analyst. Your mission is to create a new, commercially-ready visual that is a perfect stylistic replica of the {reference_image}, but features the user's unique brand content.
-
-**ASSET DEFINITIONS & ROLES (MANDATORY):**
--   **{product_image}:** This is the HERO ASSET. It is SACRED, UNCHANGEABLE, and LOCKED. Your primary job is to **COMPOSITE** this exact image into the new scene with perfect realism, not to redraw or reinterpret it. The product's packaging, design, labels, logos, and colors MUST remain 100% IDENTICAL to the upload. This is the most important rule.
--   **{reference_image}:** This is for STYLE, MOOD, AND COMPOSITION ONLY. **STRICT NEGATIVE CONSTRAINT:** You are FORBIDDEN from using the product or any recognizable content from this image in the final output. Replicate its *style*, not its *content*.
--   **{brand_logo}:** This is a separate branding element to be placed intelligently if the context is appropriate.
-
-**STEP 1: CONTEXTUAL ANALYSIS (THINK FIRST):**
-Before generating, you MUST analyze both the {reference_image} and {product_image} to determine their context and apply the following conditional logic:
-
-1.  **Analyze Reference for Ad Elements:**
-    *   **IF** the {reference_image} is a clean photograph (e.g., a lifestyle shot, a simple product photo without text overlays or contact info), **THEN** you MUST NOT add the user's optional \`website\`, \`contact\`, or \`email\` details, even if provided. The output must be a clean photograph.
-    *   **ONLY IF** the {reference_image} is clearly a graphical ad (containing text, logos, calls-to-action), should you consider adding the optional contact details.
-
-2.  **Analyze Product for Context:**
-    *   **IF** the {product_image} is a lifestyle shot that already features the product in a natural context (e.g., held by a model, placed on a styled surface), **THEN** do NOT add the separate {brand_logo} to the final image, as it would be redundant and unprofessional.
-    *   **ONLY IF** the {product_image} is a simple cutout on a plain background, should you consider creatively integrating the {brand_logo} into the scene.
-
-**STEP 2: EXECUTION (GENERATE BASED ON ANALYSIS):**
-Based on your analysis, determine if the {reference_image} is a 'Photograph' or a 'Graphical Post' and execute the corresponding directive below.
-
----
-**DIRECTIVE A: IF REFERENCE IS A PHOTOGRAPH**
-
-You are an elite AI virtual photographer.
-1.  **Forensic Style Replication:** Meticulously deconstruct and replicate the {reference_image}'s exact photographic DNA: lighting (direction, softness, color), composition, lens effects (depth of field, focal length), and color grading.
-2.  **Photorealistic Compositing (Rule #1):** Composite the UNCHANGED {product_image} into the new scene. It must look completely real. Apply realistic lighting and shadows *onto* the product to blend it perfectly. The product itself must not be altered.
-3.  **Hero the Subject:** The user's product from {product_image} MUST be the clear focal point.
-4.  **Conditional Branding:**
-    *   If your analysis in Step 1 allows, integrate the {brand_logo} into the scene with extreme realism (e.g., subtly embossed on a surface, realistically reflected in water). Do not make it look like a sticker.
-    *   Render the brand name "${name}" into the scene as a physical element (e.g., formed by light and shadow, written in condensation). The style should be inspired by "${fonts}".
----
-**DIRECTIVE B: IF REFERENCE IS A GRAPHICAL POST**
-
-You are a world-class AI graphic designer.
-1.  **Layout & Style Deconstruction:** Perform a forensic analysis of the {reference_image}'s design. Recreate its exact grid, layout, typography (style, weight, size), color palette, and shapes. The mood must be identical.
-2.  **Asset Integration (Rule #1):** Perform a professional-grade background removal on the {product_image} and place the resulting UNTOUCHED product cutout into the new design. Add a subtle, realistic drop shadow consistent with the design's lighting.
-3.  **Flawless Branding:**
-    *   Integrate the {brand_logo} cleanly and at high resolution, but only if your Step 1 analysis allows it.
-    *   Use the brand colors "${colors}" throughout the design.
-    *   All text MUST be rendered crisply in a font style described as "${fonts}".
-4.  **Strategic Copywriting:** Write new, compelling ad copy for the product "${name}" ("${description}"). The tone must match the reference image. If your Step 1 analysis allows, smartly integrate the optional contact details (\`website\`: ${website}, \`contact\`: ${contact}, \`email\`: ${email}) into a conventional location like the footer.
----
-
-**FINAL OUTPUT REQUIREMENTS:**
-The result must be a single, flawless, high-resolution visual ready for a major brand's campaign. The quality must be impeccable.`;
+        const parts: any[] = [];
         
-        const parts = [
-            { text: "{reference_image}:" },
-            { inlineData: { data: reference.base64, mimeType: reference.mimeType } },
-            { text: "{product_image}:" },
-            { inlineData: { data: product.base64, mimeType: product.mimeType } },
-            { text: "{brand_logo}:" },
-            { inlineData: { data: logo.base64, mimeType: logo.mimeType } },
-            { text: generationPrompt }
-        ];
-
-        const generationResponse = await ai.models.generateContent({
+        productImages.forEach((img, i) => {
+             parts.push({ text: `Product Image ${i+1}:` });
+             parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+        });
+        
+        parts.push({ text: `\n\n**PROMPT:**\n${prompt}` });
+        
+        const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts },
             config: {
                 responseModalities: [Modality.IMAGE],
             },
         });
-
-        if (generationResponse.promptFeedback?.blockReason) {
-            throw new Error(`Image generation blocked due to: ${generationResponse.promptFeedback.blockReason}. Please try different inputs.`);
-        }
-
-        const imagePart = generationResponse.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) {
-            return imagePart.inlineData.data;
-        }
-
-        throw new Error("The model did not return an image. Please try again.");
-
-    } catch (error) {
-        console.error("Error in Brand Stylist AI service:", error);
-        if (error instanceof Error) {
-            throw new Error(`Failed to generate brand image: ${error.message}`);
-        }
-        throw new Error("An unknown error occurred while generating the brand image.");
-    }
-};
-
-export const removeElementFromImage = async (
-    base64ImageData: string,
-    mimeType: string,
-    maskBase64Data: string
-): Promise<string> => {
-    const ai = getAiClient();
-    try {
-        const prompt = `You are a precision photo editing AI tool. Your task is surgical inpainting. You are given an image and a mask.
-
-**NON-NEGOTIABLE DIRECTIVE:**
-1.  **FILL THE MASK ONLY:** Your ONLY job is to fill the white area of the mask. You must not alter, change, or remove ANY pixel outside of this exact masked area.
-2.  **DO NOT INTERPRET THE OBJECT:** Do not try to understand what the masked object is. Only focus on the pixels within the mask. If a user masks a small part of a bottle, you fill only that small part. You are FORBIDDEN from removing the whole bottle.
-3.  **SEAMLESS RECONSTRUCTION:** Reconstruct the background behind the masked area. The new pixels must be a perfect, photorealistic continuation of the immediate surrounding pixels. Match lighting, texture, grain, and shadows flawlessly.
-4.  **OUTPUT:** The final image must be identical to the original except for the surgically inpainted area. There should be zero evidence of editing.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [
-                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
-                    { inlineData: { data: maskBase64Data, mimeType: 'image/png' } },
-                    { text: prompt },
-                ],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
-        });
-
+        
         if (response.promptFeedback?.blockReason) {
-            throw new Error(`Image editing blocked due to: ${response.promptFeedback.blockReason}. Please try a different selection.`);
+            throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
         }
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
         if (imagePart?.inlineData?.data) {
             return imagePart.inlineData.data;
         }
 
-        throw new Error("The model did not return an edited image. The selection may have been too large or complex.");
+        console.error("No image data found in styled image response. Full API Response:", JSON.stringify(response, null, 2));
+        throw new Error("The model did not return an image for the styled prompt.");
 
     } catch (error) {
-        console.error("Error removing element from image:", error);
+        console.error("Error generating styled image with Gemini:", error);
         if (error instanceof Error) {
-            throw new Error(`Failed to edit image: ${error.message}`);
+            throw new Error(`Failed to generate styled image: ${error.message}`);
         }
-        throw new Error("An unknown error occurred while editing the image.");
+        throw new Error("An unknown error occurred while communicating with the styled image generation service.");
     }
 };
 
-
-export const generateVideo = async (prompt: string) => {
+export const generateVideo = async (prompt: string): Promise<any> => {
     const ai = getAiClient();
     try {
         const operation = await ai.models.generateVideos({
@@ -1077,33 +911,169 @@ export const generateVideo = async (prompt: string) => {
             config: {
                 numberOfVideos: 1,
                 resolution: '720p',
-                aspectRatio: '1:1',
+                aspectRatio: '16:9'
             }
         });
         return operation;
-    } catch (error) {
-        console.error("Error initiating video generation:", error);
-        if (error instanceof Error) {
-            throw new Error(`Failed to start video generation: ${error.message}`);
+    } catch (error: any) {
+        console.error("Error starting video generation:", error);
+        if (error.message && error.message.includes("Requested entity was not found.")) {
+             throw new Error("API key not found or invalid. Please select a valid API key.");
         }
-        throw new Error("An unknown error occurred during video generation.");
+        throw new Error(`Failed to start video generation: ${error.message}`);
     }
 };
 
-export const getVideoOperationStatus = async (operation: any) => {
+export const getVideoOperationStatus = async (operation: any): Promise<any> => {
     const ai = getAiClient();
     try {
         const updatedOperation = await ai.operations.getVideosOperation({ operation: operation });
         return updatedOperation;
-    } catch (error) {
-        console.error("Error polling video operation status:", error);
-        if (error instanceof Error) {
-            if(error.message.includes("Requested entity was not found")) {
-                 throw new Error("The video generation task could not be found. This might be due to an API key issue. Please try selecting your API key again.");
-            }
-            throw new Error(`Failed to get video status: ${error.message}`);
+    } catch (error: any) {
+        console.error("Error getting video operation status:", error);
+        if (error.message && error.message.includes("Requested entity was not found.")) {
+             throw new Error("API key not found or invalid. Please select a valid API key.");
         }
-        throw new Error("An unknown error occurred while checking video status.");
+        throw new Error(`Failed to get video status: ${error.message}`);
     }
 };
-// Minor change to allow commit.
+
+interface BrandStylistProps {
+    logo: Base64File;
+    product: Base64File;
+    reference: Base64File;
+    name: string;
+    description: string;
+    colors?: string;
+    fonts?: string;
+    website?: string;
+    contact?: string;
+    email?: string;
+}
+
+export const generateBrandStylistImage = async (props: BrandStylistProps): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        const prompt = `Task: Create a single, cohesive, on-brand promotional graphic for a product.
+        
+        **Analysis Phase (Internal Monologue, do not output):**
+        1. Analyze the Reference Style Image: What is the mood, color palette, lighting, composition, and overall aesthetic? Is it minimalist, bold, natural, corporate?
+        2. Analyze the Brand Logo: Note its colors, shape, and font style.
+        3. Analyze the Product Photo: Identify the product. Is it a bottle, a box, a device?
+        4. Synthesize Brand Details: Read the brand name, description, colors, fonts, and contact info.
+
+        **Execution Phase (Generate the final image based on this):**
+        1.  **Recreate the Style:** Generate a new background and scene that EXACTLY matches the aesthetic, mood, and lighting of the **Reference Style Image**. This is the most important step.
+        2.  **Place the Product:** Seamlessly integrate the **Product Photo** into this new scene. The product should look like it naturally belongs there. It needs realistic shadows, reflections, and lighting consistent with the new scene. DO NOT change the product itself.
+        3.  **Incorporate the Logo:** Place the **Brand Logo** tastefully onto the image. It should be legible but not overpowering. Find a natural position for it (e.g., a corner, a subtle overlay).
+        4.  **Add Text Elements (If Provided):** If brand name, description, website, contact info, etc., are provided, add them to the graphic as text overlays. The typography should match the style hinted at by the **Brand Fonts** or the overall aesthetic. The layout should be clean, professional, and well-balanced.
+        
+        **Strict Output Requirements:**
+        - The final output is a single image.
+        - The style MUST be derived from the reference image.
+        - The product and logo must be preserved perfectly.
+        - The final image must look like a professional graphic designer created it.`;
+
+        const parts: any[] = [
+            { text: `{brand_logo}:` },
+            { inlineData: { data: props.logo.base64, mimeType: props.logo.mimeType } },
+            { text: `{product_photo}:` },
+            { inlineData: { data: props.product.base64, mimeType: props.product.mimeType } },
+            { text: `{reference_style}:` },
+            { inlineData: { data: props.reference.base64, mimeType: props.reference.mimeType } },
+            { text: `\n\n**Brand Details:**\n- Name: ${props.name}\n- Description: ${props.description}` },
+        ];
+        if (props.colors) parts.push({ text: `\n- Colors: ${props.colors}`});
+        if (props.fonts) parts.push({ text: `\n- Fonts: ${props.fonts}`});
+        if (props.website) parts.push({ text: `\n- Website: ${props.website}`});
+        if (props.contact) parts.push({ text: `\n- Contact: ${props.contact}`});
+        if (props.email) parts.push({ text: `\n- Email: ${props.email}`});
+        parts.push({ text: `\n\n**PROMPT:**\n${prompt}` });
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+        
+        if (response.promptFeedback?.blockReason) {
+            throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}.`);
+        }
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+        if (imagePart?.inlineData?.data) {
+            return imagePart.inlineData.data;
+        }
+
+        console.error("No image data found in Brand Stylist response. Full API Response:", JSON.stringify(response, null, 2));
+        throw new Error("The model did not return an image.");
+
+    } catch (error) {
+        console.error("Error in Brand Stylist AI with Gemini:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to generate brand image: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while generating the brand image.");
+    }
+};
+
+export const removeElementFromImage = async (
+    originalBase64: string,
+    originalMimeType: string,
+    maskBase64: string,
+): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        const prompt = `You are a professional photo restoration AI. Your task is to perform an inpainting operation based on a mask.
+        
+        **Instructions:**
+        1.  Analyze the 'Original Image'.
+        2.  Identify the area marked in white on the 'Mask Image'.
+        3.  **Inpaint (fill in)** the masked area by intelligently using the surrounding pixels and textures from the 'Original Image'.
+        4.  The final result MUST be a seamless, photorealistic image where the masked object has been completely removed and the background is naturally reconstructed.
+        
+        **CRITICAL RULES:**
+        -   **DO NOT** alter any part of the image that is black in the 'Mask Image'.
+        -   The final image must have the same dimensions and overall appearance as the original, minus the removed element.
+        -   The filled-in area must perfectly match the lighting, color, texture, and pattern of its surroundings.`;
+        
+        const parts: any[] = [
+            { text: "Original Image:" },
+            { inlineData: { data: originalBase64, mimeType: originalMimeType } },
+            { text: "Mask Image:" },
+            { inlineData: { data: maskBase64, mimeType: 'image/png' } },
+            { text: prompt },
+        ];
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+        
+        if (response.promptFeedback?.blockReason) {
+            throw new Error(`Image editing blocked due to: ${response.promptFeedback.blockReason}.`);
+        }
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+
+        if (imagePart?.inlineData?.data) {
+            return imagePart.inlineData.data;
+        }
+
+        console.error("No image data found in remove element response. Full API Response:", JSON.stringify(response, null, 2));
+        throw new Error("The model did not return an edited image.");
+
+    } catch (error) {
+        console.error("Error removing element with Gemini:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to edit image: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while editing the image.");
+    }
+};

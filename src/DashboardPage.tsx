@@ -2555,12 +2555,16 @@ interface ImageEditModalProps {
     navigateTo: (page: Page, view?: View, sectionId?: string) => void;
 }
 
+type Path = { points: { x: number; y: number }[], size: number };
+
 const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
     const isDrawing = useRef(false);
-    const [paths, setPaths] = useState<Array<{ points: { x: number; y: number }[], size: number }>>([]);
-    const currentPath = useRef<{ points: { x: number; y: number }[], size: number } | null>(null);
+    
+    const [isReady, setIsReady] = useState(false);
+    const [paths, setPaths] = useState<Path[]>([]);
+    const [currentPath, setCurrentPath] = useState<Path | null>(null);
     const [brushSize, setBrushSize] = useState(30);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -2571,17 +2575,61 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
     const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
-    const redrawCanvas = useCallback(() => {
+    // Effect 1: Load image and set canvas size
+    useEffect(() => {
+        setIsReady(false);
+        setPaths([]);
+        setCurrentPath(null);
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imageUrl;
+        imageRef.current = null;
+
+        const loadHandler = () => {
+            imageRef.current = img;
+            const canvas = canvasRef.current;
+            if (canvas && canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                setIsReady(true); // Signal readiness *after* sizing
+            }
+        };
+        img.addEventListener('load', loadHandler);
+        img.onerror = () => {
+            setError("Failed to load image for editing. Please try again.");
+            setIsReady(false);
+        }
+        
+        return () => img.removeEventListener('load', loadHandler);
+    }, [imageUrl]);
+
+    // Effect 2: Handle window resizing
+    useEffect(() => {
+        const handleResize = () => {
+             const canvas = canvasRef.current;
+             if(canvas && canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                // Readiness is already true, so the draw effect will trigger
+                setIsReady(true); // Re-trigger drawing
+             }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Effect 3: Central drawing logic. This runs whenever the canvas needs to be redrawn.
+    useEffect(() => {
+        if (!isReady) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         const img = imageRef.current;
 
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw the original image centered and scaled
         if (img) {
             const canvasAspect = canvas.width / canvas.height;
             const imageAspect = img.naturalWidth / img.naturalHeight;
@@ -2600,14 +2648,14 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         }
 
-        // Draw all saved paths
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red-500 with 50% opacity
         
-        const allPaths = currentPath.current ? [...paths, currentPath.current] : paths;
+        const allPaths = currentPath ? [...paths, currentPath] : paths;
+
         allPaths.forEach(path => {
-            if (path.points.length < 2) return;
+            if (path.points.length < 1) return;
             ctx.lineWidth = path.size;
             ctx.beginPath();
             ctx.moveTo(path.points[0].x, path.points[0].y);
@@ -2616,82 +2664,42 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             }
             ctx.stroke();
         });
-
-    }, [paths]);
-
-    useEffect(() => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = imageUrl;
-        img.onload = () => {
-            imageRef.current = img;
-            const canvas = canvasRef.current;
-            if (canvas) {
-                const container = canvas.parentElement;
-                if (container) {
-                    canvas.width = container.clientWidth;
-                    canvas.height = container.clientHeight;
-                    redrawCanvas();
-                }
-            }
-        };
-
-        const handleResize = () => {
-             const canvas = canvasRef.current;
-             if(canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-                redrawCanvas();
-             }
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [imageUrl, redrawCanvas]);
-
-    useEffect(() => {
-        redrawCanvas();
-    }, [paths, redrawCanvas]);
-
+    }, [isReady, paths, currentPath]); // Redraw when ready, or paths change
 
     const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
         if (!canvas) return null;
         const rect = canvas.getBoundingClientRect();
-        
         const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
         return { x: clientX - rect.left, y: clientY - rect.top };
     };
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isReady || isLoading) return;
         e.preventDefault();
-        if (!imageRef.current) return; // FIX: Prevent drawing before image is loaded.
         const pos = getBrushPos(e);
         if (!pos) return;
         isDrawing.current = true;
-        currentPath.current = { points: [pos], size: brushSize };
-        redrawCanvas();
-    };
-
-    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        if (!isDrawing.current) return;
-        isDrawing.current = false;
-        if (currentPath.current && currentPath.current.points.length > 0) {
-            setPaths(prev => [...prev, currentPath.current!]);
-        }
-        currentPath.current = null;
+        setCurrentPath({ points: [pos], size: brushSize });
     };
 
     const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current || !imageRef.current) return; // FIX: Prevent drawing before image is loaded.
+        if (!isDrawing.current || !isReady || isLoading) return;
         e.preventDefault();
         const pos = getBrushPos(e);
-        if (pos && currentPath.current) {
-            currentPath.current.points.push(pos);
-            redrawCanvas();
+        if (pos) {
+            setCurrentPath(prev => prev ? { ...prev, points: [...prev.points, pos] } : null);
+        }
+    };
+
+    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing.current || !isReady || isLoading) return;
+        e.preventDefault();
+        isDrawing.current = false;
+        if (currentPath) {
+            setPaths(prev => [...prev, currentPath]);
+            setCurrentPath(null);
         }
     };
 
@@ -2712,7 +2720,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         setIsLoading(true);
         setError(null);
 
-        // Create mask on a hidden canvas with original image dimensions
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = img.naturalWidth;
         maskCanvas.height = img.naturalHeight;
@@ -2726,7 +2733,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         maskCtx.fillStyle = 'black';
         maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
         
-        // Calculate scaling factors
         const canvasAspect = canvas.width / canvas.height;
         const imageAspect = img.naturalWidth / img.naturalHeight;
         let scale: number, offsetX = 0, offsetY = 0;
@@ -2739,8 +2745,8 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             offsetX = (canvas.width - canvas.height * imageAspect) / 2;
         }
 
-        // Draw scaled paths onto the mask
         maskCtx.strokeStyle = 'white';
+        maskCtx.fillStyle = 'white';
         maskCtx.lineJoin = 'round';
         maskCtx.lineCap = 'round';
         
@@ -2770,7 +2776,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
             if (!isGuest && auth.user) {
                 await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
-                // We don't need to update user here, it will be reflected on next page load
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to edit image.");
@@ -2787,7 +2792,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
                     <h3 className="text-white text-lg font-bold text-center flex-1">Magic Eraser</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
                 </div>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden cursor-crosshair">
+                <div className={`relative w-full aspect-video rounded-lg overflow-hidden ${isReady && !isLoading ? 'cursor-crosshair' : 'cursor-default'}`}>
                      <canvas 
                         ref={canvasRef}
                         className="w-full h-full"
@@ -2799,10 +2804,10 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
                         onTouchEnd={stopDrawing}
                         onTouchMove={handleDrawing}
                      />
-                     {isLoading && (
+                     {(!isReady || isLoading) && (
                         <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
                             <SparklesIcon className="w-10 h-10 text-yellow-400 animate-pulse" />
-                            <p className="text-white mt-2">Removing element...</p>
+                            <p className="text-white mt-2">{isLoading ? 'Removing element...' : 'Loading editor...'}</p>
                         </div>
                      )}
                 </div>
@@ -2813,9 +2818,9 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
                         <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
                      </div>
                      <div className="flex items-center gap-4">
-                        <button onClick={handleUndo} disabled={paths.length === 0} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo</button>
-                        <button onClick={() => setPaths([])} disabled={paths.length === 0} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Clear Mask</button>
-                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <button onClick={handleUndo} disabled={paths.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo</button>
+                        <button onClick={() => setPaths([])} disabled={paths.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Clear Mask</button>
+                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits || !isReady} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                             <SparklesIcon className="w-5 h-5"/>
                             Remove Element
                         </button>
