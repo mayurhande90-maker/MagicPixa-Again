@@ -2416,27 +2416,24 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         if(referenceImageRef.current) referenceImageRef.current.value = "";
     };
 
-    const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; isProcessing: boolean; }> = ({ image, inputRef, onFileChange, title, isProcessing }) => (
-        <div>
-            <label className="block text-sm font-bold text-center text-[#1E1E1E] mb-1.5">{title}</label>
-            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : 'cursor-pointer'}`} onClick={() => inputRef.current?.click()}>
-                <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-                {image ? (
-                    <>
-                        <img src={image.url} alt={title} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <PencilIcon className="w-6 h-6 text-white"/>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">Upload</span></div>
-                )}
-                {isProcessing && (
-                     <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                        <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    const ImageUploadControl: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isProcessing: boolean; altText: string; }> = ({ image, inputRef, onFileChange, isProcessing, altText }) => (
+        <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50`} onClick={() => inputRef.current?.click()}>
+            <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+            {image ? (
+                <>
+                    <img src={image.url} alt={altText} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <PencilIcon className="w-6 h-6 text-white"/>
                     </div>
-                )}
-            </div>
+                </>
+            ) : (
+                <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">Upload</span></div>
+            )}
+            {isProcessing && (
+                 <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </div>
+            )}
         </div>
     );
 
@@ -2459,10 +2456,19 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                     <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
                         <div>
                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">1. Upload Your Assets</h3>
-                           <div className="grid grid-cols-3 gap-4">
-                               <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" isProcessing={processing.logo} />
-                               <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" isProcessing={processing.product} />
-                               <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" isProcessing={processing.reference} />
+                           <div className="flex justify-between items-start gap-4">
+                               <div className="flex-1 text-center">
+                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Brand Logo</label>
+                                   <ImageUploadControl image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} isProcessing={processing.logo} altText="Brand Logo"/>
+                               </div>
+                               <div className="flex-1 text-center">
+                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Product Photo</label>
+                                   <ImageUploadControl image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} isProcessing={processing.product} altText="Product Photo"/>
+                               </div>
+                               <div className="flex-1 text-center">
+                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Reference Style</label>
+                                   <ImageUploadControl image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} isProcessing={processing.reference} altText="Reference Style"/>
+                               </div>
                            </div>
                         </div>
                         
