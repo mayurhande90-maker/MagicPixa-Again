@@ -2667,6 +2667,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         e.preventDefault();
+        if (!imageRef.current) return; // FIX: Prevent drawing before image is loaded.
         const pos = getBrushPos(e);
         if (!pos) return;
         isDrawing.current = true;
@@ -2685,7 +2686,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
     };
 
     const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current) return;
+        if (!isDrawing.current || !imageRef.current) return; // FIX: Prevent drawing before image is loaded.
         e.preventDefault();
         const pos = getBrushPos(e);
         if (pos && currentPath.current) {
