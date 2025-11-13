@@ -960,31 +960,62 @@ export const generateBrandStylistImage = async (
         // Step 2: Construct the generation prompt based on classification
         let generationPrompt = '';
         if (imageType === 'product_shot') {
-            generationPrompt = `You are an expert AI art director and photographer. Your task is to create a new, hyper-realistic photograph that exactly matches the style of the provided {reference_image}.
+            generationPrompt = `You are an elite-level AI art director and virtual photographer, specializing in hyper-realistic product commercials. Your task is to generate a new, breathtaking photograph that flawlessly matches the artistic style of the {reference_image}, but features the user's product.
 
-**CRITICAL INSTRUCTIONS:**
-1.  **Replicate the Style:** Meticulously analyze the {reference_image} to understand its lighting, composition, mood, color grading, and depth of field. Your output MUST replicate this aesthetic perfectly.
-2.  **Feature the Product:** The main subject of your new photograph MUST be the product from the {product_image}.
-3.  **Integrate Brand Elements:**
-    -   Seamlessly and naturally integrate the brand name "${name}" into the scene.
-    -   Subtly place the {brand_logo} in a contextually appropriate way (e.g., embossed on a surface, on a small tag).
-4.  **Brand Guidelines:** The final image's color palette should be influenced by these brand colors: "${colors}". Any text should be in a style described as: "${fonts}".
-5.  **Product Fidelity:** The product from {product_image}, including its packaging and labels, MUST remain completely unchanged and preserved with high fidelity.
+**MASTER DIRECTIVE: PHOTOREALISM & STYLE REPLICATION**
+1.  **Forensic Style Analysis:** Meticulously deconstruct the {reference_image}. Identify and replicate its exact photographic DNA:
+    *   **Lighting:** Is it soft window light, a hard studio keylight, golden hour sun? Recreate the exact number of light sources, their direction, softness, and color temperature.
+    *   **Composition & Framing:** Adhere to the rule of thirds, leading lines, or other compositional principles used.
+    *   **Lens & Camera Settings:** Emulate the depth of field (e.g., f/1.8 for blurry background, f/11 for sharp focus), focal length (e.g., wide-angle, macro), and film grain.
+    *   **Color Grading:** Match the mood, hue, saturation, and contrast of the reference.
 
-Your final output must be a single, photorealistic image.`;
+**ASSET INTEGRATION (CRITICAL RULES):**
+1.  **PRODUCT IS SACRED (DO NOT CHANGE):**
+    *   The {product_image} is a locked, final asset. It MUST be composited into the new scene with **100% fidelity**.
+    *   **ABSOLUTELY NO** alterations to the product's shape, color, labels, text, or packaging.
+    *   It must cast realistic shadows and receive light according to the new scene's physics.
+
+2.  **INTELLIGENT LOGO PLACEMENT:**
+    *   The {brand_logo} must be integrated into the scene with extreme realism. It should not look like a sticker.
+    *   **Creative Ideas:** Consider it being subtly embossed on a wooden surface, realistically reflected in water, engraved on stone, or appearing on a small, photorealistic tag next to the product.
+    *   It MUST match the scene's lighting, perspective, and material texture perfectly.
+
+3.  **ARTISTIC TEXT RENDERING:**
+    *   Render the brand name "${name}" into the scene as a physical element, not a simple text overlay.
+    *   **Creative Ideas:** It could be formed by light and shadow, written in condensation on a surface, or assembled from natural elements (like small pebbles or leaves) that fit the scene.
+    *   The style should be inspired by "${fonts}".
+
+**FINAL OUTPUT REQUIREMENTS:**
+- The result must be a single, flawless, high-resolution photograph.
+- It must be indistinguishable from a real photo shot by a world-class photographer.
+- Scrutinize for any digital artifacts or imperfections before concluding. The quality must be ready for a major brand's advertising campaign.`;
         } else { // graphical_post
-            generationPrompt = `You are an expert AI graphic designer and copywriter. Your task is to create a new graphical post (like for Instagram) that perfectly replicates the layout and visual style of the provided {reference_image}, but with new, on-brand content.
+            generationPrompt = `You are a world-class AI graphic designer and marketing strategist. Your mission is to create a new, commercially-ready graphical post (e.g., for Instagram, Facebook) that is a perfect stylistic replica of the {reference_image}, but is filled with the user's unique brand content.
 
-**CRITICAL INSTRUCTIONS:**
-1.  **Replicate Layout & Style:** Deconstruct the {reference_image}. Your output MUST have the exact same layout structure, typography style, use of shapes, and overall aesthetic.
-2.  **Write New Copy:** Analyze the marketing theme of the reference image. Write new, compelling ad copy in the same tone, but for the product "${name}", which is a "${description}".
-3.  **Integrate Brand Assets:**
-    -   Place the user's {product_image} where the main image is in the reference layout.
-    -   Integrate the {brand_logo} where the original logo was, or in another appropriate location.
-4.  **Apply Brand Guidelines:** Use the brand colors "${colors}" and a font style described as "${fonts}" for all text and graphical elements.
-5.  **Generate Backgrounds:** Create any necessary background images or patterns to perfectly match the style of the {reference_image}.
+**MASTER DIRECTIVE: LAYOUT & STYLE REPLICATION**
+1.  **Deconstruct the Layout:** Perform a forensic analysis of the {reference_image}'s design grid. Recreate its exact structure: the precise placement, dimensions, alignment, and layering of all text blocks, image containers, logos, shapes, and background elements.
+2.  **Replicate the Aesthetic:** Match the visual style flawlessly. This includes typography choices (weight, size, spacing), color palettes, use of gradients, corner radii on shapes, and any textures or patterns. The mood must be identical.
 
-The final output must be a single, complete image file that is ready to be posted.`;
+**ASSET INTEGRATION (CRITICAL RULES):**
+1.  **PROFESSIONAL PRODUCT CUTOUT:**
+    *   The user's {product_image} MUST be professionally and cleanly extracted from its original background.
+    *   Ensure the edges of the cutout are smooth and perfectly anti-aliased.
+    *   Place this clean product cutout into the designated image area of the replicated layout.
+    *   Add a subtle, realistic drop shadow to the product that is consistent with the lighting of the new design.
+
+2.  **FLAWLESS BRAND & TEXT APPLICATION:**
+    *   Integrate the {brand_logo} cleanly and at high resolution, typically where the original logo was placed.
+    *   Use the brand colors "${colors}" throughout the design.
+    *   All text MUST be rendered in a font style described as "${fonts}". Text must be crisp, legible, and perfectly aligned within the replicated layout grid.
+
+3.  **STRATEGIC COPYWRITING:**
+    *   Act as a senior marketing copywriter. Analyze the theme of the reference (e.g., "New Arrival," "Limited Time Offer," "How-To Guide").
+    *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.
+
+**FINAL OUTPUT REQUIREMENTS:**
+- The result must be a single, high-resolution, pixel-perfect graphic.
+- It must be visually polished and ready for a major brand's social media campaign.
+- No jagged edges, no blurry text, no misplaced elements. The quality must be impeccable.`;
         }
         
         const parts = [
