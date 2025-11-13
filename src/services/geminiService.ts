@@ -1025,13 +1025,13 @@ export const removeElementFromImage = async (
 ): Promise<string> => {
     const ai = getAiClient();
     try {
-        const prompt = `You are an expert photo restoration AI specializing in inpainting. The user has provided an image and a corresponding mask. Your task is to intelligently remove the element defined by the white area in the mask and seamlessly reconstruct the background behind it.
+        const prompt = `You are a precision photo editing AI tool. Your task is surgical inpainting. You are given an image and a mask.
 
-**CRITICAL INSTRUCTIONS:**
-1.  **Perfect Reconstruction:** The filled-in area must perfectly match the surrounding lighting, texture, shadows, and patterns.
-2.  **Photorealism:** The result must be photorealistic and show absolutely no signs of editing or artifacts.
-3.  **Preserve Unmasked Areas:** Do not alter any part of the image that is outside the masked (white) area. The rest of the image must remain identical.
-`;
+**NON-NEGOTIABLE DIRECTIVE:**
+1.  **FILL THE MASK ONLY:** Your ONLY job is to fill the white area of the mask. You must not alter, change, or remove ANY pixel outside of this exact masked area.
+2.  **DO NOT INTERPRET THE OBJECT:** Do not try to understand what the masked object is. Only focus on the pixels within the mask. If a user masks a small part of a bottle, you fill only that small part. You are FORBIDDEN from removing the whole bottle.
+3.  **SEAMLESS RECONSTRUCTION:** Reconstruct the background behind the masked area. The new pixels must be a perfect, photorealistic continuation of the immediate surrounding pixels. Match lighting, texture, grain, and shadows flawlessly.
+4.  **OUTPUT:** The final image must be identical to the original except for the surgically inpainted area. There should be zero evidence of editing.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',

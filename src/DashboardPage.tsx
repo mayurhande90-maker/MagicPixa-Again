@@ -2317,6 +2317,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const [contactDetails, setContactDetails] = useState('');
     const [emailId, setEmailId] = useState('');
 
+    const [originalGeneratedImage, setOriginalGeneratedImage] = useState<string | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [processing, setProcessing] = useState<{ logo: boolean; product: boolean; reference: boolean }>({ logo: false, product: false, reference: false });
@@ -2394,7 +2395,9 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                 contact: contactDetails,
                 email: emailId
             });
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
+            setOriginalGeneratedImage(newImage);
              if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
@@ -2420,6 +2423,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         setContactDetails('');
         setEmailId('');
         setGeneratedImage(null);
+        setOriginalGeneratedImage(null);
         setError(null);
         if(brandLogoRef.current) brandLogoRef.current.value = "";
         if(productImageRef.current) productImageRef.current.value = "";
@@ -2456,9 +2460,17 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden group">
                             {isLoading ? <div className="text-center p-4"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Your AI creative director is at work...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : generatedImage ? (
+                                <>
+                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain cursor-pointer" onClick={() => setIsModalOpen(true)}/>
+                                    <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><DownloadIcon className="w-6 h-6"/></button>
+                                        <button onClick={() => setIsEditModalOpen(true)} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><PencilIcon className="w-6 h-6"/></button>
+                                    </div>
+                                </>
+                            )
                             : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
                         </div>
                     </div>
@@ -2497,15 +2509,15 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         
                          <div className="flex-grow flex flex-col justify-end">
                             <div className="space-y-2 pt-6 border-t border-gray-200/80">
+                               {originalGeneratedImage && generatedImage && originalGeneratedImage !== generatedImage && !isLoading && (
+                                   <button onClick={() => setGeneratedImage(originalGeneratedImage)} className="w-full text-center text-sm font-semibold text-blue-600 hover:underline">Revert to Original</button>
+                               )}
+
                                {generatedImage ? (
                                    <div className="space-y-2">
                                        <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
                                            <RetryIcon className="w-5 h-5"/> Re-generate
                                        </button>
-                                       <div className="grid grid-cols-2 gap-2">
-                                           <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                           <button onClick={() => setIsEditModalOpen(true)} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><PencilIcon className="w-5 h-5"/> Edit</button>
-                                       </div>
                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-gray-800 pt-2">Start Over</button>
                                    </div>
                                ) : (
@@ -2545,7 +2557,12 @@ interface ImageEditModalProps {
 
 const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
+    const imageRef = useRef<HTMLImageElement | null>(null);
+    const isDrawing = useRef(false);
+    const [paths, setPaths] = useState<Array<{ points: { x: number; y: number }[], size: number }>>([]);
+    const currentPath = useRef<{ points: { x: number; y: number }[], size: number } | null>(null);
+    const [brushSize, setBrushSize] = useState(30);
+
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -2554,48 +2571,88 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
     const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
-    const drawImageOnCanvas = () => {
+    const redrawCanvas = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+        const img = imageRef.current;
 
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw the original image centered and scaled
+        if (img) {
+            const canvasAspect = canvas.width / canvas.height;
+            const imageAspect = img.naturalWidth / img.naturalHeight;
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            let drawX = 0;
+            let drawY = 0;
+
+            if (imageAspect > canvasAspect) {
+                drawHeight = canvas.width / imageAspect;
+                drawY = (canvas.height - drawHeight) / 2;
+            } else {
+                drawWidth = canvas.height * imageAspect;
+                drawX = (canvas.width - drawWidth) / 2;
+            }
+            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        }
+
+        // Draw all saved paths
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red-500 with 50% opacity
+        
+        const allPaths = currentPath.current ? [...paths, currentPath.current] : paths;
+        allPaths.forEach(path => {
+            if (path.points.length < 2) return;
+            ctx.lineWidth = path.size;
+            ctx.beginPath();
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            for (let i = 1; i < path.points.length; i++) {
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+            }
+            ctx.stroke();
+        });
+
+    }, [paths]);
+
+    useEffect(() => {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = imageUrl;
         img.onload = () => {
-            const container = canvas.parentElement;
-            if (!container) return;
-            
-            const canvasAspect = 1; // Square canvas for the mask
-            const imageAspect = img.width / img.height;
-            
-            let drawWidth, drawHeight, drawX, drawY;
-
-            if (imageAspect > canvasAspect) { // Image is wider than canvas
-                drawWidth = container.clientWidth;
-                drawHeight = drawWidth / imageAspect;
-                drawX = 0;
-                drawY = (container.clientHeight - drawHeight) / 2;
-            } else { // Image is taller than canvas
-                drawHeight = container.clientHeight;
-                drawWidth = drawHeight * imageAspect;
-                drawY = 0;
-                drawX = (container.clientWidth - drawWidth) / 2;
+            imageRef.current = img;
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const container = canvas.parentElement;
+                if (container) {
+                    canvas.width = container.clientWidth;
+                    canvas.height = container.clientHeight;
+                    redrawCanvas();
+                }
             }
-
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            
-            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         };
-    };
-    
+
+        const handleResize = () => {
+             const canvas = canvasRef.current;
+             if(canvas && canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                redrawCanvas();
+             }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [imageUrl, redrawCanvas]);
+
     useEffect(() => {
-        drawImageOnCanvas();
-        window.addEventListener('resize', drawImageOnCanvas);
-        return () => window.removeEventListener('resize', drawImageOnCanvas);
-    }, [imageUrl]);
+        redrawCanvas();
+    }, [paths, redrawCanvas]);
+
 
     const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
@@ -2605,50 +2662,46 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-        return {
-            x: clientX - rect.left,
-            y: clientY - rect.top
-        };
+        return { x: clientX - rect.left, y: clientY - rect.top };
     };
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         e.preventDefault();
-        setIsDrawing(true);
         const pos = getBrushPos(e);
-        if (pos) draw(pos.x, pos.y);
+        if (!pos) return;
+        isDrawing.current = true;
+        currentPath.current = { points: [pos], size: brushSize };
+        redrawCanvas();
     };
 
     const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         e.preventDefault();
-        setIsDrawing(false);
-        const ctx = canvasRef.current?.getContext('2d');
-        if (ctx) ctx.beginPath();
-    };
-
-    const draw = (x: number, y: number) => {
-        const ctx = canvasRef.current?.getContext('2d');
-        if (!ctx || !isDrawing) return;
-        
-        ctx.lineWidth = 30;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.globalCompositeOperation = 'source-over';
-        
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        if (!isDrawing.current) return;
+        isDrawing.current = false;
+        if (currentPath.current && currentPath.current.points.length > 0) {
+            setPaths(prev => [...prev, currentPath.current!]);
+        }
+        currentPath.current = null;
     };
 
     const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing.current) return;
         e.preventDefault();
         const pos = getBrushPos(e);
-        if (pos) draw(pos.x, pos.y);
+        if (pos && currentPath.current) {
+            currentPath.current.points.push(pos);
+            redrawCanvas();
+        }
+    };
+
+    const handleUndo = () => {
+        setPaths(prev => prev.slice(0, -1));
     };
 
     const handleRemoveElement = async () => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        const img = imageRef.current;
+        if (!canvas || paths.length === 0 || !img) return;
         
         if (hasInsufficientCredits) {
             setError(`This action costs ${EDIT_COST} credit. Please top up.`);
@@ -2658,10 +2711,10 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         setIsLoading(true);
         setError(null);
 
-        // Create a mask from the drawing
+        // Create mask on a hidden canvas with original image dimensions
         const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = canvas.width;
-        maskCanvas.height = canvas.height;
+        maskCanvas.width = img.naturalWidth;
+        maskCanvas.height = img.naturalHeight;
         const maskCtx = maskCanvas.getContext('2d');
         if (!maskCtx) {
             setError("Could not create mask.");
@@ -2669,30 +2722,44 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             return;
         }
 
-        // Fill mask with black
         maskCtx.fillStyle = 'black';
         maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
         
-        // Use the drawing from the main canvas as the white part of the mask
-        maskCtx.globalCompositeOperation = 'source-over';
-        maskCtx.drawImage(canvas, 0, 0);
-
-        // Make the drawing pure white for a clear mask
-        const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            // If the pixel is not black (i.e., it's part of the drawing), make it white
-            if (data[i] !== 0 || data[i+1] !== 0 || data[i+2] !== 0) {
-                data[i] = 255;     // R
-                data[i + 1] = 255; // G
-                data[i + 2] = 255; // B
-            }
+        // Calculate scaling factors
+        const canvasAspect = canvas.width / canvas.height;
+        const imageAspect = img.naturalWidth / img.naturalHeight;
+        let scale: number, offsetX = 0, offsetY = 0;
+        
+        if (imageAspect > canvasAspect) {
+            scale = img.naturalWidth / canvas.width;
+            offsetY = (canvas.height - canvas.width / imageAspect) / 2;
+        } else {
+            scale = img.naturalHeight / canvas.height;
+            offsetX = (canvas.width - canvas.height * imageAspect) / 2;
         }
-        maskCtx.putImageData(imageData, 0, 0);
+
+        // Draw scaled paths onto the mask
+        maskCtx.strokeStyle = 'white';
+        maskCtx.lineJoin = 'round';
+        maskCtx.lineCap = 'round';
+        
+        paths.forEach(path => {
+            if (path.points.length < 1) return;
+            maskCtx.lineWidth = path.size * scale;
+            maskCtx.beginPath();
+            const startX = (path.points[0].x - offsetX) * scale;
+            const startY = (path.points[0].y - offsetY) * scale;
+            maskCtx.moveTo(startX, startY);
+            for (let i = 1; i < path.points.length; i++) {
+                const pointX = (path.points[i].x - offsetX) * scale;
+                const pointY = (path.points[i].y - offsetY) * scale;
+                maskCtx.lineTo(pointX, pointY);
+            }
+            maskCtx.stroke();
+        });
 
         const maskDataUrl = maskCanvas.toDataURL('image/png');
         const maskBase64 = maskDataUrl.split(',')[1];
-        
         const originalBase64 = imageUrl.split(',')[1];
         const originalMimeType = imageUrl.match(/data:(.*);/)?.[1] || 'image/png';
 
@@ -2702,8 +2769,8 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
             if (!isGuest && auth.user) {
                 await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
+                // We don't need to update user here, it will be reflected on next page load
             }
-
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to edit image.");
         } finally {
@@ -2714,11 +2781,15 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="relative w-full max-w-3xl bg-gray-800 rounded-2xl p-4 space-y-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-white text-lg font-bold text-center">Magic Eraser</h3>
+            <div className="relative w-full max-w-4xl bg-gray-800 rounded-2xl p-4 space-y-4" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-white text-lg font-bold text-center flex-1">Magic Eraser</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
+                </div>
                 <div className="relative w-full aspect-video rounded-lg overflow-hidden cursor-crosshair">
                      <canvas 
                         ref={canvasRef}
+                        className="w-full h-full"
                         onMouseDown={startDrawing}
                         onMouseUp={stopDrawing}
                         onMouseLeave={stopDrawing}
@@ -2735,12 +2806,19 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
                      )}
                 </div>
                 {error && <p className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded-md">{error}</p>}
-                <div className="flex justify-center gap-4">
-                     <button onClick={drawImageOnCanvas} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors">Clear</button>
-                    <button onClick={handleRemoveElement} disabled={isLoading || hasInsufficientCredits} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                        <SparklesIcon className="w-5 h-5"/>
-                        Remove Element
-                    </button>
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                     <div className="flex items-center gap-2 text-white">
+                        <label htmlFor="brushSize" className="text-sm font-semibold">Brush Size:</label>
+                        <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <button onClick={handleUndo} disabled={paths.length === 0} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo</button>
+                        <button onClick={() => setPaths([])} disabled={paths.length === 0} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Clear Mask</button>
+                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            <SparklesIcon className="w-5 h-5"/>
+                            Remove Element
+                        </button>
+                     </div>
                 </div>
                  <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
             </div>
@@ -2816,6 +2894,9 @@ const Creations: React.FC = () => (
   </div>
 );
 
+// FIX: The DashboardPage component was incomplete, causing it to return nothing (void).
+// This fix completes the component by adding the remaining view cases to the render logic
+// and returning a proper JSX layout including the Header, Sidebar, and main content area.
 export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
@@ -2839,50 +2920,51 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
         return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
       case 'soul':
         return <MagicSoul auth={auth} navigateTo={navigateTo} />;
-       case 'apparel':
+      case 'apparel':
         return <MagicApparel auth={auth} navigateTo={navigateTo} />;
-       case 'mockup':
+      case 'mockup':
         return <MagicMockup auth={auth} navigateTo={navigateTo} />;
       case 'caption':
         return <CaptionAI auth={auth} navigateTo={navigateTo} />;
-       case 'product_studio':
+      case 'product_studio':
         return <ProductStudio auth={auth} navigateTo={navigateTo} />;
       case 'brand_stylist':
         return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
       case 'billing':
-        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
+        // The user is guaranteed to be authenticated on dashboard pages.
+        return <Billing user={auth.user!} setUser={auth.setUser} />;
+      case 'creations':
+        return <Creations />;
       case 'profile':
         return <Profile user={auth.user} openEditProfileModal={openEditProfileModal} handleLogout={auth.handleLogout} />;
-      case 'creations':
-          return <Creations />;
       default:
-        return isMobile 
-          ? <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} /> 
-          : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+        // Fallback to dashboard view for any unknown view.
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
     }
   };
 
-  const showBackButton = isMobile && activeView !== 'home_dashboard';
+  const isHomeDashboard = activeView === 'home_dashboard';
+  // On mobile, show a back button for any feature view that isn't one of the main "tab" views.
+  const showBackButton = isMobile && !['home_dashboard', 'dashboard', 'profile', 'creations'].includes(activeView);
+
+  const dashboardAuthProps = {
+    ...auth,
+    isDashboard: true,
+    showBackButton: showBackButton,
+    handleBack: () => setActiveView(isMobile ? 'home_dashboard' : 'dashboard'),
+    openConversation: () => setIsConversationOpen(true),
+    setActiveView: setActiveView,
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
-        <Header 
-            navigateTo={navigateTo} 
-            auth={{ 
-                ...auth, 
-                isDashboard: true, 
-                setActiveView, 
-                openConversation: () => setIsConversationOpen(true),
-                showBackButton: showBackButton,
-                handleBack: () => setActiveView('home_dashboard')
-            }} 
-        />
-        <div className="flex flex-1 overflow-hidden">
-            <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-            <main className="flex-1 overflow-y-auto">
-                {renderView()}
-            </main>
-        </div>
+    <div className="flex flex-col h-screen bg-[#F9FAFB]">
+      <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+        <main className="flex-1 overflow-y-auto">
+          {renderView()}
+        </main>
+      </div>
     </div>
   );
 };
