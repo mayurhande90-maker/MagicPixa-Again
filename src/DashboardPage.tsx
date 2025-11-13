@@ -2346,7 +2346,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         if (type === 'logo') setBrandLogo(data);
         else if (type === 'product') setProductImage(data);
         else setReferenceImage(data);
-        setGeneratedImage(null);
+        // Do not clear generated image on file change for re-generation flow
         setError(null);
     };
 
@@ -2363,7 +2363,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
         setIsLoading(true);
         setError(null);
-        setGeneratedImage(null);
+        setGeneratedImage(null); // Clear previous image before generating new one
 
         try {
             const newBase64 = await generateBrandStylistImage({
@@ -2407,12 +2407,14 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; }> = ({ image, inputRef, onFileChange, title }) => (
         <div>
             <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
-            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? () => inputRef.current?.click() : undefined}>
+            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : 'cursor-pointer'}`} onClick={() => inputRef.current?.click()}>
                 <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
                 {image ? (
                     <>
                         <img src={image.url} alt={title} className="w-full h-full object-cover" />
-                        <button onClick={() => inputRef.current?.click()} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><PencilIcon className="w-4 h-4" /></button>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <PencilIcon className="w-6 h-6 text-white"/>
+                        </div>
                     </>
                 ) : (
                     <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">{title}</span></div>
@@ -2451,10 +2453,15 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         </div>
                          <div className="space-y-2 pt-4 border-t border-gray-200/80">
                             {generatedImage ? (
-                                <>
-                                    <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                    <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-2 rounded-lg">Start Over</button>
-                                </>
+                                <div className="space-y-2">
+                                    <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                        <RetryIcon className="w-5 h-5"/> Re-generate
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 rounded-lg">Start Over</button>
+                                    </div>
+                                </div>
                             ) : (
                                 <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
                             )}

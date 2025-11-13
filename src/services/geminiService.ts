@@ -970,25 +970,23 @@ export const generateBrandStylistImage = async (
     *   **Color Grading:** Match the mood, hue, saturation, and contrast of the reference.
 
 **ASSET INTEGRATION (CRITICAL RULES):**
-1.  **PRODUCT IS SACRED (DO NOT CHANGE):**
+1.  **SUBJECT OF THE IMAGE (NON-NEGOTIABLE):**
+    *   The final generated photograph MUST feature the product from the {product_image}. This is the hero, the subject, the entire point of the image.
     *   The {product_image} is a locked, final asset. It MUST be composited into the new scene with **100% fidelity**.
     *   **ABSOLUTELY NO** alterations to the product's shape, color, labels, text, or packaging.
     *   It must cast realistic shadows and receive light according to the new scene's physics.
+    *   Make the user's product the clear focal point of the composition. Use lighting and depth of field to draw the viewer's eye to it.
 
-2.  **INTELLIGENT LOGO PLACEMENT:**
-    *   The {brand_logo} must be integrated into the scene with extreme realism. It should not look like a sticker.
-    *   **Creative Ideas:** Consider it being subtly embossed on a wooden surface, realistically reflected in water, engraved on stone, or appearing on a small, photorealistic tag next to the product.
-    *   It MUST match the scene's lighting, perspective, and material texture perfectly.
+2.  **STYLE REFERENCE ONLY (CRITICAL DISTINCTION):**
+    *   The {reference_image} is provided ONLY for stylistic inspiration (lighting, composition, mood, color).
+    *   **STRICT NEGATIVE CONSTRAINT:** You MUST NOT, under any circumstances, include the product, brand, or any recognizable elements from the {reference_image} in your final output. Your sole focus is to replicate its *style*, not its *content*.
 
-3.  **ARTISTIC TEXT RENDERING:**
-    *   Render the brand name "${name}" into the scene as a physical element, not a simple text overlay.
-    *   **Creative Ideas:** It could be formed by light and shadow, written in condensation on a surface, or assembled from natural elements (like small pebbles or leaves) that fit the scene.
-    *   The style should be inspired by "${fonts}".
+3.  **INTELLIGENT LOGO & TEXT PLACEMENT:**
+    *   The {brand_logo} must be integrated into the scene with extreme realism. It should not look like a sticker. Creative ideas: subtly embossed on a surface, realistically reflected in water, engraved on stone.
+    *   Render the brand name "${name}" into the scene as a physical element, not a simple text overlay. Creative ideas: formed by light and shadow, written in condensation on a surface, assembled from natural elements that fit the scene. The style should be inspired by "${fonts}".
 
 **FINAL OUTPUT REQUIREMENTS:**
-- The result must be a single, flawless, high-resolution photograph.
-- It must be indistinguishable from a real photo shot by a world-class photographer.
-- Scrutinize for any digital artifacts or imperfections before concluding. The quality must be ready for a major brand's advertising campaign.`;
+- The result must be a single, flawless, high-resolution photograph ready for a major brand's advertising campaign.`;
         } else { // graphical_post
             generationPrompt = `You are a world-class AI graphic designer and marketing strategist. Your mission is to create a new, commercially-ready graphical post (e.g., for Instagram, Facebook) that is a perfect stylistic replica of the {reference_image}, but is filled with the user's unique brand content.
 
@@ -997,11 +995,11 @@ export const generateBrandStylistImage = async (
 2.  **Replicate the Aesthetic:** Match the visual style flawlessly. This includes typography choices (weight, size, spacing), color palettes, use of gradients, corner radii on shapes, and any textures or patterns. The mood must be identical.
 
 **ASSET INTEGRATION (CRITICAL RULES):**
-1.  **PROFESSIONAL PRODUCT CUTOUT:**
-    *   The user's {product_image} MUST be professionally and cleanly extracted from its original background.
-    *   Ensure the edges of the cutout are smooth and perfectly anti-aliased.
+1.  **SUBJECT OF THE GRAPHIC (NON-NEGOTIABLE):**
+    *   The user's {product_image} is the hero of this graphic. It MUST be professionally and cleanly extracted from its original background.
     *   Place this clean product cutout into the designated image area of the replicated layout.
     *   Add a subtle, realistic drop shadow to the product that is consistent with the lighting of the new design.
+    *   **STRICT NEGATIVE CONSTRAINT:** You MUST NOT use any product or key visual element from the {reference_image}. Your task is to insert the user's product into the replicated layout.
 
 2.  **FLAWLESS BRAND & TEXT APPLICATION:**
     *   Integrate the {brand_logo} cleanly and at high resolution, typically where the original logo was placed.
@@ -1013,8 +1011,7 @@ export const generateBrandStylistImage = async (
     *   Write new, compelling, and concise ad copy for the product "${name}", which is a "${description}". The tone of your copy must match the tone of the reference image.
 
 **FINAL OUTPUT REQUIREMENTS:**
-- The result must be a single, high-resolution, pixel-perfect graphic.
-- It must be visually polished and ready for a major brand's social media campaign.
+- The result must be a single, high-resolution, pixel-perfect graphic ready for a major brand's social media campaign.
 - No jagged edges, no blurry text, no misplaced elements. The quality must be impeccable.`;
         }
         
