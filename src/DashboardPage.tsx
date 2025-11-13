@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User } from './types';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile } from './firebase';
@@ -99,6 +99,7 @@ const mockupTypes = [
 const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?: string}>; gradient: string; disabled?: boolean }[] = [
     { view: 'studio', title: 'Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500' },
     { view: 'product_studio', title: 'Product Studio', icon: ProductStudioIcon, gradient: 'from-green-400 to-green-500' },
+    { view: 'brand_stylist', title: 'Brand Stylist', icon: LightbulbIcon, gradient: 'from-yellow-400 to-yellow-500' },
     { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500' },
     { view: 'colour', title: 'Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500' },
     { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500' },
@@ -2303,6 +2304,172 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 };
 
+const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [brandLogo, setBrandLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [productImage, setProductImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    
+    const [brandName, setBrandName] = useState('');
+    const [productDescription, setProductDescription] = useState('');
+    const [brandColors, setBrandColors] = useState('');
+    const [brandFonts, setBrandFonts] = useState('');
+
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const brandLogoRef = useRef<HTMLInputElement>(null);
+    const productImageRef = useRef<HTMLInputElement>(null);
+    const referenceImageRef = useRef<HTMLInputElement>(null);
+
+    const EDIT_COST = 4;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-stylist') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-stylist')!, 10) : 4);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const canGenerate = brandLogo && productImage && referenceImage && brandName && productDescription;
+
+    useEffect(() => {
+        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-stylist', guestCredits.toString());
+    }, [isGuest, guestCredits]);
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setError('Please upload a valid image file.');
+            return;
+        }
+        const base64 = await fileToBase64(file);
+        const data = { file, url: URL.createObjectURL(file), base64 };
+        if (type === 'logo') setBrandLogo(data);
+        else if (type === 'product') setProductImage(data);
+        else setReferenceImage(data);
+        setGeneratedImage(null);
+        setError(null);
+    };
+
+    const handleGenerate = async () => {
+        if (!canGenerate) {
+            setError("Please fill in all required fields and upload all three images.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+
+        try {
+            const newBase64 = await generateBrandStylistImage({
+                logo: brandLogo!.base64,
+                product: productImage!.base64,
+                reference: referenceImage!.base64,
+                name: brandName,
+                description: productDescription,
+                colors: brandColors,
+                fonts: brandFonts
+            });
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+             if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleStartOver = () => {
+        setBrandLogo(null);
+        setProductImage(null);
+        setReferenceImage(null);
+        setBrandName('');
+        setProductDescription('');
+        setBrandColors('');
+        setBrandFonts('');
+        setGeneratedImage(null);
+        setError(null);
+        if(brandLogoRef.current) brandLogoRef.current.value = "";
+        if(productImageRef.current) productImageRef.current.value = "";
+        if(referenceImageRef.current) referenceImageRef.current.value = "";
+    };
+
+    const ImageUploadBox: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; title: string; }> = ({ image, inputRef, onFileChange, title }) => (
+        <div>
+            <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
+            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? () => inputRef.current?.click() : undefined}>
+                <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+                {image ? (
+                    <>
+                        <img src={image.url} alt={title} className="w-full h-full object-cover" />
+                        <button onClick={() => inputRef.current?.click()} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><PencilIcon className="w-4 h-4" /></button>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">{title}</span></div>
+                )}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Brand Stylist AI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate on-brand visuals in the style of any image.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
+                            {isLoading ? <div className="text-center p-4"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Your AI creative director is at work...</p></div>
+                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                            <ImageUploadBox image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} title="Brand Logo" />
+                            <ImageUploadBox image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} title="Product Photo" />
+                            <ImageUploadBox image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" />
+                        </div>
+                        <div className="space-y-3">
+                            <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
+                            <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
+                            <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
+                            <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
+                        </div>
+                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                            {generatedImage ? (
+                                <>
+                                    <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                    <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-2 rounded-lg">Start Over</button>
+                                </>
+                            ) : (
+                                <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
+                            )}
+                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </div>
+                </div>
+            </div>
+             {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+        </div>
+    );
+};
+
+
 // FIX: Added a closing parenthesis to complete the component definition.
 // This was causing the "Unexpected end of file" error.
 const Profile: React.FC<{ user: User | null; openEditProfileModal: () => void; handleLogout: () => void; }> = ({ user, openEditProfileModal, handleLogout }) => (
@@ -2401,6 +2568,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
         return <CaptionAI auth={auth} navigateTo={navigateTo} />;
        case 'product_studio':
         return <ProductStudio auth={auth} navigateTo={navigateTo} />;
+      case 'brand_stylist':
+        return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
       case 'billing':
         return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
       case 'profile':

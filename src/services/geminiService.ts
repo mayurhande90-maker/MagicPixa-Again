@@ -917,6 +917,116 @@ export const generateStyledImage = async (
     }
 };
 
+export const generateBrandStylistImage = async (
+    { logo, product, reference, name, description, colors, fonts }: {
+        logo: Base64File,
+        product: Base64File,
+        reference: Base64File,
+        name: string,
+        description: string,
+        colors: string,
+        fonts: string
+    }
+): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        // Step 1: Classify the reference image
+        const classificationPrompt = "Analyze the attached image. Is it a 'product_shot' (a photograph focusing on a product in a scene) or a 'graphical_post' (a design that includes text, layouts, and graphics, like a social media ad)? Respond with ONLY the JSON: {\"type\": \"product_shot\"} or {\"type\": \"graphical_post\"}.";
+        
+        const classificationResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { data: reference.base64, mimeType: reference.mimeType } },
+                    { text: classificationPrompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: { type: { type: Type.STRING } }
+                }
+            }
+        });
+
+        const classificationResult = JSON.parse(classificationResponse.text.trim());
+        const imageType = classificationResult.type;
+
+        if (!['product_shot', 'graphical_post'].includes(imageType)) {
+            throw new Error("Could not determine the type of reference image.");
+        }
+
+        // Step 2: Construct the generation prompt based on classification
+        let generationPrompt = '';
+        if (imageType === 'product_shot') {
+            generationPrompt = `You are an expert AI art director and photographer. Your task is to create a new, hyper-realistic photograph that exactly matches the style of the provided {reference_image}.
+
+**CRITICAL INSTRUCTIONS:**
+1.  **Replicate the Style:** Meticulously analyze the {reference_image} to understand its lighting, composition, mood, color grading, and depth of field. Your output MUST replicate this aesthetic perfectly.
+2.  **Feature the Product:** The main subject of your new photograph MUST be the product from the {product_image}.
+3.  **Integrate Brand Elements:**
+    -   Seamlessly and naturally integrate the brand name "${name}" into the scene.
+    -   Subtly place the {brand_logo} in a contextually appropriate way (e.g., embossed on a surface, on a small tag).
+4.  **Brand Guidelines:** The final image's color palette should be influenced by these brand colors: "${colors}". Any text should be in a style described as: "${fonts}".
+5.  **Product Fidelity:** The product from {product_image}, including its packaging and labels, MUST remain completely unchanged and preserved with high fidelity.
+
+Your final output must be a single, photorealistic image.`;
+        } else { // graphical_post
+            generationPrompt = `You are an expert AI graphic designer and copywriter. Your task is to create a new graphical post (like for Instagram) that perfectly replicates the layout and visual style of the provided {reference_image}, but with new, on-brand content.
+
+**CRITICAL INSTRUCTIONS:**
+1.  **Replicate Layout & Style:** Deconstruct the {reference_image}. Your output MUST have the exact same layout structure, typography style, use of shapes, and overall aesthetic.
+2.  **Write New Copy:** Analyze the marketing theme of the reference image. Write new, compelling ad copy in the same tone, but for the product "${name}", which is a "${description}".
+3.  **Integrate Brand Assets:**
+    -   Place the user's {product_image} where the main image is in the reference layout.
+    -   Integrate the {brand_logo} where the original logo was, or in another appropriate location.
+4.  **Apply Brand Guidelines:** Use the brand colors "${colors}" and a font style described as "${fonts}" for all text and graphical elements.
+5.  **Generate Backgrounds:** Create any necessary background images or patterns to perfectly match the style of the {reference_image}.
+
+The final output must be a single, complete image file that is ready to be posted.`;
+        }
+        
+        const parts = [
+            { text: "{reference_image}:" },
+            { inlineData: { data: reference.base64, mimeType: reference.mimeType } },
+            { text: "{product_image}:" },
+            { inlineData: { data: product.base64, mimeType: product.mimeType } },
+            { text: "{brand_logo}:" },
+            { inlineData: { data: logo.base64, mimeType: logo.mimeType } },
+            { text: generationPrompt }
+        ];
+
+        // Step 3: Generate the final image
+        const generationResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+
+        if (generationResponse.promptFeedback?.blockReason) {
+            throw new Error(`Image generation blocked due to: ${generationResponse.promptFeedback.blockReason}. Please try different inputs.`);
+        }
+
+        const imagePart = generationResponse.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) {
+            return imagePart.inlineData.data;
+        }
+
+        throw new Error("The model did not return an image. Please try again.");
+
+    } catch (error) {
+        console.error("Error in Brand Stylist AI service:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to generate brand image: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while generating the brand image.");
+    }
+};
+
+
 export const generateVideo = async (prompt: string) => {
     const ai = getAiClient();
     try {

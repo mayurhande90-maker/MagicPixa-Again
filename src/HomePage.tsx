@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -27,6 +27,14 @@ const features = [
         title: "Product Studio",
         description: "Automatically create a full product pack from just a photo and product name.",
         color: "bg-green-500",
+        disabled: false,
+    },
+    {
+        id: 'brand_stylist',
+        icon: <LightbulbIcon className="w-10 h-10 text-white" />,
+        title: "Brand Stylist AI",
+        description: "Generate on-brand photos or graphics in the exact style of any reference image.",
+        color: "bg-yellow-500",
         disabled: false,
     },
     {
