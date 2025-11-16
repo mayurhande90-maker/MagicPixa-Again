@@ -245,28 +245,36 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
     }
   };
   
-  // This fallback creates a dynamic ceiling for the progress bar. It's used for older
-  // users who don't have the `totalCreditsAcquired` field yet.
-  const getMeterMaxFallback = (currentUser: User) => {
-    const credits = currentUser.credits;
-    if ((currentUser.plan === 'Free' || !currentUser.plan) && credits <= 10) {
-      return 10;
+  // FIX: Simplified the logic for determining the progress bar's maximum value.
+  // It now prioritizes `totalCreditsAcquired` and uses a more predictable fallback.
+  const getTotalAcquired = (currentUser: User) => {
+    // If the field exists and is valid (not less than current credits), use it.
+    if (currentUser.totalCreditsAcquired && currentUser.totalCreditsAcquired >= currentUser.credits) {
+        return currentUser.totalCreditsAcquired;
     }
-    if (credits <= 10) return 10;
-    if (credits <= 50) return 50;
-    if (credits <= 100) return 100;
-    const magnitude = Math.pow(10, Math.floor(Math.log10(credits)));
-    return Math.ceil(credits / magnitude) * magnitude;
+    // Otherwise, create a sensible fallback ceiling.
+    // Round up to the nearest 50, with a minimum of 10 (for new users).
+    return Math.max(10, Math.ceil(currentUser.credits / 50) * 50);
   };
 
-  // Use the new `totalCreditsAcquired` field if it's valid, otherwise use the fallback.
-  // A valid value should be at least as large as the current number of credits.
-  const maxCreditsForMeter = (user.totalCreditsAcquired && user.totalCreditsAcquired >= user.credits)
-    ? user.totalCreditsAcquired
-    : getMeterMaxFallback(user);
-
+  const maxCreditsForMeter = getTotalAcquired(user);
   const creditPercentage = maxCreditsForMeter > 0 ? Math.min((user.credits / maxCreditsForMeter) * 100, 100) : 0;
   const groupedTransactions = groupTransactionsByDate(transactions);
+
+  // FEAT: Sort transaction group keys chronologically to ensure correct display order.
+  const sortedGroupKeys = Object.keys(groupedTransactions).sort((a, b) => {
+    if (a === 'Today') return -1;
+    if (b === 'Today') return 1;
+    if (a === 'Yesterday') return -1;
+    if (b === 'Yesterday') return 1;
+
+    // Both are date strings, parse and compare
+    const dateA = new Date(a);
+    const dateB = new Date(b);
+
+    // Sort descending
+    return dateB.getTime() - dateA.getTime();
+  });
 
 
   return (
@@ -349,14 +357,14 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
             <div className="bg-white p-4 rounded-xl border border-gray-200/80">
                 {isLoadingHistory ? (
                     <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
-                ) : Object.keys(groupedTransactions).length > 0 ? (
+                ) : sortedGroupKeys.length > 0 ? (
                     <div className="relative">
                         <div className="max-h-96 overflow-y-auto">
-                            {Object.entries(groupedTransactions).map(([date, txs]) => (
+                            {sortedGroupKeys.map((date) => (
                                 <div key={date}>
                                     <h4 className="text-sm font-semibold text-gray-500 my-3 px-2">{date}</h4>
                                     <div className="space-y-1">
-                                        {txs.map((tx) => (
+                                        {groupedTransactions[date].map((tx) => (
                                              <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
                                                 <div className="flex items-center gap-3">
                                                     {getIconForFeature(tx.feature)}
