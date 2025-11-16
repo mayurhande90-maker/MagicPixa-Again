@@ -2795,14 +2795,25 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             const newBase64 = await removeElementFromImage(currentBase64, currentMimeType, maskBase64);
             
             if (!newBase64 || newBase64.trim() === "") {
-                setError("The AI could not process the removal. Please undo and try a different selection.");
-                return; 
+                throw new Error("The AI returned an empty image. Please undo and try a different selection.");
             }
 
-            const newImage = `data:image/png;base64,${newBase64}`;
+            const newImageSrc = `data:image/png;base64,${newBase64}`;
+
+            // New validation step to ensure the base64 data can be loaded as an image
+            const isValidImage = await new Promise(resolve => {
+                const imageValidator = new Image();
+                imageValidator.onload = () => resolve(true);
+                imageValidator.onerror = () => resolve(false);
+                imageValidator.src = newImageSrc;
+            });
+
+            if (!isValidImage) {
+                throw new Error("The AI returned an invalid image. Please undo and try a different selection.");
+            }
             
             setImageHistory(prev => [...prev, currentImageUrl]);
-            setCurrentImageUrl(newImage);
+            setCurrentImageUrl(newImageSrc);
             setPaths([]);
 
             if (!isGuest && auth.user) {
