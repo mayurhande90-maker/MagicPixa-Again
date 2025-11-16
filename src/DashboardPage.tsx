@@ -2801,11 +2801,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {creations.map(creation => (
                             <div key={creation.id} className="bg-white rounded-lg overflow-hidden border border-gray-200/80 shadow-sm flex flex-col">
-                                <div className="relative aspect-square">
+                                <div className="relative aspect-square bg-gray-100">
                                     <img 
                                         src={creation.imageUrl} 
                                         alt={creation.feature} 
-                                        className="w-full h-full object-cover bg-gray-100 cursor-pointer transition-transform duration-300 hover:scale-105"
+                                        className="w-full h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
                                         onClick={() => setSelectedCreation(creation)}
                                     />
                                 </div>
