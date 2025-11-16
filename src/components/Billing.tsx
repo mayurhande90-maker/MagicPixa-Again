@@ -350,29 +350,34 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                 {isLoadingHistory ? (
                     <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
                 ) : Object.keys(groupedTransactions).length > 0 ? (
-                    Object.entries(groupedTransactions).map(([date, txs]) => (
-                        <div key={date}>
-                            <h4 className="text-sm font-semibold text-gray-500 my-3 px-2">{date}</h4>
-                            <div className="space-y-1">
-                                {txs.map((tx) => (
-                                     <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
-                                        <div className="flex items-center gap-3">
-                                            {getIconForFeature(tx.feature)}
-                                            <div>
-                                                 <p className="font-bold text-gray-800">{tx.feature}</p>
-                                                 <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
-                                            </div>
-                                        </div>
-                                         {tx.creditChange ? (
-                                             <span className="font-bold text-green-500 text-base">{tx.creditChange}</span>
-                                         ) : (
-                                             <span className="font-bold text-red-500 text-base">-{tx.cost} cr</span>
-                                         )}
-                                     </div>
-                                ))}
-                            </div>
+                    <div className="relative">
+                        <div className="max-h-96 overflow-y-auto">
+                            {Object.entries(groupedTransactions).map(([date, txs]) => (
+                                <div key={date}>
+                                    <h4 className="text-sm font-semibold text-gray-500 my-3 px-2">{date}</h4>
+                                    <div className="space-y-1">
+                                        {txs.map((tx) => (
+                                             <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
+                                                <div className="flex items-center gap-3">
+                                                    {getIconForFeature(tx.feature)}
+                                                    <div>
+                                                         <p className="font-bold text-gray-800">{tx.feature}</p>
+                                                         <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                    </div>
+                                                </div>
+                                                 {tx.creditChange ? (
+                                                     <span className="font-bold text-green-500 text-base">{tx.creditChange}</span>
+                                                 ) : (
+                                                     <span className="font-bold text-red-500 text-base">-{tx.cost} cr</span>
+                                                 )}
+                                             </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))
+                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white pointer-events-none"></div>
+                    </div>
                 ) : (
                     <p className="text-sm text-gray-500 text-center py-4">No recent transactions.</p>
                 )}
