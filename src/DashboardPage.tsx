@@ -2421,10 +2421,338 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                             </div>
                         </div>
                     </div>
-                    {/* FIX: Corrected JSX structure by moving the controls panel inside the grid layout. */}
                     <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
                         <div className='text-center'>
                             <h3 className="text-xl font-bold text-[#1E1E1E]">Controls</h3>
                         </div>
                         <div className="space-y-4 pt-4 border-t border-gray-200/80">
-                            
+                            <ImageUploader
+                                type="logo"
+                                title="1. Upload Brand Logo"
+                                subtitle="PNG with transparency works best"
+                                icon={<FlagIcon className="w-8 h-8 text-gray-400 mx-auto" />}
+                            />
+                            <ImageUploader
+                                type="product"
+                                title="2. Upload Product Photo"
+                                subtitle="Clear, front-facing shot"
+                                icon={<CubeIcon className="w-8 h-8 text-gray-400 mx-auto" />}
+                            />
+                            <ImageUploader
+                                type="reference"
+                                title="3. Upload Style Reference"
+                                subtitle="Image showing desired aesthetic"
+                                icon={<PaletteIcon className="w-8 h-8 text-gray-400 mx-auto" />}
+                            />
+                             <div>
+                                <label htmlFor="brandName" className="block text-sm font-bold text-[#1E1E1E] mb-1">4. Brand Name</label>
+                                <input
+                                    type="text"
+                                    id="brandName"
+                                    value={brandDetails.name}
+                                    onChange={(e) => setBrandDetails(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                    placeholder="e.g., Aura Glow"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="brandDescription" className="block text-sm font-bold text-[#1E1E1E] mb-1">5. Product Description / Tagline</label>
+                                <textarea
+                                    id="brandDescription"
+                                    value={brandDetails.description}
+                                    onChange={(e) => setBrandDetails(prev => ({ ...prev, description: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                    placeholder="e.g., Organic Skincare for a Natural Radiance"
+                                    rows={2}
+                                />
+                            </div>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                        <div className="pt-4 border-t border-gray-200/80">
+                            <button
+                                onClick={handleGenerate}
+                                disabled={!canGenerate || isLoading}
+                                className="w-full flex items-center justify-center gap-3 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50"
+                            >
+                                <SparklesIcon className="w-6 h-6" /> Generate Graphic
+                            </button>
+                             <p className={`text-xs text-center pt-2 ${currentCredits < EDIT_COST ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{currentCredits < EDIT_COST ? 'Insufficient credits.' : `This generation costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {editModalImageUrl && (
+                <ImageEditModal
+                    imageUrl={editModalImageUrl}
+                    onClose={() => setEditModalImageUrl(null)}
+                    onDone={(editedImageUrl) => {
+                        setGeneratedImage(editedImageUrl);
+                        setEditModalImageUrl(null);
+                    }}
+                    auth={auth}
+                />
+            )}
+        </div>
+    );
+};
+
+const ImageEditModal: React.FC<{
+    imageUrl: string;
+    onClose: () => void;
+    onDone: (editedImageUrl: string) => void;
+    auth: AuthProps;
+}> = ({ imageUrl, onClose, onDone, auth }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [history, setHistory] = useState<string[]>([]);
+    const [currentImage, setCurrentImage] = useState<string | null>(null);
+    const imageRef = useRef<HTMLImageElement>(new Image());
+
+    const EDIT_COST = 1;
+    const hasSufficientCredits = (auth.user?.credits ?? 0) >= EDIT_COST;
+
+    const loadImageToCanvas = useCallback((src: string) => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
+
+        imageRef.current.crossOrigin = "Anonymous";
+        imageRef.current.src = src;
+        imageRef.current.onload = () => {
+            canvas.width = imageRef.current.naturalWidth;
+            canvas.height = imageRef.current.naturalHeight;
+            ctx.drawImage(imageRef.current, 0, 0);
+            setCurrentImage(src);
+            if(history.length === 0) {
+                 setHistory([src]);
+            }
+        };
+        imageRef.current.onerror = () => {
+             setError("Failed to load image for editing.");
+        }
+    }, [history.length]);
+    
+    useEffect(() => {
+        loadImageToCanvas(imageUrl);
+    }, [imageUrl, loadImageToCanvas]);
+
+    const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) * (canvas.width / rect.width),
+            y: (e.clientY - rect.top) * (canvas.height / rect.height),
+        };
+    };
+
+    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (!ctx) return;
+        setIsDrawing(true);
+        const { x, y } = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    };
+
+    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isDrawing) return;
+        const ctx = canvasRef.current?.getContext('2d');
+        if (!ctx) return;
+        const { x, y } = getMousePos(e);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 40;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    };
+
+    const stopDrawing = async () => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (!ctx || !isDrawing) return;
+        ctx.closePath();
+        setIsDrawing(false);
+
+        if (!hasSufficientCredits) {
+             setError(`You need ${EDIT_COST} credit to use the Magic Eraser.`);
+             // reset canvas
+             loadImageToCanvas(currentImage!);
+             return;
+        }
+
+        const maskCanvas = document.createElement('canvas');
+        const maskCtx = maskCanvas.getContext('2d');
+        if (!maskCtx || !canvasRef.current) return;
+        
+        maskCanvas.width = canvasRef.current.width;
+        maskCanvas.height = canvasRef.current.height;
+        
+        maskCtx.fillStyle = 'black';
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+        
+        maskCtx.drawImage(canvasRef.current, 0, 0);
+        
+        const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
+        const originalBase64 = currentImage!.split(',')[1];
+        const originalMimeType = currentImage!.split(';')[0].split(':')[1];
+
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const resultBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
+            if (!resultBase64 || resultBase64.length < 100) {
+                throw new Error("The AI returned an empty image. Please undo and try a different selection.");
+            }
+            const newImageUrl = `data:image/png;base64,${resultBase64}`;
+            setHistory(prev => [...prev, newImageUrl]);
+            loadImageToCanvas(newImageUrl);
+            if (auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Eraser');
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            }
+        } catch(err) {
+            setError(err instanceof Error ? err.message : "Failed to remove element.");
+            loadImageToCanvas(currentImage!);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUndo = () => {
+        if (history.length <= 1) return;
+        const newHistory = [...history];
+        newHistory.pop();
+        setHistory(newHistory);
+        loadImageToCanvas(newHistory[newHistory.length - 1]);
+    };
+    
+    const handleDone = () => {
+        if (currentImage) {
+            onDone(currentImage);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+            <div className="bg-[#1E1E1E] w-full max-w-4xl h-[90vh] rounded-2xl shadow-xl flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-4 border-b border-gray-700">
+                    <h3 className="text-lg font-bold text-white">Magic Eraser</h3>
+                    <div className="flex items-center gap-4">
+                        <button onClick={handleUndo} disabled={history.length <= 1 || isLoading} className="text-sm text-white disabled:opacity-50">Undo Removal</button>
+                        <button onClick={handleDone} className="text-sm bg-yellow-400 text-black font-bold px-4 py-1.5 rounded-lg">Done</button>
+                        <button onClick={onClose} className="p-2 text-gray-400 hover:text-white"><XIcon className="w-5 h-5"/></button>
+                    </div>
+                </div>
+
+                <div className="flex-1 p-4 flex items-center justify-center overflow-hidden relative">
+                    <canvas 
+                        ref={canvasRef} 
+                        className="max-w-full max-h-full object-contain cursor-crosshair"
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseOut={stopDrawing}
+                    />
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
+                           <SparklesIcon className="w-10 h-10 text-yellow-400 animate-pulse mb-2" />
+                           <p>Removing element...</p>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="absolute bottom-4 left-4 right-4 bg-red-500 text-white p-3 rounded-lg text-sm text-center">
+                            {error}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const renderActiveView = () => {
+        switch (props.activeView) {
+            case 'home_dashboard':
+                 return <MobileHomeDashboard user={props.auth.user} setActiveView={props.setActiveView} />;
+            case 'dashboard':
+                return <Dashboard user={props.auth.user} navigateTo={props.navigateTo} openEditProfileModal={props.openEditProfileModal} setActiveView={props.setActiveView} />;
+            case 'studio':
+                return <MagicPhotoStudio auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'interior':
+                 return <MagicInterior auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'colour':
+                 return <MagicPhotoColour auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'soul':
+                return <MagicSoulAI auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'apparel':
+                return <MagicApparelAI auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'mockup':
+                return <MagicMockupAI auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'caption':
+                return <CaptionAI auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'product_studio':
+                return <ProductStudio auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'brand_stylist':
+                return <BrandStylistAI auth={props.auth} navigateTo={props.navigateTo} />;
+            case 'billing':
+                if (!props.auth.user) return null;
+                return <Billing user={props.auth.user} setUser={props.auth.setUser} />;
+            default:
+                return <Dashboard user={props.auth.user} navigateTo={props.navigateTo} openEditProfileModal={props.openEditProfileModal} setActiveView={props.setActiveView} />;
+        }
+    };
+    
+    // For mobile, the active view is the entire screen.
+    if (isMobile) {
+        // Only show back button if not on a primary dashboard view
+        const showBackButton = !['home_dashboard', 'dashboard', 'profile'].includes(props.activeView);
+        return (
+             <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
+                <Header 
+                    navigateTo={props.navigateTo} 
+                    auth={{ 
+                        ...props.auth, 
+                        isDashboard: true, 
+                        showBackButton: showBackButton,
+                        handleBack: () => props.setActiveView('dashboard'),
+                        openConversation: () => props.setIsConversationOpen(true) 
+                    }} 
+                />
+                <main className="flex-1 overflow-y-auto">
+                   {renderActiveView()}
+                </main>
+                <MagicConversation auth={props.auth} isOpen={props.isConversationOpen} onClose={() => props.setIsConversationOpen(false)} />
+             </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
+            <Header 
+                navigateTo={props.navigateTo} 
+                auth={{ ...props.auth, isDashboard: true, setActiveView: props.setActiveView, openConversation: () => props.setIsConversationOpen(true) }} 
+            />
+            <div className="flex-1 flex" style={{ height: 'calc(100vh - 69px)'}}>
+                <Sidebar user={props.auth.user} activeView={props.activeView} setActiveView={props.setActiveView} navigateTo={props.navigateTo} />
+                <main className="flex-1 overflow-y-auto">
+                    {renderActiveView()}
+                </main>
+            </div>
+            <MagicConversation auth={props.auth} isOpen={props.isConversationOpen} onClose={() => props.setIsConversationOpen(false)} />
+        </div>
+    );
+};
