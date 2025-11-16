@@ -2465,7 +2465,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                             : generatedImage ? (
                                 <>
                                     <img src={generatedImage} alt="Generated" className="w-full h-full object-contain cursor-pointer" onClick={() => setIsModalOpen(true)}/>
-                                    <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                                    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
                                         <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><DownloadIcon className="w-6 h-6"/></button>
                                         <button onClick={() => setIsEditModalOpen(true)} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><PencilIcon className="w-6 h-6"/></button>
                                     </div>
@@ -2570,6 +2570,9 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [currentImageUrl, setCurrentImageUrl] = useState<string>(imageUrl);
+    const [imageHistory, setImageHistory] = useState<string[]>([]);
+
     const EDIT_COST = 1;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
@@ -2578,12 +2581,9 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
     // Effect 1: Load image and set canvas size
     useEffect(() => {
         setIsReady(false);
-        setPaths([]);
-        setCurrentPath(null);
-
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.src = imageUrl;
+        img.src = currentImageUrl;
         imageRef.current = null;
 
         const loadHandler = () => {
@@ -2592,7 +2592,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             if (canvas && canvas.parentElement) {
                 canvas.width = canvas.parentElement.clientWidth;
                 canvas.height = canvas.parentElement.clientHeight;
-                setIsReady(true); // Signal readiness *after* sizing
+                setIsReady(true);
             }
         };
         img.addEventListener('load', loadHandler);
@@ -2602,7 +2602,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         }
         
         return () => img.removeEventListener('load', loadHandler);
-    }, [imageUrl]);
+    }, [currentImageUrl]);
 
     // Effect 2: Handle window resizing
     useEffect(() => {
@@ -2611,7 +2611,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
              if(canvas && canvas.parentElement) {
                 canvas.width = canvas.parentElement.clientWidth;
                 canvas.height = canvas.parentElement.clientHeight;
-                // Readiness is already true, so the draw effect will trigger
                 setIsReady(true); // Re-trigger drawing
              }
         };
@@ -2619,7 +2618,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Effect 3: Central drawing logic. This runs whenever the canvas needs to be redrawn.
+    // Effect 3: Central drawing logic
     useEffect(() => {
         if (!isReady) return;
         const canvas = canvasRef.current;
@@ -2664,7 +2663,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
             }
             ctx.stroke();
         });
-    }, [isReady, paths, currentPath]); // Redraw when ready, or paths change
+    }, [isReady, paths, currentPath, currentImageUrl]); // Redraw when ready, paths change, or image changes
 
     const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
@@ -2703,8 +2702,21 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
         }
     };
 
-    const handleUndo = () => {
+    const handleUndoPath = () => {
         setPaths(prev => prev.slice(0, -1));
+    };
+
+    const handleUndoEdit = () => {
+        if (imageHistory.length > 0) {
+            const previousImage = imageHistory[imageHistory.length - 1];
+            setCurrentImageUrl(previousImage);
+            setImageHistory(prev => prev.slice(0, -1));
+            setPaths([]);
+        }
+    };
+
+    const handleDone = () => {
+        onSave(currentImageUrl);
     };
 
     const handleRemoveElement = async () => {
@@ -2767,12 +2779,25 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
         const maskDataUrl = maskCanvas.toDataURL('image/png');
         const maskBase64 = maskDataUrl.split(',')[1];
-        const originalBase64 = imageUrl.split(',')[1];
-        const originalMimeType = imageUrl.match(/data:(.*);/)?.[1] || 'image/png';
+        
+        const tempImage = new Image();
+        tempImage.src = currentImageUrl;
+        await tempImage.decode();
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = tempImage.naturalWidth;
+        tempCanvas.height = tempImage.naturalHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx?.drawImage(tempImage, 0, 0);
+        const currentMimeType = tempCanvas.toDataURL().match(/data:(.*);/)?.[1] || 'image/png';
+        const currentBase64 = currentImageUrl.split(',')[1];
 
         try {
-            const newBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
-            onSave(`data:image/png;base64,${newBase64}`);
+            const newBase64 = await removeElementFromImage(currentBase64, currentMimeType, maskBase64);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            
+            setImageHistory(prev => [...prev, currentImageUrl]);
+            setCurrentImageUrl(newImage);
+            setPaths([]);
 
             if (!isGuest && auth.user) {
                 await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
@@ -2787,7 +2812,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="relative w-full max-w-4xl bg-gray-800 rounded-2xl p-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full max-w-4xl bg-gray-800 rounded-2xl p-4 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center">
                     <h3 className="text-white text-lg font-bold text-center flex-1">Magic Eraser</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
@@ -2812,21 +2837,30 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
                      )}
                 </div>
                 {error && <p className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded-md">{error}</p>}
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-                     <div className="flex items-center gap-2 text-white">
-                        <label htmlFor="brushSize" className="text-sm font-semibold">Brush Size:</label>
-                        <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
-                     </div>
-                     <div className="flex items-center gap-4">
-                        <button onClick={handleUndo} disabled={paths.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo</button>
-                        <button onClick={() => setPaths([])} disabled={paths.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Clear Mask</button>
-                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits || !isReady} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                
+                <div className="space-y-3">
+                    <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
+                        <div className="flex items-center gap-2 text-white">
+                            <label htmlFor="brushSize" className="text-sm font-semibold">Brush Size:</label>
+                            <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <button onClick={handleUndoPath} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Undo Stroke</button>
+                             <button onClick={() => setPaths([])} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Clear Mask</button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap justify-center items-center gap-4 border-t border-gray-700 pt-3">
+                        <button onClick={handleUndoEdit} disabled={imageHistory.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo Removal</button>
+                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits || !isReady} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                             <SparklesIcon className="w-5 h-5"/>
                             Remove Element
                         </button>
-                     </div>
+                        <button onClick={handleDone} disabled={isLoading} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50">Done</button>
+                    </div>
                 </div>
-                 <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
+
+                 <p className={`text-xs text-center -mt-2 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `Remove Element costs ${EDIT_COST} credit.`}</p>
             </div>
         </div>
     );
