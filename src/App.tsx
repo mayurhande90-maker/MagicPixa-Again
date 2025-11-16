@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
-// FIX: Changed back to a default import to match the export in `DashboardPage.tsx` and resolve the module error.
-import DashboardPage from './DashboardPage';
+// FIX: Changed to a named import to match the named export in `DashboardPage.tsx` and resolve the module error.
+import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 // FIX: Removed incorrect modular imports for 'onAuthStateChanged' and 'signOut'.
