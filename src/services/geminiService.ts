@@ -954,25 +954,44 @@ interface BrandStylistProps {
 export const generateBrandStylistImage = async (props: BrandStylistProps): Promise<string> => {
     const ai = getAiClient();
     try {
-        const prompt = `Task: Create a single, cohesive, on-brand promotional graphic for a product.
-        
-        **Analysis Phase (Internal Monologue, do not output):**
-        1. Analyze the Reference Style Image: What is the mood, color palette, lighting, composition, and overall aesthetic? Is it minimalist, bold, natural, corporate?
-        2. Analyze the Brand Logo: Note its colors, shape, and font style.
-        3. Analyze the Product Photo: Identify the product. Is it a bottle, a box, a device?
-        4. Synthesize Brand Details: Read the brand name, description, colors, fonts, and contact info.
+        const prompt = `You are a world-class Creative Director AI. Your task is to conceptualize and generate a single, cohesive, ad-ready promotional graphic for a product by synthesizing multiple brand assets.
 
-        **Execution Phase (Generate the final image based on this):**
-        1.  **Recreate the Style:** Generate a new background and scene that EXACTLY matches the aesthetic, mood, and lighting of the **Reference Style Image**. This is the most important step.
-        2.  **Place the Product:** Seamlessly integrate the **Product Photo** into this new scene. The product should look like it naturally belongs there. It needs realistic shadows, reflections, and lighting consistent with the new scene. DO NOT change the product itself.
-        3.  **Incorporate the Logo:** Place the **Brand Logo** tastefully onto the image. It should be legible but not overpowering. Find a natural position for it (e.g., a corner, a subtle overlay).
-        4.  **Add Text Elements (If Provided):** If brand name, description, website, contact info, etc., are provided, add them to the graphic as text overlays. The typography should match the style hinted at by the **Brand Fonts** or the overall aesthetic. The layout should be clean, professional, and well-balanced.
-        
-        **Strict Output Requirements:**
-        - The final output is a single image.
-        - The style MUST be derived from the reference image.
-        - The product and logo must be preserved perfectly.
-        - The final image must look like a professional graphic designer created it.`;
+**YOUR GOAL:** Create a professional, visually stunning marketing image that looks like it was made by a top-tier design agency.
+
+**INPUT ASSETS:**
+-   \`{brand_logo}\`: The official brand logo.
+-   \`{product_photo}\`: A photo of the product.
+-   \`{reference_style}\`: An image that defines the target aesthetic, mood, and style.
+-   \`Brand Details\`: Textual information about the brand and product.
+
+---
+
+**YOUR STRATEGIC THOUGHT PROCESS (Follow these steps internally before generating the image):**
+
+**1. Deep Analysis & Synthesis:**
+    *   **Deconstruct the Reference Style:** What is the core mood (e.g., minimalist, luxurious, energetic, natural)? Analyze its color palette, lighting (soft studio vs. harsh natural), composition (e.g., centered, rule of thirds), and texture.
+    *   **Deeply Analyze the Product:** Identify the product type, its likely use case, and target audience from its visual appearance and the provided 'Product Description'. Is it a high-tech gadget, an organic skincare item, a playful toy?
+    *   **Analyze Brand Identity:** What does the \`{brand_logo}\` convey? How do the provided 'Brand Colors' and 'Brand Font Style' align with the \`reference_style\`?
+    *   **Strategic Decision:** Synthesize these analyses into a single creative direction. For example: "The goal is to present this organic serum (Product) as a luxury, minimalist item (Reference Style), using an earthy color palette and clean typography (Brand Identity)."
+
+**2. Scene & Composition Strategy:**
+    *   Based on your strategic decision, design a new background scene that PERFECTLY matches the aesthetic, mood, and lighting of the \`{reference_style}\`.
+    *   Seamlessly integrate the \`{product_photo}\` into this new scene. The product must be the hero. It requires hyper-realistic shadows, reflections, and lighting that make it look naturally part of the environment. **CRITICAL: The product itself must not be altered.**
+
+**3. Typography & Text Strategy (VERY IMPORTANT):**
+    *   **First, Decide IF Text is Needed:** Look at the \`{reference_style}\`. Is it purely visual, or does it use text? A powerful, minimalist ad might not need any text beyond the logo. Make a professional judgment call.
+    *   **If Text is Needed, Decide WHAT Text to Use:**
+        *   **Headline Choice:** The \`{brand_logo}\` already contains the brand name. Therefore, using the **'Product Name'** as a headline is often a stronger choice (e.g., "Glow Vitamin C Serum"). Only use the 'Brand Name' as a headline if the \`{reference_style}\` strongly suggests a bold, brand-centric layout.
+        *   **Other Text:** Use the 'Product Description' as a smaller subheading or tagline only if it enhances the ad and fits the style. Omit it if it creates clutter. Place contact details (website, email) very discreetly and only if it feels appropriate for a high-end ad.
+    *   **Typography Execution:** Any text used must be rendered in a font, color, and size that perfectly complements the overall aesthetic derived from the \`{reference_style}\` and 'Brand Font Style'.
+
+**4. Logo Placement Strategy:**
+    *   Place the \`{brand_logo}\` tastefully. It should be clearly legible but not overpower the product. Consider standard placements like a corner or as a subtle, integrated element. **CRITICAL: The logo must not be altered.**
+
+---
+
+**FINAL EXECUTION COMMAND:**
+Based on your complete strategic thought process, generate the final image. The result must be a single, high-resolution, professional graphic.`;
 
         const parts: any[] = [
             { text: `{brand_logo}:` },
@@ -981,10 +1000,10 @@ export const generateBrandStylistImage = async (props: BrandStylistProps): Promi
             { inlineData: { data: props.product.base64, mimeType: props.product.mimeType } },
             { text: `{reference_style}:` },
             { inlineData: { data: props.reference.base64, mimeType: props.reference.mimeType } },
-            { text: `\n\n**Brand Details:**\n- Name: ${props.name}\n- Description: ${props.description}` },
+            { text: `\n\n**Brand Details:**\n- Brand Name: ${props.name}\n- Product Name: ${props.name}\n- Product Description: ${props.description}` },
         ];
-        if (props.colors) parts.push({ text: `\n- Colors: ${props.colors}`});
-        if (props.fonts) parts.push({ text: `\n- Fonts: ${props.fonts}`});
+        if (props.colors) parts.push({ text: `\n- Brand Colors: ${props.colors}`});
+        if (props.fonts) parts.push({ text: `\n- Brand Font Style: ${props.fonts}`});
         if (props.website) parts.push({ text: `\n- Website: ${props.website}`});
         if (props.contact) parts.push({ text: `\n- Contact: ${props.contact}`});
         if (props.email) parts.push({ text: `\n- Email: ${props.email}`});

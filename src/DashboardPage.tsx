@@ -2497,8 +2497,8 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         <div>
                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">2. Provide Brand Details</h3>
                            <div className="space-y-4">
-                               <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
-                               <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
+                               <InputField id="brandName" label="Product Name / Title" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow Vitamin C Serum" required/>
+                               <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., 'A lightweight daily serum...'" required rows={2}/>
                                <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
                                <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
                                <InputField id="brandWebsite" label="Website (Optional)" value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g., www.auraglow.com" />
