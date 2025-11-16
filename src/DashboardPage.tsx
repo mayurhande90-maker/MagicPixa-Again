@@ -1169,8 +1169,8 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                             {hasImage ? (isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>) : <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>}
                         </div>
 
-                        <div id="mobile-controls-panel-colour" className={`px-4 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen && hasImage ? 'max-h-96 pb-4' : 'max-h-0'}`}>
-                           <Controls />
+                        <div id="mobile-controls-panel-colour" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen && hasImage ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
+                            <Controls />
                         </div>
                         
                         <div className="p-4 border-t border-gray-200/80">
@@ -1187,33 +1187,123 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 };
 
-const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicSoulAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [personA, setPersonA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [personB, setPersonB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isPanelOpen, setIsPanelOpen] = useState(true);
-    const [style, setStyle] = useState('romantic');
+    
+    const [style, setStyle] = useState('adventurous');
     const [environment, setEnvironment] = useState('sunny');
 
-    const fileInputARef = useRef<HTMLInputElement>(null);
-    const fileInputBRef = useRef<HTMLInputElement>(null);
-    
-    const EDIT_COST = 3;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-soul') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-soul')!, 10) : 3);
-    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const hasImages = personA !== null && personB !== null;
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-soul');
+        return saved ? parseInt(saved, 10) : 3;
+    });
 
-    const soulStyles = [{key: 'romantic', label: 'Romantic'}, {key: 'adventurous', label: 'Adventurous'}, {key: 'fun', label: 'Fun'}, {key: 'formal', label: 'Formal'}, {key: 'cinematic', label: 'Cinematic'}, {key: 'artistic', label: 'Artistic'}];
-    const soulEnvironments = [{key: 'sunny', label: 'Sunny'}, {key: 'rainy', label: 'Rainy'}, {key: 'snowy', label: 'Snowy'}, {key: 'beach', label: 'Beach'}, {key: 'mountain', label: 'Mountain'}, {key: 'urban', label: 'Urban'}, {key: 'indoor', label: 'Indoor'}, {key: 'night city lights', label: 'Night City'}, {key: 'forest', label: 'Forest'}];
+    const fileInputRefA = useRef<HTMLInputElement>(null);
+    const fileInputRefB = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
+
+    const EDIT_COST = 3;
+    const currentCost = EDIT_COST;
+
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
 
     useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-soul', guestCredits.toString());
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-soul', guestCredits.toString());
+        }
     }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, person: 'A' | 'B') => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const url = URL.createObjectURL(file);
+            const base64 = await fileToBase64(file);
+            if (person === 'A') {
+                setPersonA({ file, url, base64 });
+            } else {
+                setPersonB({ file, url, base64 });
+            }
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
+        setPersonA(null);
+        setPersonB(null);
+        setStyle('adventurous');
+        setEnvironment('sunny');
+        if (fileInputRefA.current) fileInputRefA.current.value = "";
+        if (fileInputRefB.current) fileInputRefB.current.value = "";
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!personA || !personB) {
+            setError("Please upload photos for both people.");
+            return;
+        }
+        if (currentCredits < EDIT_COST) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImage(null);
+        
+        try {
+            const newBase64 = await generateMagicSoul(
+                personA.base64.base64,
+                personA.base64.mimeType,
+                personB.base64.base64,
+                personB.base64.mimeType,
+                style,
+                environment
+            );
+            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Soul');
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [personA, personB, style, environment, currentCredits, auth, isGuest, navigateTo]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage) return;
@@ -1225,203 +1315,112 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         document.body.removeChild(link);
     }, [generatedImage]);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, person: 'A' | 'B') => {
-        const file = event.target.files?.[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                setError('Please upload a valid image file.');
-                return;
-            }
-            const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            if (person === 'A') setPersonA(data);
-            else setPersonB(data);
-            setGeneratedImage(null);
-            setError(null);
-        }
-    };
-    
-    const handleGenerate = async () => {
-        if (!personA || !personB) {
-            setError("Please upload photos for both people.");
-            return;
-        }
-        if (hasInsufficientCredits) {
-            if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
-            return;
-        }
-        
-        setIsPanelOpen(false);
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const newBase64 = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, environment);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
-            if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Soul');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            } else {
-                setGuestCredits(prev => prev - EDIT_COST);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
+    const triggerFileInput = (person: 'A' | 'B') => {
+        if (isLoading) return;
+        (person === 'A' ? fileInputRefA : fileInputRefB).current?.click();
     };
 
-    const handleStartOver = () => {
-        setPersonA(null);
-        setPersonB(null);
-        setGeneratedImage(null);
-        setError(null);
-        setIsPanelOpen(true);
-        if (fileInputARef.current) fileInputARef.current.value = "";
-        if (fileInputBRef.current) fileInputBRef.current.value = "";
-    };
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const canGenerate = personA && personB;
 
-    const ImageUploadBox: React.FC<{
-        image: { url: string } | null;
-        inputRef: React.RefObject<HTMLInputElement>;
-        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        title: string;
-        isSquare?: boolean;
-    }> = ({ image, inputRef, onFileChange, title, isSquare = false }) => {
-        const triggerFileInput = () => inputRef.current?.click();
+    const ImageUploader: React.FC<{ person: 'A' | 'B' }> = ({ person }) => {
+        const data = person === 'A' ? personA : personB;
+        const ref = person === 'A' ? fileInputRefA : fileInputRefB;
         return (
-            <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? triggerFileInput : undefined}>
-                <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-                {image ? (
-                    <>
-                        <img src={image.url} alt={title} className="w-full h-full object-cover" />
-                        <button onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
-                    </>
+            <div
+                className={`w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center transition-colors ${!data ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                onClick={() => !data && triggerFileInput(person)}
+            >
+                <input type="file" ref={ref} onChange={(e) => handleFileChange(e, person)} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                {data ? (
+                    <div className="relative w-full h-full group">
+                        <img src={data.url} alt={`Person ${person}`} className="w-full h-full object-cover rounded-xl" />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => triggerFileInput(person)} className="text-white font-semibold flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <RetryIcon className="w-5 h-5"/> Change
+                            </button>
+                        </div>
+                    </div>
                 ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-sm text-gray-700">{title}</span></div>
+                    <div className="text-center text-[#5F6368]">
+                        <UsersIcon className="w-10 h-10 mx-auto mb-2" />
+                        <p className="font-semibold text-[#1E1E1E]">Upload Photo {person}</p>
+                        <p className="text-xs">Click to select</p>
+                    </div>
                 )}
             </div>
         );
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
-            <div className='w-full max-w-7xl mx-auto'>
+        <div className='p-4 sm:p-6 lg:p-8'>
+             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Soul</h2>
                     <p className="text-[#5F6368] mt-2">Combine two people into one hyper-realistic photo.</p>
                 </div>
+                
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
-                            {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Creating your magic moment...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
-                            : <div className="text-center text-gray-400"><UsersIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated photo will appear here.</p></div>}
+                    <div className="lg:col-span-3">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <ImageUploader person="A" />
+                            <ImageUploader person="B" />
+                        </div>
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div className="relative h-full bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
+                                {generatedImage ? (
+                                     <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Generated Soul" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                    </div>
+                                ) : (
+                                     <div className="text-center text-[#5F6368]">
+                                        <SparklesIcon className="w-10 h-10 mx-auto mb-2" />
+                                        <p className="font-semibold text-[#1E1E1E]">Your generated image will appear here</p>
+                                    </div>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="hidden lg:col-span-2 lg:flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" isSquare={true}/>
-                            <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" isSquare={true}/>
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                            <h3 className="text-xl font-bold text-[#1E1E1E]">Controls</h3>
+                            <p className='text-sm text-[#5F6368]'>Set the scene for your photo</p>
                         </div>
-                        <div className={!hasImages ? 'opacity-50' : ''}>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {soulStyles.map(s => (
-                                    <button key={s.key} onClick={() => setStyle(s.key)} disabled={!hasImages} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
-                                        {s.label}
-                                    </button>
-                                ))}
+                        <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200/80 text-left">
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm text-yellow-800">Pro Tip</p>
+                                <p className="text-xs text-yellow-700">For best results, use clear, forward-facing headshots with good lighting.</p>
                             </div>
                         </div>
-                        <div className={!hasImages ? 'opacity-50' : ''}>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {soulEnvironments.map(e => (
-                                    <button key={e.key} onClick={() => setEnvironment(e.key)} disabled={!hasImages} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${environment === e.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
-                                        {e.label}
-                                    </button>
-                                ))}
-                            </div>
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            {/* Controls will go here */}
+                             <p className="text-xs text-center text-[#5F6368] pt-4 border-t border-gray-200/80">Upload photos for both people to enable controls.</p>
                         </div>
-                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                            {generatedImage ? (
-                                <>
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg">
-                                        <DownloadIcon className="w-5 h-5"/> Download
-                                    </button>
+                        <div className="pt-4 border-t border-gray-200/80">
+                           <div className="w-full space-y-2">
+                                {generatedImage ? (
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] font-bold py-2 rounded-lg disabled:opacity-50">
-                                            <RetryIcon className="w-5 h-5"/> Regenerate
-                                        </button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-2 rounded-lg">
-                                            <UploadIcon className="w-5 h-5"/> Start Over
-                                        </button>
+                                        <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                        <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 rounded-lg"><RetryIcon className="w-5 h-5"/> Start Over</button>
                                     </div>
-                                </>
-                            ) : (
-                                <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                    <SparklesIcon className="w-5 h-5"/> Generate
-                                </button>
-                            )}
-                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                        </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
-
-                    <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-                        <div onClick={() => setIsPanelOpen(!isPanelOpen)} className="w-full py-2 flex justify-center cursor-pointer" aria-controls="mobile-controls-panel-soul" aria-expanded={isPanelOpen}>
-                            {isPanelOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500"/> : <ChevronUpIcon className="w-6 h-6 text-gray-500"/>}
-                        </div>
-                        <div id="mobile-controls-panel-soul" className={`px-4 transition-all duration-300 ease-in-out overflow-y-auto ${isPanelOpen ? 'max-h-[50vh] pb-4' : 'max-h-0'}`}>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <ImageUploadBox image={personA} inputRef={fileInputARef} onFileChange={e => handleFileChange(e, 'A')} title="Upload Person A" isSquare={true}/>
-                                <ImageUploadBox image={personB} inputRef={fileInputBRef} onFileChange={e => handleFileChange(e, 'B')} title="Upload Person B" isSquare={true}/>
-                            </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Style</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {soulStyles.map(s => (
-                                            <button key={s.key} onClick={() => setStyle(s.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${style === s.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
-                                                {s.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Environment</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {soulEnvironments.map(e => (
-                                            <button key={e.key} onClick={() => setEnvironment(e.key)} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${environment === e.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300'}`}>
-                                                {e.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                ) : (
+                                    <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                        <SparklesIcon className="w-6 h-6" /> Generate
+                                    </button>
+                                )}
+                                <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for more credits!' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
                             </div>
                         </div>
-                        <div className="p-4 border-t border-gray-200/80">
-                           {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm mb-2'>{error}</div>}
-                           {generatedImage ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm">
-                                        <DownloadIcon className="w-5 h-5" /> Download
-                                    </button>
-                                    <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                                        <RetryIcon className="w-5 h-5" /> Regenerate
-                                    </button>
-                                </div>
-                            ) : (
-                                <button onClick={handleGenerate} disabled={isLoading || !hasImages || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-lg shadow-sm disabled:opacity-50">
-                                    <SparklesIcon className="w-5 h-5" /> Generate
-                                </button>
-                           )}
-                        </div>
+                        {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}
                     </div>
-
                 </div>
             </div>
             {isModalOpen && generatedImage && (
@@ -1431,29 +1430,53 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
-const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicApparelAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [person, setPerson] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [top, setTop] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [trousers, setTrousers] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-apparel');
+        return saved ? parseInt(saved, 10) : 3;
+    });
 
-    const personInputRef = useRef<HTMLInputElement>(null);
-    const topInputRef = useRef<HTMLInputElement>(null);
-    const trousersInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRefPerson = useRef<HTMLInputElement>(null);
+    const fileInputRefTop = useRef<HTMLInputElement>(null);
+    const fileInputRefTrousers = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
 
     const EDIT_COST = 3;
+    const currentCost = EDIT_COST;
+
     const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-apparel') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-apparel')!, 10) : 3);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const canGenerate = person !== null && (top !== null || trousers !== null);
 
     useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-apparel', guestCredits.toString());
+        }
     }, [isGuest, guestCredits]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'person' | 'top' | 'trousers') => {
         const file = event.target.files?.[0];
@@ -1462,45 +1485,47 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                 setError('Please upload a valid image file.');
                 return;
             }
+            const url = URL.createObjectURL(file);
             const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
+            const data = { file, url, base64 };
             if (type === 'person') setPerson(data);
-            else if (type === 'top') setTop(data);
-            else setTrousers(data);
-            setGeneratedImage(null);
+            if (type === 'top') setTop(data);
+            if (type === 'trousers') setTrousers(data);
             setError(null);
+            setGeneratedImage(null);
         }
     };
     
-    const handleGenerate = async () => {
-        if (!person) {
-            setError("Please upload a photo of a person.");
+    const handleGenerate = useCallback(async () => {
+        if (!person || (!top && !trousers)) {
+            setError("Please upload a person's photo and at least one clothing item.");
             return;
         }
-        if (!top && !trousers) {
-            setError("Please upload at least one clothing item.");
-            return;
-        }
-        if (hasInsufficientCredits) {
+        if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
             return;
         }
-        
+
         setIsLoading(true);
         setError(null);
-        
+        setGeneratedImage(null);
+
         try {
             const apparelItems = [];
             if (top) apparelItems.push({ type: 'top', base64: top.base64.base64, mimeType: top.base64.mimeType });
             if (trousers) apparelItems.push({ type: 'trousers', base64: trousers.base64.base64, mimeType: trousers.base64.mimeType });
 
-            const newBase64 = await generateApparelTryOn(person.base64.base64, person.base64.mimeType, apparelItems);
+            const newBase64 = await generateApparelTryOn(
+                person.base64.base64,
+                person.base64.mimeType,
+                apparelItems
+            );
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
             
             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Apparel');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Apparel AI');
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
             }
@@ -1509,151 +1534,255 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
         } finally {
             setIsLoading(false);
         }
-    };
-    
-    const handleStartOver = () => {
+    }, [person, top, trousers, currentCredits, auth, isGuest, navigateTo]);
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
         setPerson(null);
         setTop(null);
         setTrousers(null);
-        setGeneratedImage(null);
-        setError(null);
-        if (personInputRef.current) personInputRef.current.value = "";
-        if (topInputRef.current) topInputRef.current.value = "";
-        if (trousersInputRef.current) trousersInputRef.current.value = "";
-    };
+        if (fileInputRefPerson.current) fileInputRefPerson.current.value = "";
+        if (fileInputRefTop.current) fileInputRefTop.current.value = "";
+        if (fileInputRefTrousers.current) fileInputRefTrousers.current.value = "";
+    }, []);
 
-    const ImageUploadBox: React.FC<{
-        image: { url: string } | null;
-        inputRef: React.RefObject<HTMLInputElement>;
-        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        title: string;
-        icon: React.ReactNode;
-        className?: string;
-    }> = ({ image, inputRef, onFileChange, title, icon, className }) => {
-        const triggerFileInput = () => inputRef.current?.click();
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_apparel_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const canGenerate = person && (top || trousers);
+    
+    const GarmentUploader: React.FC<{ type: 'top' | 'trousers' }> = ({ type }) => {
+        const data = type === 'top' ? top : trousers;
+        const ref = type === 'top' ? fileInputRefTop : fileInputRefTrousers;
+        const Icon = type === 'top' ? GarmentTopIcon : GarmentTrousersIcon;
+        const label = type.charAt(0).toUpperCase() + type.slice(1);
+        
         return (
-            <div className={`relative w-full aspect-[3/4] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''} ${className}`} onClick={!image ? triggerFileInput : undefined}>
-                <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-                {image ? (
-                    <>
-                        <img src={image.url} alt={title} className="w-full h-full object-cover" />
-                        <button onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center gap-2 text-gray-500 p-2">
-                        {icon}
-                        <span className="font-semibold text-sm text-gray-700">{title}</span>
+            <div
+                className={`w-full aspect-square bg-white border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center transition-colors cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50`}
+                onClick={() => ref.current?.click()}
+            >
+                 <input type="file" ref={ref} onChange={(e) => handleFileChange(e, type)} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                 {data ? (
+                     <div className="relative w-full h-full group">
+                        <img src={data.url} alt={label} className="w-full h-full object-cover rounded-xl" />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <RetryIcon className="w-8 h-8 text-white"/>
+                        </div>
                     </div>
-                )}
+                 ) : (
+                    <div className="text-center text-[#5F6368]">
+                        <Icon className="w-10 h-10 mx-auto mb-2" />
+                        <p className="font-semibold text-[#1E1E1E]">Upload {label}</p>
+                    </div>
+                 )}
             </div>
         );
     };
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-48'>
+        <div className='p-4 sm:p-6 lg:p-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Apparel</h2>
-                    <p className="text-[#5F6368] mt-2">Virtually try on any clothing with a single click.</p>
+                    <p className="text-[#5F6368] mt-2">Virtually try on clothes on anyone.</p>
                 </div>
+                
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
-                            {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Styling your look...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
-                            : <div className="text-center text-gray-400"><UsersIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your virtual try-on will appear here.</p></div>}
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div className="relative h-full bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
+                                {generatedImage ? (
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Apparel Try-On Result" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                    </div>
+                                ) : person ? (
+                                    <img src={person.url} alt="Person for try-on" className="w-full h-full object-cover rounded-xl" />
+                                ) : (
+                                    <div className="text-center text-[#5F6368] p-4">
+                                        <UsersIcon className="w-12 h-12 mx-auto mb-2" />
+                                        <p className="font-semibold text-[#1E1E1E]">Your final image will appear here</p>
+                                        <p className="text-sm">Start by uploading a photo of a person in the control panel.</p>
+                                    </div>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="lg:col-span-2 space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                            <ImageUploadBox image={person} inputRef={personInputRef} onFileChange={e => handleFileChange(e, 'person')} title="Person" icon={<AvatarUserIcon className="w-8 h-8"/>} />
-                            <ImageUploadBox image={top} inputRef={topInputRef} onFileChange={e => handleFileChange(e, 'top')} title="Top" icon={<GarmentTopIcon className="w-8 h-8"/>} />
-                            <ImageUploadBox image={trousers} inputRef={trousersInputRef} onFileChange={e => handleFileChange(e, 'trousers')} title="Bottoms" icon={<GarmentTrousersIcon className="w-8 h-8"/>} />
-                        </div>
 
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
-                            <div className="space-y-2">
-                                {generatedImage ? (
-                                    <>
-                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_tryon_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] font-bold py-2 rounded-lg disabled:opacity-50"><RetryIcon className="w-5 h-5"/> Regenerate</button>
-                                            <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-2 rounded-lg"><UploadIcon className="w-5 h-5"/> Start Over</button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                                )}
-                                <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                            </div>
-                            {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                            <h3 className="text-xl font-bold text-[#1E1E1E]">Controls</h3>
+                            <p className='text-sm text-[#5F6368]'>Upload photos to begin</p>
                         </div>
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            <div
+                                className="w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center transition-colors cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50"
+                                onClick={() => fileInputRefPerson.current?.click()}
+                            >
+                                <input type="file" ref={fileInputRefPerson} onChange={(e) => handleFileChange(e, 'person')} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {person ? (
+                                    <div className="relative w-full h-full group">
+                                        <img src={person.url} alt="Person" className="w-full h-full object-cover rounded-xl" />
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><RetryIcon className="w-8 h-8 text-white"/></div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-[#5F6368]">
+                                        <UsersIcon className="w-10 h-10 mx-auto mb-2" />
+                                        <p className="font-semibold text-[#1E1E1E]">1. Upload Person</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <GarmentUploader type="top" />
+                                <GarmentUploader type="trousers" />
+                            </div>
+                        </div>
+                        <div className="pt-4 border-t border-gray-200/80">
+                           <div className="w-full space-y-2">
+                               {generatedImage ? (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                        <button onClick={handleStartOver} className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-bold py-3 rounded-lg"><RetryIcon className="w-5 h-5"/> Start Over</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={handleGenerate} disabled={!canGenerate || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                                        <SparklesIcon className="w-6 h-6" /> Generate
+                                    </button>
+                                )}
+                                <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for more credits!' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
+                           </div>
+                        </div>
+                        {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}
                     </div>
                 </div>
             </div>
-            {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && generatedImage && (
+                <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
+            )}
         </div>
     );
 };
 
-const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [originalImage, setOriginalImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+const MagicMockupAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
+    const [mockupType, setMockupType] = useState<string>('T-shirt');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>(loadingMessages[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [mockupType, setMockupType] = useState(mockupTypes[0].key);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+    const [guestCredits, setGuestCredits] = useState<number>(() => {
+        const saved = sessionStorage.getItem('magicpixa-guest-credits-mockup');
+        return saved ? parseInt(saved, 10) : 2;
+    });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const messageIntervalRef = useRef<number | null>(null);
 
     const EDIT_COST = 2;
+    const currentCost = EDIT_COST;
+
     const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-mockup') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-mockup')!, 10) : 2);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const canGenerate = originalImage !== null && mockupType !== null;
+    const hasImage = originalImage !== null;
 
     useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-mockup', guestCredits.toString());
+        if (isGuest) {
+            sessionStorage.setItem('magicpixa-guest-credits-mockup', guestCredits.toString());
+        }
     }, [isGuest, guestCredits]);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            setLoadingMessage(loadingMessages[messageIndex]);
+            messageIntervalRef.current = window.setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 2500);
+        } else if (messageIntervalRef.current) {
+            clearInterval(messageIntervalRef.current);
+        }
+        return () => {
+            if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+        };
+    }, [isLoading]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            if (file.type !== 'image/png') {
-                setError('Please upload a transparent PNG file for the best results.');
-            } else {
-                setError(null);
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file (PNG with transparency recommended).');
+                return;
             }
-            const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            setOriginalImage(data);
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
             setGeneratedImage(null);
+            setError(null);
+            setIsPanelOpen(true);
         }
     };
-    
-    const handleGenerate = async () => {
-        if (!originalImage) {
-            setError("Please upload your logo or design.");
+
+    const handleStartOver = useCallback(() => {
+        setGeneratedImage(null);
+        setError(null);
+        setOriginalImage(null);
+        setBase64Data(null);
+        setMockupType('T-shirt');
+        setIsPanelOpen(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }, []);
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload your logo or design first.");
             return;
         }
-        if (hasInsufficientCredits) {
+        if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
             return;
         }
-        
+
+        setIsPanelOpen(false);
         setIsLoading(true);
         setError(null);
-        
+        setGeneratedImage(null);
+
         try {
-            const newBase64 = await generateMockup(originalImage.base64.base64, originalImage.base64.mimeType, mockupType);
+            const newBase64 = await generateMockup(base64Data.base64, base64Data.mimeType, mockupType);
             setGeneratedImage(`data:image/png;base64,${newBase64}`);
-            
+
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Mockup');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
                 setGuestCredits(prev => prev - EDIT_COST);
             }
@@ -1662,144 +1791,195 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
         } finally {
             setIsLoading(false);
         }
+    }, [base64Data, mockupType, currentCredits, auth, isGuest, navigateTo]);
+
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_mockup_${mockupType.toLowerCase().replace(/\s/g, '_')}_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage, mockupType]);
+
+    const triggerFileInput = () => {
+        if (isLoading) return;
+        fileInputRef.current?.click();
     };
+
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
     
-    const handleStartOver = () => {
-        setOriginalImage(null);
-        setGeneratedImage(null);
-        setError(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    };
+    const ActionButtons = () => (
+         <div className="w-full space-y-2">
+            {generatedImage ? (
+                <>
+                    <button onClick={handleDownloadClick} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md">
+                        <DownloadIcon className="w-6 h-6" /> Download Mockup
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleGenerate} disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] hover:bg-blue-50 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RetryIcon className="w-5 h-5" /> Regenerate
+                        </button>
+                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
+                            <UploadIcon className="w-5 h-5" /> Upload New
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <button onClick={handleGenerate} disabled={!hasImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] hover:scale-105 transform transition-all duration-300 text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                    <SparklesIcon className="w-6 h-6" /> Generate Mockup
+                </button>
+            )}
+            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for more credits!' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
+        </div>
+    );
 
     return (
         <div className='p-4 sm:p-6 lg:p-8 pb-48'>
-            <div className='w-full max-w-7xl mx-auto'>
+             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Magic Mockup</h2>
                     <p className="text-[#5F6368] mt-2">Generate realistic mockups for your designs instantly.</p>
                 </div>
+                
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
-                            {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your mockup...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
-                            : <div className="text-center text-gray-400 p-4"><MockupIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated mockup will appear here.</p></div>}
-                        </div>
-                    </div>
-                    
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">1. Upload your design</label>
-                            <div className={`relative w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors ${!originalImage ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!originalImage ? () => fileInputRef.current?.click() : undefined}>
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png" />
-                                {originalImage ? (
-                                    <>
-                                        <img src={originalImage.url} alt="Uploaded design" className="w-full h-full object-contain p-2" />
-                                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title="Change design"><ArrowUpCircleIcon className="w-5 h-5" /></button>
-                                    </>
+                    <div className="lg:col-span-3">
+                         <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden`}
+                            >
+                                {generatedImage ? (
+                                    <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
+                                        <img src={generatedImage} alt="Generated Mockup" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                    </div>
                                 ) : (
-                                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-sm text-gray-700">Upload Transparent PNG</span></div>
+                                    <div className="text-center text-[#5F6368]">
+                                        <MockupIcon className="w-12 h-12 mx-auto mb-2" />
+                                        <p className="font-semibold text-[#1E1E1E]">Your mockup will appear here</p>
+                                        <p className="text-sm">Start by uploading your design.</p>
+                                    </div>
+                                )}
+
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                        <p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
-
-                        <div className={!originalImage ? 'opacity-50' : ''}>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-2">2. Choose Mockup</label>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
-                                {mockupTypes.map(m => (
-                                    <button key={m.key} onClick={() => setMockupType(m.key)} disabled={!originalImage} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${mockupType === m.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
-                                        {m.label}
-                                    </button>
-                                ))}
+                    </div>
+                    
+                    <div className="hidden lg:col-span-2 lg:flex lg:flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className='text-center'>
+                            <h3 className="text-xl font-bold text-[#1E1E1E]">Controls</h3>
+                            <p className='text-sm text-[#5F6368]'>Upload your design and choose a mockup</p>
+                        </div>
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            <div
+                                className="w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center transition-colors cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50"
+                                onClick={triggerFileInput}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {originalImage ? (
+                                    <img src={originalImage.url} alt="Uploaded Design" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                ) : (
+                                    <div className="text-center text-[#5F6368]"><UploadIcon className="w-8 h-8 mx-auto mb-2" /><p className="font-semibold text-[#1E1E1E]">Upload Design/Logo</p><p className="text-xs">PNG with transparency works best</p></div>
+                                )}
+                            </div>
+                            <div className={!hasImage ? 'opacity-50' : ''}>
+                                <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Mockup Type</label>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                    {mockupTypes.map(mt => (
+                                        <button key={mt.key} onClick={() => setMockupType(mt.key)} disabled={!hasImage} className={`py-2 px-1 text-xs font-semibold rounded-lg border-2 transition-colors ${mockupType === mt.key ? 'bg-[#0079F2] text-white border-[#0079F2]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0079F2]'} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300`}>
+                                            {mt.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                        
-                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                           {generatedImage ? (
-                                <>
-                                    <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_mockup_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#0079F2] text-[#0079F2] font-bold py-2 rounded-lg disabled:opacity-50"><RetryIcon className="w-5 h-5"/> Regenerate</button>
-                                        <button onClick={handleStartOver} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-300 text-gray-600 font-bold py-2 rounded-lg"><UploadIcon className="w-5 h-5"/> Start Over</button>
-                                    </div>
-                                </>
-                            ) : (
-                                <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                           )}
-                           <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                        </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                        {hasImage && <div className="pt-4 border-t border-gray-200/80"><ActionButtons/></div>}
+                        {error && <div className='w-full flex flex-col items-center justify-center gap-4 pt-4 border-t border-gray-200'><div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div><button onClick={handleStartOver} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button></div>}
                     </div>
+                    
                 </div>
             </div>
-            {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && generatedImage && (
+                <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />
+            )}
         </div>
     );
 };
 
 const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [image, setImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[] | null>(null);
+    const [base64Data, setBase64Data] = useState<Base64File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [loadingMessage, setLoadingMessage] = useState<string>("Generating creative captions...");
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const EDIT_COST = 1;
     const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-caption') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-caption')!, 10) : 3);
-    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const canGenerate = image !== null;
+    const currentCredits = auth.user?.credits ?? 0;
 
     useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-caption', guestCredits.toString());
-    }, [isGuest, guestCredits]);
+        if (originalImage) {
+            setBase64Data(null);
+            setError(null);
+            setCaptions(null);
+            fileToBase64(originalImage.file).then(setBase64Data);
+        } else {
+            setBase64Data(null);
+        }
+    }, [originalImage]);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
                 setError('Please upload a valid image file.');
                 return;
             }
-            const base64 = await fileToBase64(file);
-            setImage({ file, url: URL.createObjectURL(file), base64 });
-            setCaptions(null);
-            setError(null);
+            setOriginalImage({ file, url: URL.createObjectURL(file) });
         }
     };
-    
-    const handleGenerate = async () => {
-        if (!image) {
-            setError("Please upload an image.");
+
+    const handleGenerate = useCallback(async () => {
+        if (!base64Data) {
+            setError("Please upload an image first.");
             return;
         }
-        if (hasInsufficientCredits) {
+        if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
             return;
         }
-        
+
         setIsLoading(true);
         setError(null);
+        setCaptions(null);
         
         try {
-            const result = await generateCaptions(image.base64.base64, image.base64.mimeType);
+            const result = await generateCaptions(base64Data.base64, base64Data.mimeType);
             setCaptions(result);
+            
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'CaptionAI');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            } else {
-                setGuestCredits(prev => prev - EDIT_COST);
+                auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [base64Data, currentCredits, auth, isGuest, navigateTo]);
+
+    const triggerFileInput = () => fileInputRef.current?.click();
 
     const handleCopy = (text: string, index: number) => {
         navigator.clipboard.writeText(text);
@@ -1807,54 +1987,75 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         setTimeout(() => setCopiedIndex(null), 2000);
     };
 
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
-            <div className='w-full max-w-4xl mx-auto'>
+        <div className='p-4 sm:p-6 lg:p-8'>
+            <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">CaptionAI</h2>
-                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions instantly.</p>
+                    <p className="text-[#5F6368] mt-2">Generate engaging social media captions for your photos instantly.</p>
                 </div>
-                
-                <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                        <div>
-                            <div 
-                                className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} 
-                                onClick={!image ? () => fileInputRef.current?.click() : undefined}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-4">
+                        <div className="w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50`}
+                                onClick={triggerFileInput}
                             >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                                {image ? (
-                                    <>
-                                        <img src={image.url} alt="Uploaded for captioning" className="w-full h-full object-cover" />
-                                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title="Change image"><ArrowUpCircleIcon className="w-5 h-5" /></button>
-                                    </>
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                                {originalImage ? (
+                                    <img src={originalImage.url} alt="For caption" className="w-full h-full object-cover rounded-xl" />
                                 ) : (
-                                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-sm text-gray-700">Upload Image</span></div>
+                                    <div className="text-center text-[#5F6368]">
+                                        <UploadIcon className="w-12 h-12 mx-auto mb-2" />
+                                        <span className='font-semibold text-lg text-[#1E1E1E]'>Upload a photo</span>
+                                        <span className="text-sm block">Click here to select</span>
+                                    </div>
                                 )}
                             </div>
-                            <button onClick={handleGenerate} disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full mt-4 flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Captions</>}
-                            </button>
-                            <p className={`text-xs text-center mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credit.`}</p>
-                            {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                         </div>
+                        <button onClick={handleGenerate} disabled={!originalImage || isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                            <SparklesIcon className="w-6 h-6" /> {captions ? 'Regenerate' : 'Generate Captions'}
+                        </button>
+                        <p className={`text-xs text-center -mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up for credits!' : 'Insufficient credits.') : `Costs ${EDIT_COST} credit.`}</p>
+                    </div>
 
-                        <div className="space-y-4">
-                            {isLoading && <div className="text-center p-8"><SparklesIcon className="w-10 h-10 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-2 text-sm text-gray-500">Generating creative ideas...</p></div>}
-                            {captions ? (
-                                captions.map((c, index) => (
-                                    <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200/80">
-                                        <p className="text-sm text-gray-700 mb-2">{c.caption}</p>
-                                        <p className="text-xs text-blue-600 font-medium mb-3">{c.hashtags}</p>
-                                        <button onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, index)} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-600 text-xs font-semibold py-1.5 rounded-md hover:bg-gray-100">
-                                            {copiedIndex === index ? <><CheckIcon className="w-4 h-4 text-green-500"/> Copied!</> : <><CopyIcon className="w-4 h-4"/> Copy</>}
-                                        </button>
-                                    </div>
-                                ))
-                            ) : !isLoading && (
-                                <div className="text-center p-8 text-gray-400">
-                                    <CaptionIcon className="w-12 h-12 mx-auto mb-2"/>
-                                    <p className="text-sm">Your generated captions will appear here.</p>
+                    <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="h-full">
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                    <SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" />
+                                    <p className="mt-4 text-[#1E1E1E] font-medium">{loadingMessage}</p>
+                                </div>
+                            ) : error ? (
+                                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                                    <div className="text-red-600 bg-red-100 p-4 rounded-lg w-full text-sm">{error}</div>
+                                    <button onClick={handleGenerate} className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800"><RetryIcon className="w-4 h-4" /> Try Again</button>
+                                </div>
+                            ) : captions ? (
+                                <div className="space-y-4 overflow-y-auto h-full pr-2">
+                                    {captions.map((c, index) => (
+                                        <div key={index} className="bg-gray-50 border border-gray-200/80 rounded-lg p-4">
+                                            <p className="text-gray-700 text-sm">{c.caption}</p>
+                                            <p className="text-sm text-blue-600 mt-2 font-medium">{c.hashtags}</p>
+                                            <div className="mt-3 text-right">
+                                                <button 
+                                                    onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, index)}
+                                                    className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-800 bg-gray-200/80 px-3 py-1.5 rounded-md"
+                                                >
+                                                    {copiedIndex === index ? <><CheckIcon className="w-4 h-4 text-green-600"/> Copied!</> : <><CopyIcon className="w-4 h-4"/> Copy</>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                                    <CaptionIcon className="w-12 h-12 text-gray-300 mb-2" />
+                                    <p className="font-semibold text-[#1E1E1E]">Your captions will appear here</p>
+                                    <p className="text-sm text-[#5F6368]">Upload a photo and click "Generate".</p>
                                 </div>
                             )}
                         </div>
@@ -1865,515 +2066,251 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
-// FIX: Corrected component definition and moved InputField and TextAreaField outside to prevent re-renders.
-const InputField: React.FC<{
-    id: string;
-    label: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    placeholder: string;
-    type?: string;
-    required?: boolean;
-}> = ({ id, label, value, onChange, placeholder, type = "text", required = false }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{label}</label>
-        <input
-            id={id}
-            type={type}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            required={required}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0079F2]"
-        />
-    </div>
-);
+const MagicConversation: React.FC<{
+    auth: AuthProps;
+    isOpen: boolean;
+    onClose: () => void;
+}> = ({ auth, isOpen, onClose }) => {
+    const [isRecording, setIsRecording] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [isSessionActive, setIsSessionActive] = useState(false);
+    const [userTranscript, setUserTranscript] = useState('');
+    const [modelTranscript, setModelTranscript] = useState('');
+    const [messages, setMessages] = useState<{ role: 'user' | 'model'; text: string }[]>([]);
 
-const TextAreaField: React.FC<{
-    id: string;
-    label: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    placeholder: string;
-    required?: boolean;
-    rows?: number;
-}> = ({ id, label, value, onChange, placeholder, required = false, rows = 3 }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{label}</label>
-        <textarea
-            id={id}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            required={required}
-            rows={rows}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0079F2]"
-        />
-    </div>
-);
+    const liveSessionRef = useRef<any>(null); // Using `any` as LiveSession type is not exported
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const nextStartTimeRef = useRef(0);
+    const audioSourcesRef = useRef(new Set<AudioBufferSourceNode>());
 
-const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [productImages, setProductImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
-    const [productName, setProductName] = useState('');
-    const [productDescription, setProductDescription] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
-    const [videoStatuses, setVideoStatuses] = useState<{ spin: string; cinemagraph: string }>({ spin: 'idle', cinemagraph: 'idle' });
-    
-    // Advanced Inputs
-    const [brandLogo, setBrandLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [brandColors, setBrandColors] = useState<string[]>([]);
-    const [brandFonts, setBrandFonts] = useState('');
-    const [competitorUrl, setCompetitorUrl] = useState('');
-    const [inspirationImages, setInspirationImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
-    const [showAdvanced, setShowAdvanced] = useState(false);
-
-    const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
-    const [generatedImages, setGeneratedImages] = useState<{ [key: string]: string }>({});
-    const [generatedVideos, setGeneratedVideos] = useState<{ [key: string]: string }>({});
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const brandLogoInputRef = useRef<HTMLInputElement>(null);
-    const inspirationInputRef = useRef<HTMLInputElement>(null);
-
-    const EDIT_COST = 5;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'brand' | 'inspiration') => {
-        const files = event.target.files;
-        if (!files) return;
-
-        const processedFiles = await Promise.all(
-            Array.from(files).map(async (file) => {
-                if (!file.type.startsWith('image/')) return null;
-                const base64 = await fileToBase64(file);
-                return { file, url: URL.createObjectURL(file), base64 };
-            })
-        );
-
-        const validFiles = processedFiles.filter(f => f !== null) as { file: File; url: string; base64: Base64File }[];
-        if (validFiles.length === 0) return;
-
-        if (type === 'product') {
-            setProductImages(prev => [...prev, ...validFiles].slice(0, 5));
-        } else if (type === 'brand') {
-            setBrandLogo(validFiles[0]);
-        } else if (type === 'inspiration') {
-            setInspirationImages(prev => [...prev, ...validFiles].slice(0, 3));
-        }
-        
-        setError(null);
-    };
-
-    const pollVideoStatus = useCallback(async (operation: any, videoKey: 'spin' | 'cinemagraph') => {
-        setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Generating...' }));
-
-        const intervalId = setInterval(async () => {
-            try {
-                const updatedOp = await getVideoOperationStatus(operation);
-                if (updatedOp.done) {
-                    clearInterval(intervalId);
-                    if (updatedOp.error) {
-                         console.error(`Video generation failed for ${videoKey}:`, updatedOp.error.message);
-                         setError(`Video generation failed for ${videoKey}.`);
-                         setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Error' }));
-                    } else {
-                        const videoUri = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
-                        if (videoUri) {
-                            // The API key is now automatically appended by the service
-                            const response = await fetch(`${videoUri}&key=${import.meta.env.VITE_API_KEY}`);
-                            const blob = await response.blob();
-                            const videoObjectUrl = URL.createObjectURL(blob);
-                            setGeneratedVideos(prev => ({ ...prev, [videoKey]: videoObjectUrl }));
-                            setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Done' }));
-                        } else {
-                            setError(`Could not retrieve video URL for ${videoKey}.`);
-                            setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Error' }));
-                        }
-                    }
-                }
-            } catch (pollError: any) {
-                console.error("Error polling video status:", pollError);
-                setError(pollError.message || "Failed to get video status.");
-                setVideoStatuses(prev => ({ ...prev, [videoKey]: 'Error' }));
-                clearInterval(intervalId);
-                if (pollError.message.includes("API key")) {
-                    await window.aistudio?.openSelectKey();
-                }
-            }
-        }, 10000);
-
-        return () => clearInterval(intervalId);
-    }, []);
-
-    const handleGenerate = async () => {
-        if (productImages.length === 0 || !productName || !productDescription) {
-            setError("Please upload at least one product photo and fill in the name and description.");
-            return;
-        }
-        if (hasInsufficientCredits) {
-            if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-        setGeneratedPlan(null);
-        setGeneratedImages({});
-        setGeneratedVideos({});
-        setVideoStatuses({ spin: 'idle', cinemagraph: 'idle' });
+    const startSession = async () => {
+        if (isSessionActive || isConnecting) return;
+        setIsConnecting(true);
+        setMessages([]);
         
         try {
-            // Step 1: Generate the plan
-            const plan = await generateProductPackPlan(
-                productImages.map(img => img.base64),
-                productName,
-                productDescription,
-                { logo: brandLogo?.base64, colors: brandColors, fonts: brandFonts.split(',').map(f => f.trim()) },
-                competitorUrl,
-                inspirationImages.map(img => img.base64)
-            );
-            setGeneratedPlan(plan);
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            
+            const liveSession = await startLiveSession({
+                onopen: () => {
+                    console.log("Live session opened.");
+                    setIsConnecting(false);
+                    setIsSessionActive(true);
+                    
+                    mediaStreamSourceRef.current = inputAudioContextRef.current!.createMediaStreamSource(stream);
+                    scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                    
+                    scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
+                        };
+                        liveSessionRef.current?.sendRealtimeInput({ media: pcmBlob });
+                    };
 
-            // Step 2: Generate all images in parallel
-            const imagePrompts = plan.imageGenerationPrompts;
-            const imageKeys = Object.keys(imagePrompts);
-            const imagePromises = imageKeys.map(key => 
-                generateStyledImage(productImages.map(img => img.base64), imagePrompts[key])
-                    .then(base64 => ({ key, base64: `data:image/png;base64,${base64}` }))
-                    .catch(e => ({ key, error: e }))
-            );
+                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                    scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    if (message.serverContent?.inputTranscription) {
+                        setUserTranscript(prev => prev + message.serverContent!.inputTranscription!.text);
+                    }
+                    if (message.serverContent?.outputTranscription) {
+                        setModelTranscript(prev => prev + message.serverContent!.outputTranscription!.text);
+                    }
 
-            const imageResults = await Promise.all(imagePromises);
-            const newImages: { [key: string]: string } = {};
-            imageResults.forEach(result => {
-                if ('base64' in result) {
-                    newImages[result.key] = result.base64;
-                } else {
-                    console.error(`Failed to generate image for ${result.key}:`, result.error);
-                }
+                    if (message.serverContent?.turnComplete) {
+                        setMessages(prev => [...prev, { role: 'user', text: userTranscript }, { role: 'model', text: modelTranscript }]);
+                        setUserTranscript('');
+                        setModelTranscript('');
+                    }
+
+                    const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (audioData && outputAudioContextRef.current) {
+                        const audioBuffer = await decodeAudioData(decode(audioData), outputAudioContextRef.current, 24000, 1);
+                        const source = outputAudioContextRef.current.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputAudioContextRef.current.destination);
+                        
+                        const currentTime = outputAudioContextRef.current.currentTime;
+                        const startTime = Math.max(currentTime, nextStartTimeRef.current);
+                        source.start(startTime);
+                        
+                        nextStartTimeRef.current = startTime + audioBuffer.duration;
+                        audioSourcesRef.current.add(source);
+                        source.onended = () => audioSourcesRef.current.delete(source);
+                    }
+                    
+                    if(message.serverContent?.interrupted) {
+                        for (const source of audioSourcesRef.current) {
+                            source.stop();
+                        }
+                        audioSourcesRef.current.clear();
+                        nextStartTimeRef.current = 0;
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error("Live session error:", e);
+                    setIsConnecting(false);
+                    setIsSessionActive(false);
+                },
+                onclose: (e: CloseEvent) => {
+                    console.log("Live session closed.");
+                    setIsConnecting(false);
+                    setIsSessionActive(false);
+                },
             });
-            setGeneratedImages(newImages);
+            liveSessionRef.current = liveSession;
 
-            if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Product Studio');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            }
+        } catch (error) {
+            console.error("Failed to start live session:", error);
+            setIsConnecting(false);
+        }
+    };
 
-            // Step 3: Initiate Video Generation
-            if (plan.videoGenerationPrompts) {
-                 const hasKey = await window.aistudio?.hasSelectedApiKey();
-                 if (!hasKey) {
-                     await window.aistudio?.openSelectKey();
-                 }
+    const stopSession = () => {
+        liveSessionRef.current?.close();
+        
+        scriptProcessorRef.current?.disconnect();
+        mediaStreamSourceRef.current?.disconnect();
+        
+        inputAudioContextRef.current?.close();
+        outputAudioContextRef.current?.close();
 
-                setIsGeneratingVideos(true);
-                
-                const { video360Spin, videoCinemagraph } = plan.videoGenerationPrompts;
-                if (video360Spin) {
-                    generateVideo(video360Spin)
-                        .then(op => pollVideoStatus(op, 'spin'))
-                        .catch(e => {
-                             setError(`Failed to start 360 Spin video: ${e.message}`);
-                             setVideoStatuses(prev => ({...prev, spin: 'Error'}));
-                        });
-                }
-                if (videoCinemagraph) {
-                    generateVideo(videoCinemagraph)
-                        .then(op => pollVideoStatus(op, 'cinemagraph'))
-                        .catch(e => {
-                             setError(`Failed to start Cinemagraph video: ${e.message}`);
-                             setVideoStatuses(prev => ({...prev, cinemagraph: 'Error'}));
-                        });
-                }
-            }
+        setIsSessionActive(false);
+        setIsRecording(false);
+    };
 
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
+    const handleToggleRecording = () => {
+        if (isRecording) {
+            setIsRecording(false);
+            stopSession();
+        } else {
+            setIsRecording(true);
+            startSession();
         }
     };
     
-    const handleStartOver = () => {
-        setProductImages([]);
-        setProductName('');
-        setProductDescription('');
-        setBrandLogo(null);
-        setBrandColors([]);
-        setBrandFonts('');
-        setCompetitorUrl('');
-        setInspirationImages([]);
-        setGeneratedPlan(null);
-        setGeneratedImages({});
-        setGeneratedVideos({});
-        setIsLoading(false);
-        setError(null);
-        setIsGeneratingVideos(false);
-    };
+    useEffect(() => {
+        return () => {
+            if (isSessionActive) {
+                stopSession();
+            }
+        };
+    }, [isSessionActive]);
+    
+    if (!isOpen) return null;
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
-            <div className='w-full max-w-7xl mx-auto'>
-                <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Product Studio</h2>
-                    <p className="text-[#5F6368] mt-2">Generate a complete, on-brand product pack automatically.</p>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/30 backdrop-blur-sm p-4 lg:items-center">
+            <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-200/80 flex flex-col h-[80vh] lg:h-[70vh]">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200/80">
+                    <h3 className="text-lg font-bold text-[#1E1E1E]">Magic Conversation</h3>
+                    <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-800"><XIcon className="w-5 h-5"/></button>
                 </div>
                 
-                {!generatedPlan ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                             <div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">1. Core Product Info</h3>
-                                <InputField id="productName" label="Brand Name / Product Name" value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g., Aura Glow Vitamin C Serum" required />
-                                <div className="mt-4">
-                                    <TextAreaField id="productDescription" label="Short Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., 'A lightweight daily serum for bright, even-toned skin.'" required />
-                                </div>
+                <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                    {messages.map((msg, index) => (
+                        <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${msg.role === 'user' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'}`}>
+                                {msg.role === 'user' ? auth.user?.avatar : 'AI'}
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Product Photos (up to 5)</label>
-                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                                    {productImages.map((img, index) => (
-                                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                                            <img src={img.url} className="w-full h-full object-cover" />
-                                            <button onClick={() => setProductImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
-                                        </div>
-                                    ))}
-                                    {productImages.length < 5 && (
-                                        <button onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500">
-                                            <PlusIcon className="w-6 h-6"/>
-                                        </button>
-                                    )}
-                                </div>
-                                <input type="file" ref={fileInputRef} onChange={e => handleFileChange(e, 'product')} className="hidden" accept="image/*" multiple />
+                            <div className={`max-w-[80%] p-3 rounded-xl ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                                <p className="text-sm">{msg.text}</p>
                             </div>
                         </div>
+                    ))}
+                    {userTranscript && (
+                        <div className="flex flex-row-reverse gap-3">
+                             <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-blue-100 text-blue-700">{auth.user?.avatar}</div>
+                             <div className="max-w-[80%] p-3 rounded-xl bg-blue-500 text-white opacity-70"><p className="text-sm">{userTranscript}</p></div>
+                        </div>
+                    )}
+                     {modelTranscript && (
+                        <div className="flex flex-row gap-3">
+                             <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-gray-200 text-gray-700">AI</div>
+                             <div className="max-w-[80%] p-3 rounded-xl bg-gray-100 text-gray-800 opacity-70"><p className="text-sm">{modelTranscript}</p></div>
+                        </div>
+                    )}
+                </div>
 
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                            <button onClick={() => setShowAdvanced(!showAdvanced)} className="w-full flex justify-between items-center">
-                                <h3 className="text-xl font-bold text-[#1E1E1E]">2. Creative Boosters (Optional)</h3>
-                                {showAdvanced ? <ChevronUpIcon className="w-5 h-5"/> : <ChevronDownIcon className="w-5 h-5"/>}
-                            </button>
-                            {showAdvanced && (
-                                <div className="mt-4 pt-4 border-t space-y-4">
-                                    <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={e => setCompetitorUrl(e.target.value)} placeholder="e.g., https://competitor.com/product" />
-                                     <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Brand Kit</label>
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex-shrink-0">
-                                                <button onClick={() => brandLogoInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed flex items-center justify-center">
-                                                    {brandLogo ? <img src={brandLogo.url} className="w-full h-full object-contain p-1"/> : <ColorSwatchIcon className="w-6 h-6 text-gray-400"/>}
-                                                </button>
-                                                <input type="file" ref={brandLogoInputRef} onChange={e => handleFileChange(e, 'brand')} className="hidden" accept="image/png" />
-                                                <p className="text-xs text-center mt-1">Logo (PNG)</p>
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <input value={brandColors.join(', ')} onChange={e => setBrandColors(e.target.value.split(',').map(c => c.trim()))} placeholder="Brand Colors (hex, e.g. #ff0000)" className="w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg"/>
-                                                <input value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="Brand Fonts (e.g. Poppins, Lato)" className="w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Inspiration Images (up to 3)</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {inspirationImages.map((img, index) => (
-                                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                                                    <img src={img.url} className="w-full h-full object-cover" />
-                                                     <button onClick={() => setInspirationImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
-                                                </div>
-                                            ))}
-                                            {inspirationImages.length < 3 && (
-                                                <button onClick={() => inspirationInputRef.current?.click()} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500">
-                                                    <PlusIcon className="w-6 h-6"/>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <input type="file" ref={inspirationInputRef} onChange={e => handleFileChange(e, 'inspiration')} className="hidden" accept="image/*" multiple />
-                                    </div>
-                                </div>
-                            )}
-                            <div className="mt-6 pt-6 border-t">
-                                <button onClick={handleGenerate} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                    {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Product Pack</>}
-                                </button>
-                                <p className={`text-xs text-center mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                                {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-8">
-                        {/* Results View */}
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold">Your Generated Product Pack</h2>
-                            <button onClick={handleStartOver} className="font-semibold text-blue-600 hover:underline">Start Over</button>
-                        </div>
-                        
-                        {/* Visual Assets Section */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="text-xl font-bold mb-4">Visual Assets</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {Object.entries(generatedImages).map(([key, src]) => (
-                                     <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
-                                         <img src={src as string} alt={key} className="w-full h-full object-cover" />
-                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                             <p className="text-white font-bold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                         </div>
-                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                <div className="p-4 border-t border-gray-200/80">
+                    <button 
+                        onClick={handleToggleRecording}
+                        className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl text-white font-bold transition-colors ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0079F2] hover:bg-blue-700'}`}
+                    >
+                        {isRecording ? <><StopIcon className="w-6 h-6"/> Stop Conversation</> : <><MicrophoneIcon className="w-6 h-6"/> Start Conversation</>}
+                    </button>
+                    <p className="text-xs text-center text-gray-500 mt-2">Speak naturally to get help or ask questions.</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-                         {/* Storyboard Section */}
-                        {generatedImages.storyboardPanel1 && (
-                            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <FilmIcon className="w-6 h-6"/>
-                                    <h3 className="text-xl font-bold">Visual Storyboard</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                     {['storyboardPanel1', 'storyboardPanel2', 'storyboardPanel3'].map((key, index) => (
-                                         generatedImages[key] && (
-                                            <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
-                                                <img src={generatedImages[key]} alt={`Storyboard Panel ${index+1}`} className="w-full h-full object-cover" />
-                                                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">{index+1}</div>
-                                            </div>
-                                         )
-                                     ))}
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* Video Assets Section */}
-                        {isGeneratingVideos && (
-                             <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <VideoCameraIcon className="w-6 h-6"/>
-                                    <h3 className="text-xl font-bold">Video Assets</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Object.entries({ spin: '360° Spin', cinemagraph: 'Cinemagraph' }).map(([key, title]) => (
-                                        <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative flex flex-col items-center justify-center">
-                                            {generatedVideos[key] ? (
-                                                <video src={generatedVideos[key]} controls autoPlay loop muted className="w-full h-full object-cover"></video>
-                                            ) : (
-                                                <div className="text-center">
-                                                    <p className="font-bold mb-2">{title}</p>
-                                                    <p className="text-sm text-gray-500 capitalize">{videoStatuses[key as keyof typeof videoStatuses]}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                             </div>
-                        )}
-
-
-                        {/* Text Assets Section */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="text-xl font-bold mb-4">Text & Copy Assets</h3>
-                            <div className="space-y-4">
-                                 <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">SEO TITLE</label>
-                                    <p>{generatedPlan.textAssets.seoTitle}</p>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">ALT TEXT</label>
-                                    <p>{generatedPlan.textAssets.altText}</p>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">CAPTIONS</label>
-                                    <ul className="list-disc list-inside mt-1 space-y-1">
-                                        {generatedPlan.textAssets.captions.map((c: any, i: number) => <li key={i}><span className="font-bold capitalize">{c.length}:</span> {c.text}</li>)}
-                                    </ul>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">KEYWORDS</label>
-                                    <p className="text-blue-600">{generatedPlan.textAssets.keywords.join(', ')}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    // Component state and logic would go here.
+    return (
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <ProductStudioIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-[#1E1E1E]">Product Studio</h2>
+                <p className="text-[#5F6368] mt-2">This feature is coming soon!</p>
             </div>
         </div>
     );
 };
 
 const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [brandLogo, setBrandLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [productImage, setProductImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    
-    const [brandName, setBrandName] = useState('');
-    const [productDescription, setProductDescription] = useState('');
-    const [brandColors, setBrandColors] = useState('');
-    const [brandFonts, setBrandFonts] = useState('');
-    const [website, setWebsite] = useState('');
-    const [contactDetails, setContactDetails] = useState('');
-    const [emailId, setEmailId] = useState('');
-
-    const [originalGeneratedImage, setOriginalGeneratedImage] = useState<string | null>(null);
+    const [logo, setLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [product, setProduct] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [reference, setReference] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [processing, setProcessing] = useState<{ logo: boolean; product: boolean; reference: boolean }>({ logo: false, product: false, reference: false });
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [brandDetails, setBrandDetails] = useState({ name: '', description: '' });
+    const [editModalImageUrl, setEditModalImageUrl] = useState<string | null>(null);
 
-    const brandLogoRef = useRef<HTMLInputElement>(null);
-    const productImageRef = useRef<HTMLInputElement>(null);
-    const referenceImageRef = useRef<HTMLInputElement>(null);
+    const fileInputRefs = {
+        logo: useRef<HTMLInputElement>(null),
+        product: useRef<HTMLInputElement>(null),
+        reference: useRef<HTMLInputElement>(null),
+    };
 
-    const EDIT_COST = 4;
+    const EDIT_COST = 3;
     const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-stylist') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-stylist')!, 10) : 4);
-    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const isProcessingFile = processing.logo || processing.product || processing.reference;
-    const canGenerate = brandLogo && productImage && referenceImage && brandName && productDescription;
-
-    useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-stylist', guestCredits.toString());
-    }, [isGuest, guestCredits]);
+    const currentCredits = auth.user?.credits ?? 0;
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
         const file = event.target.files?.[0];
-        if (!file) return;
-
-        setProcessing(prev => ({ ...prev, [type]: true }));
-        setError(null);
-
-        if (!file.type.startsWith('image/')) {
-            setError('Please upload a valid image file.');
-            setProcessing(prev => ({ ...prev, [type]: false }));
-            return;
-        }
-        
-        try {
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const url = URL.createObjectURL(file);
             const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            if (type === 'logo') setBrandLogo(data);
-            else if (type === 'product') setProductImage(data);
-            else setReferenceImage(data);
-        } catch(err) {
-            setError("Failed to process the image. Please try again.");
-            console.error(err);
-        } finally {
-            setProcessing(prev => ({ ...prev, [type]: false }));
+            const data = { file, url, base64 };
+            if (type === 'logo') setLogo(data);
+            if (type === 'product') setProduct(data);
+            if (type === 'reference') setReference(data);
+            setError(null);
         }
     };
-
+    
     const handleGenerate = async () => {
-        if (!canGenerate) {
-            setError("Please fill in all required fields and upload all three images.");
+        if (!logo || !product || !reference || !brandDetails.name || !brandDetails.description) {
+            setError("Please fill in all fields and upload all three images.");
             return;
         }
-        if (hasInsufficientCredits) {
+        if (currentCredits < EDIT_COST) {
             if (isGuest) auth.openAuthModal();
             else navigateTo('home', undefined, 'pricing');
             return;
@@ -2381,28 +2318,22 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
 
         setIsLoading(true);
         setError(null);
+        setGeneratedImage(null);
 
         try {
-            const newBase64 = await generateBrandStylistImage({
-                logo: brandLogo!.base64,
-                product: productImage!.base64,
-                reference: referenceImage!.base64,
-                name: brandName,
-                description: productDescription,
-                colors: brandColors,
-                fonts: brandFonts,
-                website: website,
-                contact: contactDetails,
-                email: emailId
+            const result = await generateBrandStylistImage({
+                logo: logo.base64,
+                product: product.base64,
+                reference: reference.base64,
+                name: brandDetails.name,
+                description: brandDetails.description,
             });
-            const newImage = `data:image/png;base64,${newBase64}`;
-            setGeneratedImage(newImage);
-            setOriginalGeneratedImage(newImage);
-             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            } else {
-                setGuestCredits(prev => prev - EDIT_COST);
+            setGeneratedImage(`data:image/png;base64,${result}`);
+            
+            if (!isGuest && auth.user) {
+                await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
+                const updatedUser = await getOrCreateUserProfile(auth.user.uid);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits } : null);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -2411,600 +2342,89 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
         }
     };
     
-    const handleStartOver = () => {
-        setBrandLogo(null);
-        setProductImage(null);
-        setReferenceImage(null);
-        setBrandName('');
-        setProductDescription('');
-        setBrandColors('');
-        setBrandFonts('');
-        setWebsite('');
-        setContactDetails('');
-        setEmailId('');
-        setGeneratedImage(null);
-        setOriginalGeneratedImage(null);
-        setError(null);
-        if(brandLogoRef.current) brandLogoRef.current.value = "";
-        if(productImageRef.current) productImageRef.current.value = "";
-        if(referenceImageRef.current) referenceImageRef.current.value = "";
-    };
+    const handleDownloadClick = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = generatedImage;
+        link.download = `magicpixa_brand_stylist_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [generatedImage]);
+    
+    const ImageUploader: React.FC<{
+        type: 'logo' | 'product' | 'reference';
+        title: string;
+        subtitle: string;
+        icon: React.ReactNode;
+    }> = ({ type, title, subtitle, icon }) => {
+        const data = type === 'logo' ? logo : type === 'product' ? product : reference;
+        const ref = fileInputRefs[type];
 
-    const ImageUploadControl: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isProcessing: boolean; altText: string; }> = ({ image, inputRef, onFileChange, isProcessing, altText }) => (
-        <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50`} onClick={() => inputRef.current?.click()}>
-            <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-            {image ? (
-                <>
-                    <img src={image.url} alt={altText} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <PencilIcon className="w-6 h-6 text-white"/>
+        return (
+             <div
+                className="w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center transition-colors cursor-pointer hover:border-yellow-500 hover:bg-yellow-50/50"
+                onClick={() => ref.current?.click()}
+            >
+                <input type="file" ref={ref} onChange={(e) => handleFileChange(e, type)} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                 {data ? (
+                     <div className="relative w-full h-full group">
+                        <img src={data.url} alt={title} className="w-full h-full object-cover rounded-xl" />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><RetryIcon className="w-8 h-8 text-white"/></div>
                     </div>
-                </>
-            ) : (
-                <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">Upload</span></div>
-            )}
-            {isProcessing && (
-                 <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 * 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                </div>
-            )}
-        </div>
-    );
+                 ) : (
+                    <div className="text-center text-[#5F6368] p-2">
+                        {icon}
+                        <p className="font-semibold text-sm text-[#1E1E1E] mt-2">{title}</p>
+                        <p className="text-xs">{subtitle}</p>
+                    </div>
+                 )}
+            </div>
+        );
+    };
+    
+    const canGenerate = logo && product && reference && brandDetails.name && brandDetails.description;
 
     return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
+        <div className='p-4 sm:p-6 lg:p-8'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Brand Stylist AI</h2>
-                    <p className="text-[#5F6368] mt-2">Generate on-brand visuals in the style of any image.</p>
+                    <p className="text-[#5F6368] mt-2">Generate on-brand photos in the exact style of any reference image.</p>
                 </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden group">
-                            {isLoading ? <div className="text-center p-4"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Your AI creative director is at work...</p></div>
-                            : generatedImage ? (
-                                <>
-                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain cursor-pointer" onClick={() => setIsModalOpen(true)}/>
-                                    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><DownloadIcon className="w-6 h-6"/></button>
-                                        <button onClick={() => setIsEditModalOpen(true)} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><PencilIcon className="w-6 h-6"/></button>
+                    <div className="lg:col-span-3">
+                        <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                            <div className="relative h-full bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
+                                {generatedImage ? (
+                                    <div className="relative w-full h-full group">
+                                        <img src={generatedImage} alt="Generated brand image" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                        <div className="absolute bottom-4 left-4 right-4 z-10 flex justify-center items-center gap-4">
+                                            <button onClick={handleDownloadClick} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-white transition-colors"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                            <button onClick={() => setEditModalImageUrl(generatedImage)} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-white transition-colors"><PencilIcon className="w-5 h-5"/> Edit</button>
+                                        </div>
                                     </div>
-                                </>
-                            )
-                            : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
+                                ) : (
+                                    <div className="text-center text-[#5F6368] p-4">
+                                        <LightbulbIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                        <p className="font-semibold text-[#1E1E1E]">Your branded graphic will appear here</p>
+                                        <p className="text-sm">Complete all the steps in the control panel to generate.</p>
+                                    </div>
+                                )}
+                                {isLoading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10">
+                                        <SparklesIcon className="w-12 h-12 text-yellow-500 animate-pulse" />
+                                        <p className="mt-4 text-[#1E1E1E] font-medium">Generating your on-brand image...</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                        <div>
-                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">1. Upload Your Assets</h3>
-                           <div className="flex items-start justify-center gap-4 text-center">
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Brand Logo</label>
-                                   <ImageUploadControl image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} isProcessing={processing.logo} altText="Brand Logo"/>
-                               </div>
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Product Photo</label>
-                                   <ImageUploadControl image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} isProcessing={processing.product} altText="Product Photo"/>
-                               </div>
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Reference Style</label>
-                                   <ImageUploadControl image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} isProcessing={processing.reference} altText="Reference Style"/>
-                               </div>
-                           </div>
+                    {/* FIX: Corrected JSX structure by moving the controls panel inside the grid layout. */}
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+                        <div className='text-center'>
+                            <h3 className="text-xl font-bold text-[#1E1E1E]">Controls</h3>
                         </div>
-                        
-                        <div>
-                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">2. Provide Brand Details</h3>
-                           <div className="space-y-4">
-                               <InputField id="brandName" label="Brand Name" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow" required/>
-                               <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., A lightweight daily serum..." required rows={2}/>
-                               <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
-                               <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
-                               <InputField id="brandWebsite" label="Website (Optional)" value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g., www.auraglow.com" />
-                               <InputField id="brandContact" label="Contact Number (Optional)" value={contactDetails} onChange={e => setContactDetails(e.target.value)} placeholder="e.g., +91 98765 43210" />
-                               <InputField id="brandEmail" label="Email ID (Optional)" value={emailId} onChange={e => setEmailId(e.target.value)} placeholder="e.g., contact@auraglow.com" />
-                           </div>
-                        </div>
-                        
-                         <div className="flex-grow flex flex-col justify-end">
-                            <div className="space-y-2 pt-6 border-t border-gray-200/80">
-                               {originalGeneratedImage && generatedImage && originalGeneratedImage !== generatedImage && !isLoading && (
-                                   <button onClick={() => setGeneratedImage(originalGeneratedImage)} className="w-full text-center text-sm font-semibold text-blue-600 hover:underline">Revert to Original</button>
-                               )}
-
-                               {generatedImage ? (
-                                   <div className="space-y-2">
-                                       <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                           <RetryIcon className="w-5 h-5"/> Re-generate
-                                       </button>
-                                       <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-gray-800 pt-2">Start Over</button>
-                                   </div>
-                               ) : (
-                                   <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                               )}
-                               <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                           </div>
-                        </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
-                </div>
-            </div>
-             {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
-             {isEditModalOpen && generatedImage && (
-                <ImageEditModal 
-                    imageUrl={generatedImage} 
-                    onClose={() => setIsEditModalOpen(false)}
-                    onSave={(newImage) => {
-                        setGeneratedImage(newImage);
-                        setIsEditModalOpen(false);
-                    }}
-                    auth={auth}
-                    navigateTo={navigateTo}
-                />
-             )}
-        </div>
-    );
-};
-
-interface ImageEditModalProps {
-    imageUrl: string;
-    onClose: () => void;
-    onSave: (newImageUrl: string) => void;
-    auth: AuthProps;
-    navigateTo: (page: Page, view?: View, sectionId?: string) => void;
-}
-
-type Path = { points: { x: number; y: number }[], size: number };
-
-const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement | null>(null);
-    const isDrawing = useRef(false);
-    
-    const [isReady, setIsReady] = useState(false);
-    const [paths, setPaths] = useState<Path[]>([]);
-    const [currentPath, setCurrentPath] = useState<Path | null>(null);
-    const [brushSize, setBrushSize] = useState(30);
-
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const [currentImageUrl, setCurrentImageUrl] = useState<string>(imageUrl);
-    const [imageHistory, setImageHistory] = useState<string[]>([]);
-
-    const EDIT_COST = 1;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-
-    // Effect 1: Load image and set canvas size
-    useEffect(() => {
-        setIsReady(false);
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = currentImageUrl;
-        imageRef.current = null;
-
-        const loadHandler = () => {
-            imageRef.current = img;
-            const canvas = canvasRef.current;
-            if (canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-                setIsReady(true);
-            }
-        };
-        img.addEventListener('load', loadHandler);
-        img.onerror = () => {
-            setError("Failed to load image for editing. Please try again.");
-            setIsReady(false);
-        }
-        
-        return () => img.removeEventListener('load', loadHandler);
-    }, [currentImageUrl]);
-
-    // Effect 2: Handle window resizing
-    useEffect(() => {
-        const handleResize = () => {
-             const canvas = canvasRef.current;
-             if(canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-                setIsReady(true); // Re-trigger drawing
-             }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Effect 3: Central drawing logic
-    useEffect(() => {
-        if (!isReady) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        const img = imageRef.current;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (img) {
-            const canvasAspect = canvas.width / canvas.height;
-            const imageAspect = img.naturalWidth / img.naturalHeight;
-            let drawWidth = canvas.width;
-            let drawHeight = canvas.height;
-            let drawX = 0;
-            let drawY = 0;
-
-            if (imageAspect > canvasAspect) {
-                drawHeight = canvas.width / imageAspect;
-                drawY = (canvas.height - drawHeight) / 2;
-            } else {
-                drawWidth = canvas.height * imageAspect;
-                drawX = (canvas.width - drawWidth) / 2;
-            }
-            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-        }
-
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red-500 with 50% opacity
-        
-        const allPaths = currentPath ? [...paths, currentPath] : paths;
-
-        allPaths.forEach(path => {
-            if (path.points.length < 1) return;
-            ctx.lineWidth = path.size;
-            ctx.beginPath();
-            ctx.moveTo(path.points[0].x, path.points[0].y);
-            for (let i = 1; i < path.points.length; i++) {
-                ctx.lineTo(path.points[i].x, path.points[i].y);
-            }
-            ctx.stroke();
-        });
-    }, [isReady, paths, currentPath, currentImageUrl]); // Redraw when ready, paths change, or image changes
-
-    const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-        const rect = canvas.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    };
-
-    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isReady || isLoading) return;
-        e.preventDefault();
-        const pos = getBrushPos(e);
-        if (!pos) return;
-        isDrawing.current = true;
-        setCurrentPath({ points: [pos], size: brushSize });
-    };
-
-    const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current || !isReady || isLoading) return;
-        e.preventDefault();
-        const pos = getBrushPos(e);
-        if (pos) {
-            setCurrentPath(prev => prev ? { ...prev, points: [...prev.points, pos] } : null);
-        }
-    };
-
-    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current || !isReady || isLoading) return;
-        e.preventDefault();
-        isDrawing.current = false;
-        if (currentPath) {
-            setPaths(prev => [...prev, currentPath]);
-            setCurrentPath(null);
-        }
-    };
-
-    const handleUndoPath = () => {
-        setPaths(prev => prev.slice(0, -1));
-    };
-
-    const handleUndoEdit = () => {
-        if (imageHistory.length > 0) {
-            const previousImage = imageHistory[imageHistory.length - 1];
-            setCurrentImageUrl(previousImage);
-            setImageHistory(prev => prev.slice(0, -1));
-            setPaths([]);
-        }
-    };
-
-    const handleDone = () => {
-        onSave(currentImageUrl);
-    };
-
-    const handleRemoveElement = async () => {
-        const canvas = canvasRef.current;
-        const img = imageRef.current;
-        if (!canvas || paths.length === 0 || !img) return;
-        
-        if (hasInsufficientCredits) {
-            setError(`This action costs ${EDIT_COST} credit. Please top up.`);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = img.naturalWidth;
-        maskCanvas.height = img.naturalHeight;
-        const maskCtx = maskCanvas.getContext('2d');
-        if (!maskCtx) {
-            setError("Could not create mask.");
-            setIsLoading(false);
-            return;
-        }
-
-        maskCtx.fillStyle = 'black';
-        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-        
-        const canvasAspect = canvas.width / canvas.height;
-        const imageAspect = img.naturalWidth / img.naturalHeight;
-        let scale: number, offsetX = 0, offsetY = 0;
-        
-        if (imageAspect > canvasAspect) {
-            scale = img.naturalWidth / canvas.width;
-            offsetY = (canvas.height - canvas.width / imageAspect) / 2;
-        } else {
-            scale = img.naturalHeight / canvas.height;
-            offsetX = (canvas.width - canvas.height * imageAspect) / 2;
-        }
-
-        maskCtx.strokeStyle = 'white';
-        maskCtx.fillStyle = 'white';
-        maskCtx.lineJoin = 'round';
-        maskCtx.lineCap = 'round';
-        
-        paths.forEach(path => {
-            if (path.points.length < 1) return;
-            maskCtx.lineWidth = path.size * scale;
-            maskCtx.beginPath();
-            const startX = (path.points[0].x - offsetX) * scale;
-            const startY = (path.points[0].y - offsetY) * scale;
-            maskCtx.moveTo(startX, startY);
-            for (let i = 1; i < path.points.length; i++) {
-                const pointX = (path.points[i].x - offsetX) * scale;
-                const pointY = (path.points[i].y - offsetY) * scale;
-                maskCtx.lineTo(pointX, pointY);
-            }
-            maskCtx.stroke();
-        });
-
-        const maskDataUrl = maskCanvas.toDataURL('image/png');
-        const maskBase64 = maskDataUrl.split(',')[1];
-        
-        const tempImage = new Image();
-        tempImage.src = currentImageUrl;
-        await tempImage.decode();
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = tempImage.naturalWidth;
-        tempCanvas.height = tempImage.naturalHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx?.drawImage(tempImage, 0, 0);
-        const currentMimeType = tempCanvas.toDataURL().match(/data:(.*);/)?.[1] || 'image/png';
-        const currentBase64 = currentImageUrl.split(',')[1];
-
-        try {
-            const newBase64 = await removeElementFromImage(currentBase64, currentMimeType, maskBase64);
-            const newImage = `data:image/png;base64,${newBase64}`;
-            
-            setImageHistory(prev => [...prev, currentImageUrl]);
-            setCurrentImageUrl(newImage);
-            setPaths([]);
-
-            if (!isGuest && auth.user) {
-                await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to edit image.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-
-    return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="relative w-full max-w-4xl bg-gray-800 rounded-2xl p-4 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center">
-                    <h3 className="text-white text-lg font-bold text-center flex-1">Magic Eraser</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
-                </div>
-                <div className={`relative w-full aspect-video rounded-lg overflow-hidden ${isReady && !isLoading ? 'cursor-crosshair' : 'cursor-default'}`}>
-                     <canvas 
-                        ref={canvasRef}
-                        className="w-full h-full"
-                        onMouseDown={startDrawing}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onMouseMove={handleDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchEnd={stopDrawing}
-                        onTouchMove={handleDrawing}
-                     />
-                     {(!isReady || isLoading) && (
-                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-                            <SparklesIcon className="w-10 h-10 text-yellow-400 animate-pulse" />
-                            <p className="text-white mt-2">{isLoading ? 'Removing element...' : 'Loading editor...'}</p>
-                        </div>
-                     )}
-                </div>
-                {error && <p className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded-md">{error}</p>}
-                
-                <div className="space-y-3">
-                    <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
-                        <div className="flex items-center gap-2 text-white">
-                            <label htmlFor="brushSize" className="text-sm font-semibold">Brush Size:</label>
-                            <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
-                        </div>
-                        <div className="flex items-center gap-2">
-                             <button onClick={handleUndoPath} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Undo Stroke</button>
-                             <button onClick={() => setPaths([])} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Clear Mask</button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center items-center gap-4 border-t border-gray-700 pt-3">
-                        <button onClick={handleUndoEdit} disabled={imageHistory.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo Removal</button>
-                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits || !isReady} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                            <SparklesIcon className="w-5 h-5"/>
-                            Remove Element
-                        </button>
-                        <button onClick={handleDone} disabled={isLoading} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50">Done</button>
-                    </div>
-                </div>
-
-                 <p className={`text-xs text-center -mt-2 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `Remove Element costs ${EDIT_COST} credit.`}</p>
-            </div>
-        </div>
-    );
-};
-
-
-// FIX: Added a closing parenthesis to complete the component definition.
-// This was causing the "Unexpected end of file" error.
-const Profile: React.FC<{ user: User | null; openEditProfileModal: () => void; handleLogout: () => void; }> = ({ user, openEditProfileModal, handleLogout }) => (
-    <div className="p-4">
-        {user && (
-            <div className="space-y-6">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl">
-                        {user.avatar}
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-center">{user.name}</h2>
-                        <p className="text-gray-500 text-center">{user.email}</p>
-                    </div>
-                    <button onClick={openEditProfileModal} className="w-full mt-2 flex items-center justify-center gap-2 text-sm py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <PencilIcon className="w-4 h-4" /> Edit Profile
-                    </button>
-                </div>
-
-                <div className="bg-white border border-gray-200/80 rounded-xl p-4">
-                    <h3 className="font-bold text-lg mb-2">My Plan</h3>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits} <span className="text-lg font-medium text-gray-500">Credits</span></p>
-                            <p className="text-sm text-gray-500">{user.plan} Plan</p>
-                        </div>
-                        <button className="bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 px-4 rounded-lg">
-                            Get More
-                        </button>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <StarIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Rate MagicPixa</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                    <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <FlagIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Report an Issue</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                     <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <HelpIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Help & Support</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                </div>
-                
-                 <button onClick={handleLogout} className="w-full mt-4 flex items-center justify-center gap-2 text-sm py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                    <LogoutIcon className="w-5 h-5" /> Logout
-                </button>
-            </div>
-        )}
-    </div>
-);
-
-// FIX: Added the Creations placeholder component.
-const Creations: React.FC = () => (
-  <div className="p-4 text-center">
-    <ProjectsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-    <h2 className="text-xl font-bold">My Creations</h2>
-    <p className="text-gray-500">This feature is coming soon!</p>
-  </div>
-);
-
-// FIX: The DashboardPage component was incomplete, causing it to return nothing (void).
-// This fix completes the component by adding the remaining view cases to the render logic
-// and returning a proper JSX layout including the Header, Sidebar, and main content area.
-export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-      case 'home_dashboard':
-        return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
-      case 'studio':
-        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
-      case 'interior':
-        return <MagicInterior auth={auth} navigateTo={navigateTo} />;
-      case 'colour':
-        return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
-      case 'soul':
-        return <MagicSoul auth={auth} navigateTo={navigateTo} />;
-      case 'apparel':
-        return <MagicApparel auth={auth} navigateTo={navigateTo} />;
-      case 'mockup':
-        return <MagicMockup auth={auth} navigateTo={navigateTo} />;
-      case 'caption':
-        return <CaptionAI auth={auth} navigateTo={navigateTo} />;
-      case 'product_studio':
-        return <ProductStudio auth={auth} navigateTo={navigateTo} />;
-      case 'brand_stylist':
-        return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
-      case 'billing':
-        // The user is guaranteed to be authenticated on dashboard pages.
-        return <Billing user={auth.user!} setUser={auth.setUser} />;
-      case 'creations':
-        return <Creations />;
-      case 'profile':
-        return <Profile user={auth.user} openEditProfileModal={openEditProfileModal} handleLogout={auth.handleLogout} />;
-      default:
-        // Fallback to dashboard view for any unknown view.
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
-    }
-  };
-
-  const isHomeDashboard = activeView === 'home_dashboard';
-  // On mobile, show a back button for any feature view that isn't one of the main "tab" views.
-  const showBackButton = isMobile && !['home_dashboard', 'dashboard', 'profile', 'creations'].includes(activeView);
-
-  const dashboardAuthProps = {
-    ...auth,
-    isDashboard: true,
-    showBackButton: showBackButton,
-    handleBack: () => setActiveView(isMobile ? 'home_dashboard' : 'dashboard'),
-    openConversation: () => setIsConversationOpen(true),
-    setActiveView: setActiveView,
-  };
-
-  return (
-    <div className="flex flex-col h-screen bg-[#F9FAFB]">
-      <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
-        <main className="flex-1 overflow-y-auto">
-          {renderView()}
-        </main>
-      </div>
-    </div>
-  );
-};
+                        <div className="space-y-4 pt-4 border-t border-gray-200/80">
+                            
