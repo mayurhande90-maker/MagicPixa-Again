@@ -355,6 +355,277 @@ const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: V
     );
 };
 
+// FIX: Re-implemented the missing ImageEditModal component to provide Magic Eraser functionality.
+const ImageEditModal: React.FC<{
+    imageUrl: string;
+    onClose: () => void;
+    onSave: (newImageUrl: string) => void;
+    auth: AuthProps;
+    navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+}> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [brushSize, setBrushSize] = useState(40);
+    const [history, setHistory] = useState<string[]>([]);
+    const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const EDIT_COST = 1;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-eraser') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-eraser')!, 10) : 1);
+    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+
+    const drawImage = useCallback((url: string) => {
+        const canvas = canvasRef.current;
+        const maskCanvas = maskCanvasRef.current;
+        const container = containerRef.current;
+        if (!canvas || !maskCanvas || !container) return;
+
+        const ctx = canvas.getContext('2d');
+        const maskCtx = maskCanvas.getContext('2d');
+        if (!ctx || !maskCtx) return;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = url;
+        img.onload = () => {
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const imgAspectRatio = img.width / img.height;
+            const containerAspectRatio = containerWidth / containerHeight;
+
+            let renderWidth, renderHeight;
+
+            if (imgAspectRatio > containerAspectRatio) {
+                renderWidth = containerWidth;
+                renderHeight = containerWidth / imgAspectRatio;
+            } else {
+                renderHeight = containerHeight;
+                renderWidth = containerHeight * imgAspectRatio;
+            }
+
+            canvas.width = renderWidth;
+            canvas.height = renderHeight;
+            maskCanvas.width = renderWidth;
+            maskCanvas.height = renderHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, renderWidth, renderHeight);
+
+            maskCtx.fillStyle = 'rgba(0,0,0,0.5)';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+        };
+    }, []);
+
+    useEffect(() => {
+        drawImage(currentImageUrl);
+        setHistory([currentImageUrl]);
+    }, [drawImage]);
+
+    useEffect(() => {
+        const handleResize = () => drawImage(currentImageUrl);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [currentImageUrl, drawImage]);
+
+
+    const getCoords = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = maskCanvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top,
+        };
+    };
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        setIsDrawing(true);
+        draw(e);
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const { x, y } = getCoords(e);
+        const maskCtx = maskCanvasRef.current?.getContext('2d');
+        if (!maskCtx) return;
+
+        maskCtx.globalCompositeOperation = 'destination-out';
+        maskCtx.beginPath();
+        maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+        maskCtx.fill();
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+    };
+    
+    const clearMask = () => {
+        const maskCanvas = maskCanvasRef.current;
+        if (!maskCanvas) return;
+        const maskCtx = maskCanvas.getContext('2d');
+        if (!maskCtx) return;
+        maskCtx.globalCompositeOperation = 'source-over';
+        maskCtx.fillStyle = 'rgba(0,0,0,0.5)';
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+    };
+    
+    const handleRemoveElement = async () => {
+        const canvas = canvasRef.current;
+        const maskCanvas = maskCanvasRef.current;
+        if (!canvas || !maskCanvas) return;
+        
+        if (hasInsufficientCredits) {
+            if (isGuest) auth.openAuthModal();
+            else navigateTo('home', undefined, 'pricing');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Create a pure black and white mask
+            const finalMaskCanvas = document.createElement('canvas');
+            finalMaskCanvas.width = maskCanvas.width;
+            finalMaskCanvas.height = maskCanvas.height;
+            const finalMaskCtx = finalMaskCanvas.getContext('2d');
+            if (!finalMaskCtx) throw new Error("Could not create mask context");
+
+            finalMaskCtx.fillStyle = 'black';
+            finalMaskCtx.fillRect(0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
+            finalMaskCtx.globalCompositeOperation = 'destination-out';
+            const tempMaskImg = new Image();
+            tempMaskImg.src = maskCanvas.toDataURL();
+            await new Promise(resolve => tempMaskImg.onload = resolve);
+            finalMaskCtx.drawImage(tempMaskImg, 0, 0);
+            
+            const maskBase64 = finalMaskCanvas.toDataURL('image/png').split(',')[1];
+            const originalBase64 = currentImageUrl.split(',')[1];
+            const originalMimeType = currentImageUrl.match(/:(.*?);/)?.[1] || 'image/png';
+            
+            const newBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
+            
+            // DEFINITIVE FIX: Validate the returned image before displaying it.
+            if (!newBase64 || newBase64.length < 500) { // Check for empty or tiny string
+                 throw new Error("The AI returned an invalid image. Please undo and try a different selection.");
+            }
+            const newImageUrl = `data:image/png;base64,${newBase64}`;
+
+            // Further validation by trying to load it
+            const validationImage = new Image();
+            validationImage.src = newImageUrl;
+            await new Promise((resolve, reject) => {
+                validationImage.onload = resolve;
+                validationImage.onerror = () => reject(new Error("The AI returned a corrupted image. Please undo and try again."));
+            });
+
+            setHistory(prev => [...prev, currentImageUrl]);
+            setCurrentImageUrl(newImageUrl);
+            drawImage(newImageUrl);
+            clearMask();
+            
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Eraser');
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            } else {
+                setGuestCredits(prev => prev - EDIT_COST);
+            }
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleUndoRemoval = () => {
+        setError(null);
+        if (history.length > 1) {
+            const lastState = history[history.length - 1];
+            setCurrentImageUrl(lastState);
+            drawImage(lastState);
+            setHistory(prev => prev.slice(0, -1));
+        }
+    };
+
+    const handleDone = () => {
+        onSave(currentImageUrl);
+        onClose();
+    };
+
+    return (
+        <div 
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-[#1E1E1E] w-full max-w-4xl h-[90vh] rounded-2xl shadow-xl flex flex-col"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center p-4 border-b border-gray-700">
+                    <h2 className="text-xl font-bold text-white">Magic Eraser</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
+                </div>
+                
+                <div ref={containerRef} className="flex-1 relative flex items-center justify-center p-2">
+                    <canvas ref={canvasRef} className="absolute" />
+                    <canvas 
+                        ref={maskCanvasRef} 
+                        className="absolute cursor-crosshair"
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onTouchStart={startDrawing}
+                        onTouchMove={draw}
+                        onTouchEnd={stopDrawing}
+                    />
+                     {isLoading && (
+                        <div className="absolute inset-0 bg-[#1E1E1E]/80 flex flex-col items-center justify-center z-20">
+                            <SparklesIcon className="w-10 h-10 text-[#f9d230] animate-pulse" />
+                            <p className="mt-2 text-white">Removing element...</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-gray-700 space-y-4">
+                    {error && <div className="text-red-400 bg-red-900/50 p-2 rounded-md text-center text-sm">{error}</div>}
+                    <div className="flex items-center gap-4 text-white">
+                        <span>Brush Size:</span>
+                        <input 
+                            type="range" 
+                            min="10" 
+                            max="100" 
+                            value={brushSize} 
+                            onChange={e => setBrushSize(Number(e.target.value))}
+                            className="w-48"
+                        />
+                        <button onClick={clearMask} className="text-sm text-gray-300 hover:text-white">Clear Mask</button>
+                    </div>
+                    <div className="flex justify-center items-center gap-4">
+                        <button onClick={handleUndoRemoval} disabled={history.length <= 1} className="px-4 py-2 bg-gray-600 text-white rounded-lg disabled:opacity-50">Undo Removal</button>
+                        <button onClick={handleRemoveElement} disabled={isLoading || hasInsufficientCredits} className="px-6 py-3 bg-red-600 text-white rounded-lg font-bold flex items-center gap-2 disabled:opacity-50">
+                            <SparklesIcon className="w-5 h-5" /> Remove Element
+                        </button>
+                        <button onClick={handleDone} className="px-6 py-3 bg-[#0079F2] text-white rounded-lg font-bold">Done</button>
+                    </div>
+                    <p className={`text-xs text-center ${hasInsufficientCredits ? 'text-red-400' : 'text-gray-400'}`}>
+                        {hasInsufficientCredits ? 'Insufficient credits.' : `Remove Element costs ${EDIT_COST} credit.`}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
@@ -2297,7 +2568,8 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const logoInputRef = useRef<HTMLInputElement>(null);
     const productInputRef = useRef<HTMLInputElement>(null);
@@ -2378,7 +2650,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                     {image ? (
                         <>
                             <img src={image.url} alt={title} className="w-full h-full object-contain p-1" />
-                            <button onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
+                            <button type="button" onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
                         </>
                     ) : (
                         <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="text-xs">{description}</span></div>
@@ -2398,35 +2670,44 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                     <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
-                            {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your on-brand image...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
-                            : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
+                            {isLoading && <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your on-brand image...</p></div>}
+                            {!isLoading && generatedImage && (
+                                <div className="relative w-full h-full group">
+                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/>
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
+                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_styled_${Date.now()}.png`; link.click(); }}} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><DownloadIcon className="w-5 h-5"/> Download</button>
+                                        <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><PencilIcon className="w-5 h-5"/> Edit</button>
+                                    </div>
+                                </div>
+                            )}
+                            {!isLoading && !generatedImage && <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
                         </div>
                     </div>
                     
-                    <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
-                        <ImageUploadBox image={logo} inputRef={logoInputRef} onFileChange={e => handleFileChange(e, 'logo')} title="1. Your Brand Logo" description="Upload transparent PNG" />
-                        <ImageUploadBox image={product} inputRef={productInputRef} onFileChange={e => handleFileChange(e, 'product')} title="2. Your Product Photo" description="Upload a clean product shot" />
-                        <ImageUploadBox image={reference} inputRef={referenceInputRef} onFileChange={e => handleFileChange(e, 'reference')} title="3. Reference Style" description="Upload an image for style" />
+                    <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-[#1E1E1E]">1. Upload Your Assets</h3>
+                            <ImageUploadBox image={logo} inputRef={logoInputRef} onFileChange={e => handleFileChange(e, 'logo')} title="Your Brand Logo" description="Upload transparent PNG" />
+                            <ImageUploadBox image={product} inputRef={productInputRef} onFileChange={e => handleFileChange(e, 'product')} title="Your Product Photo" description="Upload a clean product shot" />
+                            <ImageUploadBox image={reference} inputRef={referenceInputRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" description="Upload an image for style" />
+                        </div>
                         
                         <div className="pt-4 border-t border-gray-200/80 space-y-4">
-                            <InputField id="productName" label="4. Product Name / Title" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'AuraGlow Vitamin C Serum'" required />
-                            <TextAreaField id="productDescription" label="5. Product Description" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A brightening serum...'" required />
+                            <h3 className="text-lg font-bold text-[#1E1E1E]">2. Add Product Details</h3>
+                            <InputField id="productName" label="Product Name / Title" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'AuraGlow Vitamin C Serum'" required />
+                            <TextAreaField id="productDescription" label="Product Description" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A brightening serum...'" required />
                         </div>
 
                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                           {generatedImage ? (
-                                <button type="button" onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_styled_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
-                            ) : (
-                                <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                           )}
+                           <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
                         {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </form>
                 </div>
             </div>
-            {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+            {isImageModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsImageModalOpen(false)} />}
+            {isEditModalOpen && generatedImage && <ImageEditModal imageUrl={generatedImage} onClose={() => setIsEditModalOpen(false)} onSave={(newImg) => setGeneratedImage(newImg)} auth={auth} navigateTo={navigateTo} />}
         </div>
     );
 };
@@ -2568,4 +2849,3 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
     </div>
   );
 };
-// Minor change for commit.
