@@ -1922,7 +1922,6 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
-// FIX: Corrected component definition and moved InputField and TextAreaField outside to prevent re-renders.
 const InputField: React.FC<{
     id: string;
     label: string;
@@ -2040,7 +2039,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     } else {
                         const videoUri = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
                         if (videoUri) {
-                            // The API key is now automatically appended by the service
                             const response = await fetch(`${videoUri}&key=${import.meta.env.VITE_API_KEY}`);
                             const blob = await response.blob();
                             const videoObjectUrl = URL.createObjectURL(blob);
@@ -2085,7 +2083,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         setVideoStatuses({ spin: 'idle', cinemagraph: 'idle' });
         
         try {
-            // Step 1: Generate the plan
             const plan = await generateProductPackPlan(
                 productImages.map(img => img.base64),
                 productName,
@@ -2096,7 +2093,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             );
             setGeneratedPlan(plan);
 
-            // Step 2: Generate all images in parallel
             const imagePrompts = plan.imageGenerationPrompts;
             const imageKeys = Object.keys(imagePrompts);
             const imagePromises = imageKeys.map(key => 
@@ -2116,14 +2112,10 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             });
             setGeneratedImages(newImages);
 
-            // Step 3: Check for video API key before starting generation
-            // FIX: check for `window.aistudio` existence
             if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
                 await window.aistudio.openSelectKey();
-                // We assume key selection is successful and continue
             }
 
-            // Step 4: Kick off video generation (don't await, poll separately)
             const videoPrompts = plan.videoGenerationPrompts;
             setIsGeneratingVideos(true);
             generateVideo(videoPrompts.video360Spin)
@@ -2294,8 +2286,151 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 };
 
 
-// FIX: Corrected component definition and moved InputField and TextAreaField outside to prevent re-renders.
-// FIX: Export the DashboardPage component as a named export.
+const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [logo, setLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [product, setProduct] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [reference, setReference] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    
+    const [productName, setProductName] = useState('');
+    const [productDescription, setProductDescription] = useState('');
+    
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const productInputRef = useRef<HTMLInputElement>(null);
+    const referenceInputRef = useRef<HTMLInputElement>(null);
+
+    const EDIT_COST = 4;
+    const isGuest = !auth.isAuthenticated || !auth.user;
+    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
+    const hasInsufficientCredits = currentCredits < EDIT_COST;
+    const canGenerate = logo && product && reference && productName && productDescription;
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const base64 = await fileToBase64(file);
+            const data = { file, url: URL.createObjectURL(file), base64 };
+            if (type === 'logo') setLogo(data);
+            else if (type === 'product') setProduct(data);
+            else setReference(data);
+            setGeneratedImage(null);
+            setError(null);
+        }
+    };
+    
+    const handleGenerate = async () => {
+        if (!canGenerate) {
+            setError("Please upload all three images and fill in the product details.");
+            return;
+        }
+        if (hasInsufficientCredits) {
+            auth.openAuthModal();
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const newBase64 = await generateBrandStylistImage({
+                logo: logo.base64,
+                product: product.base64,
+                reference: reference.base64,
+                name: productName,
+                description: productDescription,
+            });
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
+            
+            if (auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Brand Stylist AI');
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
+                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const ImageUploadBox: React.FC<{
+        image: { url: string } | null;
+        inputRef: React.RefObject<HTMLInputElement>;
+        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        title: string;
+        description: string;
+    }> = ({ image, inputRef, onFileChange, title, description }) => {
+        const triggerFileInput = () => inputRef.current?.click();
+        return (
+            <div>
+                <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
+                <div className={`relative w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? triggerFileInput : undefined}>
+                    <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+                    {image ? (
+                        <>
+                            <img src={image.url} alt={title} className="w-full h-full object-contain p-1" />
+                            <button onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="text-xs">{description}</span></div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Brand Stylist AI</h2>
+                    <p className="text-[#5F6368] mt-2">Generate on-brand photos in the exact style of any reference image.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
+                            {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your on-brand image...</p></div>
+                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
+                        </div>
+                    </div>
+                    
+                    <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-4">
+                        <ImageUploadBox image={logo} inputRef={logoInputRef} onFileChange={e => handleFileChange(e, 'logo')} title="1. Your Brand Logo" description="Upload transparent PNG" />
+                        <ImageUploadBox image={product} inputRef={productInputRef} onFileChange={e => handleFileChange(e, 'product')} title="2. Your Product Photo" description="Upload a clean product shot" />
+                        <ImageUploadBox image={reference} inputRef={referenceInputRef} onFileChange={e => handleFileChange(e, 'reference')} title="3. Reference Style" description="Upload an image for style" />
+                        
+                        <div className="pt-4 border-t border-gray-200/80 space-y-4">
+                            <InputField id="productName" label="4. Product Name / Title" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'AuraGlow Vitamin C Serum'" required />
+                            <TextAreaField id="productDescription" label="5. Product Description" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A brightening serum...'" required />
+                        </div>
+
+                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
+                           {generatedImage ? (
+                                <button type="button" onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_styled_${Date.now()}.png`; link.click(); }}} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg"><DownloadIcon className="w-5 h-5"/> Download</button>
+                            ) : (
+                                <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
+                           )}
+                           <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                        </div>
+                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                    </form>
+                </div>
+            </div>
+            {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
+        </div>
+    );
+};
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
   const [creations, setCreations] = useState<Creation[]>([]);
   const [isLoadingCreations, setIsLoadingCreations] = useState(true);
@@ -2347,6 +2482,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
         return <CaptionAI auth={auth} navigateTo={navigateTo} />;
       case 'product_studio':
           return <ProductStudio auth={auth} navigateTo={navigateTo} />;
+      case 'brand_stylist':
+          return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
       case 'billing':
         return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
       case 'creations':
@@ -2431,3 +2568,4 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
     </div>
   );
 };
+// Minor change for commit.
