@@ -2793,6 +2793,12 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 
         try {
             const newBase64 = await removeElementFromImage(currentBase64, currentMimeType, maskBase64);
+            
+            if (!newBase64 || newBase64.trim() === "") {
+                setError("The AI could not process the removal. Please undo and try a different selection.");
+                return; 
+            }
+
             const newImage = `data:image/png;base64,${newBase64}`;
             
             setImageHistory(prev => [...prev, currentImageUrl]);
