@@ -2592,7 +2592,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
             const data = { file, url: URL.createObjectURL(file), base64 };
             if (type === 'logo') setLogo(data);
             else if (type === 'product') setProduct(data);
-            else setReference(data);
+            else if (type === 'reference') setReference(data);
             setGeneratedImage(null);
             setError(null);
         }
@@ -2800,33 +2800,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
                 ) : creations.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {creations.map(creation => (
-                            <div key={creation.id} className="relative group aspect-square rounded-lg overflow-hidden">
-                                <img 
-                                    src={creation.imageUrl} 
-                                    alt={creation.feature} 
-                                    className="w-full h-full object-cover bg-gray-100 cursor-pointer transition-transform duration-300 group-hover:scale-105"
-                                    onClick={() => setSelectedCreation(creation)}
-                                />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 text-white pointer-events-none">
-                                    <div>
-                                        <p className="font-bold">{creation.feature}</p>
-                                        <p className="text-xs text-gray-300">{creation.createdAt.toDate().toLocaleDateString()}</p>
-                                    </div>
-                                    <div className="flex self-end gap-2 pointer-events-auto">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleCreationDownload(creation); }}
-                                            className="p-2 bg-blue-600/80 rounded-full hover:bg-blue-500 transition-colors"
-                                            title="Download"
-                                        >
-                                            <DownloadIcon className="w-4 h-4" />
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleCreationDelete(creation); }}
-                                            className="p-2 bg-red-600/80 rounded-full hover:bg-red-500 transition-colors"
-                                            title="Delete"
-                                        >
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
+                            <div key={creation.id} className="bg-white rounded-lg overflow-hidden border border-gray-200/80 shadow-sm flex flex-col">
+                                <div className="relative aspect-square">
+                                    <img 
+                                        src={creation.imageUrl} 
+                                        alt={creation.feature} 
+                                        className="w-full h-full object-cover bg-gray-100 cursor-pointer transition-transform duration-300 hover:scale-105"
+                                        onClick={() => setSelectedCreation(creation)}
+                                    />
+                                </div>
+                                <div className="p-3 mt-auto">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-bold text-sm text-gray-800 truncate">{creation.feature}</p>
+                                            <p className="text-xs text-gray-500">{creation.createdAt.toDate().toLocaleDateString()}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleCreationDownload(creation); }}
+                                                className="p-2 text-gray-500 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                                                title="Download"
+                                            >
+                                                <DownloadIcon className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleCreationDelete(creation); }}
+                                                className="p-2 text-gray-500 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
+                                                title="Delete"
+                                            >
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2894,3 +2898,4 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
     </div>
   );
 };
+// Minor change for commit.
