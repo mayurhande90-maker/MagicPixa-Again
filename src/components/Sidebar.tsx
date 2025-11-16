@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Page, View } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon } from './icons';
 
 interface SidebarProps {
   user: User | null;
@@ -35,6 +35,7 @@ const NavButton: React.FC<{
 const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo }) => {
   const navStructure = [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
+    { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
     { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, disabled: false },

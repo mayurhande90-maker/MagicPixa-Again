@@ -4,6 +4,7 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
+import 'firebase/compat/storage';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -53,6 +54,7 @@ let app;
 let auth: firebase.auth.Auth | null = null;
 // DEFINITIVE FIX: Switched the Firestore instance to use the 'compat' API to match the app initialization and eliminate library conflicts.
 let db: firebase.firestore.Firestore | null = null;
+let storage: firebase.storage.Storage | null = null;
 
 if (isConfigValid) {
   try {
@@ -62,6 +64,7 @@ if (isConfigValid) {
     auth = firebase.auth();
     // DEFINITIVE FIX: Get the Firestore instance using the stable 'compat' API.
     db = firebase.firestore();
+    storage = firebase.storage();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
@@ -280,6 +283,93 @@ export const getCreditHistory = async (uid: string): Promise<any[]> => {
         history.push({ id: doc.id, ...doc.data() });
     });
     return history;
+};
+
+// Helper to convert base64 to blob for uploading
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+};
+
+
+/**
+ * Saves a newly generated image to Storage and its metadata to Firestore.
+ * @param uid The user's unique ID.
+ * @param dataUri The data URI of the image (e.g., 'data:image/png;base64,...').
+ * @param feature The name of the feature used to create the image.
+ */
+export const saveCreation = async (uid: string, dataUri: string, feature: string): Promise<void> => {
+    if (!db || !storage) throw new Error("Firebase is not initialized.");
+    
+    try {
+        const [header, base64] = dataUri.split(',');
+        if (!base64) throw new Error("Invalid data URI");
+        const mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
+        
+        const creationId = db.collection('users').doc().id; // Generate a unique ID
+        const storagePath = `creations/${uid}/${creationId}.png`;
+        const storageRef = storage.ref(storagePath);
+        
+        // Convert base64 to blob and upload
+        const imageBlob = base64ToBlob(base64, mimeType);
+        const uploadTask = await storageRef.put(imageBlob);
+        const downloadURL = await uploadTask.ref.getDownloadURL();
+
+        // Save metadata to Firestore
+        const creationRef = db.collection(`users/${uid}/creations`).doc(creationId);
+        await creationRef.set({
+            imageUrl: downloadURL,
+            storagePath: storagePath,
+            feature: feature,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.log("Creation saved successfully:", creationId);
+
+    } catch (error) {
+        console.error("Error saving creation:", error);
+        // We don't throw here to avoid interrupting the user's flow if saving fails.
+        // In a real app, you might want a more robust error handling/retry mechanism.
+    }
+};
+
+/**
+ * Fetches all of a user's creations from Firestore.
+ * @param uid The user's unique ID.
+ * @returns A promise that resolves to an array of Creation objects.
+ */
+export const getCreations = async (uid: string): Promise<any[]> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const creationsRef = db.collection(`users/${uid}/creations`);
+    const q = creationsRef.orderBy("createdAt", "desc");
+    const querySnapshot = await q.get();
+    const creations: any[] = [];
+    querySnapshot.forEach((doc) => {
+        creations.push({ id: doc.id, ...doc.data() });
+    });
+    return creations;
+};
+
+/**
+ * Deletes a creation from both Firestore and Storage.
+ * @param uid The user's unique ID.
+ * @param creation The Creation object to delete.
+ */
+export const deleteCreation = async (uid: string, creation: { id: string; storagePath: string }): Promise<void> => {
+    if (!db || !storage) throw new Error("Firebase is not initialized.");
+
+    // Delete from Storage
+    const storageRef = storage.ref(creation.storagePath);
+    await storageRef.delete();
+    
+    // Delete from Firestore
+    const creationRef = db.doc(`users/${uid}/creations/${creation.id}`);
+    await creationRef.delete();
 };
 
 export { app, auth };

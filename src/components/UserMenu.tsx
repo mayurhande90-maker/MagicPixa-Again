@@ -53,7 +53,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <button onClick={() => handleNavigation('dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>
-            <button onClick={() => handleNavigation('creations')} disabled className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" role="menuitem">
+            <button onClick={() => handleNavigation('creations')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
             </button>
             <button onClick={() => handleNavigation('billing')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, AuthProps, View, User } from './types';
+import { Page, AuthProps, View, User, Creation } from './types';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
-import { deductCredits, getOrCreateUserProfile } from './firebase';
+import { deductCredits, getOrCreateUserProfile, saveCreation, getCreations, deleteCreation } from './firebase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
@@ -15,7 +15,7 @@ import {
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
     LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon,
-    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon, ImageIcon
+    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon, ImageIcon, TrashIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -106,7 +106,7 @@ const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?
     { view: 'interior', title: 'Magic Interior', icon: HomeIcon, gradient: 'from-orange-400 to-orange-500', description: 'Redesign any room' },
     { view: 'apparel', title: 'Magic Apparel', icon: UsersIcon, gradient: 'from-teal-400 to-teal-500', description: 'Virtual clothing try-on' },
     { view: 'mockup', title: 'Magic Mockup', icon: MockupIcon, gradient: 'from-indigo-400 to-indigo-500', description: 'Create product mockups' },
-    { view: 'creations', title: 'Coming Soon', icon: ProjectsIcon, gradient: 'from-gray-400 to-gray-500', disabled: true, description: 'Browse your projects' },
+    { view: 'creations', title: 'My Creations', icon: ProjectsIcon, gradient: 'from-gray-400 to-gray-500', description: 'Browse your projects' },
 ];
 
 const smartStackItems = [
@@ -164,7 +164,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose }) => {
     );
 };
 
-const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ user, navigateTo, openEditProfileModal, setActiveView }) => (
+const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[]; }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations }) => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
         <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -241,13 +241,25 @@ const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, v
                     {/* Recent Creations */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                         <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recent Creations</h2>
-                        <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                             <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                             <p className="text-sm text-[#5F6368]">Your future creations will appear here.</p>
-                             <button disabled className="mt-4 bg-gray-200 text-gray-500 text-sm font-semibold px-4 py-2 rounded-lg cursor-not-allowed">
-                                View All (Coming Soon)
-                            </button>
-                        </div>
+                        {creations.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {creations.slice(0, 4).map(creation => (
+                                        <div key={creation.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                                            <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => setActiveView('creations')} className="w-full bg-gray-100 text-gray-700 text-sm font-semibold py-2 rounded-lg hover:bg-gray-200">
+                                    View All
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                 <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                 <p className="text-sm text-[#5F6368]">Your creations will appear here.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -265,7 +277,7 @@ const MobileDashboard: React.FC<{ user: User | null; setActiveView: (view: View)
                 <div 
                     key={feature.view}
                     onClick={() => !feature.disabled && setActiveView(feature.view)}
-                    className={`relative aspect-square p-4 rounded-2xl text-white flex flex-col justify-end bg-gradient-to-br ${feature.gradient} shadow-lg shadow-gray-500/10 transition-transform transform active:scale-95`}
+                    className={`relative aspect-square p-4 rounded-2xl text-white flex flex-col justify-end bg-gradient-to-br ${feature.gradient} shadow-lg shadow-gray-500/10 transition-transform transform active:scale-95 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                     <feature.icon className="w-8 h-8 absolute top-4 left-4" />
                     <h3 className="font-bold">{feature.title}</h3>
@@ -276,10 +288,10 @@ const MobileDashboard: React.FC<{ user: User | null; setActiveView: (view: View)
 );
 
 
-const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ user, navigateTo, openEditProfileModal, setActiveView }) => (
+const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[] }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations }) => (
     <>
         <div className="hidden lg:block h-full">
-            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />
+            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />
         </div>
         <div className="lg:hidden">
             <MobileDashboard user={user} setActiveView={setActiveView} />
@@ -458,9 +470,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         
         try {
             const newBase64 = await editImageWithPrompt(base64Data.base64, base64Data.mimeType, theme);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
             
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Photo Studio');
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Photo Studio');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
@@ -784,9 +798,11 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         
         try {
             const newBase64 = await generateInteriorDesign(base64Data.base64, base64Data.mimeType, style, spaceType, roomType);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
 
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Interior');
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Interior');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
@@ -1057,9 +1073,11 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
 
         try {
             const newBase64 = await colourizeImage(base64Data.base64, base64Data.mimeType, mode);
-            setGeneratedImage(`data:image/jpeg;base64,${newBase64}`);
+            const newImage = `data:image/jpeg;base64,${newBase64}`;
+            setGeneratedImage(newImage);
             
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Photo Colour');
                 const updatedProfile = await deductCredits(auth.user.uid, currentCost, 'Magic Photo Colour');
                 auth.setUser(prevUser => prevUser ? { ...prevUser, credits: updatedProfile.credits } : null);
             } else {
@@ -1291,8 +1309,10 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         
         try {
             const newBase64 = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, environment);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Soul');
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Soul');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
@@ -1529,9 +1549,11 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
             if (trousers) apparelItems.push({ type: 'trousers', base64: trousers.base64.base64, mimeType: trousers.base64.mimeType });
 
             const newBase64 = await generateApparelTryOn(person.base64.base64, person.base64.mimeType, apparelItems);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
             
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Apparel');
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Apparel');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
@@ -1682,9 +1704,11 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
         
         try {
             const newBase64 = await generateMockup(originalImage.base64.base64, originalImage.base64.mimeType, mockupType);
-            setGeneratedImage(`data:image/png;base64,${newBase64}`);
+            const newImage = `data:image/png;base64,${newBase64}`;
+            setGeneratedImage(newImage);
             
             if (!isGuest && auth.user) {
+                saveCreation(auth.user.uid, newImage, 'Magic Mockup');
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Mockup');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             } else {
@@ -2084,916 +2108,227 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
             const imageResults = await Promise.all(imagePromises);
             const newImages: { [key: string]: string } = {};
             imageResults.forEach(result => {
-                if ('base64' in result) {
-                    newImages[result.key] = result.base64;
-                } else {
+                if ('error' in result) {
                     console.error(`Failed to generate image for ${result.key}:`, result.error);
+                } else {
+                    newImages[result.key] = result.base64;
                 }
             });
             setGeneratedImages(newImages);
 
+            // Step 3: Check for video API key before starting generation
+            // FIX: check for `window.aistudio` existence
+            if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+                await window.aistudio.openSelectKey();
+                // We assume key selection is successful and continue
+            }
+
+            // Step 4: Kick off video generation (don't await, poll separately)
+            const videoPrompts = plan.videoGenerationPrompts;
+            setIsGeneratingVideos(true);
+            generateVideo(videoPrompts.video360Spin)
+                .then(op => pollVideoStatus(op, 'spin'))
+                .catch(e => {
+                     setError(e.message);
+                     setVideoStatuses(prev => ({ ...prev, spin: 'Error' }));
+                });
+            generateVideo(videoPrompts.videoCinemagraph)
+                .then(op => pollVideoStatus(op, 'cinemagraph'))
+                .catch(e => {
+                     setError(e.message);
+                     setVideoStatuses(prev => ({ ...prev, cinemagraph: 'Error' }));
+                });
+            
             if (!isGuest && auth.user) {
                 const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Product Studio');
                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
             }
 
-            // Step 3: Initiate Video Generation
-            if (plan.videoGenerationPrompts) {
-                 const hasKey = await window.aistudio?.hasSelectedApiKey();
-                 if (!hasKey) {
-                     await window.aistudio?.openSelectKey();
-                 }
-
-                setIsGeneratingVideos(true);
-                
-                const { video360Spin, videoCinemagraph } = plan.videoGenerationPrompts;
-                if (video360Spin) {
-                    generateVideo(video360Spin)
-                        .then(op => pollVideoStatus(op, 'spin'))
-                        .catch(e => {
-                             setError(`Failed to start 360 Spin video: ${e.message}`);
-                             setVideoStatuses(prev => ({...prev, spin: 'Error'}));
-                        });
-                }
-                if (videoCinemagraph) {
-                    generateVideo(videoCinemagraph)
-                        .then(op => pollVideoStatus(op, 'cinemagraph'))
-                        .catch(e => {
-                             setError(`Failed to start Cinemagraph video: ${e.message}`);
-                             setVideoStatuses(prev => ({...prev, cinemagraph: 'Error'}));
-                        });
-                }
-            }
-
-        } catch (err) {
+        } catch (err: any) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            if (err.message.includes("API key not found or invalid")) {
+                 if (window.aistudio) {
+                    await window.aistudio.openSelectKey();
+                 }
+            }
         } finally {
             setIsLoading(false);
         }
     };
     
-    const handleStartOver = () => {
-        setProductImages([]);
-        setProductName('');
-        setProductDescription('');
-        setBrandLogo(null);
-        setBrandColors([]);
-        setBrandFonts('');
-        setCompetitorUrl('');
-        setInspirationImages([]);
-        setGeneratedPlan(null);
-        setGeneratedImages({});
-        setGeneratedVideos({});
-        setIsLoading(false);
-        setError(null);
-        setIsGeneratingVideos(false);
-    };
-
     return (
         <div className='p-4 sm:p-6 lg:p-8 pb-24'>
             <div className='w-full max-w-7xl mx-auto'>
                 <div className='mb-8 text-center'>
                     <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Product Studio</h2>
-                    <p className="text-[#5F6368] mt-2">Generate a complete, on-brand product pack automatically.</p>
+                    <p className="text-[#5F6368] mt-2">Generate a complete marketing pack from just a photo and product name.</p>
                 </div>
-                
-                {!generatedPlan ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                             <div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">1. Core Product Info</h3>
-                                <InputField id="productName" label="Brand Name / Product Name" value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g., Aura Glow Vitamin C Serum" required />
-                                <div className="mt-4">
-                                    <TextAreaField id="productDescription" label="Short Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., 'A lightweight daily serum for bright, even-toned skin.'" required />
-                                </div>
-                            </div>
+                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Input Panel */}
+                    <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E1E1E]">1. Core Details</h3>
+                            <p className="text-sm text-[#5F6368]">Provide the essentials for your product.</p>
+                        </div>
+
+                        <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Product Photos (up to 5)</label>
-                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                                    {productImages.map((img, index) => (
-                                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                                            <img src={img.url} className="w-full h-full object-cover" />
-                                            <button onClick={() => setProductImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {productImages.map((img, i) => (
+                                        <div key={i} className="relative aspect-square">
+                                            <img src={img.url} alt={`Product ${i+1}`} className="w-full h-full object-cover rounded-lg" />
+                                            <button type="button" onClick={() => setProductImages(p => p.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
                                         </div>
                                     ))}
                                     {productImages.length < 5 && (
-                                        <button onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500">
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#0079F2] hover:text-[#0079F2]">
                                             <PlusIcon className="w-6 h-6"/>
+                                            <span className="text-xs mt-1">Add Image</span>
                                         </button>
                                     )}
+                                    <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e, 'product')} className="hidden" accept="image/*" multiple />
                                 </div>
-                                <input type="file" ref={fileInputRef} onChange={e => handleFileChange(e, 'product')} className="hidden" accept="image/*" multiple />
                             </div>
+                            <InputField id="productName" label="Product Name" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'AuraGlow Vitamin C Serum'" required />
+                            <TextAreaField id="productDescription" label="Product Description" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A brightening serum with hyaluronic acid...'" required />
+                        </div>
+                        
+                        <div>
+                           <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-sm font-semibold text-[#0079F2]">
+                               {showAdvanced ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                               Advanced Styling (Optional)
+                           </button>
                         </div>
 
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
-                            <button onClick={() => setShowAdvanced(!showAdvanced)} className="w-full flex justify-between items-center">
-                                <h3 className="text-xl font-bold text-[#1E1E1E]">2. Creative Boosters (Optional)</h3>
-                                {showAdvanced ? <ChevronUpIcon className="w-5 h-5"/> : <ChevronDownIcon className="w-5 h-5"/>}
+                        {showAdvanced && (
+                           <div className="space-y-4 border-t border-gray-200/80 pt-4">
+                               <InputField id="brandColors" label="Brand Colors" value={brandColors.join(', ')} onChange={(e) => setBrandColors(e.target.value.split(',').map(c => c.trim()))} placeholder="e.g., #FF5733, #33FF57" />
+                               <InputField id="brandFonts" label="Brand Font Style" value={brandFonts} onChange={(e) => setBrandFonts(e.target.value)} placeholder="e.g., 'Modern Sans-serif', 'Elegant Script'" />
+                               <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={(e) => setCompetitorUrl(e.target.value)} placeholder="https://competitor.com/product" />
+                               <div>
+                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Inspiration Images (up to 3)</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {inspirationImages.map((img, i) => (
+                                            <div key={i} className="relative aspect-square">
+                                                <img src={img.url} alt={`Inspiration ${i+1}`} className="w-full h-full object-cover rounded-lg" />
+                                                <button type="button" onClick={() => setInspirationImages(p => p.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
+                                            </div>
+                                        ))}
+                                        {inspirationImages.length < 3 && (
+                                            <button type="button" onClick={() => inspirationInputRef.current?.click()} className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#0079F2] hover:text-[#0079F2]">
+                                                <PlusIcon className="w-6 h-6"/>
+                                            </button>
+                                        )}
+                                        <input type="file" ref={inspirationInputRef} onChange={(e) => handleFileChange(e, 'inspiration')} className="hidden" accept="image/*" multiple />
+                                    </div>
+                                </div>
+                           </div>
+                        )}
+                        
+                        <div className="pt-4 border-t border-gray-200/80">
+                            <button type="submit" disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Product Pack</>}
                             </button>
-                            {showAdvanced && (
-                                <div className="mt-4 pt-4 border-t space-y-4">
-                                    <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={e => setCompetitorUrl(e.target.value)} placeholder="e.g., https://competitor.com/product" />
-                                     <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Brand Kit</label>
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex-shrink-0">
-                                                <button onClick={() => brandLogoInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed flex items-center justify-center">
-                                                    {brandLogo ? <img src={brandLogo.url} className="w-full h-full object-contain p-1"/> : <ColorSwatchIcon className="w-6 h-6 text-gray-400"/>}
-                                                </button>
-                                                <input type="file" ref={brandLogoInputRef} onChange={e => handleFileChange(e, 'brand')} className="hidden" accept="image/png" />
-                                                <p className="text-xs text-center mt-1">Logo (PNG)</p>
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <input value={brandColors.join(', ')} onChange={e => setBrandColors(e.target.value.split(',').map(c => c.trim()))} placeholder="Brand Colors (hex, e.g. #ff0000)" className="w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg"/>
-                                                <input value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="Brand Fonts (e.g. Poppins, Lato)" className="w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Inspiration Images (up to 3)</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {inspirationImages.map((img, index) => (
-                                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                                                    <img src={img.url} className="w-full h-full object-cover" />
-                                                     <button onClick={() => setInspirationImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
-                                                </div>
-                                            ))}
-                                            {inspirationImages.length < 3 && (
-                                                <button onClick={() => inspirationInputRef.current?.click()} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500">
-                                                    <PlusIcon className="w-6 h-6"/>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <input type="file" ref={inspirationInputRef} onChange={e => handleFileChange(e, 'inspiration')} className="hidden" accept="image/*" multiple />
-                                    </div>
-                                </div>
-                            )}
-                            <div className="mt-6 pt-6 border-t">
-                                <button onClick={handleGenerate} disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                    {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Product Pack</>}
-                                </button>
-                                <p className={`text-xs text-center mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                                {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                            </div>
+                            <p className={`text-xs text-center mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                            {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                         </div>
-                    </div>
-                ) : (
-                    <div className="space-y-8">
-                        {/* Results View */}
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold">Your Generated Product Pack</h2>
-                            <button onClick={handleStartOver} className="font-semibold text-blue-600 hover:underline">Start Over</button>
-                        </div>
-                        
-                        {/* Visual Assets Section */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="text-xl font-bold mb-4">Visual Assets</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {Object.entries(generatedImages).map(([key, src]) => (
-                                     <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
-                                         <img src={src as string} alt={key} className="w-full h-full object-cover" />
-                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                             <p className="text-white font-bold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                         </div>
-                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                    </form>
 
-                         {/* Storyboard Section */}
-                        {generatedImages.storyboardPanel1 && (
-                            <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <FilmIcon className="w-6 h-6"/>
-                                    <h3 className="text-xl font-bold">Visual Storyboard</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                     {['storyboardPanel1', 'storyboardPanel2', 'storyboardPanel3'].map((key, index) => (
-                                         generatedImages[key] && (
-                                            <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
-                                                <img src={generatedImages[key]} alt={`Storyboard Panel ${index+1}`} className="w-full h-full object-cover" />
-                                                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">{index+1}</div>
+                     {/* Results Panel */}
+                    <div className="lg:col-span-3 min-h-[60vh]">
+                        {!generatedPlan && !isLoading && (
+                            <div className="h-full flex flex-col items-center justify-center text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 p-8">
+                                <ProductStudioIcon className="w-16 h-16 text-gray-300 mb-4" />
+                                <h3 className="text-xl font-bold text-[#1E1E1E]">Your Generated Pack Will Appear Here</h3>
+                                <p className="text-[#5F6368] mt-1">Fill in the details on the left and click generate.</p>
+                            </div>
+                        )}
+                        {isLoading && !generatedPlan && (
+                             <div className="h-full flex flex-col items-center justify-center text-center bg-gray-50 rounded-2xl p-8">
+                                <SparklesIcon className="w-16 h-16 text-[#f9d230] animate-pulse mb-4"/>
+                                <h3 className="text-xl font-bold text-[#1E1E1E]">Generating Your Marketing Plan...</h3>
+                                <p className="text-[#5F6368] mt-1">This may take a moment. The AI is getting creative!</p>
+                            </div>
+                        )}
+                         {generatedPlan && (
+                            <div className="space-y-8">
+                                <div className="p-6 bg-white rounded-2xl border border-gray-200/80">
+                                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Generated Images</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {Object.entries(generatedImages).map(([key, src]) => (
+                                            <div key={key}>
+                                                <img src={src} alt={key} className="w-full aspect-square object-cover rounded-lg bg-gray-100" />
+                                                <p className="text-xs font-semibold text-center mt-1 text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                                             </div>
-                                         )
-                                     ))}
+                                        ))}
+                                        {Object.keys(generatedImages).length < 9 && Array(9 - Object.keys(generatedImages).length).fill(0).map((_, i) => (
+                                            <div key={i} className="w-full aspect-square bg-gray-100 rounded-lg animate-pulse"></div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-white rounded-2xl border border-gray-200/80">
+                                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Generated Videos</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {Object.entries(generatedPlan.videoGenerationPrompts).map(([key, _]) => (
+                                            <div key={key}>
+                                                {generatedVideos[key.replace('video', '').toLowerCase()] ? (
+                                                     <video src={generatedVideos[key.replace('video', '').toLowerCase()]} controls className="w-full aspect-video object-cover rounded-lg bg-gray-900" />
+                                                ) : (
+                                                    <div className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-center p-2">
+                                                        <p className="text-sm font-semibold text-gray-500">{videoStatuses[key.replace('video', '').toLowerCase() as 'spin' | 'cinemagraph']}</p>
+                                                    </div>
+                                                )}
+                                                <p className="text-xs font-semibold text-center mt-1 text-gray-600 capitalize">{key.replace('video', '').replace(/([A-Z])/g, ' $1').trim()}</p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
-                        
-                        {/* Video Assets Section */}
-                        {isGeneratingVideos && (
-                             <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <VideoCameraIcon className="w-6 h-6"/>
-                                    <h3 className="text-xl font-bold">Video Assets</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Object.entries({ spin: '360° Spin', cinemagraph: 'Cinemagraph' }).map(([key, title]) => (
-                                        <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative flex flex-col items-center justify-center">
-                                            {generatedVideos[key] ? (
-                                                <video src={generatedVideos[key]} controls autoPlay loop muted className="w-full h-full object-cover"></video>
-                                            ) : (
-                                                <div className="text-center">
-                                                    <p className="font-bold mb-2">{title}</p>
-                                                    <p className="text-sm text-gray-500 capitalize">{videoStatuses[key as keyof typeof videoStatuses]}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                             </div>
-                        )}
-
-
-                        {/* Text Assets Section */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                            <h3 className="text-xl font-bold mb-4">Text & Copy Assets</h3>
-                            <div className="space-y-4">
-                                 <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">SEO TITLE</label>
-                                    <p>{generatedPlan.textAssets.seoTitle}</p>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">ALT TEXT</label>
-                                    <p>{generatedPlan.textAssets.altText}</p>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">CAPTIONS</label>
-                                    <ul className="list-disc list-inside mt-1 space-y-1">
-                                        {generatedPlan.textAssets.captions.map((c: any, i: number) => <li key={i}><span className="font-bold capitalize">{c.length}:</span> {c.text}</li>)}
-                                    </ul>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg">
-                                    <label className="text-xs font-bold text-gray-500">KEYWORDS</label>
-                                    <p className="text-blue-600">{generatedPlan.textAssets.keywords.join(', ')}</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [brandLogo, setBrandLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [productImage, setProductImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    
-    const [brandName, setBrandName] = useState('');
-    const [productDescription, setProductDescription] = useState('');
-    const [brandColors, setBrandColors] = useState('');
-    const [brandFonts, setBrandFonts] = useState('');
-    const [website, setWebsite] = useState('');
-    const [contactDetails, setContactDetails] = useState('');
-    const [emailId, setEmailId] = useState('');
-
-    const [originalGeneratedImage, setOriginalGeneratedImage] = useState<string | null>(null);
-    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [processing, setProcessing] = useState<{ logo: boolean; product: boolean; reference: boolean }>({ logo: false, product: false, reference: false });
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-    const brandLogoRef = useRef<HTMLInputElement>(null);
-    const productImageRef = useRef<HTMLInputElement>(null);
-    const referenceImageRef = useRef<HTMLInputElement>(null);
-
-    const EDIT_COST = 4;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-stylist') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-stylist')!, 10) : 4);
-    const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const isProcessingFile = processing.logo || processing.product || processing.reference;
-    const canGenerate = brandLogo && productImage && referenceImage && brandName && productDescription;
-
-    useEffect(() => {
-        if (isGuest) sessionStorage.setItem('magicpixa-guest-credits-stylist', guestCredits.toString());
-    }, [isGuest, guestCredits]);
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        setProcessing(prev => ({ ...prev, [type]: true }));
-        setError(null);
-
-        if (!file.type.startsWith('image/')) {
-            setError('Please upload a valid image file.');
-            setProcessing(prev => ({ ...prev, [type]: false }));
-            return;
-        }
-        
-        try {
-            const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            if (type === 'logo') setBrandLogo(data);
-            else if (type === 'product') setProductImage(data);
-            else setReferenceImage(data);
-        } catch(err) {
-            setError("Failed to process the image. Please try again.");
-            console.error(err);
-        } finally {
-            setProcessing(prev => ({ ...prev, [type]: false }));
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!canGenerate) {
-            setError("Please fill in all required fields and upload all three images.");
-            return;
-        }
-        if (hasInsufficientCredits) {
-            if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const newBase64 = await generateBrandStylistImage({
-                logo: brandLogo!.base64,
-                product: productImage!.base64,
-                reference: referenceImage!.base64,
-                name: brandName,
-                description: productDescription,
-                colors: brandColors,
-                fonts: brandFonts,
-                website: website,
-                contact: contactDetails,
-                email: emailId
-            });
-            const newImage = `data:image/png;base64,${newBase64}`;
-            setGeneratedImage(newImage);
-            setOriginalGeneratedImage(newImage);
-             if (!isGuest && auth.user) {
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            } else {
-                setGuestCredits(prev => prev - EDIT_COST);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const handleStartOver = () => {
-        setBrandLogo(null);
-        setProductImage(null);
-        setReferenceImage(null);
-        setBrandName('');
-        setProductDescription('');
-        setBrandColors('');
-        setBrandFonts('');
-        setWebsite('');
-        setContactDetails('');
-        setEmailId('');
-        setGeneratedImage(null);
-        setOriginalGeneratedImage(null);
-        setError(null);
-        if(brandLogoRef.current) brandLogoRef.current.value = "";
-        if(productImageRef.current) productImageRef.current.value = "";
-        if(referenceImageRef.current) referenceImageRef.current.value = "";
-    };
-
-    const ImageUploadControl: React.FC<{ image: { url: string } | null; inputRef: React.RefObject<HTMLInputElement>; onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isProcessing: boolean; altText: string; }> = ({ image, inputRef, onFileChange, isProcessing, altText }) => (
-        <div className={`relative w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50`} onClick={() => inputRef.current?.click()}>
-            <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-            {image ? (
-                <>
-                    <img src={image.url} alt={altText} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <PencilIcon className="w-6 h-6 text-white"/>
-                    </div>
-                </>
-            ) : (
-                <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="font-semibold text-xs text-gray-700">Upload</span></div>
-            )}
-            {isProcessing && (
-                 <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                </div>
-            )}
-        </div>
-    );
-
-    return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
-            <div className='w-full max-w-7xl mx-auto'>
-                <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Brand Stylist AI</h2>
-                    <p className="text-[#5F6368] mt-2">Generate on-brand visuals in the style of any image.</p>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden group">
-                            {isLoading ? <div className="text-center p-4"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Your AI creative director is at work...</p></div>
-                            : generatedImage ? (
-                                <>
-                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain cursor-pointer" onClick={() => setIsModalOpen(true)}/>
-                                    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_stylist_${Date.now()}.png`; link.click(); }}} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><DownloadIcon className="w-6 h-6"/></button>
-                                        <button onClick={() => setIsEditModalOpen(true)} className="bg-white/80 backdrop-blur-sm rounded-full p-2 text-gray-700 hover:text-black shadow-md"><PencilIcon className="w-6 h-6"/></button>
-                                    </div>
-                                </>
-                            )
-                            : <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                        <div>
-                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">1. Upload Your Assets</h3>
-                           <div className="flex items-start justify-center gap-4 text-center">
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Brand Logo</label>
-                                   <ImageUploadControl image={brandLogo} inputRef={brandLogoRef} onFileChange={e => handleFileChange(e, 'logo')} isProcessing={processing.logo} altText="Brand Logo"/>
-                               </div>
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Product Photo</label>
-                                   <ImageUploadControl image={productImage} inputRef={productImageRef} onFileChange={e => handleFileChange(e, 'product')} isProcessing={processing.product} altText="Product Photo"/>
-                               </div>
-                               <div className="flex flex-col items-center gap-1.5 w-1/3">
-                                   <label className="block text-sm font-bold text-[#1E1E1E]">Reference Style</label>
-                                   <ImageUploadControl image={referenceImage} inputRef={referenceImageRef} onFileChange={e => handleFileChange(e, 'reference')} isProcessing={processing.reference} altText="Reference Style"/>
-                               </div>
-                           </div>
-                        </div>
-                        
-                        <div>
-                           <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">2. Provide Brand Details</h3>
-                           <div className="space-y-4">
-                               <InputField id="brandName" label="Product Name / Title" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="e.g., Aura Glow Vitamin C Serum" required/>
-                               <TextAreaField id="prodDesc" label="Product Description" value={productDescription} onChange={e => setProductDescription(e.target.value)} placeholder="e.g., 'A lightweight daily serum...'" required rows={2}/>
-                               <InputField id="brandColors" label="Brand Colors (Optional)" value={brandColors} onChange={e => setBrandColors(e.target.value)} placeholder="e.g., pastel pink, gold, #F0E68C" />
-                               <InputField id="brandFonts" label="Brand Font Style (Optional)" value={brandFonts} onChange={e => setBrandFonts(e.target.value)} placeholder="e.g., a clean modern sans-serif" />
-                               <InputField id="brandWebsite" label="Website (Optional)" value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g., www.auraglow.com" />
-                               <InputField id="brandContact" label="Contact Number (Optional)" value={contactDetails} onChange={e => setContactDetails(e.target.value)} placeholder="e.g., +91 98765 43210" />
-                               <InputField id="brandEmail" label="Email ID (Optional)" value={emailId} onChange={e => setEmailId(e.target.value)} placeholder="e.g., contact@auraglow.com" />
-                           </div>
-                        </div>
-                        
-                         <div className="flex-grow flex flex-col justify-end">
-                            <div className="space-y-2 pt-6 border-t border-gray-200/80">
-                               {originalGeneratedImage && generatedImage && originalGeneratedImage !== generatedImage && !isLoading && (
-                                   <button onClick={() => setGeneratedImage(originalGeneratedImage)} className="w-full text-center text-sm font-semibold text-blue-600 hover:underline">Revert to Original</button>
-                               )}
-
-                               {generatedImage ? (
-                                   <div className="space-y-2">
-                                       <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                           <RetryIcon className="w-5 h-5"/> Re-generate
-                                       </button>
-                                       <button onClick={handleStartOver} disabled={isLoading} className="w-full text-center text-sm text-gray-500 hover:text-gray-800 pt-2">Start Over</button>
-                                   </div>
-                               ) : (
-                                   <button onClick={handleGenerate} disabled={isLoading || isProcessingFile || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
-                               )}
-                               <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                           </div>
-                        </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                    </div>
-                </div>
-            </div>
-             {isModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsModalOpen(false)} />}
-             {isEditModalOpen && generatedImage && (
-                <ImageEditModal 
-                    imageUrl={generatedImage} 
-                    onClose={() => setIsEditModalOpen(false)}
-                    onSave={(newImage) => {
-                        setGeneratedImage(newImage);
-                        setIsEditModalOpen(false);
-                    }}
-                    auth={auth}
-                    navigateTo={navigateTo}
-                />
-             )}
-        </div>
-    );
-};
-
-interface ImageEditModalProps {
-    imageUrl: string;
-    onClose: () => void;
-    onSave: (newImageUrl: string) => void;
-    auth: AuthProps;
-    navigateTo: (page: Page, view?: View, sectionId?: string) => void;
-}
-
-type Path = { points: { x: number; y: number }[], size: number };
-
-const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement | null>(null);
-    const isDrawing = useRef(false);
-    
-    const [isReady, setIsReady] = useState(false);
-    const [paths, setPaths] = useState<Path[]>([]);
-    const [currentPath, setCurrentPath] = useState<Path | null>(null);
-    const [brushSize, setBrushSize] = useState(30);
-
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const [currentImageUrl, setCurrentImageUrl] = useState<string>(imageUrl);
-    const [imageHistory, setImageHistory] = useState<string[]>([]);
-
-    const EDIT_COST = 1;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-
-    // Effect 1: Load image and set canvas size
-    useEffect(() => {
-        setIsReady(false);
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = currentImageUrl;
-        imageRef.current = null;
-
-        const loadHandler = () => {
-            imageRef.current = img;
-            const canvas = canvasRef.current;
-            if (canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-                setIsReady(true);
-            }
-        };
-        img.addEventListener('load', loadHandler);
-        img.onerror = () => {
-            setError("Failed to load image for editing. Please try again.");
-            setIsReady(false);
-        }
-        
-        return () => img.removeEventListener('load', loadHandler);
-    }, [currentImageUrl]);
-
-    // Effect 2: Handle window resizing
-    useEffect(() => {
-        const handleResize = () => {
-             const canvas = canvasRef.current;
-             if(canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-                setIsReady(true); // Re-trigger drawing
-             }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Effect 3: Central drawing logic
-    useEffect(() => {
-        if (!isReady) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        const img = imageRef.current;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (img) {
-            const canvasAspect = canvas.width / canvas.height;
-            const imageAspect = img.naturalWidth / img.naturalHeight;
-            let drawWidth = canvas.width;
-            let drawHeight = canvas.height;
-            let drawX = 0;
-            let drawY = 0;
-
-            if (imageAspect > canvasAspect) {
-                drawHeight = canvas.width / imageAspect;
-                drawY = (canvas.height - drawHeight) / 2;
-            } else {
-                drawWidth = canvas.height * imageAspect;
-                drawX = (canvas.width - drawWidth) / 2;
-            }
-            ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-        }
-
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red-500 with 50% opacity
-        
-        const allPaths = currentPath ? [...paths, currentPath] : paths;
-
-        allPaths.forEach(path => {
-            if (path.points.length < 1) return;
-            ctx.lineWidth = path.size;
-            ctx.beginPath();
-            ctx.moveTo(path.points[0].x, path.points[0].y);
-            for (let i = 1; i < path.points.length; i++) {
-                ctx.lineTo(path.points[i].x, path.points[i].y);
-            }
-            ctx.stroke();
-        });
-    }, [isReady, paths, currentPath, currentImageUrl]); // Redraw when ready, paths change, or image changes
-
-    const getBrushPos = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-        const rect = canvas.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    };
-
-    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isReady || isLoading) return;
-        e.preventDefault();
-        const pos = getBrushPos(e);
-        if (!pos) return;
-        isDrawing.current = true;
-        setCurrentPath({ points: [pos], size: brushSize });
-    };
-
-    const handleDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current || !isReady || isLoading) return;
-        e.preventDefault();
-        const pos = getBrushPos(e);
-        if (pos) {
-            setCurrentPath(prev => prev ? { ...prev, points: [...prev.points, pos] } : null);
-        }
-    };
-
-    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing.current || !isReady || isLoading) return;
-        e.preventDefault();
-        isDrawing.current = false;
-        if (currentPath) {
-            setPaths(prev => [...prev, currentPath]);
-            setCurrentPath(null);
-        }
-    };
-
-    const handleUndoPath = () => {
-        setPaths(prev => prev.slice(0, -1));
-    };
-
-    const handleUndoEdit = () => {
-        if (imageHistory.length > 0) {
-            const previousImage = imageHistory[imageHistory.length - 1];
-            setCurrentImageUrl(previousImage);
-            setImageHistory(prev => prev.slice(0, -1));
-            setPaths([]);
-        }
-    };
-
-    const handleDone = () => {
-        onSave(currentImageUrl);
-    };
-
-    const handleRemoveElement = async () => {
-        const canvas = canvasRef.current;
-        const img = imageRef.current;
-        if (!canvas || paths.length === 0 || !img) return;
-        
-        if (hasInsufficientCredits) {
-            setError(`This action costs ${EDIT_COST} credit. Please top up.`);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = img.naturalWidth;
-        maskCanvas.height = img.naturalHeight;
-        const maskCtx = maskCanvas.getContext('2d');
-        if (!maskCtx) {
-            setError("Could not create mask.");
-            setIsLoading(false);
-            return;
-        }
-
-        maskCtx.fillStyle = 'black';
-        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-        
-        const canvasAspect = canvas.width / canvas.height;
-        const imageAspect = img.naturalWidth / img.naturalHeight;
-        let scale: number, offsetX = 0, offsetY = 0;
-        
-        if (imageAspect > canvasAspect) {
-            scale = img.naturalWidth / canvas.width;
-            offsetY = (canvas.height - canvas.width / imageAspect) / 2;
-        } else {
-            scale = img.naturalHeight / canvas.height;
-            offsetX = (canvas.width - canvas.height * imageAspect) / 2;
-        }
-
-        maskCtx.strokeStyle = 'white';
-        maskCtx.fillStyle = 'white';
-        maskCtx.lineJoin = 'round';
-        maskCtx.lineCap = 'round';
-        
-        paths.forEach(path => {
-            if (path.points.length < 1) return;
-            maskCtx.lineWidth = path.size * scale;
-            maskCtx.beginPath();
-            const startX = (path.points[0].x - offsetX) * scale;
-            const startY = (path.points[0].y - offsetY) * scale;
-            maskCtx.moveTo(startX, startY);
-            for (let i = 1; i < path.points.length; i++) {
-                const pointX = (path.points[i].x - offsetX) * scale;
-                const pointY = (path.points[i].y - offsetY) * scale;
-                maskCtx.lineTo(pointX, pointY);
-            }
-            maskCtx.stroke();
-        });
-
-        const maskDataUrl = maskCanvas.toDataURL('image/png');
-        const maskBase64 = maskDataUrl.split(',')[1];
-        
-        const tempImage = new Image();
-        tempImage.src = currentImageUrl;
-        await tempImage.decode();
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = tempImage.naturalWidth;
-        tempCanvas.height = tempImage.naturalHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx?.drawImage(tempImage, 0, 0);
-        const currentMimeType = tempCanvas.toDataURL().match(/data:(.*);/)?.[1] || 'image/png';
-        const currentBase64 = currentImageUrl.split(',')[1];
-
-        try {
-            const newBase64 = await removeElementFromImage(currentBase64, currentMimeType, maskBase64);
-            
-            if (!newBase64 || newBase64.trim() === "") {
-                throw new Error("The AI returned an empty image. Please undo and try a different selection.");
-            }
-
-            const newImageSrc = `data:image/png;base64,${newBase64}`;
-
-            // New validation step to ensure the base64 data can be loaded as an image
-            const isValidImage = await new Promise(resolve => {
-                const imageValidator = new Image();
-                imageValidator.onload = () => resolve(true);
-                imageValidator.onerror = () => resolve(false);
-                imageValidator.src = newImageSrc;
-            });
-
-            if (!isValidImage) {
-                throw new Error("The AI returned an invalid image. Please undo and try a different selection.");
-            }
-            
-            setImageHistory(prev => [...prev, currentImageUrl]);
-            setCurrentImageUrl(newImageSrc);
-            setPaths([]);
-
-            if (!isGuest && auth.user) {
-                await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist - Edit');
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to edit image.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-
-    return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="relative w-full max-w-4xl bg-gray-800 rounded-2xl p-4 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center">
-                    <h3 className="text-white text-lg font-bold text-center flex-1">Magic Eraser</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6"/></button>
-                </div>
-                <div className={`relative w-full aspect-video rounded-lg overflow-hidden ${isReady && !isLoading ? 'cursor-crosshair' : 'cursor-default'}`}>
-                     <canvas 
-                        ref={canvasRef}
-                        className="w-full h-full"
-                        onMouseDown={startDrawing}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onMouseMove={handleDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchEnd={stopDrawing}
-                        onTouchMove={handleDrawing}
-                     />
-                     {(!isReady || isLoading) && (
-                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-                            <SparklesIcon className="w-10 h-10 text-yellow-400 animate-pulse" />
-                            <p className="text-white mt-2">{isLoading ? 'Removing element...' : 'Loading editor...'}</p>
-                        </div>
-                     )}
-                </div>
-                {error && <p className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded-md">{error}</p>}
-                
-                <div className="space-y-3">
-                    <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
-                        <div className="flex items-center gap-2 text-white">
-                            <label htmlFor="brushSize" className="text-sm font-semibold">Brush Size:</label>
-                            <input id="brushSize" type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-24"/>
-                        </div>
-                        <div className="flex items-center gap-2">
-                             <button onClick={handleUndoPath} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Undo Stroke</button>
-                             <button onClick={() => setPaths([])} disabled={paths.length === 0 || isLoading} className="text-white text-sm font-semibold py-1 px-3 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">Clear Mask</button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center items-center gap-4 border-t border-gray-700 pt-3">
-                        <button onClick={handleUndoEdit} disabled={imageHistory.length === 0 || isLoading} className="bg-gray-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50">Undo Removal</button>
-                        <button onClick={handleRemoveElement} disabled={isLoading || paths.length === 0 || hasInsufficientCredits || !isReady} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                            <SparklesIcon className="w-5 h-5"/>
-                            Remove Element
-                        </button>
-                        <button onClick={handleDone} disabled={isLoading} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50">Done</button>
-                    </div>
-                </div>
-
-                 <p className={`text-xs text-center -mt-2 ${hasInsufficientCredits ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `Remove Element costs ${EDIT_COST} credit.`}</p>
+                 </div>
             </div>
         </div>
     );
 };
 
 
-const Profile: React.FC<{ user: User | null; openEditProfileModal: () => void; handleLogout: () => void; }> = ({ user, openEditProfileModal, handleLogout }) => (
-    <div className="p-4">
-        {user && (
-            <div className="space-y-6">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-4xl">
-                        {user.avatar}
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-center">{user.name}</h2>
-                        <p className="text-gray-500 text-center">{user.email}</p>
-                    </div>
-                    <button onClick={openEditProfileModal} className="w-full mt-2 flex items-center justify-center gap-2 text-sm py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <PencilIcon className="w-4 h-4" /> Edit Profile
-                    </button>
-                </div>
-
-                <div className="bg-white border border-gray-200/80 rounded-xl p-4">
-                    <h3 className="font-bold text-lg mb-2">My Plan</h3>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <p className="text-2xl font-bold text-[#1E1E1E]">{user.credits} <span className="text-lg font-medium text-gray-500">Credits</span></p>
-                            <p className="text-sm text-gray-500">{user.plan} Plan</p>
-                        </div>
-                        <button className="bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2 px-4 rounded-lg">
-                            Get More
-                        </button>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <StarIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Rate MagicPixa</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                    <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <FlagIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Report an Issue</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                     <button className="w-full text-left flex items-center gap-4 p-4 bg-white border border-gray-200/80 rounded-xl">
-                        <HelpIcon className="w-6 h-6 text-gray-400"/>
-                        <span className="font-semibold">Help & Support</span>
-                        <ChevronRightIcon className="w-5 h-5 ml-auto text-gray-400"/>
-                    </button>
-                </div>
-                
-                 <button onClick={handleLogout} className="w-full mt-4 flex items-center justify-center gap-2 text-sm py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                    <LogoutIcon className="w-5 h-5" /> Logout
-                </button>
-            </div>
-        )}
-    </div>
-);
-
-const Creations: React.FC = () => (
-  <div className="p-4 text-center">
-    <ProjectsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-    <h2 className="text-xl font-bold">My Creations</h2>
-    <p className="text-gray-500">This feature is coming soon!</p>
-  </div>
-);
-
+// FIX: Corrected component definition and moved InputField and TextAreaField outside to prevent re-renders.
+// FIX: Export the DashboardPage component as a named export.
 export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [creations, setCreations] = useState<Creation[]>([]);
+  const [isLoadingCreations, setIsLoadingCreations] = useState(true);
+
+  const { user } = auth;
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (user && (activeView === 'dashboard' || activeView === 'creations' || activeView === 'home_dashboard')) {
+      setIsLoadingCreations(true);
+      getCreations(user.uid)
+        .then(setCreations)
+        .catch(console.error)
+        .finally(() => setIsLoadingCreations(false));
+    }
+  }, [user, activeView]);
+
+  const handleCreationDelete = async (creation: Creation) => {
+    if (user && window.confirm("Are you sure you want to delete this creation? This action cannot be undone.")) {
+      try {
+        await deleteCreation(user.uid, creation);
+        setCreations(prev => prev.filter(c => c.id !== creation.id));
+      } catch (error) {
+        console.error("Failed to delete creation:", error);
+        alert("Could not delete the creation. Please try again.");
+      }
+    }
+  };
+
 
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
       case 'home_dashboard':
         return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
       case 'studio':
@@ -3007,47 +2342,91 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
       case 'apparel':
         return <MagicApparel auth={auth} navigateTo={navigateTo} />;
       case 'mockup':
-        return <MagicMockup auth={auth} navigateTo={navigateTo} />;
+          return <MagicMockup auth={auth} navigateTo={navigateTo} />;
       case 'caption':
         return <CaptionAI auth={auth} navigateTo={navigateTo} />;
       case 'product_studio':
-        return <ProductStudio auth={auth} navigateTo={navigateTo} />;
-      case 'brand_stylist':
-        return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
+          return <ProductStudio auth={auth} navigateTo={navigateTo} />;
       case 'billing':
-        // The user is guaranteed to be authenticated on dashboard pages.
-        return <Billing user={auth.user!} setUser={auth.setUser} />;
+        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
       case 'creations':
-        return <Creations />;
-      case 'profile':
-        return <Profile user={auth.user} openEditProfileModal={openEditProfileModal} handleLogout={auth.handleLogout} />;
+        return (
+             <div className="p-4 sm:p-6 lg:p-8">
+                <div className='mb-8 text-center lg:text-left'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
+                    <p className="text-[#5F6368] mt-1">Browse and manage all your generated assets.</p>
+                </div>
+                {isLoadingCreations ? (
+                     <div className="text-center"><p>Loading your creations...</p></div>
+                ) : creations.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {creations.map(creation => (
+                            <div key={creation.id} className="relative group aspect-square">
+                                <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover rounded-lg bg-gray-100" />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 text-white">
+                                    <p className="text-sm font-semibold">{creation.feature}</p>
+                                    <button onClick={() => handleCreationDelete(creation)} className="self-end p-2 bg-red-600/80 rounded-full hover:bg-red-500">
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                         <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-2" />
+                         <h3 className="text-xl font-bold text-[#1E1E1E]">No Creations Yet</h3>
+                         <p className="text-sm text-[#5F6368]">Start creating and your projects will appear here.</p>
+                    </div>
+                )}
+            </div>
+        );
       default:
-        // Fallback to dashboard view for any unknown view.
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />;
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
     }
   };
 
-  const isHomeDashboard = activeView === 'home_dashboard';
-  // On mobile, show a back button for any feature view that isn't one of the main "tab" views.
-  const showBackButton = isMobile && !['home_dashboard', 'dashboard', 'profile', 'creations'].includes(activeView);
-
-  const dashboardAuthProps = {
-    ...auth,
-    isDashboard: true,
-    showBackButton: showBackButton,
-    handleBack: () => setActiveView(isMobile ? 'home_dashboard' : 'dashboard'),
-    openConversation: () => setIsConversationOpen(true),
-    setActiveView: setActiveView,
-  };
+  const isFullScreenView = activeView === 'studio' || activeView === 'interior' || activeView === 'colour' || activeView === 'soul' || activeView === 'apparel' || activeView === 'mockup' || activeView === 'caption' || activeView === 'product_studio' || activeView === 'brand_stylist';
+  const showBackButton = isFullScreenView || activeView === 'creations' || activeView === 'billing';
 
   return (
-    <div className="flex flex-col h-screen bg-[#F9FAFB]">
-      <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
+      <Header
+        navigateTo={navigateTo}
+        auth={{
+          ...auth,
+          isDashboard: true,
+          setActiveView: setActiveView,
+          openConversation: () => setIsConversationOpen(true),
+          showBackButton: showBackButton,
+          handleBack: () => setActiveView('dashboard'),
+        }}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
         <main className="flex-1 overflow-y-auto">
           {renderView()}
         </main>
+      </div>
+      {/* Mobile Bottom Nav */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100]">
+        <div className="flex justify-around items-center h-full">
+            {[
+                { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+                { view: 'dashboard', label: 'Features', icon: DashboardIcon },
+                { view: 'creations', label: 'Projects', icon: ProjectsIcon },
+                { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
+            ].map(item => (
+                <button 
+                    key={item.label} 
+                    onClick={() => setActiveView(item.view as View)}
+                    className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'}`}
+                >
+                    <item.icon className="w-6 h-6" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                </button>
+            ))}
+        </div>
       </div>
     </div>
   );

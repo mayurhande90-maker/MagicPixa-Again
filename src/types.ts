@@ -39,3 +39,11 @@ export interface Transaction {
     // creditChange stores the string representation, e.g., "+165"
     creditChange?: string; 
 }
+
+export interface Creation {
+    id: string;
+    imageUrl: string;
+    storagePath: string;
+    feature: string;
+    createdAt: Timestamp;
+}
