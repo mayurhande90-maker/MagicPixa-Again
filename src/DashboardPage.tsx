@@ -15,7 +15,7 @@ import {
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
     LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon,
-    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon
+    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon, ImageIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -96,17 +96,41 @@ const mockupTypes = [
     { key: 'Cap / Hat', label: 'Cap/Hat' },
 ];
 
-const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?: string}>; gradient: string; disabled?: boolean }[] = [
-    { view: 'studio', title: 'Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500' },
-    { view: 'product_studio', title: 'Product Studio', icon: ProductStudioIcon, gradient: 'from-green-400 to-green-500' },
-    { view: 'brand_stylist', title: 'Brand Stylist', icon: LightbulbIcon, gradient: 'from-yellow-400 to-yellow-500' },
-    { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500' },
-    { view: 'colour', title: 'Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500' },
-    { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500' },
-    { view: 'interior', title: 'Interior AI', icon: HomeIcon, gradient: 'from-orange-400 to-orange-500' },
-    { view: 'apparel', title: 'Apparel AI', icon: UsersIcon, gradient: 'from-teal-400 to-teal-500' },
-    { view: 'mockup', title: 'Mockup AI', icon: MockupIcon, gradient: 'from-indigo-400 to-indigo-500' },
-    { view: 'creations', title: 'Coming Soon', icon: ProjectsIcon, gradient: 'from-gray-400 to-gray-500', disabled: true },
+const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?: string}>; gradient: string; disabled?: boolean; description?: string; }[] = [
+    { view: 'studio', title: 'Magic Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500', description: 'Studio-quality product shots' },
+    { view: 'product_studio', title: 'Product Studio', icon: ProductStudioIcon, gradient: 'from-green-400 to-green-500', description: 'Full marketing packs' },
+    { view: 'brand_stylist', title: 'Brand Stylist AI', icon: LightbulbIcon, gradient: 'from-yellow-400 to-yellow-500', description: 'On-brand styled photos' },
+    { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500', description: 'Combine two people' },
+    { view: 'colour', title: 'Magic Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500', description: 'Colourize B&W photos' },
+    { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500', description: 'Generate social captions' },
+    { view: 'interior', title: 'Magic Interior', icon: HomeIcon, gradient: 'from-orange-400 to-orange-500', description: 'Redesign any room' },
+    { view: 'apparel', title: 'Magic Apparel', icon: UsersIcon, gradient: 'from-teal-400 to-teal-500', description: 'Virtual clothing try-on' },
+    { view: 'mockup', title: 'Magic Mockup', icon: MockupIcon, gradient: 'from-indigo-400 to-indigo-500', description: 'Create product mockups' },
+    { view: 'creations', title: 'Coming Soon', icon: ProjectsIcon, gradient: 'from-gray-400 to-gray-500', disabled: true, description: 'Browse your projects' },
+];
+
+const smartStackItems = [
+    {
+        icon: <RetryIcon className="w-6 h-6 text-indigo-500" />,
+        title: "Jump back in",
+        description: "Continue editing your latest product photo.",
+        bgColor: "bg-indigo-50",
+        actionView: 'studio'
+    },
+    {
+        icon: <CaptionIcon className="w-6 h-6 text-amber-500" />,
+        title: "Intelligent Suggestion",
+        description: "Your new photo looks great! Generate some social media captions.",
+        bgColor: "bg-amber-50",
+        actionView: 'caption'
+    },
+    {
+        icon: <HomeIcon className="w-6 h-6 text-orange-500" />,
+        title: "Feature Discovery",
+        description: "Did you know you can redesign your entire room with Magic Interior?",
+        bgColor: "bg-orange-50",
+        actionView: 'interior'
+    }
 ];
 
 interface ImageModalProps {
@@ -140,18 +164,60 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose }) => {
     );
 };
 
-const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; }> = ({ user, navigateTo, openEditProfileModal }) => (
+const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ user, navigateTo, openEditProfileModal, setActiveView }) => (
     <div className="p-4 sm:p-6 lg:p-8 h-full">
         <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1E1E1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
-                <p className="text-[#5F6368] mt-1">Ready to create something amazing today?</p>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content Area */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-[#1E1E1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
+                        <p className="text-[#5F6368] mt-1">Ready to create something amazing today?</p>
+                    </div>
 
-            <div className="space-y-8">
-                 {/* Top Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Profile Card */}
+                    {/* Recommended for you */}
+                    <div>
+                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recommended for You</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {smartStackItems.map((item, index) => (
+                                <div key={index} onClick={() => setActiveView(item.actionView as View)} className={`p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform hover:-translate-y-1 ${item.bgColor}`}>
+                                    <div className="flex items-start gap-3">
+                                        {item.icon}
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-sm text-[#1E1E1E]">{item.title}</h3>
+                                            <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Quick Tools */}
+                    <div>
+                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Quick Tools</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {dashboardFeatures.filter(f => !f.disabled).slice(0, 6).map(feature => (
+                                <div 
+                                    key={feature.view}
+                                    onClick={() => !feature.disabled && setActiveView(feature.view)}
+                                    className="bg-white p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-shadow hover:shadow-lg hover:border-blue-300"
+                                >
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${feature.gradient} mb-3`}>
+                                        <feature.icon className="w-7 h-7 text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-sm text-[#1E1E1E]">{feature.title}</h3>
+                                    <p className="text-xs text-gray-500">{feature.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* Right Sidebar Area */}
+                <div className="space-y-8">
+                     {/* Profile & Credits */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
@@ -162,34 +228,26 @@ const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, v
                                 <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
                             </div>
                         </div>
-                        <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                           <PencilIcon className="w-4 h-4" /> Edit Profile
-                        </button>
-                    </div>
-
-                    {/* Credits Card */}
-                     <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                        <div className="flex justify-between items-center mb-2">
-                           <h3 className="font-bold text-lg text-[#1E1E1E]">Your Credits</h3>
-                           <CreditCardIcon className="w-6 h-6 text-gray-400" />
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                               <PencilIcon className="w-4 h-4" /> Edit Profile
+                            </button>
+                             <button onClick={() => setActiveView('billing')} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-[#f9d230] text-[#1E1E1E] font-semibold rounded-lg hover:scale-105 transform transition-transform">
+                                <PlusIcon className="w-4 h-4" /> Add Credits
+                            </button>
                         </div>
-                        <p className="text-4xl font-bold text-[#1E1E1E]">{user?.credits}</p>
-                        <p className="text-sm text-[#5F6368] mb-4">{user?.plan} Plan</p>
-                         <button onClick={() => navigateTo('home', undefined, 'pricing')} className="w-full bg-[#f9d230] text-[#1E1E1E] text-sm font-semibold py-2.5 rounded-lg hover:scale-105 transform transition-transform">
-                            Get More Credits
-                        </button>
                     </div>
-                </div>
 
-                {/* My Creations Hub */}
-                <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                    <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">My Creations</h2>
-                    <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                         <ProjectsIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                         <p className="text-sm text-[#5F6368]">Your future creations will appear here.</p>
-                         <button disabled className="mt-4 bg-gray-200 text-gray-500 text-sm font-semibold px-4 py-2 rounded-lg cursor-not-allowed">
-                            View All (Coming Soon)
-                        </button>
+                    {/* Recent Creations */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recent Creations</h2>
+                        <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                             <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                             <p className="text-sm text-[#5F6368]">Your future creations will appear here.</p>
+                             <button disabled className="mt-4 bg-gray-200 text-gray-500 text-sm font-semibold px-4 py-2 rounded-lg cursor-not-allowed">
+                                View All (Coming Soon)
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,7 +279,7 @@ const MobileDashboard: React.FC<{ user: User | null; setActiveView: (view: View)
 const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; }> = ({ user, navigateTo, openEditProfileModal, setActiveView }) => (
     <>
         <div className="hidden lg:block h-full">
-            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} />
+            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} />
         </div>
         <div className="lg:hidden">
             <MobileDashboard user={user} setActiveView={setActiveView} />
@@ -230,31 +288,6 @@ const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: V
 );
 
 const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => {
-    // Static data for the Smart Stack for now.
-    const smartStackItems = [
-        {
-            icon: <RetryIcon className="w-6 h-6 text-indigo-500" />,
-            title: "Jump back in",
-            description: "Continue editing your latest product photo.",
-            bgColor: "bg-indigo-50",
-            action: () => setActiveView('studio')
-        },
-        {
-            icon: <CaptionIcon className="w-6 h-6 text-amber-500" />,
-            title: "Intelligent Suggestion",
-            description: "Your new photo looks great! Generate some social media captions.",
-            bgColor: "bg-amber-50",
-            action: () => setActiveView('caption')
-        },
-        {
-            icon: <HomeIcon className="w-6 h-6 text-orange-500" />,
-            title: "Feature Discovery",
-            description: "Did you know you can redesign your entire room with Magic Interior?",
-            bgColor: "bg-orange-50",
-            action: () => setActiveView('interior')
-        }
-    ];
-
     return (
         <div className="p-4 space-y-8">
             {/* 1. Primary Action Zone */}
@@ -275,7 +308,7 @@ const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: V
                 <h2 className="text-lg font-bold text-[#1E1E1E] mb-3">Recommended for you</h2>
                 <div className="flex gap-4 overflow-x-auto pb-4 -mb-4">
                     {smartStackItems.map((item, index) => (
-                        <div key={index} onClick={item.action} className={`flex-shrink-0 w-64 p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform active:scale-95 ${item.bgColor}`}>
+                        <div key={index} onClick={() => setActiveView(item.actionView as View)} className={`flex-shrink-0 w-64 p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform active:scale-95 ${item.bgColor}`}>
                             <div className="flex items-start gap-3">
                                 {item.icon}
                                 <div className="flex-1">
@@ -2445,7 +2478,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
             )}
             {isProcessing && (
                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 * 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <svg className="animate-spin h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
             )}
         </div>
@@ -2884,8 +2917,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({ imageUrl, onClose, onSa
 };
 
 
-// FIX: Added a closing parenthesis to complete the component definition.
-// This was causing the "Unexpected end of file" error.
 const Profile: React.FC<{ user: User | null; openEditProfileModal: () => void; handleLogout: () => void; }> = ({ user, openEditProfileModal, handleLogout }) => (
     <div className="p-4">
         {user && (
@@ -2942,7 +2973,6 @@ const Profile: React.FC<{ user: User | null; openEditProfileModal: () => void; h
     </div>
 );
 
-// FIX: Added the Creations placeholder component.
 const Creations: React.FC = () => (
   <div className="p-4 text-center">
     <ProjectsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -2951,9 +2981,6 @@ const Creations: React.FC = () => (
   </div>
 );
 
-// FIX: The DashboardPage component was incomplete, causing it to return nothing (void).
-// This fix completes the component by adding the remaining view cases to the render logic
-// and returning a proper JSX layout including the Header, Sidebar, and main content area.
 export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
