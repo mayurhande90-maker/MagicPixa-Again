@@ -279,7 +279,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 h-full flex flex-col">
         <div className='mb-8 text-center lg:text-left'>
           <h2 className="text-3xl font-bold text-[#1E1E1E]">Billing & Credits</h2>
           <p className="text-[#5F6368] mt-1">Top up your credits or review your usage history.</p>
