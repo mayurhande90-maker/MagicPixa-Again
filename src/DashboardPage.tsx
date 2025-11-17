@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -537,7 +530,7 @@ const ImageEditModal: React.FC<{
         
         if (hasInsufficientCredits) {
             if (isGuest) auth.openAuthModal();
-            else navigateTo('home', undefined, 'pricing');
+            else navigateTo('dashboard', 'billing');
             return;
         }
 
@@ -566,13 +559,11 @@ const ImageEditModal: React.FC<{
             
             const newBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
             
-            // DEFINITIVE FIX: Validate the returned image before displaying it.
-            if (!newBase64 || newBase64.length < 500) { // Check for empty or tiny string
+            if (!newBase64 || newBase64.length < 500) {
                  throw new Error("The AI returned an invalid image. Please undo and try a different selection.");
             }
             const newImageUrl = `data:image/png;base64,${newBase64}`;
 
-            // Further validation by trying to load it
             const validationImage = new Image();
             validationImage.src = newImageUrl;
             await new Promise((resolve, reject) => {
@@ -585,3 +576,307 @@ const ImageEditModal: React.FC<{
             drawImage(newImageUrl);
             clearMask();
             
+            if (!isGuest && auth.user) {
+                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Magic Eraser');
+                auth.setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
+            } else {
+                const newCredits = guestCredits - EDIT_COST;
+                setGuestCredits(newCredits);
+                sessionStorage.setItem('magicpixa-guest-credits-eraser', newCredits.toString());
+            }
+
+        } catch (err) {
+            console.error("Error removing element:", err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred during editing.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUndo = () => {
+        if (history.length > 1) {
+            const previousImage = history[history.length - 1];
+            setHistory(prev => prev.slice(0, -1));
+            setCurrentImageUrl(previousImage);
+            drawImage(previousImage);
+            clearMask();
+            setError(null);
+        }
+    };
+
+    const handleSaveAndClose = async () => {
+        setIsLoading(true);
+        try {
+            // Only save if the image has actually changed from the original
+            if (auth.user && currentImageUrl !== imageUrl) {
+                await saveCreation(auth.user.uid, currentImageUrl, 'Magic Eraser (Edit)');
+            }
+            onSave(currentImageUrl);
+            onClose();
+        } catch (error) {
+            console.error("Failed to save creation:", error);
+            setError("Could not save your creation. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-gray-900/80 backdrop-blur-sm flex flex-col p-4" onDoubleClick={onClose}>
+            <div className="flex-shrink-0 flex justify-between items-center text-white pb-4">
+                <div className="flex items-center gap-4">
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6" /></button>
+                    <h2 className="text-xl font-bold">Magic Eraser</h2>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button onClick={handleUndo} disabled={history.length <= 1 || isLoading} className="text-sm font-semibold py-2 px-4 rounded-lg hover:bg-white/10 disabled:opacity-50">Undo</button>
+                    <button onClick={handleSaveAndClose} disabled={isLoading} className="text-sm font-bold py-2 px-4 rounded-lg bg-[#f9d230] text-black disabled:opacity-50">Done</button>
+                </div>
+            </div>
+
+            <div ref={containerRef} className="flex-1 w-full h-full flex items-center justify-center relative" onClick={e => e.stopPropagation()}>
+                <canvas ref={canvasRef} className="absolute max-w-full max-h-full object-contain rounded-lg"></canvas>
+                <canvas
+                    ref={maskCanvasRef}
+                    className="absolute max-w-full max-h-full object-contain cursor-crosshair rounded-lg"
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                ></canvas>
+                {isLoading && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white rounded-lg">
+                        <SparklesIcon className="w-10 h-10 animate-pulse mb-4" />
+                        <p className="font-bold">Applying Magic...</p>
+                    </div>
+                )}
+                 {error && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-500 text-white py-2 px-4 rounded-lg text-sm shadow-lg">
+                        {error}
+                    </div>
+                )}
+            </div>
+            
+            <div className="flex-shrink-0 flex items-center justify-center gap-4 pt-4" onClick={e => e.stopPropagation()}>
+                <label className="text-white text-sm">Brush Size</label>
+                <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="w-48"
+                />
+            </div>
+
+            <div className="absolute bottom-4 left-4 p-3 bg-black/50 text-white rounded-lg text-sm font-semibold flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                <button onClick={handleRemoveElement} disabled={isLoading || hasInsufficientCredits} className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">
+                    Erase
+                </button>
+                <div className="text-center">
+                    <p>Cost: {EDIT_COST} credit</p>
+                    {hasInsufficientCredits && <p className="text-xs text-red-300">Insufficient funds</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// Placeholder for a feature view
+const FeaturePlaceholder: React.FC<{ title: string }> = ({ title }) => (
+    <div className="p-8 h-full flex items-center justify-center">
+        <div className="text-center">
+            <h1 className="text-3xl font-bold">{title}</h1>
+            <p className="text-gray-500 mt-2">This feature is under construction.</p>
+        </div>
+    </div>
+);
+
+
+const CreationsGallery: React.FC<{ 
+    creations: Creation[]; 
+    isLoading: boolean;
+    onDelete: (creation: Creation) => Promise<void>;
+    onEdit: (imageUrl: string) => void;
+}> = ({ creations, isLoading, onDelete, onEdit }) => {
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+    
+    const handleDelete = async (creation: Creation) => {
+        if (window.confirm("Are you sure you want to delete this creation? This action cannot be undone.")) {
+            setDeletingId(creation.id);
+            await onDelete(creation);
+            setDeletingId(null);
+        }
+    };
+
+    const handleDownload = async (imageUrl: string) => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `magicpixa-creation-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback for CORS issues: open in new tab
+            window.open(imageUrl, '_blank');
+        }
+    };
+
+    if (isLoading) {
+        return <div className="p-8 text-center text-gray-500">Loading your creations...</div>;
+    }
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className='mb-8'>
+              <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
+              <p className="text-[#5F6368] mt-1">Browse, download, or edit your generated images.</p>
+            </div>
+            {creations.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {creations.map(creation => (
+                        <div key={creation.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                            <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setZoomedImageUrl(creation.imageUrl)} className="p-2 bg-white/20 rounded-full text-white hover:bg-white/40"><ZoomInIcon className="w-5 h-5"/></button>
+                                </div>
+                                <div className="text-white">
+                                    <p className="font-bold text-sm truncate">{creation.feature}</p>
+                                    <p className="text-xs">{creation.createdAt.toDate().toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                             <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleDownload(creation.imageUrl)} className="p-2 bg-white/80 rounded-full text-gray-800 hover:bg-white shadow-md"><DownloadIcon className="w-5 h-5"/></button>
+                                <button onClick={() => onEdit(creation.imageUrl)} className="p-2 bg-white/80 rounded-full text-gray-800 hover:bg-white shadow-md"><PencilIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/80 rounded-full text-white hover:bg-red-500 shadow-md disabled:opacity-50">
+                                    {deletingId === creation.id ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <TrashIcon className="w-5 h-5"/>}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                     <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                     <h3 className="text-xl font-bold text-[#1E1E1E]">Nothing here yet!</h3>
+                     <p className="text-[#5F6368] mt-2">Your magical creations will appear here once you generate them.</p>
+                </div>
+            )}
+            {zoomedImageUrl && <ImageModal imageUrl={zoomedImageUrl} onClose={() => setZoomedImageUrl(null)} />}
+        </div>
+    );
+};
+
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig, setAppConfig }) => {
+    const [creations, setCreations] = useState<Creation[]>([]);
+    const [isLoadingCreations, setIsLoadingCreations] = useState(true);
+    const [editModalState, setEditModalState] = useState<{ isOpen: boolean; imageUrl: string | null }>({ isOpen: false, imageUrl: null });
+
+    const fetchCreations = useCallback(async () => {
+        if (auth.user) {
+            setIsLoadingCreations(true);
+            try {
+                const userCreations = await getCreations(auth.user.uid);
+                setCreations(userCreations as Creation[]);
+            } catch (error) {
+                console.error("Failed to fetch creations:", error);
+            } finally {
+                setIsLoadingCreations(false);
+            }
+        }
+    }, [auth.user]);
+
+    useEffect(() => {
+        // Fetch creations when the component mounts or when the user changes,
+        // as it's needed for the main dashboard view and the creations view.
+        if (auth.user) {
+            fetchCreations();
+        }
+    }, [auth.user, fetchCreations]);
+    
+    const handleDeleteCreation = async (creation: Creation) => {
+        if (auth.user) {
+            await deleteCreation(auth.user.uid, creation);
+            fetchCreations(); // Refresh list after deleting
+        }
+    };
+    
+    const handleEditSave = () => {
+        fetchCreations(); // Re-fetch to show the newly saved edited creation
+        setEditModalState({ isOpen: false, imageUrl: null });
+    };
+
+    const renderContent = () => {
+        switch (activeView) {
+            case 'home_dashboard':
+            case 'dashboard':
+                return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
+            case 'creations':
+                return <CreationsGallery creations={creations} isLoading={isLoadingCreations} onDelete={handleDeleteCreation} onEdit={(imageUrl) => setEditModalState({isOpen: true, imageUrl})} />;
+            case 'billing':
+                return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
+            case 'admin':
+                return auth.user?.isAdmin ? <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} /> : <FeaturePlaceholder title="Access Denied" />;
+            case 'studio':
+            case 'product_studio':
+            case 'brand_stylist':
+            case 'soul':
+            case 'colour':
+            case 'caption':
+            case 'interior':
+            case 'apparel':
+            case 'mockup':
+                return <FeaturePlaceholder title={dashboardFeatures.find(f => f.view === activeView)?.title || 'Feature'} />;
+            default:
+                return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig}/>;
+        }
+    };
+
+    return (
+        <div className="h-screen flex flex-col bg-[#F9FAFB]">
+             <Header 
+                navigateTo={navigateTo} 
+                auth={{ 
+                    ...auth, 
+                    isDashboard: true, 
+                    setActiveView, 
+                    openConversation: () => setIsConversationOpen(true),
+                    showBackButton: activeView !== 'home_dashboard' && activeView !== 'dashboard',
+                    handleBack: () => setActiveView(window.innerWidth < 1024 ? 'home_dashboard' : 'dashboard')
+                }} 
+            />
+            <div className="flex-1 flex overflow-hidden">
+                <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
+                <main className="flex-1 overflow-y-auto">
+                    {renderContent()}
+                </main>
+            </div>
+            {editModalState.isOpen && editModalState.imageUrl && (
+                 <ImageEditModal
+                    imageUrl={editModalState.imageUrl}
+                    onClose={() => setEditModalState({ isOpen: false, imageUrl: null })}
+                    onSave={handleEditSave}
+                    auth={auth}
+                    navigateTo={navigateTo}
+                    appConfig={appConfig}
+                />
+            )}
+        </div>
+    );
+};
+
+export default DashboardPage;
