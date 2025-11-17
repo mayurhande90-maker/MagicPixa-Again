@@ -865,10 +865,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                                 
                                 {generatedImage ? (
                                     <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                        <img src={generatedImage} alt="Generated" className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 ) : originalImage ? (
-                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <img src={originalImage.url} alt="Original" className="w-full h-full object-cover rounded-lg" />
                                 ) : (
                                     <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                                         <div className="flex flex-col items-center gap-2 text-[#5F6368]">
@@ -1178,16 +1178,16 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                     <div className="lg:col-span-3">
                          <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
-                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                                 {generatedImage ? (
                                     <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated Interior" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                        <img src={generatedImage} alt="Generated Interior" className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 )
-                                : originalImage ? <img src={originalImage.url} alt="Original Room" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                : originalImage ? <img src={originalImage.url} alt="Original Room" className="w-full h-full object-cover rounded-lg" />
                                 : <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}><div className="flex flex-col items-center gap-2 text-[#5F6368]"><UploadIcon className="w-12 h-12" /><span className='font-semibold text-lg text-[#1E1E1E]'>Upload a photo of your room</span><span className="text-sm">or click to select a file</span></div></div>}
                                 {hasImage && !isLoading && <button onClick={triggerFileInput} className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black hover:bg-white transition-all duration-300 shadow-md" aria-label="Change photo"><ArrowUpCircleIcon className="w-6 h-6" /></button>}
                                 {isLoading && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg p-4 text-center z-10"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse" /><p aria-live="polite" className="mt-4 text-[#1E1E1E] font-medium transition-opacity duration-300">{loadingMessage}</p></div>}
@@ -1431,17 +1431,17 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
                     <div className="lg:col-span-3">
                          <div className="w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                             <div
-                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
+                                className={`relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-300 h-full flex items-center justify-center overflow-hidden ${!hasImage ? 'cursor-pointer hover:border-[#0079F2] hover:bg-blue-50/50' : ''}`}
                                 onClick={!hasImage ? triggerFileInput : undefined}
                             >
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg" />
                                 
                                 {generatedImage ? (
                                     <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}>
-                                        <img src={generatedImage} alt="Generated" className="max-h-full h-auto w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
+                                        <img src={generatedImage} alt="Generated" className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-[1.02]" />
                                     </div>
                                 ) : originalImage ? (
-                                    <img src={originalImage.url} alt="Original" className="max-h-full h-auto w-auto object-contain rounded-lg" />
+                                    <img src={originalImage.url} alt="Original" className="w-full h-full object-cover rounded-lg" />
                                 ) : (
                                     <div className={`text-center transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                                         <div className="flex flex-col items-center gap-2 text-[#5F6368]">
@@ -1640,7 +1640,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                     <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
                             {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Creating your magic moment...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-cover"/></div>
                             : <div className="text-center text-gray-400"><UsersIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated photo will appear here.</p></div>}
                         </div>
                     </div>
@@ -1886,7 +1886,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
                     <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
                             {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Styling your look...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-cover"/></div>
                             : <div className="text-center text-gray-400"><UsersIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your virtual try-on will appear here.</p></div>}
                         </div>
                     </div>
@@ -2010,7 +2010,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
                     <div className="lg:col-span-3 w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
                         <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
                             {isLoading ? <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your mockup...</p></div>
-                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/></div>
+                            : generatedImage ? <div className="relative w-full h-full cursor-pointer group" onClick={() => setIsModalOpen(true)}><img src={generatedImage} alt="Generated" className="w-full h-full object-cover"/></div>
                             : <div className="text-center text-gray-400 p-4"><MockupIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated mockup will appear here.</p></div>}
                         </div>
                     </div>
@@ -2673,7 +2673,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                             {isLoading && <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your on-brand image...</p></div>}
                             {!isLoading && generatedImage && (
                                 <div className="relative w-full h-full group">
-                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain"/>
+                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-cover"/>
                                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
                                         <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_styled_${Date.now()}.png`; link.click(); }}} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><DownloadIcon className="w-5 h-5"/> Download</button>
                                         <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><PencilIcon className="w-5 h-5"/> Edit</button>
@@ -2805,7 +2805,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
                                     <img 
                                         src={creation.imageUrl} 
                                         alt={creation.feature} 
-                                        className="w-full h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
+                                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 hover:scale-105"
                                         onClick={() => setSelectedCreation(creation)}
                                     />
                                 </div>
