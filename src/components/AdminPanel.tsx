@@ -11,21 +11,76 @@ interface AdminPanelProps {
     auth: AuthProps;
 }
 
-// FIX: Added the missing PermissionsError component to handle permission-denied errors gracefully.
-const PermissionsError: React.FC<{ auth: AuthProps }> = ({ auth }) => (
-    <div className="text-center py-10">
-        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+const PermissionsGuide: React.FC<{ auth: AuthProps }> = ({ auth }) => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex">
+            <div className="flex-shrink-0">
+                <InformationCircleIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
+            </div>
+            <div className="ml-3">
+                <h3 className="text-lg font-bold text-red-800">Action Required: Update Security Rules</h3>
+                <div className="mt-2 text-sm text-red-700 space-y-4">
+                    <p>
+                        The enhanced Admin Panel needs updated permissions to access all necessary data (like users, purchases, and app settings). This is a security measure to protect your app.
+                    </p>
+                    <p>
+                        Please follow this one-time step to grant your admin account (<strong className="font-mono">{auth.user?.email}</strong>) the required access:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2">
+                        <li>Go to your Firebase project &gt; Firestore Database &gt; <strong>Rules</strong> tab.</li>
+                        <li>Delete all the existing text in the editor.</li>
+                        <li>Copy the entire code block below and paste it into the editor.</li>
+                    </ol>
+                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto">
+                        <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAdmin() {
+      // This securely identifies you as the admin by your email.
+      return request.auth.token.email == '${auth.user?.email}';
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      // Admins can list all users, and read/update any user profile.
+      allow list, read, update: if isAdmin();
+      
+      // Users can read/write their own data and create their own profile.
+      allow read, write, create: if request.auth.uid == userId;
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      // Admins and the user can access subcollections (transactions, creations).
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+    
+    // --- Config Rules ---
+    match /config/main {
+        // Admins can change app settings.
+        allow write: if isAdmin();
+        // Any authenticated user can read the app configuration.
+        allow read: if request.auth != null;
+    }
+    
+    // --- Purchases Rules ---
+    match /purchases/{purchaseId} {
+        // Admins can read the list of all purchases for the dashboard.
+        allow list, read: if isAdmin();
+        // Users can create their own purchase record upon payment.
+        allow create: if request.auth.uid == request.resource.data.userId;
+    }
+  }
+}`}
+                        </code>
+                    </pre>
+                    <p>
+                        4. Click <strong>Publish</strong>. Then, come back here and refresh the page. The Admin Panel should now load correctly.
+                    </p>
+                </div>
+            </div>
         </div>
-        <h3 className="text-xl font-bold text-gray-800">Permission Denied</h3>
-        <p className="mt-2 text-sm text-gray-600">
-            Your account (<span className="font-semibold">{auth.user?.email}</span>) does not have the required administrative permissions to view this panel.
-        </p>
-        <p className="mt-4 text-xs text-gray-500 max-w-lg mx-auto">
-            This error indicates that either your Firebase security rules are blocking access, or your user account is missing the `isAdmin: true` custom claim in Firebase Authentication. Please check your project configuration.
-        </p>
     </div>
 );
 
@@ -267,7 +322,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
         setAppConfig(prev => {
             if (!prev) return null;
             const newPacks = [...prev.creditPacks];
-            (newPacks[index] as any)[field] = value;
+            const pack = { ...newPacks[index] };
+            (pack as any)[field] = value;
+
+            // Recalculate total credits when base or bonus changes
+            if (field === 'credits' || field === 'bonus') {
+                pack.totalCredits = Number(pack.credits) + Number(pack.bonus);
+            }
+
+            newPacks[index] = pack;
             return { ...prev, creditPacks: newPacks };
         });
     };
@@ -298,7 +361,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     );
     
     if (isLoading) return <div className="text-center p-10">Loading Admin Panel...</div>;
-    if (error === 'permission-denied') return <div className="p-4 sm:p-6 lg:p-8"><div className="bg-white p-6 rounded-2xl"><PermissionsError auth={auth} /></div></div>;
+    if (error === 'permission-denied') return <div className="p-4 sm:p-6 lg:p-8"><PermissionsGuide auth={auth} /></div>;
     if (error) return <p className="text-center p-10 text-red-500">{error}</p>;
 
     return (
