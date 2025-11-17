@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to match the named export in `DashboardPage.tsx` and resolve the module error.
@@ -265,7 +266,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
+      {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
       {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} appConfig={appConfig} />}
       {authModalOpen && (
         <AuthModal 

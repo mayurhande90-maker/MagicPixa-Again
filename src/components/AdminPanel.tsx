@@ -243,7 +243,8 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
 
 type AdminTab = 'dashboard' | 'users' | 'settings';
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
+// FIX: Exported the AdminPanel component to make it available for import.
+export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -300,6 +301,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
         setSaveSuccess(false);
         try {
             await updateAppConfig(appConfig);
+            // Re-fetch the config to ensure local state is in sync with the database
+            const updatedConfig = await getAppConfig();
+            setAppConfig(updatedConfig);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
@@ -495,48 +499,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
 
                         {/* Feature Toggles */}
                         <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                           <h3 className="font-bold text-lg mb-4">Feature Toggles</h3>
-                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <h3 className="font-bold text-lg mb-4">Feature Toggles</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {Object.keys(appConfig.featureToggles).map(key => (
                                     <div key={key} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                                        <label htmlFor={`toggle-${key}`} className="text-sm font-medium text-gray-700 capitalize">{key}</label>
-                                        <button
+                                        <label htmlFor={`toggle-${key}`} className="text-sm font-medium text-gray-700 capitalize">{key.replace('_', ' ')}</label>
+                                        <input
                                             id={`toggle-${key}`}
-                                            onClick={() => handleConfigChange('featureToggles', key, !appConfig.featureToggles[key])}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appConfig.featureToggles[key] ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appConfig.featureToggles[key] ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
+                                            type="checkbox"
+                                            checked={appConfig.featureToggles[key]}
+                                            onChange={(e) => handleConfigChange('featureToggles', key, e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
                                     </div>
                                 ))}
-                           </div>
+                            </div>
                         </div>
-
+                        
                         {/* Credit Packs */}
                         <div className="bg-white p-6 rounded-2xl border border-gray-200">
                             <h3 className="font-bold text-lg mb-4">Credit Packs</h3>
                             <div className="space-y-4">
                                 {appConfig.creditPacks.map((pack, index) => (
-                                    <div key={index} className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end p-3 border border-gray-200 rounded-lg">
+                                    <div key={index} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end p-3 border rounded-lg bg-gray-50">
                                         <div className="col-span-2 md:col-span-1">
-                                            <label className="text-xs font-medium text-gray-500">Name</label>
-                                            <input type="text" value={pack.name} onChange={e => handlePackChange(index, 'name', e.target.value)} className="w-full text-sm p-1 border-b"/>
+                                            <label className="text-xs font-medium">Name</label>
+                                            <input type="text" value={pack.name} onChange={e => handlePackChange(index, 'name', e.target.value)} className="w-full p-1 border rounded-md" />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-medium text-gray-500">Price (₹)</label>
-                                            <input type="number" value={pack.price} onChange={e => handlePackChange(index, 'price', Number(e.target.value))} className="w-full text-sm p-1 border-b"/>
+                                            <label className="text-xs font-medium">Price (₹)</label>
+                                            <input type="number" value={pack.price} onChange={e => handlePackChange(index, 'price', Number(e.target.value))} className="w-full p-1 border rounded-md" />
                                         </div>
-                                         <div>
-                                            <label className="text-xs font-medium text-gray-500">Base Credits</label>
-                                            <input type="number" value={pack.credits} onChange={e => handlePackChange(index, 'credits', Number(e.target.value))} className="w-full text-sm p-1 border-b"/>
+                                        <div>
+                                            <label className="text-xs font-medium">Credits</label>
+                                            <input type="number" value={pack.credits} onChange={e => handlePackChange(index, 'credits', Number(e.target.value))} className="w-full p-1 border rounded-md" />
                                         </div>
-                                         <div>
-                                            <label className="text-xs font-medium text-gray-500">Bonus</label>
-                                            <input type="number" value={pack.bonus} onChange={e => handlePackChange(index, 'bonus', Number(e.target.value))} className="w-full text-sm p-1 border-b"/>
+                                        <div>
+                                            <label className="text-xs font-medium">Bonus</label>
+                                            <input type="number" value={pack.bonus} onChange={e => handlePackChange(index, 'bonus', Number(e.target.value))} className="w-full p-1 border rounded-md" />
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <input type="checkbox" id={`popular-${index}`} checked={pack.popular} onChange={e => handlePackChange(index, 'popular', e.target.checked)} />
-                                            <label htmlFor={`popular-${index}`} className="text-xs font-medium text-gray-500">Popular?</label>
+                                            <p className="text-sm">Total: <strong className="text-blue-600">{pack.totalCredits}</strong></p>
+                                            <div className="flex items-center">
+                                                <input id={`popular-${index}`} type="checkbox" checked={pack.popular} onChange={e => handlePackChange(index, 'popular', e.target.checked)} className="h-4 w-4 rounded border-gray-300"/>
+                                                <label htmlFor={`popular-${index}`} className="ml-1 text-xs font-medium">Popular</label>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -544,25 +551,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                         </div>
 
                         {/* Save Button */}
-                        <div className="flex justify-end items-center gap-4 sticky bottom-8">
-                           {saveSuccess && <p className="text-green-600 font-semibold flex items-center gap-1"><CheckIcon className="w-5 h-5"/> Settings Saved!</p>}
-                           <button onClick={handleConfigSave} disabled={isSaving} className="px-6 py-3 text-sm font-semibold text-white bg-[#0079F2] rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <div className="flex justify-end items-center gap-4 pt-4 border-t">
+                            {saveSuccess && <p className="text-green-600 flex items-center gap-1 text-sm"><CheckIcon className="w-4 h-4"/> Saved successfully!</p>}
+                            <button onClick={handleConfigSave} disabled={isSaving} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
                                 {isSaving ? 'Saving...' : 'Save All Settings'}
-                           </button>
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
-
-            {/* Modals */}
             {selectedUserForCredits && auth.user && (
-                <AddCreditsModal user={selectedUserForCredits} onClose={() => setSelectedUserForCredits(null)} onSuccess={handleCreditUpdateSuccess} adminUid={auth.user.uid} />
+                <AddCreditsModal 
+                    user={selectedUserForCredits} 
+                    onClose={() => setSelectedUserForCredits(null)}
+                    onSuccess={handleCreditUpdateSuccess}
+                    adminUid={auth.user.uid}
+                />
             )}
             {selectedUserForDetails && (
-                 <UserDetailModal user={selectedUserForDetails} onClose={() => setSelectedUserForDetails(null)} />
+                <UserDetailModal
+                    user={selectedUserForDetails}
+                    onClose={() => setSelectedUserForDetails(null)}
+                />
             )}
         </div>
     );
 };
-
-export default AdminPanel;

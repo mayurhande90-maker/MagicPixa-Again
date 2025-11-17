@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, AuthProps, View } from './types';
+import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 // FIX: Added missing ProjectsIcon to the import list.
@@ -10,6 +10,7 @@ import {
 interface HomePageProps {
   navigateTo: (page: Page, view?: View) => void;
   auth: AuthProps;
+  appConfig: AppConfig | null;
 }
 
 const features = [
@@ -86,7 +87,7 @@ const features = [
         disabled: false,
     },
     {
-        id: null,
+        id: 'scanner',
         icon: <ScannerIcon className="w-10 h-10 text-white" />,
         title: "Magic Scanner",
         description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
@@ -94,7 +95,7 @@ const features = [
         disabled: true,
     },
     {
-        id: null,
+        id: 'notes',
         icon: <NotesIcon className="w-10 h-10 text-white" />,
         title: "Magic Notes",
         description: "Upload a textbook or long PDF and our AI will generate key points and notes to help you study smarter.",
@@ -126,49 +127,6 @@ const reviews = [
     },
 ];
 
-const creditPacks = [
-  {
-    name: 'Starter Pack',
-    price: '99',
-    credits: 50,
-    totalCredits: 50,
-    bonus: 0,
-    tagline: 'For quick tests & personal use',
-    popular: false,
-    value: 1.98,
-  },
-  {
-    name: 'Creator Pack',
-    price: '249',
-    credits: 150,
-    totalCredits: 165,
-    bonus: 15,
-    tagline: 'For creators & influencers — extra credits included!',
-    popular: true,
-    value: 1.51,
-  },
-  {
-    name: 'Studio Pack',
-    price: '699',
-    credits: 500,
-    totalCredits: 575,
-    bonus: 75,
-    tagline: 'For professional video and design teams',
-    popular: false,
-    value: 1.21,
-  },
-  {
-    name: 'Agency Pack',
-    price: '1199',
-    credits: 1000,
-    totalCredits: 1200,
-    bonus: 200,
-    tagline: 'For studios and agencies — biggest savings!',
-    popular: false,
-    value: 0.99,
-  },
-];
-
 const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
     const handleNav = (view: View) => {
         if (!auth.isAuthenticated) {
@@ -181,7 +139,7 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
     const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
         { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
         { view: 'dashboard', label: 'Features', icon: DashboardIcon },
-        { view: 'creations', label: 'Projects', icon: ProjectsIcon, disabled: true },
+        { view: 'creations', label: 'Projects', icon: ProjectsIcon },
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
     ];
     
@@ -200,7 +158,18 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
 };
 
 
-const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
+const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
+  const creditPacks = appConfig?.creditPacks || [];
+
+  const featuresWithConfig = features.map(f => {
+    if (f.id && appConfig?.featureToggles && f.id in appConfig.featureToggles) {
+        return { ...f, disabled: !appConfig.featureToggles[f.id] };
+    }
+    // For items with hardcoded `disabled: true`, respect that setting.
+    return f;
+  });
+
+
   return (
     <>
       <Header navigateTo={navigateTo} auth={auth} />
@@ -239,7 +208,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth }) => {
                     <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Everything You Need to Create</h2>
                     <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {features.map((feature, index) => (
+                        {featuresWithConfig.map((feature, index) => (
                             <div 
                                 key={index} 
                                 onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}

@@ -29,6 +29,11 @@ const NavButton: React.FC<{
     >
         <item.icon className="w-5 h-5 flex-shrink-0" />
         <span className="truncate">{item.label}</span>
+        {item.disabled && (
+            <span className="ml-auto text-[10px] bg-gray-200 text-gray-500 font-bold px-1.5 py-0.5 rounded-full">
+                SOON
+            </span>
+        )}
     </button>
 );
 
@@ -47,20 +52,21 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'apparel', label: 'Magic Apparel', icon: UsersIcon, disabled: false },
-    { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },
+    { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
     { type: 'divider', label: 'Account' },
     { id: 'billing', label: 'Billing & Credits', icon: CreditCardIcon, disabled: false },
   ];
 
-  const navStructure = allNavItems.filter(item => {
-    if (item.type === 'divider' || !item.id) return true;
-    // Hide feature if it's toggled off in the config
-    if (appConfig?.featureToggles && item.id in appConfig.featureToggles) {
-        return appConfig.featureToggles[item.id];
+  const navStructure = allNavItems.map(item => {
+    if (item.id && appConfig?.featureToggles && item.id in appConfig.featureToggles) {
+        // A feature is disabled if its toggle is explicitly set to false
+        const isDisabled = appConfig.featureToggles[item.id] === false;
+        return { ...item, disabled: isDisabled };
     }
-    return true; // Show by default if not in config
+    // Respect the hardcoded disabled status for items not in the config
+    return item;
   });
 
   const handleNavClick = (view: View) => {

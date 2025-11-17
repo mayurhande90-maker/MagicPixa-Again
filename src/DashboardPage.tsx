@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -10,7 +12,8 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import ThemeToggle from './components/ThemeToggle';
-import AdminPanel from './components/AdminPanel'; // Import the new AdminPanel component
+// FIX: Changed to a named import for `AdminPanel` as it does not have a default export.
+import { AdminPanel } from './components/AdminPanel'; // Import the new AdminPanel component
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ProductStudioIcon,
@@ -169,137 +172,164 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose }) => {
     );
 };
 
-const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[]; }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations }) => (
-    <div className="p-4 sm:p-6 lg:p-8 h-full">
-        <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content Area */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-[#1E1E1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
-                        <p className="text-[#5F6368] mt-1">Ready to create something amazing today?</p>
-                    </div>
+const DesktopDashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[]; appConfig: AppConfig | null; }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations, appConfig }) => {
+    const quickTools = dashboardFeatures
+        .filter(f => f.view !== 'creations')
+        .slice(0, 6)
+        .map(f => ({
+            ...f,
+            disabled: appConfig?.featureToggles[f.view] === false
+        }));
 
-                    {/* Recommended for you */}
-                    <div>
-                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recommended for You</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {smartStackItems.map((item, index) => (
-                                <div key={index} onClick={() => setActiveView(item.actionView as View)} className={`p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform hover:-translate-y-1 ${item.bgColor}`}>
-                                    <div className="flex items-start gap-3">
-                                        {item.icon}
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-sm text-[#1E1E1E]">{item.title}</h3>
-                                            <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 h-full">
+            <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <div>
+                            <h1 className="text-3xl font-bold text-[#1E1E1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
+                            <p className="text-[#5F6368] mt-1">Ready to create something amazing today?</p>
+                        </div>
+
+                        {/* Recommended for you */}
+                        <div>
+                            <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recommended for You</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {smartStackItems.map((item, index) => (
+                                    <div key={index} onClick={() => setActiveView(item.actionView as View)} className={`p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-transform transform hover:-translate-y-1 ${item.bgColor}`}>
+                                        <div className="flex items-start gap-3">
+                                            {item.icon}
+                                            <div className="flex-1">
+                                                <h3 className="font-bold text-sm text-[#1E1E1E]">{item.title}</h3>
+                                                <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    
-                    {/* Quick Tools */}
-                    <div>
-                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Quick Tools</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {dashboardFeatures.filter(f => !f.disabled).slice(0, 6).map(feature => (
-                                <div 
-                                    key={feature.view}
-                                    onClick={() => !feature.disabled && setActiveView(feature.view)}
-                                    className="bg-white p-4 rounded-2xl border border-gray-200/80 cursor-pointer transition-shadow hover:shadow-lg hover:border-blue-300"
-                                >
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${feature.gradient} mb-3`}>
-                                        <feature.icon className="w-7 h-7 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-sm text-[#1E1E1E]">{feature.title}</h3>
-                                    <p className="text-xs text-gray-500">{feature.description}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* Right Sidebar Area */}
-                <div className="space-y-8">
-                     {/* Profile & Credits */}
-                    <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
-                                {user?.avatar}
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg text-[#1E1E1E]">{user?.name}</h3>
-                                <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
+                                ))}
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                               <PencilIcon className="w-4 h-4" /> Edit Profile
-                            </button>
-                             <button onClick={() => setActiveView('billing')} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-[#f9d230] text-[#1E1E1E] font-semibold rounded-lg hover:scale-105 transform transition-transform">
-                                <PlusIcon className="w-4 h-4" /> Add Credits
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Recent Creations */}
-                    <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
-                        <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recent Creations</h2>
-                        {creations.length > 0 ? (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {creations.slice(0, 4).map(creation => (
-                                        <div key={creation.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                                            <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover" />
+                        
+                        {/* Quick Tools */}
+                        <div>
+                            <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Quick Tools</h2>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {quickTools.map(feature => (
+                                    <div 
+                                        key={feature.view}
+                                        onClick={() => !feature.disabled && setActiveView(feature.view)}
+                                        className={`relative bg-white p-4 rounded-2xl border border-gray-200/80 transition-shadow hover:shadow-lg hover:border-blue-300 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    >
+                                        {feature.disabled && (
+                                            <div className="absolute top-2 right-2 bg-gray-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                                SOON
+                                            </div>
+                                        )}
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${feature.gradient} mb-3`}>
+                                            <feature.icon className="w-7 h-7 text-white" />
                                         </div>
-                                    ))}
+                                        <h3 className="font-bold text-sm text-[#1E1E1E]">{feature.title}</h3>
+                                        <p className="text-xs text-gray-500">{feature.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Right Sidebar Area */}
+                    <div className="space-y-8">
+                         {/* Profile & Credits */}
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-2xl">
+                                    {user?.avatar}
                                 </div>
-                                <button onClick={() => setActiveView('creations')} className="w-full bg-gray-100 text-gray-700 text-sm font-semibold py-2 rounded-lg hover:bg-gray-200">
-                                    View All
+                                <div>
+                                    <h3 className="font-bold text-lg text-[#1E1E1E]">{user?.name}</h3>
+                                    <p className="text-sm text-[#5F6368] truncate">{user?.email}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={openEditProfileModal} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                   <PencilIcon className="w-4 h-4" /> Edit Profile
+                                </button>
+                                 <button onClick={() => setActiveView('billing')} className="w-full flex items-center justify-center gap-2 text-sm py-2 bg-[#f9d230] text-[#1E1E1E] font-semibold rounded-lg hover:scale-105 transform transition-transform">
+                                    <PlusIcon className="w-4 h-4" /> Add Credits
                                 </button>
                             </div>
-                        ) : (
-                            <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                                 <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                 <p className="text-sm text-[#5F6368]">Your creations will appear here.</p>
-                            </div>
-                        )}
+                        </div>
+
+                        {/* Recent Creations */}
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80">
+                            <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">Recent Creations</h2>
+                            {creations.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {creations.slice(0, 4).map(creation => (
+                                            <div key={creation.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                                                <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setActiveView('creations')} className="w-full bg-gray-100 text-gray-700 text-sm font-semibold py-2 rounded-lg hover:bg-gray-200">
+                                        View All
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                     <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                     <p className="text-sm text-[#5F6368]">Your creations will appear here.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+}
 
-const MobileDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => (
-    <div className="p-4">
-        <h1 className="text-2xl font-bold text-[#1E1E1E]">Welcome, {user?.name.split(' ')[0]}!</h1>
-        <p className="text-[#5F6368] mt-1 mb-6">What will you create today?</p>
-        
-        <div className="grid grid-cols-2 gap-4">
-            {dashboardFeatures.map(feature => (
-                <div 
-                    key={feature.view}
-                    onClick={() => !feature.disabled && setActiveView(feature.view)}
-                    className={`relative aspect-square p-4 rounded-2xl text-white flex flex-col justify-end bg-gradient-to-br ${feature.gradient} shadow-lg shadow-gray-500/10 transition-transform transform active:scale-95 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                    <feature.icon className="w-8 h-8 absolute top-4 left-4" />
-                    <h3 className="font-bold">{feature.title}</h3>
-                </div>
-            ))}
+
+const MobileDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; appConfig: AppConfig | null; }> = ({ user, setActiveView, appConfig }) => {
+    const featuresWithConfig = dashboardFeatures.map(f => ({
+        ...f,
+        disabled: appConfig?.featureToggles[f.view] === false
+    }));
+
+    return (
+        <div className="p-4">
+            <h1 className="text-2xl font-bold text-[#1E1E1E]">Welcome, {user?.name.split(' ')[0]}!</h1>
+            <p className="text-[#5F6368] mt-1 mb-6">What will you create today?</p>
+            
+            <div className="grid grid-cols-2 gap-4">
+                {featuresWithConfig.map(feature => (
+                    <div 
+                        key={feature.view}
+                        onClick={() => !feature.disabled && setActiveView(feature.view)}
+                        className={`relative aspect-square p-4 rounded-2xl text-white flex flex-col justify-end bg-gradient-to-br ${feature.gradient} shadow-lg shadow-gray-500/10 transition-transform transform active:scale-95 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                        {feature.disabled && (
+                            <div className="absolute top-2 right-2 bg-black/30 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                SOON
+                            </div>
+                        )}
+                        <feature.icon className="w-8 h-8 absolute top-4 left-4" />
+                        <h3 className="font-bold">{feature.title}</h3>
+                    </div>
+                ))}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-
-const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[] }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations }) => (
+const Dashboard: React.FC<{ user: User | null; navigateTo: (page: Page, view?: View, sectionId?: string) => void; openEditProfileModal: () => void; setActiveView: (view: View) => void; creations: Creation[], appConfig: AppConfig | null; }> = ({ user, navigateTo, openEditProfileModal, setActiveView, creations, appConfig }) => (
     <>
         <div className="hidden lg:block h-full">
-            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />
+            <DesktopDashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />
         </div>
         <div className="lg:hidden">
-            <MobileDashboard user={user} setActiveView={setActiveView} />
+            <MobileDashboard user={user} setActiveView={setActiveView} appConfig={appConfig} />
         </div>
     </>
 );
@@ -2770,11 +2800,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
       case 'home_dashboard':
         return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
       case 'admin':
-        return user?.isAdmin ? <AdminPanel auth={auth} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
+        return user?.isAdmin ? <AdminPanel auth={auth} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
       case 'studio':
         return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
       case 'interior':
@@ -2854,7 +2884,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
             </div>
         );
       default:
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
     }
   };
 
