@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -459,7 +460,7 @@ const ImageEditModal: React.FC<{
     useEffect(() => {
         drawImage(currentImageUrl);
         setHistory([currentImageUrl]);
-    }, [drawImage]);
+    }, [drawImage, currentImageUrl]);
 
     useEffect(() => {
         const handleResize = () => drawImage(currentImageUrl);
