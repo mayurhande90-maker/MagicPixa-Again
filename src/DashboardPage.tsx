@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -2765,6 +2766,25 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
         setDeletingId(null);
       }
     };
+
+    const handleDownload = async (url: string, filename: string) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok.');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Could not download the image. Please try again or right-click to save.");
+        }
+    };
   
     return (
       <div className="p-4 sm:p-6 lg:p-8">
@@ -2794,9 +2814,9 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
                     <p className="text-xs text-white/80">{creation.createdAt.toDate().toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a href={creation.imageUrl} download={`magicpixa_${creation.id}.png`} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white">
+                    <button onClick={() => handleDownload(creation.imageUrl, `magicpixa_${creation.id}.png`)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white">
                         <DownloadIcon className="w-5 h-5" />
-                    </a>
+                    </button>
                     <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/50 rounded-full hover:bg-red-500 backdrop-blur-sm disabled:opacity-50 text-white">
                       {deletingId === creation.id ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <TrashIcon className="w-5 h-5" />}
                     </button>
