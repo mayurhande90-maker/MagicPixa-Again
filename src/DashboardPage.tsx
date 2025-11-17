@@ -2768,35 +2768,44 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
     };
 
     const handleDownload = async (url: string, filename: string) => {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok.');
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-            console.error("Download via fetch failed, attempting fallback:", error);
-            // Fallback: Open in new tab for manual save
-            try {
-                const link = document.createElement('a');
-                link.href = url;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                alert("Could not download automatically. The image has been opened in a new tab for you to save manually.");
-            } catch (fallbackError) {
-                 console.error("Fallback download method also failed:", fallbackError);
-                 alert("Could not download the image. Please try right-clicking the image to save it.");
-            }
+      try {
+        // Attempt to fetch the image and create a local blob URL.
+        // This is the only reliable way to force a 'download' action for a cross-origin resource.
+        const response = await fetch(url);
+        if (!response.ok) {
+            // If the request fails (e.g., 404, 500), it will throw and trigger the fallback.
+            throw new Error('Network response was not ok.');
         }
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Create a temporary link to trigger the download.
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename; // The 'download' attribute works on blob URLs.
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up the temporary link and blob URL.
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        // This fallback is crucial. The 'fetch' call above will likely fail due to
+        // Cross-Origin Resource Sharing (CORS) policies if the Firebase Storage bucket
+        // is not configured to allow requests from this web app's domain.
+        console.error("Direct download failed, likely due to CORS policy. Falling back to opening image in a new tab.", error);
+        
+        // As a fallback, open the image in a new tab. The user can then manually
+        // save it (e.g., right-click -> "Save Image As..."). This is a better UX
+        // than showing an error or doing nothing.
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     };
   
     return (
