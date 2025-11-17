@@ -404,6 +404,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Interior': 2,
           'Magic Apparel': 3,
           'Magic Mockup': 2,
+          'Magic Eraser': 1,
         },
         featureToggles: {
           'studio': true,

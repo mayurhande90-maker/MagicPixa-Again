@@ -33,8 +33,8 @@ interface DashboardPageProps {
   openEditProfileModal: () => void;
   isConversationOpen: boolean;
   setIsConversationOpen: (isOpen: boolean) => void;
-  // FIX: Add appConfig to the props interface.
   appConfig: AppConfig | null;
+  setAppConfig: React.Dispatch<React.SetStateAction<AppConfig | null>>;
 }
 
 const loadingMessages = [
@@ -397,7 +397,8 @@ const ImageEditModal: React.FC<{
     onSave: (newImageUrl: string) => void;
     auth: AuthProps;
     navigateTo: (page: Page, view?: View, sectionId?: string) => void;
-}> = ({ imageUrl, onClose, onSave, auth, navigateTo }) => {
+    appConfig: AppConfig | null;
+}> = ({ imageUrl, onClose, onSave, auth, navigateTo, appConfig }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -408,7 +409,7 @@ const ImageEditModal: React.FC<{
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const EDIT_COST = 1;
+    const EDIT_COST = appConfig?.featureCosts['Magic Eraser'] || 1;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-eraser') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-eraser')!, 10) : 1);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -662,7 +663,7 @@ const ImageEditModal: React.FC<{
     );
 };
 
-const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -682,7 +683,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
     
-    const EDIT_COST = 2;
+    const EDIT_COST = appConfig?.featureCosts['Magic Photo Studio'] || 2;
     const currentCost = EDIT_COST;
 
     const isGuest = !auth.isAuthenticated || !auth.user;
@@ -792,7 +793,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, theme, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, theme, currentCredits, auth, isGuest, navigateTo, EDIT_COST]);
 
 
     const handleDownloadClick = useCallback(() => {
@@ -989,7 +990,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 };
 
-const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -1010,7 +1011,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
     
-    const EDIT_COST = 2;
+    const EDIT_COST = appConfig?.featureCosts['Magic Interior'] || 2;
     const currentCost = EDIT_COST;
 
     const isGuest = !auth.isAuthenticated || !auth.user;
@@ -1119,7 +1120,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         } finally {
             setIsLoading(false);
         }
-    }, [base64Data, style, spaceType, roomType, currentCredits, auth, isGuest, navigateTo]);
+    }, [base64Data, style, spaceType, roomType, currentCredits, auth, isGuest, navigateTo, EDIT_COST]);
 
     const handleDownloadClick = useCallback(() => {
         if (!generatedImage || !style) return;
@@ -1266,7 +1267,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 };
 
-const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [base64Data, setBase64Data] = useState<Base64File | null>(null);
@@ -1285,7 +1286,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messageIntervalRef = useRef<number | null>(null);
 
-    const EDIT_COST = 2;
+    const EDIT_COST = appConfig?.featureCosts['Magic Photo Colour'] || 2;
     const currentCost = EDIT_COST;
 
     const isGuest = !auth.isAuthenticated || !auth.user;
@@ -1544,7 +1545,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: (page: Page, vie
     );
 };
 
-const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [personA, setPersonA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [personB, setPersonB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -1558,7 +1559,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     const fileInputARef = useRef<HTMLInputElement>(null);
     const fileInputBRef = useRef<HTMLInputElement>(null);
     
-    const EDIT_COST = 3;
+    const EDIT_COST = appConfig?.featureCosts['Magic Soul'] || 3;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-soul') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-soul')!, 10) : 3);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -1790,7 +1791,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
     );
 };
 
-const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [person, setPerson] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [top, setTop] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [trousers, setTrousers] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
@@ -1803,7 +1804,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     const topInputRef = useRef<HTMLInputElement>(null);
     const trousersInputRef = useRef<HTMLInputElement>(null);
 
-    const EDIT_COST = 3;
+    const EDIT_COST = appConfig?.featureCosts['Magic Apparel'] || 3;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-apparel') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-apparel')!, 10) : 3);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -1958,7 +1959,7 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: 
     );
 };
 
-const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [originalImage, setOriginalImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -1968,7 +1969,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const EDIT_COST = 2;
+    const EDIT_COST = appConfig?.featureCosts['Magic Mockup'] || 2;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-mockup') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-mockup')!, 10) : 2);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -2100,7 +2101,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: V
     );
 };
 
-const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [image, setImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[] | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -2109,7 +2110,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const EDIT_COST = 1;
+    const EDIT_COST = appConfig?.featureCosts['CaptionAI'] || 1;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const [guestCredits, setGuestCredits] = useState<number>(() => sessionStorage.getItem('magicpixa-guest-credits-caption') ? parseInt(sessionStorage.getItem('magicpixa-guest-credits-caption')!, 10) : 3);
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
@@ -2274,7 +2275,7 @@ const TextAreaField: React.FC<{
     </div>
 );
 
-const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [productImages, setProductImages] = useState<{ file: File; url: string; base64: Base64File }[]>([]);
     const [productName, setProductName] = useState('');
     const [productDescription, setProductDescription] = useState('');
@@ -2299,7 +2300,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     const brandLogoInputRef = useRef<HTMLInputElement>(null);
     const inspirationInputRef = useRef<HTMLInputElement>(null);
 
-    const EDIT_COST = 5;
+    const EDIT_COST = appConfig?.featureCosts['Product Studio'] || 5;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
@@ -2556,7 +2557,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         {Object.entries(generatedImages).map(([key, src]) => (
                                             <div key={key}>
-                                                <img src={src} alt={key} className="w-full aspect-square object-cover rounded-lg bg-gray-100" />
+                                                <img src={src as string} alt={key} className="w-full aspect-square object-cover rounded-lg bg-gray-100" />
                                                 <p className="text-xs font-semibold text-center mt-1 text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                                             </div>
                                         ))}
@@ -2592,7 +2593,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 };
 
 
-const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [logo, setLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [product, setProduct] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [reference, setReference] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
@@ -2610,7 +2611,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     const productInputRef = useRef<HTMLInputElement>(null);
     const referenceInputRef = useRef<HTMLInputElement>(null);
 
-    const EDIT_COST = 4;
+    const EDIT_COST = appConfig?.featureCosts['Brand Stylist AI'] || 4;
     const isGuest = !auth.isAuthenticated || !auth.user;
     const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
@@ -2734,206 +2735,231 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
                         </div>
 
                         <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                           <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50"><SparklesIcon className="w-5 h-5"/> Generate</button>
+                           <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
+                                {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Styled Image</>}
+                           </button>
                            <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
+                           {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                         </div>
-                        {error && <div className='text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
                     </form>
                 </div>
             </div>
             {isImageModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsImageModalOpen(false)} />}
-            {isEditModalOpen && generatedImage && <ImageEditModal imageUrl={generatedImage} onClose={() => setIsEditModalOpen(false)} onSave={(newImg) => setGeneratedImage(newImg)} auth={auth} navigateTo={navigateTo} />}
+            {isEditModalOpen && generatedImage && <ImageEditModal imageUrl={generatedImage} onClose={() => setIsEditModalOpen(false)} onSave={setGeneratedImage} auth={auth} navigateTo={navigateTo} appConfig={appConfig} />}
         </div>
     );
 };
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig }) => {
-  const [creations, setCreations] = useState<Creation[]>([]);
-  const [isLoadingCreations, setIsLoadingCreations] = useState(true);
-  const [selectedCreation, setSelectedCreation] = useState<Creation | null>(null);
-
-  const { user } = auth;
-
-  useEffect(() => {
-    if (user && (activeView === 'dashboard' || activeView === 'creations' || activeView === 'home_dashboard')) {
-      setIsLoadingCreations(true);
-      getCreations(user.uid)
-        .then(setCreations)
-        .catch(console.error)
-        .finally(() => setIsLoadingCreations(false));
-    }
-  }, [user, activeView]);
-
-  const handleCreationDelete = async (creation: Creation) => {
-    if (user && window.confirm("Are you sure you want to delete this creation? This action cannot be undone.")) {
+const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Dispatch<React.SetStateAction<Creation[]>>; user: User | null; }> = ({ creations, setCreations, user }) => {
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+    const handleDelete = async (creation: Creation) => {
+      if (!user || !window.confirm("Are you sure you want to delete this creation? This cannot be undone.")) return;
+      setDeletingId(creation.id);
       try {
         await deleteCreation(user.uid, creation);
         setCreations(prev => prev.filter(c => c.id !== creation.id));
       } catch (error) {
         console.error("Failed to delete creation:", error);
         alert("Could not delete the creation. Please try again.");
+      } finally {
+        setDeletingId(null);
       }
-    }
-  };
-
-  const handleCreationDownload = async (creation: Creation) => {
-    try {
-      const response = await fetch(creation.imageUrl);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const fileExtension = creation.imageUrl.split('.').pop()?.split('?')[0] || 'png';
-      link.download = `magicpixa_${creation.feature.replace(/\s+/g, '_').toLowerCase()}_${creation.id.substring(0, 6)}.${fileExtension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Failed to download creation:", error);
-      alert("Could not download the image. Please try again.");
-    }
-  };
-
-
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
-      case 'home_dashboard':
-        return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
-      case 'admin':
-        return user?.isAdmin ? <AdminPanel auth={auth} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
-      case 'studio':
-        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
-      case 'interior':
-        return <MagicInterior auth={auth} navigateTo={navigateTo} />;
-      case 'colour':
-        return <MagicPhotoColour auth={auth} navigateTo={navigateTo} />;
-      case 'soul':
-        return <MagicSoul auth={auth} navigateTo={navigateTo} />;
-      case 'apparel':
-        return <MagicApparel auth={auth} navigateTo={navigateTo} />;
-      case 'mockup':
-          return <MagicMockup auth={auth} navigateTo={navigateTo} />;
-      case 'caption':
-        return <CaptionAI auth={auth} navigateTo={navigateTo} />;
-      case 'product_studio':
-          return <ProductStudio auth={auth} navigateTo={navigateTo} />;
-      case 'brand_stylist':
-          return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
-      case 'billing':
-// FIX: Pass the appConfig prop to the Billing component.
-        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} /> : null;
-      case 'creations':
-        return (
-             <div className="p-4 sm:p-6 lg:p-8">
-                <div className='mb-8 text-center lg:text-left'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
-                    <p className="text-[#5F6368] mt-1">Browse and manage all your generated assets.</p>
+    };
+  
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className='mb-8 text-center lg:text-left'>
+          <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
+          <p className="text-[#5F6368] mt-1">All your generated images and projects, saved in one place.</p>
+        </div>
+        {creations.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-[#1E1E1E]">No Creations Yet</h3>
+            <p className="text-[#5F6368] mt-1">Start creating with our tools and your projects will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {creations.map(creation => (
+              <div key={creation.id} className="relative aspect-square group bg-gray-100 rounded-lg overflow-hidden">
+                <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3 text-white">
+                  <div>
+                    <p className="font-bold text-sm">{creation.feature}</p>
+                    <p className="text-xs">{creation.createdAt.toDate().toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setSelectedImage(creation.imageUrl)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm"><ZoomInIcon className="w-5 h-5" /></button>
+                    <a href={creation.imageUrl} download={`magicpixa_${creation.id}.png`} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm"><DownloadIcon className="w-5 h-5" /></a>
+                    <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/50 rounded-full hover:bg-red-500 backdrop-blur-sm disabled:opacity-50">
+                      {deletingId === creation.id ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <TrashIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
-                {isLoadingCreations ? (
-                     <div className="text-center"><p>Loading your creations...</p></div>
-                ) : creations.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {creations.map(creation => (
-                            <div key={creation.id} className="bg-white rounded-lg overflow-hidden border border-gray-200/80 shadow-sm flex flex-col">
-                                <div className="relative aspect-square bg-gray-100">
-                                    <img 
-                                        src={creation.imageUrl} 
-                                        alt={creation.feature} 
-                                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 hover:scale-105"
-                                        onClick={() => setSelectedCreation(creation)}
-                                    />
-                                </div>
-                                <div className="p-3 mt-auto">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p className="font-bold text-sm text-gray-800 truncate">{creation.feature}</p>
-                                            <p className="text-xs text-gray-500">{creation.createdAt.toDate().toLocaleDateString()}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleCreationDownload(creation); }}
-                                                className="p-2 text-gray-500 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors"
-                                                title="Download"
-                                            >
-                                                <DownloadIcon className="w-5 h-5" />
-                                            </button>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleCreationDelete(creation); }}
-                                                className="p-2 text-gray-500 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <TrashIcon className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                         <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-2" />
-                         <h3 className="text-xl font-bold text-[#1E1E1E]">No Creations Yet</h3>
-                         <p className="text-sm text-[#5F6368]">Start creating and your projects will appear here.</p>
-                    </div>
-                )}
-            </div>
-        );
-      default:
-        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
-    }
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
+      </div>
+    );
   };
 
-  const isFullScreenView = activeView === 'studio' || activeView === 'interior' || activeView === 'colour' || activeView === 'soul' || activeView === 'apparel' || activeView === 'mockup' || activeView === 'caption' || activeView === 'product_studio' || activeView === 'brand_stylist';
-  const showBackButton = isFullScreenView || activeView === 'creations' || activeView === 'billing' || activeView === 'admin';
-
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <Header
-        navigateTo={navigateTo}
-        auth={{
-          ...auth,
-          isDashboard: true,
-          setActiveView: setActiveView,
-          openConversation: () => setIsConversationOpen(true),
-          showBackButton: showBackButton,
-          handleBack: () => setActiveView('dashboard'),
-        }}
-      />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
-        <main className="flex-1 overflow-y-auto">
-          {renderView()}
-        </main>
-      </div>
-      {selectedCreation && (
-        <ImageModal imageUrl={selectedCreation.imageUrl} onClose={() => setSelectedCreation(null)} />
-      )}
-      {/* Mobile Bottom Nav */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100]">
-        <div className="flex justify-around items-center h-full">
-            {[
-                { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
-                { view: 'dashboard', label: 'Features', icon: DashboardIcon },
-                { view: 'creations', label: 'Projects', icon: ProjectsIcon },
-                { view: 'profile', label: 'Profile', icon: AvatarUserIcon },
-            ].map(item => (
-                <button 
-                    key={item.label} 
-                    onClick={() => setActiveView(item.view as View)}
-                    className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'}`}
-                >
-                    <item.icon className="w-6 h-6" />
-                    <span className="text-xs font-medium">{item.label}</span>
-                </button>
-            ))}
+const Profile: React.FC<{ user: User, auth: AuthProps, openEditProfileModal: () => void, setActiveView: (view: View) => void }> = ({ user, auth, openEditProfileModal, setActiveView }) => {
+    return (
+      <div className="p-4 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-3xl">
+            {user.avatar}
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-[#1E1E1E]">{user.name}</h2>
+            <p className="text-[#5F6368]">{user.email}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <button onClick={openEditProfileModal} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
+            <span>Edit Profile</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
+          </button>
+          <button onClick={() => setActiveView('billing')} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
+            <span>Billing & Credits</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
+          </button>
+          <button onClick={() => setActiveView('creations')} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
+            <span>My Creations</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
+          </button>
+           <button onClick={() => auth.handleLogout()} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border text-red-600">
+            <span>Logout</span><LogoutIcon className="w-5 h-5" />
+          </button>
         </div>
       </div>
+    );
+};
+
+const MobileNav: React.FC<{ user: User | null, activeView: View, setActiveView: (view: View) => void }> = ({ user, activeView, setActiveView }) => {
+    const navItems = [
+        { view: 'home_dashboard' as View, label: 'Home', icon: HomeIcon },
+        { view: 'dashboard' as View, label: 'Features', icon: DashboardIcon },
+        { view: 'creations' as View, label: 'Projects', icon: ProjectsIcon },
+        { view: 'profile' as View, label: 'Profile', icon: AvatarUserIcon },
+    ];
+    
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
+            <div className="flex justify-around items-center h-full">
+                {navItems.map(item => (
+                    <button 
+                        key={item.label} 
+                        onClick={() => setActiveView(item.view)}
+                        className={`flex flex-col items-center gap-1 p-2 ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'}`}
+                    >
+                        <item.icon className="w-6 h-6" />
+                        <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({
+  navigateTo,
+  auth,
+  activeView,
+  setActiveView,
+  openEditProfileModal,
+  isConversationOpen,
+  setIsConversationOpen,
+  appConfig,
+  setAppConfig,
+}) => {
+  const [creations, setCreations] = useState<Creation[]>([]);
+  const { user } = auth;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+      if (user) {
+          getCreations(user.uid)
+              .then(setCreations)
+              .catch(err => console.error("Failed to get creations:", err));
+      }
+  }, [user]);
+
+  let content: React.ReactNode;
+  switch (activeView) {
+    case 'dashboard':
+      content = <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
+      break;
+    case 'home_dashboard':
+        content = <MobileHomeDashboard user={user} setActiveView={setActiveView} />;
+        break;
+    case 'studio':
+      content = <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'interior':
+      content = <MagicInterior auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'colour':
+      content = <MagicPhotoColour auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'soul':
+      content = <MagicSoul auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'apparel':
+      content = <MagicApparel auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'mockup':
+      content = <MagicMockup auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'caption':
+      content = <CaptionAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'product_studio':
+      content = <ProductStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'brand_stylist':
+      content = <BrandStylistAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      break;
+    case 'creations':
+      content = <CreationsGallery creations={creations} setCreations={setCreations} user={user} />;
+      break;
+    case 'billing':
+      content = user ? <Billing user={user} setUser={auth.setUser} appConfig={appConfig} /> : null;
+      break;
+    case 'profile':
+        content = user ? <Profile user={user} auth={auth} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} /> : null;
+        break;
+    case 'admin':
+        content = auth.user?.isAdmin ? <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} /> : <p>You do not have access to this page.</p>;
+        break;
+    default:
+      content = <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
+  }
+
+  const showBackButton = isMobile && !['home_dashboard', 'dashboard', 'creations', 'profile'].includes(activeView);
+  const handleBack = () => setActiveView(isMobile ? 'dashboard' : 'dashboard');
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+        <Header 
+            navigateTo={navigateTo} 
+            auth={{ ...auth, isDashboard: true, showBackButton, handleBack }}
+        />
+        <div className="flex">
+            <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
+            <main className="flex-1 overflow-y-auto">
+                {content}
+            </main>
+        </div>
+        {/* Mobile Nav */}
+        <MobileNav user={user} activeView={activeView} setActiveView={setActiveView} />
     </div>
   );
 };
-// Minor change for commit.

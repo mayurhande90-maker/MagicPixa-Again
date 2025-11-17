@@ -9,6 +9,8 @@ import {
 
 interface AdminPanelProps {
     auth: AuthProps;
+    appConfig: AppConfig | null;
+    onConfigUpdate: (newConfig: AppConfig) => void;
 }
 
 const PermissionsGuide: React.FC<{ auth: AuthProps }> = ({ auth }) => (
@@ -243,18 +245,19 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
 
 type AdminTab = 'dashboard' | 'users' | 'settings';
 
-// FIX: Exported the AdminPanel component to make it available for import.
-export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propConfig, onConfigUpdate }) => {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingData, setIsLoadingData] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // Data states
     const [users, setUsers] = useState<User[]>([]);
-    const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
     const [totalRevenue, setTotalRevenue] = useState(0);
     const [recentSignups, setRecentSignups] = useState<User[]>([]);
     const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
+    
+    // State for editable config, initialized from props
+    const [editableConfig, setEditableConfig] = useState<AppConfig | null>(propConfig);
 
     // UI states
     const [searchTerm, setSearchTerm] = useState('');
@@ -263,19 +266,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    // Keep local editable state in sync with props from App.tsx
+    useEffect(() => {
+        setEditableConfig(propConfig);
+    }, [propConfig]);
+
     const fetchData = useCallback(async () => {
-        setIsLoading(true);
+        setIsLoadingData(true);
         setError(null);
         try {
-            const [userList, config, revenue, signups, purchases] = await Promise.all([
+            // Config is now passed via props, so we only fetch other admin data here.
+            const [userList, revenue, signups, purchases] = await Promise.all([
                 getAllUsers(),
-                getAppConfig(),
                 getTotalRevenue(),
                 getRecentSignups(),
                 getRecentPurchases(),
             ]);
             setUsers(userList as User[]);
-            setAppConfig(config);
             setTotalRevenue(revenue);
             setRecentSignups(signups);
             setRecentPurchases(purchases as Purchase[]);
@@ -286,7 +293,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                 setError(err instanceof Error ? err.message : "Failed to load admin data.");
             }
         } finally {
-            setIsLoading(false);
+            setIsLoadingData(false);
         }
     }, []);
 
@@ -295,15 +302,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     }, [fetchData]);
 
     const handleConfigSave = async () => {
-        if (!appConfig) return;
+        if (!editableConfig) return;
         setIsSaving(true);
         setError(null);
         setSaveSuccess(false);
         try {
-            await updateAppConfig(appConfig);
-            // Re-fetch the config to ensure local state is in sync with the database
+            await updateAppConfig(editableConfig);
+            // Re-fetch from DB to get the canonical state and update the global app state
             const updatedConfig = await getAppConfig();
-            setAppConfig(updatedConfig);
+            onConfigUpdate(updatedConfig);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
@@ -314,7 +321,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     };
 
     const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => {
-        setAppConfig(prev => {
+        setEditableConfig(prev => {
             if (!prev) return null;
             const newConfig = { ...prev };
             (newConfig[section] as any)[key] = value;
@@ -323,7 +330,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
     };
     
     const handlePackChange = (index: number, field: keyof CreditPack, value: any) => {
-        setAppConfig(prev => {
+        setEditableConfig(prev => {
             if (!prev) return null;
             const newPacks = [...prev.creditPacks];
             const pack = { ...newPacks[index] };
@@ -364,7 +371,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
         </div>
     );
     
-    if (isLoading) return <div className="text-center p-10">Loading Admin Panel...</div>;
+    if (isLoadingData) return <div className="text-center p-10">Loading Admin Panel...</div>;
     if (error === 'permission-denied') return <div className="p-4 sm:p-6 lg:p-8"><PermissionsGuide auth={auth} /></div>;
     if (error) return <p className="text-center p-10 text-red-500">{error}</p>;
 
@@ -477,18 +484,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                 )}
                 
                 {/* Settings View */}
-                {activeTab === 'settings' && appConfig && (
+                {activeTab === 'settings' && editableConfig && (
                     <div className="space-y-8">
                         {/* Feature Costs */}
                         <div className="bg-white p-6 rounded-2xl border border-gray-200">
                            <h3 className="font-bold text-lg mb-4">Feature Costs (in Credits)</h3>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {Object.keys(appConfig.featureCosts).map(key => (
+                                {Object.keys(editableConfig.featureCosts).map(key => (
                                     <div key={key}>
                                         <label className="block text-sm font-medium text-gray-700">{key}</label>
                                         <input
                                             type="number"
-                                            value={appConfig.featureCosts[key]}
+                                            value={editableConfig.featureCosts[key]}
                                             onChange={(e) => handleConfigChange('featureCosts', key, Number(e.target.value))}
                                             className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
                                         />
@@ -501,13 +508,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                         <div className="bg-white p-6 rounded-2xl border border-gray-200">
                             <h3 className="font-bold text-lg mb-4">Feature Toggles</h3>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {Object.keys(appConfig.featureToggles).map(key => (
+                                {Object.keys(editableConfig.featureToggles).map(key => (
                                     <div key={key} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                                         <label htmlFor={`toggle-${key}`} className="text-sm font-medium text-gray-700 capitalize">{key.replace('_', ' ')}</label>
                                         <input
                                             id={`toggle-${key}`}
                                             type="checkbox"
-                                            checked={appConfig.featureToggles[key]}
+                                            checked={editableConfig.featureToggles[key]}
                                             onChange={(e) => handleConfigChange('featureToggles', key, e.target.checked)}
                                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
@@ -520,7 +527,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                         <div className="bg-white p-6 rounded-2xl border border-gray-200">
                             <h3 className="font-bold text-lg mb-4">Credit Packs</h3>
                             <div className="space-y-4">
-                                {appConfig.creditPacks.map((pack, index) => (
+                                {editableConfig.creditPacks.map((pack, index) => (
                                     <div key={index} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end p-3 border rounded-lg bg-gray-50">
                                         <div className="col-span-2 md:col-span-1">
                                             <label className="text-xs font-medium">Name</label>
