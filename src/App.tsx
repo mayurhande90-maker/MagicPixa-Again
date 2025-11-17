@@ -86,6 +86,7 @@ const App: React.FC = () => {
             lastActive: userProfile.lastActive,
             plan: userProfile.plan,
             isAdmin: isAdmin,
+            totalSpent: userProfile.totalSpent || 0,
           };
           setUser(userToSet);
           setIsAuthenticated(true);

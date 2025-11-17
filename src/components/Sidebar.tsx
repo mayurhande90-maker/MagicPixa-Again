@@ -75,7 +75,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
                 return (
                 <div key={`divider-${index}`} className="pt-3 pb-2">
                     {item.label && <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pb-2">{item.label}</span>}
-                    <hr className="border-gray-200/80" />
                 </div>
                 );
             }

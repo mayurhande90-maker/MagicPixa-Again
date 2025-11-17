@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -369,7 +368,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                   <div className="space-y-2">
                       {creditCosts.map(item => (
                           <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg text-sm">
-                              <span className="text-gray-700">{item.feature.replace(/([A-Z])/g, ' $1').replace('Magic ', '')}</span>
+                              <span className="text-gray-700">{item.feature}</span>
                               <span className="font-bold text-[#1E1E1E]">{item.cost}</span>
                           </div>
                       ))}

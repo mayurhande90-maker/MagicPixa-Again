@@ -1,4 +1,3 @@
-
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -7,7 +6,7 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
-import { AppConfig } from './types';
+import { AppConfig, Purchase, User } from './types';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -123,11 +122,12 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       totalCreditsAcquired: 10, // Track total credits for progress bar
       plan: 'Free', // All users are on a pay-as-you-go model now
       signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
+      totalSpent: 0,
     };
     // DEFINITIVE FIX: Used 'compat' set method.
     await userRef.set(newUserProfile);
     // Return the profile data
-    return { ...newUserProfile, credits: 10, plan: 'Free', totalCreditsAcquired: 10 };
+    return { ...newUserProfile, credits: 10, plan: 'Free', totalCreditsAcquired: 10, totalSpent: 0 };
   }
 };
 
@@ -240,34 +240,40 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
     if (!db) throw new Error("Firestore is not initialized.");
     
     const userRef = db.collection("users").doc(uid);
-    // Create the reference for the new transaction log document *before* starting the transaction.
     const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+    const purchaseRef = db.collection('purchases').doc();
     
     await db.runTransaction(async (transaction) => {
-      // 1. READ phase: Ensure the user exists before proceeding.
       const userDoc = await transaction.get(userRef);
       if (!userDoc.exists) {
           throw new Error("Cannot add credits to a user that does not exist.");
       }
+      const userData = userDoc.data();
 
-      // 2. WRITE phase
-      // Update the user's credit and total credits acquired.
       transaction.update(userRef, {
         credits: firebase.firestore.FieldValue.increment(creditsToAdd),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(creditsToAdd),
+        totalSpent: firebase.firestore.FieldValue.increment(amountPaid),
       });
 
-      // Log the purchase using the pre-created reference.
       transaction.set(newTransactionRef, {
         feature: `Purchased: ${packName}`,
         cost: amountPaid,
         creditChange: `+${creditsToAdd}`,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
+      
+      transaction.set(purchaseRef, {
+        userId: uid,
+        userName: userData?.name,
+        userEmail: userData?.email,
+        amountPaid: amountPaid,
+        creditsAdded: creditsToAdd,
+        packName: packName,
+        purchaseDate: firebase.firestore.FieldValue.serverTimestamp(),
+      });
     });
   
-    // After the transaction, fetch the latest user profile data to ensure the
-    // UI gets the freshest state.
     const updatedDoc = await userRef.get();
     if (!updatedDoc.exists) {
         throw new Error("Failed to retrieve updated user profile after purchase.");
@@ -280,7 +286,7 @@ export const getCreditHistory = async (uid: string): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
     // DEFINITIVE FIX: Switched to 'compat' API for collection query.
     const transactionsRef = db.collection("users").doc(uid).collection("transactions");
-    const q = transactionsRef.orderBy("date", "desc").limit(20);
+    const q = transactionsRef.orderBy("date", "desc").limit(50);
     const querySnapshot = await q.get();
     const history: any[] = [];
     querySnapshot.forEach((doc) => {
@@ -378,6 +384,83 @@ export const deleteCreation = async (uid: string, creation: { id: string; storag
 
 // --- ADMIN FUNCTIONS ---
 
+export const getAppConfig = async (): Promise<AppConfig> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const configRef = db.collection("config").doc("main");
+    const docSnap = await configRef.get();
+  
+    if (docSnap.exists) {
+      return docSnap.data() as AppConfig;
+    } else {
+      console.warn("App configuration not found in Firestore. Creating a default one.");
+      const defaultConfig: AppConfig = {
+        featureCosts: {
+          'Magic Photo Studio': 2,
+          'Product Studio': 5,
+          'Brand Stylist AI': 4,
+          'Magic Soul': 3,
+          'Magic Photo Colour': 2,
+          'CaptionAI': 1,
+          'Magic Interior': 2,
+          'Magic Apparel': 3,
+          'Magic Mockup': 2,
+        },
+        featureToggles: {
+          'studio': true,
+          'product_studio': true,
+          'brand_stylist': true,
+          'soul': true,
+          'colour': true,
+          'caption': true,
+          'interior': true,
+          'apparel': true,
+          'scanner': false,
+          'mockup': true,
+          'notes': false,
+        },
+        creditPacks: [
+            { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
+            { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: 'For creators & influencers — extra credits included!', popular: true, value: 1.51 },
+            { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
+            { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
+        ],
+      };
+      await configRef.set(defaultConfig);
+      return defaultConfig;
+    }
+};
+
+export const updateAppConfig = async (newConfig: Partial<AppConfig>): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const configRef = db.collection("config").doc("main");
+    await configRef.set(newConfig, { merge: true });
+};
+
+export const getRecentSignups = async (limit: number = 5): Promise<User[]> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const usersRef = db.collection('users').orderBy('signUpDate', 'desc').limit(limit);
+    const snapshot = await usersRef.get();
+    return snapshot.docs.map(doc => doc.data() as User);
+};
+
+export const getRecentPurchases = async (limit: number = 5): Promise<Purchase[]> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const purchasesRef = db.collection('purchases').orderBy('purchaseDate', 'desc').limit(limit);
+    const snapshot = await purchasesRef.get();
+    return snapshot.docs.map(doc => doc.data() as Purchase);
+};
+
+export const getTotalRevenue = async (): Promise<number> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const purchasesRef = db.collection('purchases');
+    const snapshot = await purchasesRef.get();
+    let total = 0;
+    snapshot.forEach(doc => {
+        total += doc.data().amountPaid || 0;
+    });
+    return total;
+};
+
 /**
  * [ADMIN] Fetches all user profiles from Firestore.
  * NOTE: In a production environment, this should be a secured Cloud Function.
@@ -437,23 +520,6 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     return updatedDoc.data();
 };
 
-// FIX: Exported getAppConfig to be used in App.tsx.
-export const getAppConfig = async (): Promise<AppConfig> => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const configRef = db.collection("config").doc("main");
-    const docSnap = await configRef.get();
-  
-    if (docSnap.exists) {
-      return docSnap.data() as AppConfig;
-    } else {
-      console.warn("App configuration not found in Firestore. Using default values.");
-      // Return a default config to prevent the app from crashing.
-      return {
-        featureCosts: {},
-        featureToggles: {},
-        creditPacks: [],
-      };
-    }
-};
+
 
 export { app, auth };

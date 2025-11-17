@@ -32,6 +32,7 @@ export interface User {
   plan?: string;
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
+  totalSpent?: number; // For admin panel tracking
 }
 
 export interface AuthProps {
