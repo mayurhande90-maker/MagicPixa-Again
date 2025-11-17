@@ -2749,7 +2749,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     );
 };
 
-const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Dispatch<React.SetStateAction<Creation[]>>; user: User | null; }> = ({ creations, setCreations, user }) => {
+const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Dispatch<React.SetStateAction<Creation[]>>; user: User | null; onEdit: (creation: Creation) => void; }> = ({ creations, setCreations, user, onEdit }) => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
   
@@ -2836,6 +2836,9 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
                     <p className="text-xs text-white/80">{creation.createdAt.toDate().toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button onClick={() => onEdit(creation)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white" title="Edit with Magic Eraser">
+                        <PencilIcon className="w-5 h-5" />
+                    </button>
                     <button onClick={() => handleDownload(creation.imageUrl, `magicpixa_${creation.id}.png`)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white">
                         <DownloadIcon className="w-5 h-5" />
                     </button>
@@ -2923,6 +2926,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [creations, setCreations] = useState<Creation[]>([]);
   const { user } = auth;
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [editingCreation, setEditingCreation] = useState<Creation | null>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -2937,6 +2941,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               .catch(err => console.error("Failed to get creations:", err));
       }
   }, [user]);
+
+  const handleSaveEditedCreation = async (newImageUri: string) => {
+    if (!user) return;
+    try {
+        await saveCreation(user.uid, newImageUri, 'Magic Eraser Edit');
+        const updatedCreations = await getCreations(user.uid);
+        setCreations(updatedCreations as Creation[]);
+    } catch (error) {
+        console.error("Failed to save edited creation:", error);
+    } finally {
+        setEditingCreation(null);
+    }
+  };
 
   let content: React.ReactNode;
   switch (activeView) {
@@ -2974,7 +2991,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       content = <BrandStylistAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
       break;
     case 'creations':
-      content = <CreationsGallery creations={creations} setCreations={setCreations} user={user} />;
+      content = <CreationsGallery creations={creations} setCreations={setCreations} user={user} onEdit={setEditingCreation} />;
       break;
     case 'billing':
       content = user ? <Billing user={user} setUser={auth.setUser} appConfig={appConfig} /> : null;
@@ -3006,6 +3023,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
         {/* Mobile Nav */}
         <MobileNav user={user} activeView={activeView} setActiveView={setActiveView} />
+        
+        {editingCreation && (
+            <ImageEditModal
+                imageUrl={editingCreation.imageUrl}
+                onClose={() => setEditingCreation(null)}
+                onSave={handleSaveEditedCreation}
+                auth={auth}
+                navigateTo={navigateTo}
+                appConfig={appConfig}
+            />
+        )}
     </div>
   );
 };
