@@ -48,7 +48,12 @@ const App: React.FC = () => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
         if (firebaseUser) {
+          const idTokenResult = await firebaseUser.getIdTokenResult();
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+          
+          // Check for admin claim or specific email for dev purposes
+          const isAdmin = !!idTokenResult.claims.isAdmin || firebaseUser.email === 'mayurhande90@gmail.com';
+          
           const userToSet: User = {
             uid: firebaseUser.uid,
             name: userProfile.name || firebaseUser.displayName || 'User',
@@ -58,6 +63,7 @@ const App: React.FC = () => {
             totalCreditsAcquired: userProfile.totalCreditsAcquired,
             signUpDate: userProfile.signUpDate,
             plan: userProfile.plan,
+            isAdmin: isAdmin,
           };
           setUser(userToSet);
           setIsAuthenticated(true);

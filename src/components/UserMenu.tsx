@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Page, View } from '../types';
-import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon } from './icons';
+import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon, ShieldCheckIcon } from './icons';
 
 interface UserMenuProps {
   user: User;
@@ -24,7 +24,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
   }, []);
 
   const handleNavigation = (view: View) => {
-    navigateTo('dashboard', view);
+    if (setActiveView) {
+      setActiveView(view);
+    } else {
+      navigateTo('dashboard', view);
+    }
     setIsOpen(false);
   };
 
@@ -50,6 +54,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <p className="text-sm text-[#5F6368] truncate" title={user.email}>{user.email}</p>
           </div>
           <div className="py-2">
+            {user.isAdmin && (
+                <button onClick={() => handleNavigation('admin')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-green-600 font-bold hover:bg-green-50" role="menuitem">
+                    <ShieldCheckIcon className="w-5 h-5" /> Admin Panel
+                </button>
+            )}
             <button onClick={() => handleNavigation('dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <DashboardIcon className="w-5 h-5" /> Dashboard
             </button>

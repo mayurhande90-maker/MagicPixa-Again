@@ -8,6 +8,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import ThemeToggle from './components/ThemeToggle';
+import AdminPanel from './components/AdminPanel'; // Import the new AdminPanel component
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
     PhotoStudioIcon, HomeIcon, PencilIcon, CreditCardIcon, CaptionIcon, PaletteIcon, ProductStudioIcon,
@@ -2768,6 +2769,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
         return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
       case 'home_dashboard':
         return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+      case 'admin':
+        return user?.isAdmin ? <AdminPanel auth={auth} /> : <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} />;
       case 'studio':
         return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} />;
       case 'interior':
@@ -2851,7 +2854,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
   };
 
   const isFullScreenView = activeView === 'studio' || activeView === 'interior' || activeView === 'colour' || activeView === 'soul' || activeView === 'apparel' || activeView === 'mockup' || activeView === 'caption' || activeView === 'product_studio' || activeView === 'brand_stylist';
-  const showBackButton = isFullScreenView || activeView === 'creations' || activeView === 'billing';
+  const showBackButton = isFullScreenView || activeView === 'creations' || activeView === 'billing' || activeView === 'admin';
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">

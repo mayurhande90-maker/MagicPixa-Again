@@ -372,4 +372,66 @@ export const deleteCreation = async (uid: string, creation: { id: string; storag
     await creationRef.delete();
 };
 
+// --- ADMIN FUNCTIONS ---
+
+/**
+ * [ADMIN] Fetches all user profiles from Firestore.
+ * NOTE: In a production environment, this should be a secured Cloud Function.
+ * The frontend rule should only allow admins to call this.
+ */
+export const getAllUsers = async (): Promise<any[]> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const usersRef = db.collection("users");
+    const snapshot = await usersRef.orderBy("signUpDate", "desc").get();
+    const users: any[] = [];
+    snapshot.forEach(doc => {
+        users.push({ ...doc.data(), uid: doc.id });
+    });
+    return users;
+};
+
+/**
+ * [ADMIN] Adds credits to a user's account and logs the transaction.
+ * @param adminUid The UID of the admin performing the action.
+ * @param targetUid The UID of the user receiving credits.
+ * @param amount The number of credits to add.
+ * @param reason A mandatory reason for the credit addition.
+ * @returns The updated user profile.
+ */
+export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    if (amount <= 0) throw new Error("Credit amount must be positive.");
+    if (!reason.trim()) throw new Error("A reason is required to add credits.");
+
+    const userRef = db.collection("users").doc(targetUid);
+    const newTransactionRef = db.collection(`users/${targetUid}/transactions`).doc();
+
+    await db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists) {
+            throw new Error("Target user profile does not exist.");
+        }
+
+        transaction.update(userRef, {
+            credits: firebase.firestore.FieldValue.increment(amount),
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(amount),
+        });
+
+        transaction.set(newTransactionRef, {
+            feature: "Admin Credit Grant",
+            creditChange: `+${amount}`,
+            reason: reason,
+            grantedBy: adminUid,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    });
+
+    const updatedDoc = await userRef.get();
+    if (!updatedDoc.exists) {
+        throw new Error("Failed to retrieve updated user profile after adding credits.");
+    }
+    return updatedDoc.data();
+};
+
+
 export { app, auth };
