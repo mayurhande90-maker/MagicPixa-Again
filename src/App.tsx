@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a named import to match the named export in `DashboardPage.tsx` and resolve the module error.
@@ -7,9 +8,10 @@ import EditProfileModal from './components/EditProfileModal';
 // FIX: Removed incorrect modular imports for 'onAuthStateChanged' and 'signOut'.
 // The errors indicated these were not exported from 'firebase/auth'. Switched to compat syntax
 // by calling these methods directly on the `auth` object instance from Firebase.
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-import { Page, View, User, AuthProps } from './types';
+// FIX: Added AppConfig to the import list.
+import { Page, View, User, AuthProps, AppConfig } from './types';
 
 const App: React.FC = () => {
   if (!isConfigValid) {
@@ -26,6 +28,8 @@ const App: React.FC = () => {
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState<ReactNode | null>(null);
+  const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -37,6 +41,21 @@ const App: React.FC = () => {
       .join('')
       .toUpperCase();
   };
+  
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await getAppConfig();
+        setAppConfig(config);
+      } catch (error) {
+        console.error("Failed to load app configuration:", error);
+        // Handle error, maybe set a default config or show an error state
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -49,6 +68,8 @@ const App: React.FC = () => {
       try {
         if (firebaseUser) {
           const idTokenResult = await firebaseUser.getIdTokenResult();
+// FIX: Correctly call updateUserProfile with a valid object. The function signature in firebase.ts has been updated to accept a more generic object.
+          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() }); // Update last active timestamp
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
           
           // Check for admin claim or specific email for dev purposes
@@ -62,6 +83,7 @@ const App: React.FC = () => {
             credits: userProfile.credits,
             totalCreditsAcquired: userProfile.totalCreditsAcquired,
             signUpDate: userProfile.signUpDate,
+            lastActive: userProfile.lastActive,
             plan: userProfile.plan,
             isAdmin: isAdmin,
           };
@@ -229,7 +251,7 @@ const App: React.FC = () => {
     openAuthModal,
   };
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || isConfigLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
         <svg className="animate-spin h-8 w-8 text-[#0079F2]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -243,7 +265,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} />}
-      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} />}
+      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} appConfig={appConfig} />}
       {authModalOpen && (
         <AuthModal 
           onClose={closeAuthModal} 

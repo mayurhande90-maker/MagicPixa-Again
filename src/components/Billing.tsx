@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { User, Transaction } from '../types';
+import { User, Transaction, AppConfig } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
@@ -9,60 +10,8 @@ import {
 interface BillingProps {
   user: User;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  appConfig: AppConfig | null;
 }
-
-const creditPacks = [
-  {
-    name: 'Starter Pack',
-    price: 99,
-    credits: 50,
-    totalCredits: 50,
-    bonus: 0,
-    tagline: 'For quick tests & personal use',
-    popular: false,
-    value: 1.98,
-  },
-  {
-    name: 'Creator Pack',
-    price: 249,
-    credits: 150,
-    totalCredits: 165,
-    bonus: 15,
-    tagline: 'For creators & influencers — extra credits included!',
-    popular: true,
-    value: 1.51,
-  },
-  {
-    name: 'Studio Pack',
-    price: 699,
-    credits: 500,
-    totalCredits: 575,
-    bonus: 75,
-    tagline: 'For professional video and design teams',
-    popular: false,
-    value: 1.21,
-  },
-  {
-    name: 'Agency Pack',
-    price: 1199,
-    credits: 1000,
-    totalCredits: 1200,
-    bonus: 200,
-    tagline: 'For studios and agencies — biggest savings!',
-    popular: false,
-    value: 0.99,
-  },
-];
-
-const creditCosts = [
-    { feature: 'Photo Studio', cost: '2 Credits' },
-    { feature: 'Magic Soul', cost: '3 Credits' },
-    { feature: 'Photo Colour', cost: '2 Credits' },
-    { feature: 'CaptionAI', cost: '1 Credit' },
-    { feature: 'Interior AI', cost: '2 Credits' },
-    { feature: 'Apparel AI', cost: '3 Credits' },
-    { feature: 'Mockup AI', cost: '2 Credits' },
-];
 
 const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => void; }> = ({ creditsAdded, onClose }) => {
     return (
@@ -94,7 +43,7 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
     );
 };
 
-const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
+const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -102,9 +51,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState<{ totalCredits: number } | null>(null);
 
+  const creditPacks = appConfig?.creditPacks || [];
+  const creditCosts = appConfig?.featureCosts ? Object.entries(appConfig.featureCosts).map(([feature, cost]) => ({ feature, cost: `${cost} Credits` })) : [];
+
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
-    if (feature.toLowerCase().includes('purchase')) {
+    if (feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('admin grant')) {
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
@@ -203,6 +155,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
         console.log("Razorpay Response:", response);
         
         try {
+// FIX: Removed the extra `user.name` and `user.email` arguments to match the function signature in firebase.ts.
             const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setConfirmedPurchase({ totalCredits: pkg.totalCredits });
@@ -322,7 +275,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                             <h3 className="font-bold text-lg text-gray-800">{pack.name}</h3>
                             <p className="text-2xl font-bold text-[#0079F2] my-1">{pack.totalCredits} <span className="text-base font-medium text-gray-500">Credits</span></p>
                             {pack.bonus > 0 && <p className="text-xs font-semibold text-green-600">{pack.credits} + {pack.bonus} Bonus!</p>}
-                            <p className="text-xs text-gray-500 mt-2">₹{pack.value.toFixed(2)} per credit</p>
+                            <p className="text-xs text-gray-500 mt-2">₹{(pack.price / pack.totalCredits).toFixed(2)} per credit</p>
                         </div>
                         <div className="text-right flex flex-col items-end">
                             <p className="text-2xl font-bold text-gray-800 mb-2">₹{pack.price}</p>
@@ -416,7 +369,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser }) => {
                   <div className="space-y-2">
                       {creditCosts.map(item => (
                           <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg text-sm">
-                              <span className="text-gray-700">{item.feature}</span>
+                              <span className="text-gray-700">{item.feature.replace(/([A-Z])/g, ' $1').replace('Magic ', '')}</span>
                               <span className="font-bold text-[#1E1E1E]">{item.cost}</span>
                           </div>
                       ))}

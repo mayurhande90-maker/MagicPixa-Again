@@ -31,6 +31,7 @@ export interface User {
   signUpDate?: { seconds: number; nanoseconds: number };
   plan?: string;
   isAdmin?: boolean; // Added for admin access control
+  lastActive?: Timestamp; // For tracking user activity
 }
 
 export interface AuthProps {
@@ -54,10 +55,38 @@ export interface Transaction {
     grantedBy?: string;
 }
 
+export interface Purchase {
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    amountPaid: number;
+    creditsAdded: number;
+    packName: string;
+    purchaseDate: Timestamp;
+}
+
 export interface Creation {
     id: string;
     imageUrl: string;
     storagePath: string;
     feature: string;
     createdAt: Timestamp;
+}
+
+export interface CreditPack {
+    name: string;
+    price: number;
+    credits: number;
+    totalCredits: number;
+    bonus: number;
+    tagline: string;
+    popular: boolean;
+    value: number;
+}
+
+export interface AppConfig {
+    featureCosts: { [key: string]: number };
+    featureToggles: { [key: string]: boolean };
+    creditPacks: CreditPack[];
 }

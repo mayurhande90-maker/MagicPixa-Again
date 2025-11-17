@@ -1,3 +1,4 @@
+
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -5,6 +6,8 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
+// FIX: Import AppConfig for use in getAppConfig function.
+import { AppConfig } from './types';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -133,7 +136,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
  * @param uid The user's unique ID.
  * @param data An object containing the fields to update (e.g., { name: 'New Name' }).
  */
-export const updateUserProfile = async (uid: string, data: { name: string }): Promise<void> => {
+// FIX: Changed the type of 'data' to { [key: string]: any } to allow updating any field, such as 'lastActive'.
+export const updateUserProfile = async (uid: string, data: { [key: string]: any }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
     // DEFINITIVE FIX: Switched to 'compat' API for document reference and update.
     const userRef = db.collection("users").doc(uid);
@@ -433,5 +437,23 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     return updatedDoc.data();
 };
 
+// FIX: Exported getAppConfig to be used in App.tsx.
+export const getAppConfig = async (): Promise<AppConfig> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const configRef = db.collection("config").doc("main");
+    const docSnap = await configRef.get();
+  
+    if (docSnap.exists) {
+      return docSnap.data() as AppConfig;
+    } else {
+      console.warn("App configuration not found in Firestore. Using default values.");
+      // Return a default config to prevent the app from crashing.
+      return {
+        featureCosts: {},
+        featureToggles: {},
+        creditPacks: [],
+      };
+    }
+};
 
 export { app, auth };

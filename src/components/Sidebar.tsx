@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Page, View } from '../types';
+import { User, Page, View, AppConfig } from '../types';
 import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon } from './icons';
 
 interface SidebarProps {
@@ -7,6 +7,7 @@ interface SidebarProps {
   activeView: View;
   setActiveView: (view: View) => void;
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+  appConfig: AppConfig | null;
 }
 
 const NavButton: React.FC<{
@@ -32,8 +33,8 @@ const NavButton: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo }) => {
-  const navStructure = [
+const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo, appConfig }) => {
+  const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
@@ -52,6 +53,15 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { type: 'divider', label: 'Account' },
     { id: 'billing', label: 'Billing & Credits', icon: CreditCardIcon, disabled: false },
   ];
+
+  const navStructure = allNavItems.filter(item => {
+    if (item.type === 'divider' || !item.id) return true;
+    // Hide feature if it's toggled off in the config
+    if (appConfig?.featureToggles && item.id in appConfig.featureToggles) {
+        return appConfig.featureToggles[item.id];
+    }
+    return true; // Show by default if not in config
+  });
 
   const handleNavClick = (view: View) => {
     setActiveView(view);

@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, AuthProps, View, User, Creation } from './types';
+// FIX: Add AppConfig to import from types.
+import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -28,6 +30,8 @@ interface DashboardPageProps {
   openEditProfileModal: () => void;
   isConversationOpen: boolean;
   setIsConversationOpen: (isOpen: boolean) => void;
+  // FIX: Add appConfig to the props interface.
+  appConfig: AppConfig | null;
 }
 
 const loadingMessages = [
@@ -2713,7 +2717,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?
     );
 };
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig }) => {
   const [creations, setCreations] = useState<Creation[]>([]);
   const [isLoadingCreations, setIsLoadingCreations] = useState(true);
   const [selectedCreation, setSelectedCreation] = useState<Creation | null>(null);
@@ -2790,7 +2794,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
       case 'brand_stylist':
           return <BrandStylistAI auth={auth} navigateTo={navigateTo} />;
       case 'billing':
-        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} /> : null;
+// FIX: Pass the appConfig prop to the Billing component.
+        return auth.user ? <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} /> : null;
       case 'creations':
         return (
              <div className="p-4 sm:p-6 lg:p-8">
@@ -2870,7 +2875,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, 
         }}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} />
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
         <main className="flex-1 overflow-y-auto">
           {renderView()}
         </main>
