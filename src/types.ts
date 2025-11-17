@@ -1,16 +1,16 @@
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
-// FIX: Defined an explicit `AIStudio` interface to resolve a global type conflict.
-// This ensures that all declarations of `window.aistudio` use a consistent type,
-// satisfying TypeScript's requirement for merging global declarations.
-interface AIStudio {
-  hasSelectedApiKey: () => Promise<boolean>;
-  openSelectKey: () => Promise<void>;
-}
-
 // Add Razorpay to the global window interface
 declare global {
+    // FIX: Moved the AIStudio interface inside `declare global` to properly augment the
+    // global `Window` type and resolve declaration merging conflicts. This prevents
+    // subsequent property declaration errors.
+    interface AIStudio {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    }
+
     interface Window {
       Razorpay: any;
       // Add aistudio for video generation API key selection

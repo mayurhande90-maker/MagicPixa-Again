@@ -1,11 +1,69 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, AuthProps } from '../types';
 import { getAllUsers, addCreditsToUser } from '../firebase';
-import { UsersIcon, CreditCardIcon, XIcon, SparklesIcon } from './icons';
+import { UsersIcon, CreditCardIcon, XIcon, SparklesIcon, InformationCircleIcon } from './icons';
 
 interface AdminPanelProps {
     auth: AuthProps;
 }
+
+// FIX: Added props to the PermissionsError component to pass the `auth` object.
+interface PermissionsErrorProps {
+    auth: AuthProps;
+}
+
+// FIX: The component now receives `auth` as a prop to access user details.
+const PermissionsError: React.FC<PermissionsErrorProps> = ({ auth }) => (
+    <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg my-4">
+        <div className="flex">
+            <div className="flex-shrink-0">
+                <InformationCircleIcon className="h-6 w-6 text-red-500" />
+            </div>
+            <div className="ml-4">
+                <h3 className="text-lg font-bold text-red-900">Action Required: Insufficient Permissions</h3>
+                <div className="mt-2 text-sm text-red-800 space-y-4">
+                    <p>
+                        The Admin Panel cannot fetch the user list from your database. This is a security measure controlled by your project's Firestore Security Rules.
+                    </p>
+                    <div>
+                        <p className="font-semibold">To grant access, you need to do two things:</p>
+                        <ol className="list-decimal list-inside mt-2 space-y-3">
+                            <li>
+                                <span className="font-semibold">Update your Firestore Security Rules</span> to allow admin users to read the `users` collection. Deploy the following rules to your Firebase project:
+                                <pre className="bg-red-100 text-red-900 p-3 rounded-md text-xs overflow-x-auto mt-2 select-all">
+                                    <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Allow admins to read all user data (including listing the collection)
+      // and update user data (e.g., to add credits).
+      allow read, update: if request.auth.token.isAdmin == true;
+      
+      // Allow individual users to read and write their OWN data.
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Secure your subcollections (like transactions, creations) as well.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth.uid == userId || request.auth.token.isAdmin == true;
+    }
+  }
+}`}
+                                    </code>
+                                </pre>
+                            </li>
+                            <li>
+                                <span className="font-semibold">Set an `isAdmin` custom claim</span> for your user account (`{auth.user?.email}`). This must be done from a trusted backend environment (like a Firebase Cloud Function or your own server) and cannot be done from the app. Once the claim is set, you must sign out and sign back in for it to take effect.
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
 
 const AddCreditsModal: React.FC<{
     user: User;
@@ -107,7 +165,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
                 const userList = await getAllUsers();
                 setUsers(userList);
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load users.");
+                 if (err instanceof Error && (err.message.includes('permission-denied') || err.message.includes('insufficient permissions'))) {
+                    setError('permission-denied'); // Special key for this error
+                } else {
+                    setError(err instanceof Error ? err.message : "Failed to load users.");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -153,6 +215,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ auth }) => {
 
                     {isLoading ? (
                         <p className="text-center py-10">Loading users...</p>
+                    ) : error === 'permission-denied' ? (
+                        <PermissionsError auth={auth} />
                     ) : error ? (
                         <p className="text-center py-10 text-red-500">{error}</p>
                     ) : (
