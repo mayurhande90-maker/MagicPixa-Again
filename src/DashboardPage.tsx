@@ -2781,8 +2781,21 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed:", error);
-            alert("Could not download the image. Please try again or right-click to save.");
+            console.error("Download via fetch failed, attempting fallback:", error);
+            // Fallback: Open in new tab for manual save
+            try {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                alert("Could not download automatically. The image has been opened in a new tab for you to save manually.");
+            } catch (fallbackError) {
+                 console.error("Fallback download method also failed:", fallbackError);
+                 alert("Could not download the image. Please try right-clicking the image to save it.");
+            }
         }
     };
   
