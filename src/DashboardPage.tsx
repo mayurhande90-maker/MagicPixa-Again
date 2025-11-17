@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -417,12 +418,14 @@ const ImageEditModal: React.FC<{
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
-    // FIX: This effect syncs the component's internal state with the `imageUrl`
-    // prop. This is crucial for ensuring the modal loads the new image when it's
-    // opened again from the gallery, fixing the "blank screen" bug.
+    // DEFINITIVE FIX: This effect synchronizes the component's internal state (`currentImageUrl`)
+    // with the external `imageUrl` prop. This is the crucial step that was missing.
+    // It ensures that whenever the modal is opened with a *new* image from the gallery,
+    // its internal state is updated, triggering a re-render with the correct image.
     useEffect(() => {
         if (imageUrl) {
             setCurrentImageUrl(imageUrl);
+            setHistory([imageUrl]); // Reset history for the new image editing session
         }
     }, [imageUrl]);
 
@@ -467,10 +470,10 @@ const ImageEditModal: React.FC<{
             maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
         };
     }, []);
-
+    
+    // This effect now correctly redraws the image whenever `currentImageUrl` is updated by the new effect above.
     useEffect(() => {
         drawImage(currentImageUrl);
-        setHistory([currentImageUrl]);
     }, [drawImage, currentImageUrl]);
 
     useEffect(() => {
