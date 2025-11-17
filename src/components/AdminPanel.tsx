@@ -7,12 +7,10 @@ interface AdminPanelProps {
     auth: AuthProps;
 }
 
-// FIX: Added props to the PermissionsError component to pass the `auth` object.
 interface PermissionsErrorProps {
     auth: AuthProps;
 }
 
-// FIX: The component now receives `auth` as a prop to access user details.
 const PermissionsError: React.FC<PermissionsErrorProps> = ({ auth }) => (
     <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg my-4">
         <div className="flex">
@@ -20,33 +18,40 @@ const PermissionsError: React.FC<PermissionsErrorProps> = ({ auth }) => (
                 <InformationCircleIcon className="h-6 w-6 text-red-500" />
             </div>
             <div className="ml-4">
-                <h3 className="text-lg font-bold text-red-900">Action Required: Insufficient Permissions</h3>
+                <h3 className="text-lg font-bold text-red-900">Action Required: Set Admin Permissions</h3>
                 <div className="mt-2 text-sm text-red-800 space-y-4">
                     <p>
-                        The Admin Panel cannot fetch the user list from your database. This is a security measure controlled by your project's Firestore Security Rules.
+                        For security, your database rules are currently preventing anyone from viewing the list of all users. To grant your admin account (`{auth.user?.email}`) these permissions, you need to update your project's Firestore Security Rules.
                     </p>
                     <div>
-                        <p className="font-semibold">To grant access, you need to do two things:</p>
+                        <p className="font-semibold">Here’s the one-time setup you need to do:</p>
                         <ol className="list-decimal list-inside mt-2 space-y-3">
                             <li>
-                                <span className="font-semibold">Update your Firestore Security Rules</span> to allow admin users to read the `users` collection. Deploy the following rules to your Firebase project:
+                                <span className="font-semibold">Go to your Firebase Project Console.</span> Navigate to <span className="font-mono bg-red-100 p-1 rounded">Firestore Database → Rules</span>.
+                            </li>
+                            <li>
+                                <span className="font-semibold">Copy and paste the entire code block below</span> into the rules editor, replacing any existing content.
                                 <pre className="bg-red-100 text-red-900 p-3 rounded-md text-xs overflow-x-auto mt-2 select-all">
                                     <code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // This function securely identifies the admin by their email.
+    function isAdmin() {
+      return request.auth.token.email == 'mayurhande90@gmail.com';
+    }
+
     match /users/{userId} {
-      // Allow admins to read all user data (including listing the collection)
-      // and update user data (e.g., to add credits).
-      allow read, update: if request.auth.token.isAdmin == true;
+      // Admins can read and update any user's profile.
+      allow read, update: if isAdmin();
       
-      // Allow individual users to read and write their OWN data.
+      // Regular users can only read and write their own data.
       allow read, write: if request.auth.uid == userId;
     }
 
-    // Secure your subcollections (like transactions, creations) as well.
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth.uid == userId || request.auth.token.isAdmin == true;
+      // Admins and the specific user can access subcollections (e.g., transactions, creations).
+      allow read, write: if request.auth.uid == userId || isAdmin();
     }
   }
 }`}
@@ -54,7 +59,7 @@ service cloud.firestore {
                                 </pre>
                             </li>
                             <li>
-                                <span className="font-semibold">Set an `isAdmin` custom claim</span> for your user account (`{auth.user?.email}`). This must be done from a trusted backend environment (like a Firebase Cloud Function or your own server) and cannot be done from the app. Once the claim is set, you must sign out and sign back in for it to take effect.
+                                <span className="font-semibold">Click "Publish".</span> After publishing, return to this page and refresh. The user list should now appear correctly.
                             </li>
                         </ol>
                     </div>
