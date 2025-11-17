@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -415,11 +417,20 @@ const ImageEditModal: React.FC<{
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
+    // FIX: This effect syncs the component's internal state with the `imageUrl`
+    // prop. This is crucial for ensuring the modal loads the new image when it's
+    // opened again from the gallery, fixing the "blank screen" bug.
+    useEffect(() => {
+        if (imageUrl) {
+            setCurrentImageUrl(imageUrl);
+        }
+    }, [imageUrl]);
+
     const drawImage = useCallback((url: string) => {
         const canvas = canvasRef.current;
         const maskCanvas = maskCanvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !maskCanvas || !container) return;
+        if (!canvas || !maskCanvas || !container || !url) return;
 
         const ctx = canvas.getContext('2d');
         const maskCtx = maskCanvas.getContext('2d');
