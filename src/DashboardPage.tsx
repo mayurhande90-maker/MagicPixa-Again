@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
@@ -2784,16 +2782,22 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {creations.map(creation => (
               <div key={creation.id} className="relative aspect-square group bg-gray-100 rounded-lg overflow-hidden">
-                <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3 text-white">
+                <img 
+                    src={creation.imageUrl} 
+                    alt={creation.feature} 
+                    className="w-full h-full object-cover cursor-pointer" 
+                    onClick={() => setSelectedImage(creation.imageUrl)}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent flex justify-between items-center">
                   <div>
-                    <p className="font-bold text-sm">{creation.feature}</p>
-                    <p className="text-xs">{creation.createdAt.toDate().toLocaleDateString()}</p>
+                    <p className="font-bold text-sm text-white">{creation.feature}</p>
+                    <p className="text-xs text-white/80">{creation.createdAt.toDate().toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setSelectedImage(creation.imageUrl)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm"><ZoomInIcon className="w-5 h-5" /></button>
-                    <a href={creation.imageUrl} download={`magicpixa_${creation.id}.png`} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm"><DownloadIcon className="w-5 h-5" /></a>
-                    <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/50 rounded-full hover:bg-red-500 backdrop-blur-sm disabled:opacity-50">
+                    <a href={creation.imageUrl} download={`magicpixa_${creation.id}.png`} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white">
+                        <DownloadIcon className="w-5 h-5" />
+                    </a>
+                    <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/50 rounded-full hover:bg-red-500 backdrop-blur-sm disabled:opacity-50 text-white">
                       {deletingId === creation.id ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <TrashIcon className="w-5 h-5" />}
                     </button>
                   </div>
@@ -2805,7 +2809,7 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
         {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
       </div>
     );
-  };
+};
 
 const Profile: React.FC<{ user: User, auth: AuthProps, openEditProfileModal: () => void, setActiveView: (view: View) => void }> = ({ user, auth, openEditProfileModal, setActiveView }) => {
     return (
