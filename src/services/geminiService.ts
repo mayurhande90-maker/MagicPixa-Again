@@ -582,6 +582,43 @@ export const suggestThumbnailTitles = async (videoDescription: string): Promise<
     return JSON.parse(text);
 };
 
+export const analyzeVideoFrames = async (frames: string[]): Promise<{ titles: string[], bestFrameIndex: number }> => {
+    const ai = getAiClient();
+    
+    const parts: any[] = [];
+    frames.forEach((frame, index) => {
+        parts.push({ text: `FRAME ${index}:` });
+        parts.push({ inlineData: { data: frame, mimeType: 'image/jpeg' } });
+    });
+
+    parts.push({ text: `Analyze these video frames. 
+    1. Identify the topic of the video.
+    2. Suggest 3 viral, clickbait YouTube titles based on the visual content.
+    3. Select the ONE frame index (0-${frames.length - 1}) that has the clearest face/expression suitable for a thumbnail.
+    
+    Return JSON: { "titles": ["string"], "bestFrameIndex": number }` });
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+             responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    titles: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    bestFrameIndex: { type: Type.INTEGER }
+                },
+                required: ["titles", "bestFrameIndex"]
+            }
+        }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Failed to analyze video.");
+    return JSON.parse(text);
+};
+
 export const generateThumbnail = async (
     inputs: {
         category: string;

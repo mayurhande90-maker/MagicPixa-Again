@@ -21,9 +21,11 @@ import {
     editImageWithPrompt,
     generateBrandStylistImage,
     generateThumbnail,
-    startLiveSession
+    startLiveSession,
+    analyzeVideoFrames
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
+import { extractFramesFromVideo } from './utils/videoUtils';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -45,7 +47,9 @@ import {
     ProductStudioIcon,
     DashboardIcon,
     XIcon,
-    AudioWaveIcon
+    AudioWaveIcon,
+    FilmIcon,
+    CheckIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -188,10 +192,23 @@ const BrandStylistAI: React.FC<any> = ({auth, appConfig}) => <div className="p-6
 
 const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [category, setCategory] = useState<string | null>(null);
-    const [subjectA, setSubjectA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [subjectB, setSubjectB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [uploadMode, setUploadMode] = useState<'image' | 'video'>('image');
+    
+    const [subjectA, setSubjectA] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
+    const [subjectB, setSubjectB] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [videoTitle, setVideoTitle] = useState('');
+    
+    const [videoState, setVideoState] = useState<{
+        file: File | null;
+        status: 'idle' | 'extracting' | 'analyzing' | 'complete';
+        frames: string[];
+        suggestedTitles: string[];
+        selectedFrameIndex: number;
+    }>({
+        file: null, status: 'idle', frames: [], suggestedTitles: [], selectedFrameIndex: -1
+    });
+
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedThumbnail, setGeneratedThumbnail] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -199,6 +216,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
     const subjectAInputRef = useRef<HTMLInputElement>(null);
     const subjectBInputRef = useRef<HTMLInputElement>(null);
     const referenceInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
         { id: 'podcast', label: 'Podcast', icon: <MicrophoneIcon className="w-6 h-6" /> },
@@ -224,6 +242,59 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             
             setError(null);
         }
+    };
+
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('video/')) {
+            setError("Please upload a valid video file.");
+            return;
+        }
+
+        setVideoState(prev => ({ ...prev, file, status: 'extracting', frames: [], suggestedTitles: [] }));
+        setError(null);
+
+        try {
+            // 1. Extract Frames locally
+            const frames = await extractFramesFromVideo(file, 6);
+            setVideoState(prev => ({ ...prev, frames, status: 'analyzing' }));
+
+            // 2. Analyze with Gemini
+            const analysis = await analyzeVideoFrames(frames);
+            setVideoState(prev => ({ 
+                ...prev, 
+                status: 'complete', 
+                suggestedTitles: analysis.titles,
+                selectedFrameIndex: analysis.bestFrameIndex
+            }));
+
+            // Auto-select best candidate
+            if (analysis.bestFrameIndex >= 0 && analysis.bestFrameIndex < frames.length) {
+                const bestFrame = frames[analysis.bestFrameIndex];
+                setSubjectA({ 
+                    url: `data:image/jpeg;base64,${bestFrame}`, 
+                    base64: { base64: bestFrame, mimeType: 'image/jpeg' } 
+                });
+            }
+            if (analysis.titles.length > 0) {
+                setVideoTitle(analysis.titles[0]);
+            }
+
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || "Video analysis failed.");
+            setVideoState(prev => ({ ...prev, status: 'idle' }));
+        }
+    };
+
+    const selectVideoFrame = (index: number) => {
+        const frame = videoState.frames[index];
+        setVideoState(prev => ({ ...prev, selectedFrameIndex: index }));
+        setSubjectA({ 
+            url: `data:image/jpeg;base64,${frame}`, 
+            base64: { base64: frame, mimeType: 'image/jpeg' } 
+        });
     };
 
     const handleGenerate = async () => {
@@ -274,19 +345,77 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                         {category && (
                             <>
                                 <div>
-                                    <h3 className="font-bold mb-3">2. Upload Content</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
-                                            {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
-                                            <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
-                                        </div>
-                                        {category === 'podcast' && (
-                                            <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
-                                                {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
-                                                <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
-                                            </div>
-                                        )}
+                                    <h3 className="font-bold mb-3">2. Content Source</h3>
+                                    <div className="flex gap-2 mb-4">
+                                        <button onClick={() => setUploadMode('image')} className={`flex-1 py-2 rounded-lg text-sm font-semibold border-2 ${uploadMode === 'image' ? 'border-red-500 text-red-600 bg-red-50' : 'border-gray-200'}`}>Upload Photo</button>
+                                        <button onClick={() => setUploadMode('video')} className={`flex-1 py-2 rounded-lg text-sm font-semibold border-2 ${uploadMode === 'video' ? 'border-red-500 text-red-600 bg-red-50' : 'border-gray-200'}`}>Smart Video Scan</button>
                                     </div>
+
+                                    {uploadMode === 'image' ? (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
+                                                {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
+                                                <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
+                                            </div>
+                                            {category === 'podcast' && (
+                                                <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
+                                                    {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
+                                                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => videoInputRef.current?.click()}>
+                                                {videoState.file ? (
+                                                    <div className="text-green-600 font-semibold flex flex-col items-center">
+                                                        <FilmIcon className="w-8 h-8 mb-2"/>
+                                                        {videoState.file.name}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-gray-500 flex flex-col items-center">
+                                                        <FilmIcon className="w-8 h-8 mb-2"/>
+                                                        Upload Video (MP4, MOV)
+                                                    </div>
+                                                )}
+                                                <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
+                                            </div>
+
+                                            {videoState.status === 'extracting' && <div className="text-sm text-gray-500 text-center animate-pulse">Extracting frames...</div>}
+                                            {videoState.status === 'analyzing' && <div className="text-sm text-blue-500 text-center animate-pulse">AI Analyzing content...</div>}
+                                            
+                                            {videoState.status === 'complete' && (
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <p className="text-xs font-bold text-gray-500 mb-2">SUGGESTED TITLES</p>
+                                                        <div className="space-y-2">
+                                                            {videoState.suggestedTitles.map((t, i) => (
+                                                                <div key={i} onClick={() => setVideoTitle(t)} className={`text-xs p-2 rounded border cursor-pointer ${videoTitle === t ? 'bg-blue-100 border-blue-500' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                                                                    {t}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-gray-500 mb-2">SELECT BEST FRAME</p>
+                                                        <div className="flex gap-2 overflow-x-auto pb-2">
+                                                            {videoState.frames.map((frame, i) => (
+                                                                <img 
+                                                                    key={i} 
+                                                                    src={`data:image/jpeg;base64,${frame}`} 
+                                                                    className={`h-16 rounded border-2 cursor-pointer ${videoState.selectedFrameIndex === i ? 'border-green-500 ring-2 ring-green-200' : 'border-transparent'}`}
+                                                                    onClick={() => selectVideoFrame(i)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-green-50 text-green-700 p-2 rounded text-xs flex items-center gap-2">
+                                                        <CheckIcon className="w-4 h-4"/> Image & Title set from video!
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold mb-3">3. Video Title (Context for AI)</h3>
