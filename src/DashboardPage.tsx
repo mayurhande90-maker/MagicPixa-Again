@@ -2891,7 +2891,105 @@ const Support: React.FC<{ auth: AuthProps; }> = ({ auth }) => { return <div>Supp
 
 const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => { return <div>Profile</div> };
 
-const Creations: React.FC<{ auth: AuthProps; }> = ({ auth }) => { return <div>Creations</div> };
+const Creations: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
+    const [creations, setCreations] = useState<Creation[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (auth.user) {
+            setIsLoading(true);
+            getCreations(auth.user.uid)
+                .then(setCreations)
+                .catch(console.error)
+                .finally(() => setIsLoading(false));
+        }
+    }, [auth.user]);
+
+    const handleDelete = async (creation: Creation, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!auth.user || !confirm('Are you sure you want to delete this creation?')) return;
+        
+        setDeletingId(creation.id);
+        try {
+            await deleteCreation(auth.user.uid, creation);
+            setCreations(prev => prev.filter(c => c.id !== creation.id));
+        } catch (error) {
+            console.error("Failed to delete:", error);
+            alert("Failed to delete creation.");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handleDownload = (url: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `magicpixa_creation_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 pb-24">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-8 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
+                        <p className="text-[#5F6368] mt-1">Your generated masterpieces.</p>
+                    </div>
+                </div>
+
+                {isLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
+                         {[...Array(8)].map((_, i) => (
+                            <div key={i} className="aspect-square bg-gray-200 rounded-xl"></div>
+                        ))}
+                    </div>
+                ) : creations.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {creations.map(creation => (
+                            <div 
+                                key={creation.id} 
+                                onClick={() => setSelectedImage(creation.imageUrl)}
+                                className="group relative aspect-square bg-gray-100 rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all border border-gray-200"
+                            >
+                                <img src={creation.imageUrl} alt={creation.feature} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                    <p className="text-white font-bold text-sm mb-1">{creation.feature}</p>
+                                    <p className="text-gray-300 text-xs mb-3">{creation.createdAt?.seconds ? new Date(creation.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={(e) => handleDownload(creation.imageUrl, e)} className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white hover:text-black transition-colors">
+                                            <DownloadIcon className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={(e) => handleDelete(creation, e)} disabled={deletingId === creation.id} className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg text-white hover:bg-red-500 transition-colors">
+                                            {deletingId === creation.id ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <TrashIcon className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ProjectsIcon className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">No creations yet</h3>
+                        <p className="text-gray-500 mb-6">Start using our magic tools to create something amazing.</p>
+                        <button onClick={() => navigateTo('dashboard', 'dashboard')} className="px-6 py-3 bg-[#0079F2] text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                            Go to Dashboard
+                        </button>
+                    </div>
+                )}
+            </div>
+            {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
+        </div>
+    );
+};
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig, setAppConfig }) => {
   const [creations, setCreations] = useState<Creation[]>([]);
@@ -2934,7 +3032,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
        case 'thumbnail_studio':
           return <ThumbnailStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
       case 'creations':
-        return <Creations auth={auth} />;
+        return <Creations auth={auth} navigateTo={navigateTo} />;
       case 'billing':
         return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
       case 'profile':
