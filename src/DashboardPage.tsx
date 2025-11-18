@@ -2502,7 +2502,6 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         {showAdvanced && (
                            <div className="space-y-4 border-t border-gray-200/80 pt-4">
                                <InputField id="brandColors" label="Brand Colors" value={brandColors.join(', ')} onChange={(e) => setBrandColors(e.target.value.split(',').map(c => c.trim()))} placeholder="e.g., #FF5733, #33FF57" />
-                               {/* FIX: The file content was corrupted here. Replaced with the correct form fields. */}
                                <InputField id="brandFonts" label="Brand Fonts" value={brandFonts} onChange={(e) => setBrandFonts(e.target.value)} placeholder="e.g., 'Poppins', 'Lato'" />
                                <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={(e) => setCompetitorUrl(e.target.value)} placeholder="e.g., https://competitor.com/product" type="url" />
                                <div>
@@ -2593,6 +2592,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                                         <div>
                                             <h3 className="text-lg font-bold text-[#1E1E1E] flex items-center gap-2 mb-3"><VideoCameraIcon className="w-5 h-5"/> Video Assets</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* ... video components ... */}
                                                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
                                                     {generatedVideos['spin'] ? <video src={generatedVideos['spin']} className="w-full h-full object-cover" controls autoPlay loop muted/> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">{videoStatuses.spin}</div>}
                                                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center p-1 capitalize">360° Spin</div>
@@ -2636,7 +2636,256 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
 
 const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => { return <div>Brand Stylist AI</div> };
 
-const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => { return <div>Thumbnail Studio</div> };
+const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
+    const [videoTitle, setVideoTitle] = useState('');
+    const [videoDescription, setVideoDescription] = useState('');
+    const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+    const [uploadedImage, setUploadedImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    const [selectedStyle, setSelectedStyle] = useState<string>('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const thumbnailStyles = [
+        { id: 'energetic', label: 'Energetic', emoji: '⚡' },
+        { id: 'professional', label: 'Professional', emoji: '👔' },
+        { id: 'cinematic', label: 'Cinematic', emoji: '🎬' },
+        { id: 'gaming', label: 'Gaming', emoji: '🎮' },
+        { id: 'minimalist', label: 'Minimalist', emoji: '⚪' },
+        { id: 'news', label: 'News/Talk', emoji: '📰' },
+    ];
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please upload a valid image file.');
+                return;
+            }
+            const base64 = await fileToBase64(file);
+            setUploadedImage({ file, url: URL.createObjectURL(file), base64 });
+            setError(null);
+        }
+    };
+
+    const handleSuggestTitles = async () => {
+        if (!videoDescription.trim()) {
+            setError("Please enter a video description to get suggestions.");
+            return;
+        }
+        setIsLoadingSuggestions(true);
+        setError(null);
+        try {
+            const titles = await suggestThumbnailTitles(videoDescription);
+            setSuggestedTitles(titles);
+        } catch (e) {
+            setError("Failed to get title suggestions.");
+        } finally {
+            setIsLoadingSuggestions(false);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!uploadedImage) {
+            setError("Please upload an image frame from your video.");
+            return;
+        }
+        if (!videoTitle.trim()) {
+            setError("Please enter a title for your thumbnail.");
+            return;
+        }
+        if (!selectedStyle) {
+            setError("Please select a style.");
+            return;
+        }
+        
+        setIsGenerating(true);
+        setError(null);
+        setGeneratedThumbnails([]);
+
+        try {
+            // Generate one high-quality thumbnail
+            const resultBase64 = await generateThumbnail({
+                image: uploadedImage.base64.base64,
+                title: videoTitle,
+                style: selectedStyle
+            });
+            
+            const imageUrl = `data:image/png;base64,${resultBase64}`;
+            setGeneratedThumbnails([imageUrl]);
+
+            if (auth.user) {
+                 saveCreation(auth.user.uid, imageUrl, 'Thumbnail Studio');
+                 // Assuming cost is 2 credits for now
+                 const updatedProfile = await deductCredits(auth.user.uid, 2, 'Thumbnail Studio');
+                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
+            }
+
+        } catch (err: any) {
+            setError(err.message || "Failed to generate thumbnail.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    return (
+        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
+            <div className='w-full max-w-7xl mx-auto'>
+                <div className='mb-8 text-center'>
+                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider flex items-center justify-center gap-2">
+                        <ThumbnailIcon className="w-8 h-8 text-red-500" /> Thumbnail Studio
+                    </h2>
+                    <p className="text-[#5F6368] mt-2">Create click-worthy YouTube thumbnails in seconds.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                    {/* Input Panel */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-8">
+                        {/* Step 1: Context */}
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3 flex items-center gap-2"><span className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span> Context</h3>
+                            <div className="space-y-3">
+                                <TextAreaField 
+                                    id="videoDesc" 
+                                    label="Video Description / Topic" 
+                                    value={videoDescription} 
+                                    onChange={(e) => setVideoDescription(e.target.value)} 
+                                    placeholder="e.g. A review of the new iPhone 16 Pro Max camera features..." 
+                                />
+                                <button 
+                                    onClick={handleSuggestTitles} 
+                                    disabled={isLoadingSuggestions || !videoDescription}
+                                    className="text-sm text-[#0079F2] font-semibold hover:underline disabled:opacity-50 flex items-center gap-1"
+                                >
+                                    {isLoadingSuggestions ? <SparklesIcon className="w-4 h-4 animate-spin"/> : <SparklesIcon className="w-4 h-4"/>} 
+                                    Get AI Title Ideas
+                                </button>
+                                {suggestedTitles.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {suggestedTitles.map((t, i) => (
+                                            <button key={i} onClick={() => setVideoTitle(t)} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors text-left">
+                                                {t}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <InputField 
+                                    id="videoTitle" 
+                                    label="Main Thumbnail Text" 
+                                    value={videoTitle} 
+                                    onChange={(e) => setVideoTitle(e.target.value)} 
+                                    placeholder="e.g. iPhone 16 REVIEW!" 
+                                />
+                            </div>
+                        </div>
+
+                        {/* Step 2: Visuals */}
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3 flex items-center gap-2"><span className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span> Visuals</h3>
+                             <div 
+                                className={`relative w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!uploadedImage ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} 
+                                onClick={!uploadedImage ? () => fileInputRef.current?.click() : undefined}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                                {uploadedImage ? (
+                                    <>
+                                        <img src={uploadedImage.url} alt="Uploaded frame" className="w-full h-full object-cover" />
+                                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title="Change image"><ArrowUpCircleIcon className="w-5 h-5" /></button>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-1 text-gray-500 p-2">
+                                        <UploadIcon className="w-8 h-8" />
+                                        <span className="font-semibold text-sm text-gray-700">Upload Video Frame or Photo</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Step 3: Style */}
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E1E1E] mb-3 flex items-center gap-2"><span className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span> Style</h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                {thumbnailStyles.map(style => (
+                                    <button 
+                                        key={style.id} 
+                                        onClick={() => setSelectedStyle(style.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${selectedStyle === style.id ? 'border-[#0079F2] bg-blue-50 text-[#0079F2]' : 'border-gray-200 hover:border-blue-200 text-gray-600'}`}
+                                    >
+                                        <span className="text-2xl mb-1">{style.emoji}</span>
+                                        <span className="text-xs font-bold">{style.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Action */}
+                         <div className="pt-4 border-t border-gray-200/80">
+                            <button 
+                                onClick={handleGenerate} 
+                                disabled={isGenerating} 
+                                className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50 transition-transform transform active:scale-95 hover:shadow-lg"
+                            >
+                                <SparklesIcon className="w-6 h-6"/> {isGenerating ? 'Designing Thumbnail...' : 'Generate Thumbnail'}
+                            </button>
+                             <p className="text-xs text-center text-gray-500 mt-2">Costs 2 credits per generation.</p>
+                        </div>
+                         {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
+                    </div>
+
+                    {/* Output Panel */}
+                    <div className="lg:col-span-3">
+                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 min-h-[500px]">
+                            {!isGenerating && generatedThumbnails.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                                    <ThumbnailIcon className="w-20 h-20 text-gray-200 mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-400">Your Design Canvas</h3>
+                                    <p className="text-gray-400 mt-2 max-w-xs">Fill in the details on the left to generate your professional thumbnail.</p>
+                                </div>
+                            )}
+                            {isGenerating && (
+                                <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                                    <div className="relative w-24 h-24 mb-6">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div className="absolute inset-0 border-4 border-t-[#f9d230] rounded-full animate-spin"></div>
+                                        <SparklesIcon className="absolute inset-0 m-auto w-8 h-8 text-[#f9d230] animate-pulse" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-[#1E1E1E] animate-pulse">AI is Designing...</h3>
+                                    <p className="text-[#5F6368] mt-2">Analyzing context, cutting out subject, and applying style.</p>
+                                </div>
+                            )}
+                            {generatedThumbnails.length > 0 && (
+                                <div>
+                                     <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-[#1E1E1E]">Result</h2>
+                                        <button onClick={() => setGeneratedThumbnails([])} className="text-sm text-gray-500 hover:text-black flex items-center gap-1"><UploadIcon className="w-4 h-4"/> New Design</button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-6">
+                                        {generatedThumbnails.map((url, idx) => (
+                                            <div key={idx} className="group relative aspect-video bg-gray-100 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">
+                                                <img src={url} alt={`Thumbnail variant ${idx+1}`} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                     <button 
+                                                        onClick={() => { const link = document.createElement('a'); link.href = url; link.download = `magicpixa_thumb_${Date.now()}.png`; link.click(); }}
+                                                        className="bg-white text-[#1E1E1E] font-bold py-2 px-6 rounded-full shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+                                                     >
+                                                        <DownloadIcon className="w-5 h-5" /> Download
+                                                     </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const Support: React.FC<{ auth: AuthProps; }> = ({ auth }) => { return <div>Support</div> };
 
