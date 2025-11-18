@@ -582,43 +582,6 @@ export const suggestThumbnailTitles = async (videoDescription: string): Promise<
     return JSON.parse(text);
 };
 
-export const analyzeVideoFrames = async (frames: string[]): Promise<{ titles: string[], bestFrameIndex: number }> => {
-    const ai = getAiClient();
-    
-    const parts: any[] = [];
-    frames.forEach((frame, index) => {
-        parts.push({ text: `FRAME ${index}:` });
-        parts.push({ inlineData: { data: frame, mimeType: 'image/jpeg' } });
-    });
-
-    parts.push({ text: `Analyze these video frames. 
-    1. Identify the topic of the video.
-    2. Suggest 3 viral, clickbait YouTube titles based on the visual content.
-    3. Select the ONE frame index (0-${frames.length - 1}) that has the clearest face/expression suitable for a thumbnail.
-    
-    Return JSON: { "titles": ["string"], "bestFrameIndex": number }` });
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: { parts },
-        config: {
-            responseMimeType: "application/json",
-             responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    titles: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    bestFrameIndex: { type: Type.INTEGER }
-                },
-                required: ["titles", "bestFrameIndex"]
-            }
-        }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("Failed to analyze video.");
-    return JSON.parse(text);
-};
-
 export const generateThumbnail = async (
     inputs: {
         category: string;
@@ -659,52 +622,65 @@ export const generateThumbnail = async (
     parts.push({ inlineData: { data: inputs.referenceImage, mimeType: 'image/png' } });
 
     // 2. Add Subject A
-    parts.push({ text: "SUBJECT A (TARGET PERSON - MUST BE COMPOSITED PERFECTLY):" });
+    parts.push({ text: "SUBJECT A (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
     parts.push({ inlineData: { data: inputs.subjectA, mimeType: 'image/png' } });
 
     // 3. Add Subject B (if exists)
     if (inputs.subjectB) {
-        parts.push({ text: "SUBJECT B (TARGET PERSON - MUST BE COMPOSITED PERFECTLY):" });
+        parts.push({ text: "SUBJECT B (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
-    // 4. PRO-LEVEL COMPOSITING PROMPT
-    const prompt = `You are the world's best YouTube Thumbnail Designer and Photoshop Expert.
+    // 4. Detailed System Prompt with STRICT Identity & Design Rules
+    const prompt = `You are an Elite YouTube Thumbnail Art Director. Your goal is MAXIMAL Click-Through Rate (CTR).
+
+    *** CRITICAL SAFETY PROTOCOL: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
+    - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
+    - DO NOT generate a new face. DO NOT "improve" the face. DO NOT change the expression.
+    - DO NOT change the body type, hair, or clothing unless explicitly asked.
+    - The person in the output MUST be pixel-perfect identical to the uploaded image.
+    - If the face looks different, the task is a FAILURE.
+
+    *** PHASE 1: INTELLIGENT DESIGN SYSTEMS (MANDATORY) ***
     
-    *** GOAL: Create a high-CTR thumbnail by COMPOSITING the Subject(s) onto a viral background. ***
+    1. **TYPOGRAPHY RULES (Prevent Basic Mistakes):**
+       - FONT SELECTION: Use ONLY massive, BOLD, Sans-Serif fonts (e.g., Impact, Montserrat ExtraBold, Roboto Black).
+       - **BANNED FONTS**: Do NOT use thin, serif, curly, or handwritten fonts (like Times New Roman or scripts). They are unreadable.
+       - READABILITY: Text MUST have a heavy Drop Shadow, Black Outline (Stroke), or be on a high-contrast box.
+       - HIERARCHY: The Title "${inputs.title}" must be the second largest element after the face.
+
+    2. **COLOR THEORY & PALETTE:**
+       - Use COMPLEMENTARY COLORS. If background is Cool (Blue/Purple), Text/Light must be Warm (Yellow/Orange).
+       - AVOID: Muddy, pastel, or desaturated colors.
+       - TREND: High saturation is required for YouTube. Make the colors "pop".
+
+    3. **COMPOSITION & BACKGROUND:**
+       - DEPTH OF FIELD: The background MUST be slightly blurred (Bokeh effect) to separate it from the Subject and Text.
+       - SEPARATION: Ensure the Subject has a "Rim Light" (backlight) to separate them from the background.
+       - CONTEXT: Background elements must match the semantic meaning of the title (e.g., "Money" -> Cash/Gold, "Tech" -> Circuits/Neon).
+
+    *** PHASE 2: CONTEXTUAL SYNTHESIS ***
     
-    ### STRICT IDENTITY PRESERVATION RULES (v2.0) ###
-    1. **DO NOT GENERATE A NEW FACE.** You are acting as a compositor, not a portrait painter.
-    2. **PIXEL FIDELITY:** You must use the visual information from "SUBJECT A" (and B) exactly.
-    3. **BACKGROUND REMOVAL:** Cleanly cut out the subject from their original background. No jagged edges.
-    4. **SCALING:** If the subject is small, upscale it smoothly. Do not distort facial features.
-    
-    ### PHASE 1: PROFESSIONAL COMPOSITING ###
-    1. **The Cutout:** Place the Subject(s) in the FOREGROUND. They should occupy 40-50% of the frame.
-    2. **Rim Lighting:** Apply a "Rim Light" (Edge Glow) to the subject that matches the new background color (e.g., if background is blue neon, rim light is blue). This separates them from the background.
-    3. **Color Grading:** Adjust the subject's contrast and saturation to match the high-energy vibe of the background. Do NOT change skin tone unnaturally.
-    
-    ### PHASE 2: BACKGROUND GENERATION ###
-    1. **Contextual Generation:** Generate a background specifically for the title: "${inputs.title}".
-       - If title mentions a specific object (e.g. "iPhone"), show it in the background.
-       - If title mentions a place (e.g. "India"), show that place.
-    2. **Depth of Field:** Apply a Gaussian Blur (Bokeh) to the background so the focus remains on the Subject and Text.
-    3. **Trend Injection:** Use these viral elements: ${trendInsights}.
-    
-    ### PHASE 3: TYPOGRAPHY & LAYOUT ###
-    1. **Text Placement:** Render the title "${inputs.title}".
-       - Position: Center-Left or Center-Right (DO NOT COVER THE FACE).
-       - Font: Massive, Condensed, Bold, Sans-Serif (like 'Impact' or 'Roboto Black').
-       - Style: White text with a thick Black Stroke (Outline) and Drop Shadow.
-       - **NO SPELLING ERRORS.**
-    
-    ### PHASE 4: REFERENCE STYLE TRANSFER ###
-    - Look at the "REFERENCE STYLE IMAGE".
-    - Copy its *Lighting Scheme* (e.g. Split lighting, Neon).
-    - Copy its *Color Palette* (e.g. Yellow/Black, Teal/Orange).
-    - **DO NOT** copy the person or text from the reference.
-    
-    **OUTPUT:** A photorealistic, high-resolution (1280x720 equivalent) composite image.`;
+    1. **Context Deduction**:
+       - Analyze Subject (Attire, Ethnicity) + Title ("${inputs.title}").
+       - IF Subject/Title implies a specific region (e.g., India, USA, Japan), strictly use background elements from that region.
+       - Example: Title "Budget 2025" + Indian Subject -> Background MUST be Indian Parliament/Currency, NOT US Capitol.
+
+    2. **Internet Trend Integration**:
+       - Trend Data: "${trendInsights}"
+       - incorporate these specific visual elements into the background.
+
+    *** PHASE 3: REFERENCE STYLE EXTRACTION ***
+    - Extract the *Vibe* (e.g., "Glow effect", "Split screen", "3D Text") from the Reference Image.
+    - **DO NOT COPY TEXT/CONTENT**: Ignore any words or people in the reference. Only copy the *Design Style*.
+
+    *** FINAL OUTPUT INSTRUCTIONS ***
+    - Composite Subject A (and B) into the new background.
+    - Apply matching lighting to the subjects.
+    - Render the title text "${inputs.title}" using the strict Typography Rules above.
+    - Ensure NO text from the reference image appears.
+
+    Output the final, high-CTR thumbnail.`;
 
     parts.push({ text: prompt });
 
