@@ -609,24 +609,24 @@ export const generateThumbnail = async (
     }
 
     // 4. Detailed System Prompt
-    const prompt = `You are an elite YouTube Thumbnail Designer AI.
+    const prompt = `You are an elite, culturally intelligent YouTube Thumbnail Designer AI.
 
-    TASK:
-    Create a click-worthy thumbnail for a video titled: "${inputs.title}".
-    
-    CRITICAL RULES (VIOLATIONS = FAILURE):
-    1. **PRESERVE IDENTITY**: Do NOT change the facial features, hair, body shape, or identity of Subject A (and B). Use the exact pixel data for the face provided. Do NOT hallucinate a new person.
-    2. **NO COPIED TEXT**: Do NOT copy any text present in the Reference Style Image.
-    3. **CONTEXTUAL BACKGROUND**: Analyze the meaning of the title "${inputs.title}". Generate a background that illustrates this topic.
-       - If title is "Politics Exposed", use political imagery (capitol, flags, debate).
-       - If title is "Tech Review", use tech imagery.
-       - **Crucial**: Render this *new* background using the *art style* and *color grading* of the Reference Image.
+    PHASE 1: VISUAL FORENSICS & CONTEXT ANALYSIS
+    1. Analyze SUBJECT A (and B): Determine ethnicity, attire (e.g., Kurta vs. Suit, Casual vs. Formal), and visual cues.
+    2. Analyze TITLE: "${inputs.title}". Detect entities (e.g., 'Modi' implies India, 'Trump' implies USA, 'Tech' vs 'Gaming').
+    3. DEDUCE CONTEXT: Based on Subject + Title, determine the specific geopolitical or cultural setting (e.g., Indian Politics, US Tech, Japanese Gaming).
+       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background (e.g., Parliament of India, Indian flags). Do NOT default to US/Western imagery unless explicitly appropriate.
 
-    EXECUTION:
-    - Cut out the Subject(s) from their provided images.
-    - Place them in the foreground.
-    - Blend them into the new background using the lighting style of the Reference Image (e.g., matching rim light color).
-    - Render the Title "${inputs.title}" in big, bold text. Match the font style (3D, metallic, grunge, etc.) of the Reference Image.
+    PHASE 2: REFERENCE DECONSTRUCTION
+    1. Analyze REFERENCE STYLE: Lighting (Neon vs Natural), Text Layout (Left vs Right), Font Style (Bold, 3D, Stroke), and Graphics (Arrows, Speedlines).
+    2. IGNORE REFERENCE CONTENT: Do not copy the person or text content from the reference. Only copy the *Vibe* and *Layout*.
+
+    PHASE 3: COMPOSITION
+    1. **Background**: Generate a high-quality background matching the DEDUCED CONTEXT (Phase 1) but rendered in the REFERENCE STYLE (Phase 2).
+    2. **Subject Placement**: Cut out Subject A (and B) and place them prominently. 
+       - **STRICT RULE**: Preserve facial identity 100%. Do NOT change facial features, hair, or body structure.
+    3. **Typography**: Render the title "${inputs.title}" using the font style/effects from the Reference.
+    4. **Lighting**: Relight the subjects to match the background's light source naturally.
 
     Output the final composite image.`;
 
