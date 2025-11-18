@@ -631,56 +631,43 @@ export const generateThumbnail = async (
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
-    // 4. Detailed System Prompt with STRICT Identity & Design Rules
-    const prompt = `You are an Elite YouTube Thumbnail Art Director. Your goal is MAXIMAL Click-Through Rate (CTR).
+    // 4. Detailed System Prompt with STRICT Identity Rules
+    const prompt = `You are an elite, viral-focused YouTube Thumbnail Designer AI.
 
-    *** CRITICAL SAFETY PROTOCOL: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
+    *** CRITICAL INSTRUCTION: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
     - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
     - DO NOT generate a new face. DO NOT "improve" the face. DO NOT change the expression.
-    - DO NOT change the body type, hair, or clothing unless explicitly asked.
-    - The person in the output MUST be pixel-perfect identical to the uploaded image.
+    - DO NOT change the body type, hair, or clothing unless explicitly asked (which is not asked here).
+    - The person in the output MUST be pixel-perfect identical to the uploaded image in terms of identity.
     - If the face looks different, the task is a FAILURE.
 
-    *** PHASE 1: INTELLIGENT DESIGN SYSTEMS (MANDATORY) ***
-    
-    1. **TYPOGRAPHY RULES (Prevent Basic Mistakes):**
-       - FONT SELECTION: Use ONLY massive, BOLD, Sans-Serif fonts (e.g., Impact, Montserrat ExtraBold, Roboto Black).
-       - **BANNED FONTS**: Do NOT use thin, serif, curly, or handwritten fonts (like Times New Roman or scripts). They are unreadable.
-       - READABILITY: Text MUST have a heavy Drop Shadow, Black Outline (Stroke), or be on a high-contrast box.
-       - HIERARCHY: The Title "${inputs.title}" must be the second largest element after the face.
+    *** STRICT CONTENT RULES ***
+    1. **IDENTITY LOCK**: The face and body of Subject A (and B) are SACRED. Do not warp, age, beautify, or cartoonify them. Keep them photorealistic and identical to the upload.
+    2. **TEXT PURGE**: The Reference Image is for *style only*. Do NOT copy any words, logos, or text from the reference image. The ONLY text in the output should be: "${inputs.title}".
 
-    2. **COLOR THEORY & PALETTE:**
-       - Use COMPLEMENTARY COLORS. If background is Cool (Blue/Purple), Text/Light must be Warm (Yellow/Orange).
-       - AVOID: Muddy, pastel, or desaturated colors.
-       - TREND: High saturation is required for YouTube. Make the colors "pop".
+    PHASE 1: INTERNET TREND INTEGRATION
+    I have performed a deep web search on what is working NOW for this topic.
+    TREND DATA: "${trendInsights}"
+    INSTRUCTION: Aggressively incorporate these specific visual trends (colors, elements, vibe) into the background and effects.
 
-    3. **COMPOSITION & BACKGROUND:**
-       - DEPTH OF FIELD: The background MUST be slightly blurred (Bokeh effect) to separate it from the Subject and Text.
-       - SEPARATION: Ensure the Subject has a "Rim Light" (backlight) to separate them from the background.
-       - CONTEXT: Background elements must match the semantic meaning of the title (e.g., "Money" -> Cash/Gold, "Tech" -> Circuits/Neon).
+    PHASE 2: VISUAL FORENSICS & CONTEXT ANALYSIS
+    1. Analyze SUBJECT A (and B): Determine ethnicity, attire, and visual cues.
+    2. Analyze TITLE: "${inputs.title}". Detect entities and context.
+    3. DEDUCE CONTEXT: Based on Subject + Title, determine the setting.
+       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background (e.g., Parliament of India, Indian streets, Indian currency). Do NOT default to US/Western imagery.
 
-    *** PHASE 2: CONTEXTUAL SYNTHESIS ***
-    
-    1. **Context Deduction**:
-       - Analyze Subject (Attire, Ethnicity) + Title ("${inputs.title}").
-       - IF Subject/Title implies a specific region (e.g., India, USA, Japan), strictly use background elements from that region.
-       - Example: Title "Budget 2025" + Indian Subject -> Background MUST be Indian Parliament/Currency, NOT US Capitol.
+    PHASE 3: REFERENCE DECONSTRUCTION
+    1. Analyze REFERENCE STYLE: Lighting, Text Layout, Font Style, and Graphics.
+    2. IGNORE REFERENCE CONTENT: Do not copy the person or text content from the reference. Only copy the *Vibe* and *Layout*.
 
-    2. **Internet Trend Integration**:
-       - Trend Data: "${trendInsights}"
-       - incorporate these specific visual elements into the background.
+    PHASE 4: COMPOSITION
+    1. **Background**: Generate a high-quality background matching the DEDUCED CONTEXT and TREND DATA.
+    2. **Subject Integration**: Cut out Subject A (and B) from their original background. Place them prominently in the new design.
+       - **AGAIN: PRESERVE IDENTITY**. Apply lighting effects *only* to blend, do not alter morphology.
+    3. **Typography**: Render the title "${inputs.title}" using the font style/effects from the Reference.
+    4. **No Reference Text**: Ensure NO text from the reference image appears in the output.
 
-    *** PHASE 3: REFERENCE STYLE EXTRACTION ***
-    - Extract the *Vibe* (e.g., "Glow effect", "Split screen", "3D Text") from the Reference Image.
-    - **DO NOT COPY TEXT/CONTENT**: Ignore any words or people in the reference. Only copy the *Design Style*.
-
-    *** FINAL OUTPUT INSTRUCTIONS ***
-    - Composite Subject A (and B) into the new background.
-    - Apply matching lighting to the subjects.
-    - Render the title text "${inputs.title}" using the strict Typography Rules above.
-    - Ensure NO text from the reference image appears.
-
-    Output the final, high-CTR thumbnail.`;
+    Output the final composite image.`;
 
     parts.push({ text: prompt });
 
