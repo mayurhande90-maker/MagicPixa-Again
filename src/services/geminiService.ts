@@ -631,19 +631,30 @@ export const generateThumbnail = async (
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
-    // 4. Detailed System Prompt including Trend Insights
+    // 4. Detailed System Prompt with STRICT Identity Rules
     const prompt = `You are an elite, viral-focused YouTube Thumbnail Designer AI.
 
-    PHASE 1: INTERNET TREND INTEGRATION (CRITICAL)
+    *** CRITICAL INSTRUCTION: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
+    - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
+    - DO NOT generate a new face. DO NOT "improve" the face. DO NOT change the expression.
+    - DO NOT change the body type, hair, or clothing unless explicitly asked (which is not asked here).
+    - The person in the output MUST be pixel-perfect identical to the uploaded image in terms of identity.
+    - If the face looks different, the task is a FAILURE.
+
+    *** STRICT CONTENT RULES ***
+    1. **IDENTITY LOCK**: The face and body of Subject A (and B) are SACRED. Do not warp, age, beautify, or cartoonify them. Keep them photorealistic and identical to the upload.
+    2. **TEXT PURGE**: The Reference Image is for *style only*. Do NOT copy any words, logos, or text from the reference image. The ONLY text in the output should be: "${inputs.title}".
+
+    PHASE 1: INTERNET TREND INTEGRATION
     I have performed a deep web search on what is working NOW for this topic.
     TREND DATA: "${trendInsights}"
-    INSTRUCTION: Aggressively incorporate these specific visual trends (colors, elements, vibe) into the image. Make it "Clickbait" quality - high drama, high emotion.
+    INSTRUCTION: Aggressively incorporate these specific visual trends (colors, elements, vibe) into the background and effects.
 
     PHASE 2: VISUAL FORENSICS & CONTEXT ANALYSIS
     1. Analyze SUBJECT A (and B): Determine ethnicity, attire, and visual cues.
     2. Analyze TITLE: "${inputs.title}". Detect entities and context.
     3. DEDUCE CONTEXT: Based on Subject + Title, determine the setting.
-       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background. Do NOT default to US/Western imagery unless explicitly appropriate.
+       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background (e.g., Parliament of India, Indian streets, Indian currency). Do NOT default to US/Western imagery.
 
     PHASE 3: REFERENCE DECONSTRUCTION
     1. Analyze REFERENCE STYLE: Lighting, Text Layout, Font Style, and Graphics.
@@ -651,10 +662,10 @@ export const generateThumbnail = async (
 
     PHASE 4: COMPOSITION
     1. **Background**: Generate a high-quality background matching the DEDUCED CONTEXT and TREND DATA.
-    2. **Subject Placement**: Cut out Subject A (and B) and place them prominently. 
-       - **STRICT RULE**: Preserve facial identity 100%. Do NOT change facial features, hair, or body structure.
+    2. **Subject Integration**: Cut out Subject A (and B) from their original background. Place them prominently in the new design.
+       - **AGAIN: PRESERVE IDENTITY**. Apply lighting effects *only* to blend, do not alter morphology.
     3. **Typography**: Render the title "${inputs.title}" using the font style/effects from the Reference.
-    4. **Lighting**: Relight the subjects to match the background's light source naturally.
+    4. **No Reference Text**: Ensure NO text from the reference image appears in the output.
 
     Output the final composite image.`;
 
