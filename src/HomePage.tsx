@@ -2,7 +2,6 @@ import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
-// FIX: Added missing ProjectsIcon to the import list.
 import { 
   SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon
 } from './components/icons';
@@ -316,4 +315,3 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 };
 
 export default HomePage;
-// Minor change for commit.

@@ -1,11 +1,4 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// FIX: Add AppConfig to import from types.
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
 import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
@@ -15,7 +8,6 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Billing from './components/Billing';
 import ThemeToggle from './components/ThemeToggle';
-// FIX: Changed to a named import for `AdminPanel` as it does not have a default export.
 import { AdminPanel } from './components/AdminPanel'; // Import the new AdminPanel component
 import { 
     UploadIcon, SparklesIcon, DownloadIcon, RetryIcon, ProjectsIcon, ArrowUpCircleIcon, LightbulbIcon,
@@ -393,7 +385,6 @@ const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: V
     );
 };
 
-// FIX: Re-implemented the missing ImageEditModal component to provide Magic Eraser functionality.
 const ImageEditModal: React.FC<{
     imageUrl: string;
     onClose: () => void;
@@ -418,14 +409,10 @@ const ImageEditModal: React.FC<{
     const currentCredits = isGuest ? guestCredits : (auth.user?.credits ?? 0);
     const hasInsufficientCredits = currentCredits < EDIT_COST;
 
-    // DEFINITIVE FIX: This effect synchronizes the component's internal state (`currentImageUrl`)
-    // with the external `imageUrl` prop. This is the crucial step that was missing.
-    // It ensures that whenever the modal is opened with a *new* image from the gallery,
-    // its internal state is updated, triggering a re-render with the correct image.
     useEffect(() => {
         if (imageUrl) {
             setCurrentImageUrl(imageUrl);
-            setHistory([imageUrl]); // Reset history for the new image editing session
+            setHistory([imageUrl]);
         }
     }, [imageUrl]);
 
@@ -471,7 +458,6 @@ const ImageEditModal: React.FC<{
         };
     }, []);
     
-    // This effect now correctly redraws the image whenever `currentImageUrl` is updated by the new effect above.
     useEffect(() => {
         drawImage(currentImageUrl);
     }, [drawImage, currentImageUrl]);
@@ -564,13 +550,11 @@ const ImageEditModal: React.FC<{
             
             const newBase64 = await removeElementFromImage(originalBase64, originalMimeType, maskBase64);
             
-            // DEFINITIVE FIX: Validate the returned image before displaying it.
-            if (!newBase64 || newBase64.length < 500) { // Check for empty or tiny string
+            if (!newBase64 || newBase64.length < 500) {
                  throw new Error("The AI returned an invalid image. Please undo and try a different selection.");
             }
             const newImageUrl = `data:image/png;base64,${newBase64}`;
 
-            // Further validation by trying to load it
             const validationImage = new Image();
             validationImage.src = newImageUrl;
             await new Promise((resolve, reject) => {
@@ -2784,35 +2768,24 @@ const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Di
 
     const handleDownload = async (url: string, filename: string) => {
       try {
-        // Attempt to fetch the image and create a local blob URL.
-        // This is the only reliable way to force a 'download' action for a cross-origin resource.
         const response = await fetch(url);
         if (!response.ok) {
-            // If the request fails (e.g., 404, 500), it will throw and trigger the fallback.
             throw new Error('Network response was not ok.');
         }
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
         
-        // Create a temporary link to trigger the download.
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = filename; // The 'download' attribute works on blob URLs.
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         
-        // Clean up the temporary link and blob URL.
         document.body.removeChild(link);
         window.URL.revokeObjectURL(blobUrl);
       } catch (error) {
-        // This fallback is crucial. The 'fetch' call above will likely fail due to
-        // Cross-Origin Resource Sharing (CORS) policies if the Firebase Storage bucket
-        // is not configured to allow requests from this web app's domain.
         console.error("Direct download failed, likely due to CORS policy. Falling back to opening image in a new tab.", error);
         
-        // As a fallback, open the image in a new tab. The user can then manually
-        // save it (e.g., right-click -> "Save Image As..."). This is a better UX
-        // than showing an error or doing nothing.
         const link = document.createElement('a');
         link.href = url;
         link.target = '_blank';

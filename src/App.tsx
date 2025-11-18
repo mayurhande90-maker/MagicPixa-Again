@@ -1,17 +1,10 @@
-
-
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
-// FIX: Changed to a named import to match the named export in `DashboardPage.tsx` and resolve the module error.
 import { DashboardPage } from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
-// FIX: Removed incorrect modular imports for 'onAuthStateChanged' and 'signOut'.
-// The errors indicated these were not exported from 'firebase/auth'. Switched to compat syntax
-// by calling these methods directly on the `auth` object instance from Firebase.
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
-// FIX: Added AppConfig to the import list.
 import { Page, View, User, AuthProps, AppConfig } from './types';
 
 const App: React.FC = () => {
@@ -64,12 +57,10 @@ const App: React.FC = () => {
       return;
     }
   
-    // FIX: Used compat `auth.onAuthStateChanged(...)` instead of modular `onAuthStateChanged(auth, ...)`.
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
         if (firebaseUser) {
           const idTokenResult = await firebaseUser.getIdTokenResult();
-// FIX: Correctly call updateUserProfile with a valid object. The function signature in firebase.ts has been updated to accept a more generic object.
           await updateUserProfile(firebaseUser.uid, { lastActive: new Date() }); // Update last active timestamp
           const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
           
@@ -102,7 +93,6 @@ const App: React.FC = () => {
         setUser(null);
         setIsAuthenticated(false);
         if (auth) {
-            // FIX: Used compat `auth.signOut()` instead of modular `signOut(auth)`.
             auth.signOut(); // Sign out to prevent a broken state.
         }
       } finally {
@@ -209,7 +199,6 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // FIX: Used compat `auth.signOut()` instead of modular `signOut(auth)`.
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
