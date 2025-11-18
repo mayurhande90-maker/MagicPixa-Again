@@ -592,6 +592,29 @@ export const generateThumbnail = async (
     }
 ): Promise<string> => {
     const ai = getAiClient();
+
+    // STEP 1: Deep Internet Research for Trends
+    let trendInsights = "";
+    try {
+        // Use text model with grounding for research
+        const researchResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Conduct a deep analysis of trending YouTube thumbnails for the category "${inputs.category}" and specific topic "${inputs.title}".
+            Search for high-CTR, "clickbait" style thumbnails.
+            Identify:
+            1. Dominant colors and lighting (e.g., high saturation neon, dark moody).
+            2. Key facial expressions (e.g., Shocked, Angry, Crying, Joyful).
+            3. Common background elements.
+            4. Text/Typography trends.
+            Provide a concise, intense visual description of the "ultimate clickbait thumbnail" for this topic based on your research.`,
+            config: { tools: [{ googleSearch: {} }] }
+        });
+        trendInsights = researchResponse.text || "Focus on high contrast, emotional faces, and bold text.";
+    } catch (e) {
+        console.warn("Thumbnail research failed, falling back to heuristic analysis.", e);
+        trendInsights = "Create a high-contrast, emotionally charged thumbnail with vibrant colors.";
+    }
+
     const parts: any[] = [];
 
     // 1. Add Reference Image
@@ -608,21 +631,26 @@ export const generateThumbnail = async (
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
-    // 4. Detailed System Prompt
-    const prompt = `You are an elite, culturally intelligent YouTube Thumbnail Designer AI.
+    // 4. Detailed System Prompt including Trend Insights
+    const prompt = `You are an elite, viral-focused YouTube Thumbnail Designer AI.
 
-    PHASE 1: VISUAL FORENSICS & CONTEXT ANALYSIS
-    1. Analyze SUBJECT A (and B): Determine ethnicity, attire (e.g., Kurta vs. Suit, Casual vs. Formal), and visual cues.
-    2. Analyze TITLE: "${inputs.title}". Detect entities (e.g., 'Modi' implies India, 'Trump' implies USA, 'Tech' vs 'Gaming').
-    3. DEDUCE CONTEXT: Based on Subject + Title, determine the specific geopolitical or cultural setting (e.g., Indian Politics, US Tech, Japanese Gaming).
-       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background (e.g., Parliament of India, Indian flags). Do NOT default to US/Western imagery unless explicitly appropriate.
+    PHASE 1: INTERNET TREND INTEGRATION (CRITICAL)
+    I have performed a deep web search on what is working NOW for this topic.
+    TREND DATA: "${trendInsights}"
+    INSTRUCTION: Aggressively incorporate these specific visual trends (colors, elements, vibe) into the image. Make it "Clickbait" quality - high drama, high emotion.
 
-    PHASE 2: REFERENCE DECONSTRUCTION
-    1. Analyze REFERENCE STYLE: Lighting (Neon vs Natural), Text Layout (Left vs Right), Font Style (Bold, 3D, Stroke), and Graphics (Arrows, Speedlines).
+    PHASE 2: VISUAL FORENSICS & CONTEXT ANALYSIS
+    1. Analyze SUBJECT A (and B): Determine ethnicity, attire, and visual cues.
+    2. Analyze TITLE: "${inputs.title}". Detect entities and context.
+    3. DEDUCE CONTEXT: Based on Subject + Title, determine the setting.
+       - **CRITICAL RULE**: If the subject appears Indian or the title contains Indian terms/names, generate an INDIAN context background. Do NOT default to US/Western imagery unless explicitly appropriate.
+
+    PHASE 3: REFERENCE DECONSTRUCTION
+    1. Analyze REFERENCE STYLE: Lighting, Text Layout, Font Style, and Graphics.
     2. IGNORE REFERENCE CONTENT: Do not copy the person or text content from the reference. Only copy the *Vibe* and *Layout*.
 
-    PHASE 3: COMPOSITION
-    1. **Background**: Generate a high-quality background matching the DEDUCED CONTEXT (Phase 1) but rendered in the REFERENCE STYLE (Phase 2).
+    PHASE 4: COMPOSITION
+    1. **Background**: Generate a high-quality background matching the DEDUCED CONTEXT and TREND DATA.
     2. **Subject Placement**: Cut out Subject A (and B) and place them prominently. 
        - **STRICT RULE**: Preserve facial identity 100%. Do NOT change facial features, hair, or body structure.
     3. **Typography**: Render the title "${inputs.title}" using the font style/effects from the Reference.
