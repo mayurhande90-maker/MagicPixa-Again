@@ -1,19 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { ThemeProvider } from './theme';
-
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>
-);
-// Minor change for deployment.
+// This file is no longer used as the main entry point.
+// The entry point has been consolidated to /index.tsx in the root directory
+// to resolve ambiguity from duplicated files.

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// FIX: Corrected import path to point to the main App component inside the 'src' directory.
 import App from './src/App';
+import { ThemeProvider } from './src/theme';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,7 +11,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );
-// Minor change for commit.
