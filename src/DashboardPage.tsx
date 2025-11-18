@@ -21,12 +21,9 @@ import {
     editImageWithPrompt,
     generateBrandStylistImage,
     generateThumbnail,
-    startLiveSession,
-    suggestThumbnailTitles,
-    analyzeVideoFrames
+    startLiveSession
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { extractFramesFromVideo } from './utils/videoUtils';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -48,8 +45,7 @@ import {
     ProductStudioIcon,
     DashboardIcon,
     XIcon,
-    AudioWaveIcon,
-    ChevronRightIcon
+    AudioWaveIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -191,26 +187,18 @@ const BrandStylistAI: React.FC<any> = ({auth, appConfig}) => <div className="p-6
 
 
 const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
-    const [activeTab, setActiveTab] = useState<'photo' | 'video'>('photo');
     const [category, setCategory] = useState<string | null>(null);
     const [subjectA, setSubjectA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [subjectB, setSubjectB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
     const [videoTitle, setVideoTitle] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [loadingStatus, setLoadingStatus] = useState('Processing...');
     const [generatedThumbnail, setGeneratedThumbnail] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    
-    // Video Scan State
-    const [isScanningVideo, setIsScanningVideo] = useState(false);
-    const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
-    const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
     
     const subjectAInputRef = useRef<HTMLInputElement>(null);
     const subjectBInputRef = useRef<HTMLInputElement>(null);
     const referenceInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
         { id: 'podcast', label: 'Podcast', icon: <MicrophoneIcon className="w-6 h-6" /> },
@@ -237,43 +225,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             setError(null);
         }
     };
-    
-    const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        
-        setIsScanningVideo(true);
-        setError(null);
-        setExtractedFrames([]);
-        setSuggestedTitles([]);
-        
-        try {
-            // 1. Extract frames locally
-            const frames = await extractFramesFromVideo(file, 6);
-            setExtractedFrames(frames);
-            
-            // 2. Analyze with Gemini
-            const analysis = await analyzeVideoFrames(frames);
-            setSuggestedTitles(analysis.titles);
-            
-            // 3. Auto-select the best frame as Subject A
-            if (frames[analysis.recommendedFrameIndex]) {
-                const bestFrame = frames[analysis.recommendedFrameIndex];
-                const base64Data = bestFrame.split(',')[1];
-                // Create a pseudo File object or just use the base64
-                setSubjectA({
-                    file: file, // keeping original video file ref just in case, though not used as image
-                    url: bestFrame,
-                    base64: { base64: base64Data, mimeType: 'image/jpeg' }
-                });
-            }
-        } catch (err: any) {
-            console.error(err);
-            setError("Failed to scan video. Please try a shorter clip or image upload.");
-        } finally {
-            setIsScanningVideo(false);
-        }
-    };
 
     const handleGenerate = async () => {
         if (!referenceImage || !subjectA || !videoTitle.trim()) {
@@ -282,22 +233,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         }
         setIsGenerating(true);
         setError(null);
-        
-        const statusMessages = [
-            "Researching Viral Trends...",
-            "Analyzing Competitor Designs...",
-            "Injecting Psychological Hooks...",
-            "Compositing 3D Layers...",
-            "Applying Final Polish..."
-        ];
-        let msgIndex = 0;
-        setLoadingStatus(statusMessages[0]);
-        
-        const interval = setInterval(() => {
-            msgIndex = (msgIndex + 1) % statusMessages.length;
-            setLoadingStatus(statusMessages[msgIndex]);
-        }, 2500);
-
         try {
             const resultBase64 = await generateThumbnail({
                 category: category || 'general',
@@ -316,7 +251,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         } catch (err: any) {
             setError(err.message || "Failed to generate thumbnail.");
         } finally {
-            clearInterval(interval);
             setIsGenerating(false);
         }
     };
@@ -337,54 +271,22 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                                 ))}
                             </div>
                         </div>
-                        
                         {category && (
                             <>
                                 <div>
-                                    <h3 className="font-bold mb-3">2. Source Content</h3>
-                                    <div className="flex border-b border-gray-200 mb-4">
-                                        <button onClick={() => setActiveTab('photo')} className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'photo' ? 'border-b-2 border-red-500 text-red-600' : 'text-gray-500'}`}>Upload Photo</button>
-                                        <button onClick={() => setActiveTab('video')} className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'video' ? 'border-b-2 border-red-500 text-red-600' : 'text-gray-500'}`}>Smart Video Scan</button>
+                                    <h3 className="font-bold mb-3">2. Upload Content</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
+                                            {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
+                                            <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
+                                        </div>
+                                        {category === 'podcast' && (
+                                            <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
+                                                {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
+                                                <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {activeTab === 'photo' ? (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
-                                                {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <div className="text-center text-gray-400"><UploadIcon className="w-8 h-8 mx-auto"/><span className="text-xs block mt-1">Main Subject</span></div>}
-                                                <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
-                                            </div>
-                                            {category === 'podcast' && (
-                                                <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
-                                                    {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <div className="text-center text-gray-400"><UploadIcon className="w-8 h-8 mx-auto"/><span className="text-xs block mt-1">Guest</span></div>}
-                                                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                             <div className="border-2 border-dashed border-red-200 bg-red-50 rounded-xl p-6 text-center cursor-pointer hover:bg-red-100" onClick={() => videoInputRef.current?.click()}>
-                                                {isScanningVideo ? <SparklesIcon className="w-8 h-8 mx-auto animate-spin text-red-500"/> : <VideoCameraIcon className="w-8 h-8 mx-auto text-red-500"/>}
-                                                <p className="text-sm font-medium text-red-700 mt-2">{isScanningVideo ? 'Scanning Video...' : 'Upload Video File'}</p>
-                                                <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
-                                            </div>
-                                            {suggestedTitles.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <p className="text-xs font-bold text-gray-500 uppercase">AI Suggestions</p>
-                                                    {suggestedTitles.map((t, i) => (
-                                                        <button key={i} onClick={() => setVideoTitle(t)} className="w-full text-left text-xs p-2 bg-gray-100 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-200 transition-colors truncate">
-                                                            {t}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {subjectA && activeTab === 'video' && (
-                                                 <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-200">
-                                                     <img src={subjectA.url} className="w-full h-full object-cover" />
-                                                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-2 py-1">Selected Frame</div>
-                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold mb-3">3. Video Title (Context for AI)</h3>
@@ -393,7 +295,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                                 <div>
                                     <h3 className="font-bold mb-3">4. Reference Style</h3>
                                     <div className="aspect-video border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => referenceInputRef.current?.click()}>
-                                        {referenceImage ? <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg"/> : <div className="text-center text-gray-400"><UploadIcon className="w-8 h-8 mx-auto"/><span className="text-xs block mt-1">Style Ref</span></div>}
+                                        {referenceImage ? <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
                                         <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
                                     </div>
                                 </div>
@@ -401,7 +303,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                                     {isGenerating ? (
                                         <>
                                             <SparklesIcon className="w-5 h-5 animate-spin" />
-                                            <span>{loadingStatus}</span>
+                                            <span>Researching Viral Trends...</span>
                                         </>
                                     ) : 'Generate Viral Thumbnail'}
                                 </button>
@@ -417,18 +319,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                              </div>
                          ) : (
                              <div className="text-center text-gray-400">
-                                 {isGenerating ? (
-                                     <div className="flex flex-col items-center animate-pulse">
-                                        <SparklesIcon className="w-16 h-16 mb-4 text-yellow-400"/>
-                                        <p className="font-medium text-gray-800 text-lg">{loadingStatus}</p>
-                                        <p className="text-sm mt-2">Analyzing YouTube Trends...</p>
-                                     </div>
-                                 ) : (
-                                     <>
-                                        <ThumbnailIcon className="w-16 h-16 mx-auto mb-4"/>
-                                        <p>Result will appear here</p>
-                                     </>
-                                 )}
+                                 {isGenerating ? <SparklesIcon className="w-16 h-16 animate-pulse mx-auto mb-4 text-yellow-400"/> : <ThumbnailIcon className="w-16 h-16 mx-auto mb-4"/>}
+                                 <p>{isGenerating ? "Scanning YouTube for trends..." : "Result will appear here"}</p>
                              </div>
                          )}
                     </div>

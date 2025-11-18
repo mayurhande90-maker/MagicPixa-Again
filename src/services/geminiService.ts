@@ -582,37 +582,6 @@ export const suggestThumbnailTitles = async (videoDescription: string): Promise<
     return JSON.parse(text);
 };
 
-export const analyzeVideoFrames = async (frames: string[]): Promise<{ titles: string[]; recommendedFrameIndex: number }> => {
-    const ai = getAiClient();
-    const parts: any[] = [];
-    frames.forEach(frame => {
-        parts.push({ inlineData: { data: frame, mimeType: 'image/jpeg' } });
-    });
-    parts.push({ text: `Analyze these video frames. 
-    1. Understand the context and topic.
-    2. Suggest 3 viral, clickbait titles.
-    3. Identify the index of the SINGLE best frame to use as a thumbnail base (0-based index). Focus on clear facial expressions or high action.
-    Output JSON.` });
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: { parts },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    titles: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    recommendedFrameIndex: { type: Type.INTEGER }
-                }
-            }
-        }
-    });
-    const text = response.text;
-    if (!text) throw new Error("Failed to analyze video.");
-    return JSON.parse(text);
-};
-
 export const generateThumbnail = async (
     inputs: {
         category: string;
@@ -624,75 +593,94 @@ export const generateThumbnail = async (
 ): Promise<string> => {
     const ai = getAiClient();
 
-    // STEP 1: DEEP VISUAL & PSYCHOLOGICAL RESEARCH
-    let visualDirective = "";
+    // STEP 1: Deep Internet Research for Trends
+    let trendInsights = "";
     try {
+        // Use text model with grounding for research
         const researchResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Perform a deep visual analysis of the absolute BEST performing, most click-baity YouTube thumbnails for the topic: "${inputs.title}" in the category "${inputs.category}".
-            
-            USE GOOGLE SEARCH to find current design trends (2024-2025).
-            
-            I need a "Visual Recipe" for a high-CTR thumbnail. Specifically describe:
-            1. **The Hook:** What visual element creates curiosity or shock? (e.g. "Red Arrow pointing to X", "Blurred face", "Split screen comparison").
-            2. **Color Palette:** What specific high-saturation colors are working? (e.g. "Neon Green & Black", "Yellow Background").
-            3. **Lighting:** Describe the lighting style (e.g. "Rim lighting", "Glow effect", "High contrast").
-            4. **Typography:** Font style, color, and effects (e.g. "White text with black stroke and drop shadow").
-            
-            Output a concise, intense paragraph describing the "Perfect Thumbnail Composition" for this specific video title.`,
+            contents: `Conduct a deep analysis of trending YouTube thumbnails for the category "${inputs.category}" and specific topic "${inputs.title}".
+            Search for high-CTR, "clickbait" style thumbnails.
+            Identify:
+            1. Dominant colors and lighting (e.g., high saturation neon, dark moody).
+            2. Key facial expressions (e.g., Shocked, Angry, Crying, Joyful).
+            3. Common background elements.
+            4. Text/Typography trends.
+            Provide a concise, intense visual description of the "ultimate clickbait thumbnail" for this topic based on your research.`,
             config: { tools: [{ googleSearch: {} }] }
         });
-        visualDirective = researchResponse.text || "Create a high-contrast, emotionally charged thumbnail with vibrant colors and bold text.";
+        trendInsights = researchResponse.text || "Focus on high contrast, emotional faces, and bold text.";
     } catch (e) {
-        console.warn("Thumbnail research failed, using fallback logic.", e);
-        visualDirective = "Create a viral, high-saturation thumbnail with a shocked expression, bold outlined text, and a mysterious background element.";
+        console.warn("Thumbnail research failed, falling back to heuristic analysis.", e);
+        trendInsights = "Create a high-contrast, emotionally charged thumbnail with vibrant colors.";
     }
 
     const parts: any[] = [];
 
-    // 1. Add Reference Image (Style Guide)
-    parts.push({ text: "REFERENCE STYLE (Extract layout/vibe ONLY):" });
+    // 1. Add Reference Image
+    parts.push({ text: "REFERENCE STYLE IMAGE (Use ONLY for art style, lighting, and text effects. DO NOT COPY CONTENT):" });
     parts.push({ inlineData: { data: inputs.referenceImage, mimeType: 'image/png' } });
 
     // 2. Add Subject A
-    parts.push({ text: "SUBJECT A (Main Person - COMPOSITE THIS FACE):" });
+    parts.push({ text: "SUBJECT A (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
     parts.push({ inlineData: { data: inputs.subjectA, mimeType: 'image/png' } });
 
     // 3. Add Subject B (if exists)
     if (inputs.subjectB) {
-        parts.push({ text: "SUBJECT B (Secondary Person - COMPOSITE THIS FACE):" });
+        parts.push({ text: "SUBJECT B (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
-    // 4. MASTER DESIGNER PROMPT
-    const prompt = `ACT AS A WORLD-CLASS YOUTUBE THUMBNAIL ARTIST.
-    Your goal is to create a thumbnail with an EXTREMELY HIGH CLICK-THROUGH RATE (CTR).
+    // 4. Detailed System Prompt with STRICT Identity & Design Rules
+    const prompt = `You are an Elite YouTube Thumbnail Art Director. Your goal is MAXIMAL Click-Through Rate (CTR).
+
+    *** CRITICAL SAFETY PROTOCOL: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
+    - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
+    - DO NOT generate a new face. DO NOT "improve" the face. DO NOT change the expression.
+    - DO NOT change the body type, hair, or clothing unless explicitly asked.
+    - The person in the output MUST be pixel-perfect identical to the uploaded image.
+    - If the face looks different, the task is a FAILURE.
+
+    *** PHASE 1: INTELLIGENT DESIGN SYSTEMS (MANDATORY) ***
     
-    *** RESEARCHED VISUAL DIRECTIVE (FOLLOW THIS STYLE): ***
-    "${visualDirective}"
+    1. **TYPOGRAPHY RULES (Prevent Basic Mistakes):**
+       - FONT SELECTION: Use ONLY massive, BOLD, Sans-Serif fonts (e.g., Impact, Montserrat ExtraBold, Roboto Black).
+       - **BANNED FONTS**: Do NOT use thin, serif, curly, or handwritten fonts (like Times New Roman or scripts). They are unreadable.
+       - READABILITY: Text MUST have a heavy Drop Shadow, Black Outline (Stroke), or be on a high-contrast box.
+       - HIERARCHY: The Title "${inputs.title}" must be the second largest element after the face.
 
-    *** COMPOSITING INSTRUCTIONS ***
-    1. **SUBJECT:** Cut out Subject A (and B) from their original backgrounds.
-       - **IDENTITY LOCK:** You MUST keep their faces exactly as they are. DO NOT generate new people.
-       - **ENHANCEMENT:** Apply "Rim Lighting" (a glowing outline) to the subjects to make them pop against the background. Color of rim light should match the palette (e.g., Neon Blue or Yellow).
-       - **EXPRESSION:** If the subject is neutral, add visual energy AROUND them (speed lines, fire, lightning) to create excitement.
+    2. **COLOR THEORY & PALETTE:**
+       - Use COMPLEMENTARY COLORS. If background is Cool (Blue/Purple), Text/Light must be Warm (Yellow/Orange).
+       - AVOID: Muddy, pastel, or desaturated colors.
+       - TREND: High saturation is required for YouTube. Make the colors "pop".
 
-    2. **BACKGROUND:** Generate a brand new, hyper-realistic, depth-of-field background based on the "${inputs.title}".
-       - It should be relevant but slightly blurred to focus attention on the subject.
-       - Add "Visual Hooks" like arrows, circles, or question marks if the research directive suggests it.
+    3. **COMPOSITION & BACKGROUND:**
+       - DEPTH OF FIELD: The background MUST be slightly blurred (Bokeh effect) to separate it from the Subject and Text.
+       - SEPARATION: Ensure the Subject has a "Rim Light" (backlight) to separate them from the background.
+       - CONTEXT: Background elements must match the semantic meaning of the title (e.g., "Money" -> Cash/Gold, "Tech" -> Circuits/Neon).
 
-    3. **TYPOGRAPHY (CRITICAL):**
-       - Render the title: "${inputs.title}"
-       - **STYLE:** Massive, Bold, Sans-Serif font (like Impact or Roboto Black).
-       - **EFFECTS:** Add a thick stroke (outline) and a hard drop shadow to ensure 100% readability.
-       - **PLACEMENT:** Place text in negative space, do NOT cover the face.
+    *** PHASE 2: CONTEXTUAL SYNTHESIS ***
+    
+    1. **Context Deduction**:
+       - Analyze Subject (Attire, Ethnicity) + Title ("${inputs.title}").
+       - IF Subject/Title implies a specific region (e.g., India, USA, Japan), strictly use background elements from that region.
+       - Example: Title "Budget 2025" + Indian Subject -> Background MUST be Indian Parliament/Currency, NOT US Capitol.
 
-    4. **ATMOSPHERE:**
-       - Use "High Dynamic Range" (HDR) coloring.
-       - Boost saturation and contrast.
-       - The final image should look like a premium Photoshop composition, not a generic AI generation.
+    2. **Internet Trend Integration**:
+       - Trend Data: "${trendInsights}"
+       - incorporate these specific visual elements into the background.
 
-    GENERATE THE FINAL THUMBNAIL IMAGE NOW.`;
+    *** PHASE 3: REFERENCE STYLE EXTRACTION ***
+    - Extract the *Vibe* (e.g., "Glow effect", "Split screen", "3D Text") from the Reference Image.
+    - **DO NOT COPY TEXT/CONTENT**: Ignore any words or people in the reference. Only copy the *Design Style*.
+
+    *** FINAL OUTPUT INSTRUCTIONS ***
+    - Composite Subject A (and B) into the new background.
+    - Apply matching lighting to the subjects.
+    - Render the title text "${inputs.title}" using the strict Typography Rules above.
+    - Ensure NO text from the reference image appears.
+
+    Output the final, high-CTR thumbnail.`;
 
     parts.push({ text: prompt });
 
