@@ -3,7 +3,7 @@ import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Billing from './components/Billing';
-import AdminPanel from './components/AdminPanel';
+import { AdminPanel } from './components/AdminPanel';
 import { 
     getCreations, 
     saveCreation, 
@@ -289,8 +289,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 className="font-bold mb-3">3. Title</h3>
-                                    <InputField value={videoTitle} onChange={(e:any) => setVideoTitle(e.target.value)} placeholder="Video Title" />
+                                    <h3 className="font-bold mb-3">3. Video Title (Context for AI)</h3>
+                                    <InputField value={videoTitle} onChange={(e:any) => setVideoTitle(e.target.value)} placeholder="e.g., Budget 2025 Analysis" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold mb-3">4. Reference Style</h3>
@@ -299,8 +299,13 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                                         <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
                                     </div>
                                 </div>
-                                <button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 disabled:opacity-50">
-                                    {isGenerating ? 'Generating...' : 'Generate Thumbnail'}
+                                <button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {isGenerating ? (
+                                        <>
+                                            <SparklesIcon className="w-5 h-5 animate-spin" />
+                                            <span>Researching Viral Trends...</span>
+                                        </>
+                                    ) : 'Generate Viral Thumbnail'}
                                 </button>
                             </>
                         )}
@@ -315,7 +320,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                          ) : (
                              <div className="text-center text-gray-400">
                                  {isGenerating ? <SparklesIcon className="w-16 h-16 animate-pulse mx-auto mb-4 text-yellow-400"/> : <ThumbnailIcon className="w-16 h-16 mx-auto mb-4"/>}
-                                 <p>{isGenerating ? "Creating magic..." : "Result will appear here"}</p>
+                                 <p>{isGenerating ? "Scanning YouTube for trends..." : "Result will appear here"}</p>
                              </div>
                          )}
                     </div>
