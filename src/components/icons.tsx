@@ -63,7 +63,7 @@ export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className })
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div className={`flex items-center ${className}`}>
         <span className="text-2xl font-bold">
-            <span className="text-gray-800 dark:text-gray-200">Magic</span>
+            <span className="text-black dark:text-gray-200">Magic</span>
             <span className="text-yellow-400">Pixa</span>
         </span>
     </div>
