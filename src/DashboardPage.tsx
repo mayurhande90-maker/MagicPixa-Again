@@ -2807,7 +2807,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
 
                                 {/* 3. Title */}
                                 <div className="animate-fade-in">
-                                    <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">3. Thumbnail Text</h3>
+                                    <h3 className="text-lg font-bold text-[#1E1E1E] mb-3">3. Video Title (Influences Background)</h3>
                                     <InputField 
                                         id="thumbTitle" 
                                         label="" 

@@ -595,35 +595,40 @@ export const generateThumbnail = async (
     const parts: any[] = [];
 
     // 1. Add Reference Image
-    parts.push({ text: "REFERENCE THUMBNAIL STYLE (Follow this layout, lighting, and text style exactly):" });
+    parts.push({ text: "REFERENCE STYLE IMAGE (Use ONLY for art style, lighting, and text effects. DO NOT COPY CONTENT):" });
     parts.push({ inlineData: { data: inputs.referenceImage, mimeType: 'image/png' } });
 
     // 2. Add Subject A
-    parts.push({ text: "SUBJECT A (Person/Object to cut out and place in the thumbnail):" });
+    parts.push({ text: "SUBJECT A (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
     parts.push({ inlineData: { data: inputs.subjectA, mimeType: 'image/png' } });
 
     // 3. Add Subject B (if exists)
     if (inputs.subjectB) {
-        parts.push({ text: "SUBJECT B (Second Person/Object to cut out and place in the thumbnail):" });
+        parts.push({ text: "SUBJECT B (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
         parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
     }
 
     // 4. Detailed System Prompt
-    const prompt = `You are an expert graphic designer. Your task is to recreate the exact style and composition of the 'REFERENCE THUMBNAIL' provided, but using the provided SUBJECT images and new title text.
+    const prompt = `You are an elite YouTube Thumbnail Designer AI.
 
-    INSTRUCTIONS:
-    1. **Background & Vibe**: Analyze the background of the Reference Thumbnail. Recreate a very similar background (colors, lighting, abstract elements, location) but make it fit the new subjects.
-    2. **Subject Placement**: 
-       - Cut out 'SUBJECT A' (and 'SUBJECT B' if provided) from their backgrounds.
-       - Place them in the composition similar to how people/objects are placed in the Reference Thumbnail.
-       - If the reference has 2 people and you have 2 subjects, match the positions.
-       - If the reference has 1 person and you have 1 subject, match the position.
-       - BLEND THEM PERFECTLY: Match the lighting of the subjects to the reference scene (e.g., if the reference has neon blue rim light, apply neon blue rim light to the subjects).
-    3. **Typography**: 
-       - Identify the font style, color, 3D effects, shadows, and placement of the text in the Reference Thumbnail.
-       - Render the new title: "${inputs.title}" using that EXACT text style.
-       - Ensure the text is legible, bold, and punchy, just like a top-tier YouTube thumbnail.
-    4. **Output**: A high-quality, 16:9 image that looks like a professional YouTuber's thumbnail.`;
+    TASK:
+    Create a click-worthy thumbnail for a video titled: "${inputs.title}".
+    
+    CRITICAL RULES (VIOLATIONS = FAILURE):
+    1. **PRESERVE IDENTITY**: Do NOT change the facial features, hair, body shape, or identity of Subject A (and B). Use the exact pixel data for the face provided. Do NOT hallucinate a new person.
+    2. **NO COPIED TEXT**: Do NOT copy any text present in the Reference Style Image.
+    3. **CONTEXTUAL BACKGROUND**: Analyze the meaning of the title "${inputs.title}". Generate a background that illustrates this topic.
+       - If title is "Politics Exposed", use political imagery (capitol, flags, debate).
+       - If title is "Tech Review", use tech imagery.
+       - **Crucial**: Render this *new* background using the *art style* and *color grading* of the Reference Image.
+
+    EXECUTION:
+    - Cut out the Subject(s) from their provided images.
+    - Place them in the foreground.
+    - Blend them into the new background using the lighting style of the Reference Image (e.g., matching rim light color).
+    - Render the Title "${inputs.title}" in big, bold text. Match the font style (3D, metallic, grunge, etc.) of the Reference Image.
+
+    Output the final composite image.`;
 
     parts.push({ text: prompt });
 
