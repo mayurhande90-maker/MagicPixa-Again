@@ -2390,19 +2390,19 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
         
         try {
             const plan = await generateProductPackPlan(
-                productImages.map(img => img.base64),
+                productImages.map(img => img.base64.base64),
                 productName,
                 productDescription,
-                { logo: brandLogo?.base64, colors: brandColors, fonts: brandFonts.split(',').map(f => f.trim()) },
+                { logo: brandLogo?.base64?.base64, colors: brandColors, fonts: brandFonts.split(',').map(f => f.trim()) },
                 competitorUrl,
-                inspirationImages.map(img => img.base64)
+                inspirationImages.map(img => img.base64.base64)
             );
             setGeneratedPlan(plan);
 
             const imagePrompts = plan.imageGenerationPrompts;
             const imageKeys = Object.keys(imagePrompts);
             const imagePromises = imageKeys.map(key => 
-                generateStyledImage(productImages.map(img => img.base64), imagePrompts[key])
+                generateStyledImage(productImages.map(img => img.base64.base64), imagePrompts[key])
                     .then(base64 => ({ key, base64: `data:image/png;base64,${base64}` }))
                     .catch(e => ({ key, error: e }))
             );

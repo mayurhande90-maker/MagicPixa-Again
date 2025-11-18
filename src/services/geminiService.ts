@@ -1,24 +1,17 @@
-// FIX: Removed reference to "vite/client" as it was causing a "Cannot find type definition file" error. The underlying issue is likely a misconfigured tsconfig.json, which cannot be modified.
-
-// FIX: Removed `LiveSession` as it is not an exported member of `@google/genai`.
 import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
-// FIX: Corrected import path for Base64File to navigate up one directory.
 import { Base64File } from "../utils/imageUtils";
 
 /**
  * Helper function to get a fresh AI client on every call.
- * This ensures the latest API key is used, which is critical for features
- * like video generation that may require the user to select a new key.
+ * This ensures the latest API key is used.
  */
 const getAiClient = (): GoogleGenAI => {
-    // DEFINITIVE FIX: Use `import.meta.env.VITE_API_KEY` for the Gemini key, as required by the Vite build process.
     const apiKey = import.meta.env.VITE_API_KEY;
     if (!apiKey || apiKey === 'undefined') {
       throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
     }
     return new GoogleGenAI({ apiKey });
 };
-
 
 const SUPPORT_SYSTEM_INSTRUCTION = `You are Pixa, a friendly and expert support agent for the MagicPixa application. Your goal is to help users understand and use the app's features effectively.
 
@@ -63,7 +56,6 @@ const createSupportTicket: FunctionDeclaration = {
     },
 };
 
-// FIX: The return type is inferred from `ai.live.connect` as `LiveSession` is not exported.
 export const startLiveSession = (callbacks: {
     onopen: () => void;
     onmessage: (message: LiveServerMessage) => Promise<void>;
@@ -107,17 +99,10 @@ export const generateSupportResponse = async (
 
         let response = await chat.sendMessage({ message: newMessage });
 
-        // Handle potential function calls
         if (response.functionCalls && response.functionCalls.length > 0) {
             const fc = response.functionCalls[0];
             if (fc.name === 'createSupportTicket') {
-                // In a real app, you would save this to a database.
-                // Here, we'll simulate it and return a confirmation.
-                console.log("Simulating ticket creation:", fc.args);
                 const ticketId = `MP-${Math.floor(10000 + Math.random() * 90000)}`;
-
-                // Send the result back to the model to get a natural language response
-                // FIX: The `sendMessage` method for the Chat SDK expects a `message` property, not `parts`.
                 response = await chat.sendMessage({
                     message: [{
                         functionResponse: {
@@ -129,13 +114,10 @@ export const generateSupportResponse = async (
             }
         }
         
-        return response.text;
+        return response.text || "I'm sorry, I couldn't generate a response.";
 
     } catch (error) {
         console.error("Error generating support response:", error);
-        if (error instanceof Error) {
-            throw new Error(`Failed to get response: ${error.message}`);
-        }
         throw new Error("An unknown error occurred while getting support response.");
     }
 };
@@ -147,12 +129,7 @@ export const generateCaptions = async (
   const ai = getAiClient();
   try {
     const prompt = `Analyze this image and generate 3-5 distinct, engaging social media captions for it. For each caption, also provide a relevant, concise string of hashtags.
-
-    Follow these rules:
-    1.  The tone should be catchy and suitable for platforms like Instagram or Facebook.
-    2.  Each caption should offer a different angle or perspective on the image.
-    3.  Hashtags should be popular, relevant, and formatted as a single string (e.g., "#tag1 #tag2 #tag3").
-    4.  The output must be a valid JSON array.`;
+    The output must be a valid JSON array.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -169,14 +146,8 @@ export const generateCaptions = async (
           items: {
             type: Type.OBJECT,
             properties: {
-              caption: {
-                type: Type.STRING,
-                description: 'A social media caption for the image.',
-              },
-              hashtags: {
-                type: Type.STRING,
-                description: 'A string of relevant hashtags, space-separated.',
-              },
+              caption: { type: Type.STRING },
+              hashtags: { type: Type.STRING },
             },
             required: ["caption", "hashtags"],
           },
@@ -184,29 +155,14 @@ export const generateCaptions = async (
       },
     });
 
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Caption generation blocked due to: ${response.promptFeedback.blockReason}.`);
-    }
-
-    const jsonText = response.text.trim();
-    if (!jsonText) {
-      throw new Error("The model did not return any caption data.");
-    }
-    
+    const jsonText = response.text?.trim();
+    if (!jsonText) throw new Error("The model did not return any caption data.");
     return JSON.parse(jsonText);
-
   } catch (error) {
-    console.error("Error generating captions with Gemini:", error);
-    if (error instanceof Error) {
-      if (error.message.includes("JSON")) {
-          throw new Error("Failed to generate valid captions. The model's response was not in the expected format. Please try again.");
-      }
-      throw new Error(`Failed to generate captions: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the caption generation service.");
+    console.error("Error generating captions:", error);
+    throw error;
   }
 };
-
 
 export const generateApparelTryOn = async (
   personBase64: string,
@@ -216,83 +172,44 @@ export const generateApparelTryOn = async (
   const ai = getAiClient();
   try {
     const parts: any[] = [];
-    
     parts.push({ text: "{user_photo}:" });
     parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
 
     let apparelPromptInstructions = '';
     for (const item of apparelItems) {
         parts.push({ text: `{${item.type}_image}:` });
-        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } }); // BUG FIX: Was passing item.base64 as mimeType
+        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
         const location = item.type === 'top' ? 'torso' : 'legs';
         apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${location}.`;
     }
     
-    const prompt = `TASK: You are an expert photo compositing AI. Your task is to perform a virtual try-on. You will place the clothing item(s) from the provided apparel image(s) onto the person in the {user_photo}. The final image MUST look like a real, authentic photograph.
-
-**CRITICAL INSTRUCTIONS (MUST BE FOLLOWED EXACTLY):**
-
-1.  **PIXEL PRESERVATION IS THE #1 RULE:** The final output MUST be a pixel-perfect copy of the original {user_photo} in every area EXCEPT for the clothing being replaced.
-    -   **ABSOLUTELY NO** changes to the person's face, hair, skin tone, body shape, or proportions.
-    -   **ABSOLUTELY NO** changes to the background, accessories (jewelry, watches), or anything that is not the target clothing.
-
-2.  **IDENTIFY AND REPLACE (DO NOT BLEND OR COPY):**
-    -   Your task is to **completely replace** the corresponding clothing item in {user_photo} with the new garment(s) provided.
-    -   **CRITICAL:** You must IGNORE the style, shape, and length of the clothing the person is originally wearing. The original clothing is only a guide for *location on the body*, not for the *final appearance*. For example, if the person is wearing shorts and you are given an image of long pants, you MUST generate the full-length pants, not shorts with a new texture.
+    const prompt = `TASK: Expert photo compositing AI. Virtual try-on.
+Replace the clothing in {user_photo} with the provided apparel image(s).
+CRITICAL:
+1. Pixel preservation: Do NOT change face, hair, skin, body shape, or background.
+2. Identify and Replace: Completely replace the target garment. Ignore the original clothing style/length.
 ${apparelPromptInstructions}
-
-3.  **FIT & DRAPE REALISTICALLY:**
-    -   Warp the new garment to fit the person's body and pose naturally.
-    -   Simulate realistic fabric folds, drapes, and wrinkles. The clothing must look like it's actually being worn, respecting gravity and the person's posture.
-
-4.  **MATCH LIGHTING & ENVIRONMENT:**
-    -   Analyze the lighting, shadows, and color temperature of the original {user_photo}.
-    -   Apply the IDENTICAL lighting and shadows to the new garment(s) so they blend perfectly into the scene.
-
-5.  **RESPECT OCCLUSION:**
-    -   If the person's hands, arms, hair, or accessories overlap the clothing, keep the overlapping object perfectly intact and render the garment correctly underneath it.
-
-**STRICT NEGATIVE CONSTRAINTS (DO NOT DO ANY OF THE FOLLOWING):**
--   **DO NOT** regenerate the person. You are only replacing clothes.
--   **DO NOT** alter the background in any way.
--   **DO NOT** change the person's identity, face, or body proportions.
--   **DO NOT** create an image that looks "edited" or "AI-generated". Aim for 100% photorealism.
--   **DO NOT** add watermarks, text, or artifacts.
--   **DO NOT** ignore occlusions (e.g., an arm in front of the t-shirt).
--   **DO NOT** copy the style (e.g., length, cut) of the original garment in {user_photo}. You must render the new garment as it appears in its own image.`;
+3. Fit & Drape: Realistic folds, wrinkles, and gravity.
+4. Lighting: Match original lighting and shadows exactly.
+5. Occlusion: Keep hands/hair over the clothing intact.
+OUTPUT: Photorealistic image.`;
     
     parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      },
+      config: { responseModalities: [Modality.IMAGE] },
     });
     
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
-    }
-
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-
-    if (imagePart?.inlineData?.data) {
-      return imagePart.inlineData.data;
-    }
-
-    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error generating apparel with Gemini:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate image: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the image generation service.");
+    console.error("Error generating apparel:", error);
+    throw error;
   }
 };
-
 
 export const editImageWithPrompt = async (
   base64ImageData: string,
@@ -301,61 +218,27 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo. The product must cast a natural, realistic shadow and the lighting should be balanced. CRITICAL: The product itself, including its packaging, logo, and any text, must remain completely unchanged and preserved with high fidelity. Place the product in an appealing, professional setting.`;
+    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo.
+CRITICAL: The product itself (packaging, logo, text) must remain unchanged.
+STYLE: ${theme === 'automatic' ? 'Professional product photography background.' : theme}`;
     
-    const themes: { [key: string]: string } = {
-        'minimalist': 'The background should be a minimalist studio setting. Use clean surfaces, soft neutral colors, and a simple, uncluttered composition.',
-        'natural': 'The background should feature natural elements. Place the product on a surface like wood or stone, with soft, leafy botanicals or other organic textures blurred in the background.',
-        'geometric': 'The background should be bold and geometric. Use colorful blocks, strong lines, and dramatic lighting to create a modern, eye-catching scene.',
-        'luxe': 'The background should feel luxurious and elegant. Use materials like marble, silk, or satin with subtle golden or metallic accents and sophisticated lighting.',
-        'outdoor': 'The background should be a beautiful outdoor setting during the golden hour. The lighting should be warm and golden, with a soft, naturally blurred background (like a beach or a garden).'
-    };
-
-    if (theme && themes[theme]) {
-        prompt += `\n\nSTYLE: ${themes[theme]}`;
-    } else {
-        prompt += `\n\nSTYLE: The AI should choose a professional background that best complements the product.`;
-    }
-
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
-          {
-            inlineData: {
-              data: base64ImageData,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: prompt,
-          },
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: prompt },
         ],
       },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      },
+      config: { responseModalities: [Modality.IMAGE] },
     });
 
-    if (response.promptFeedback?.blockReason) {
-        throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
-    }
-
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-
-    if (imagePart?.inlineData?.data) {
-        return imagePart.inlineData.data;
-    }
-    
-    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error editing image with Gemini:", error);
-    if (error instanceof Error) {
-        throw new Error(`Failed to generate image: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the image generation service.");
+    console.error("Error editing image:", error);
+    throw error;
   }
 };
 
@@ -366,21 +249,8 @@ export const colourizeImage = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    let basePrompt = `Colourize the provided vintage photograph.
-Maintain the original composition, lighting, and emotional tone while bringing it to life in full colour.
-Recreate skin tones, clothes, environment, and background elements in realistic, natural colours — as if the photo was taken recently using a modern camera.
-Preserve every person’s facial features, age, emotion, and body posture exactly as in the original.
-Do not alter identity, proportions, or composition.
-Style: photo-realistic restoration with gentle film warmth.
-Lighting should remain consistent with the original vintage exposure.
-Avoid artificial brightness or cartoonish tones.
-The result should feel emotionally authentic — like reliving a precious memory in perfect clarity.
-Focus on nostalgia, warmth, and realism.`;
-
-    if (mode === 'restore') {
-      basePrompt = `Restore and ${basePrompt.toLowerCase()}`;
-      basePrompt += `\n\nRepair any visible damage such as cracks, dust, spots, blurs, or faded patches. Enhance clarity, texture, and fine details (eyes, hair strands, fabrics, background patterns).`;
-    }
+    let basePrompt = `Colourize this vintage photo. Realistic colors. Preserve faces/features exactly.`;
+    if (mode === 'restore') basePrompt += ` Also remove scratches, dust, and damage. Sharpen details.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -390,30 +260,15 @@ Focus on nostalgia, warmth, and realism.`;
           { text: basePrompt },
         ],
       },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      },
+      config: { responseModalities: [Modality.IMAGE] },
     });
 
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
-    }
-
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-
-    if (imagePart?.inlineData?.data) {
-      return imagePart.inlineData.data;
-    }
-
-    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error colourizing image with Gemini:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate image: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the image generation service.");
+    console.error("Error colourizing image:", error);
+    throw error;
   }
 };
 
@@ -427,80 +282,13 @@ export const generateMagicSoul = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    let prompt: string;
-
-    if (style === 'adventurous' && environment === 'sunny') {
-      prompt = `Create a highly realistic, natural-looking photograph of Person A and Person B together in an adventurous outdoor environment under bright sunny daylight. Maintain the exact real facial structure, expressions, skin tone, hairstyle, and body proportions of both individuals — do not modify, beautify, stylize, or change their appearance in any way. Their faces and features must remain identical to the provided reference photos, with precise likeness and natural texture.
-
-The atmosphere should feel vivid, adventurous, and dynamic — with sunlight, natural shadows, warm tones, and a cinematic but realistic depth of field. Clothing should suit the theme: casual outdoor wear such as jackets, sunglasses, or travel accessories.
-
-The photo must look 100% real, not AI-generated — realistic skin pores, natural light reflections in the eyes, and genuine texture detail. Use realistic human lighting, soft shadows, and a DSLR-style depth of field.
-
-Environment example ideas (choose one that fits):
-
-standing on a mountain trail
-
-sitting near a cliff edge with blue sky behind
-
-walking through a desert road
-
-exploring a coastal viewpoint with sunlight
-
-Style: Ultra-realistic photography, cinematic natural tones, no filters or artistic effects, no fantasy elements.
-Mood: Adventurous, sunny, natural.
-Camera settings (for realism): 35mm lens, f/2.8, ISO 200, natural light, shallow depth of field, realistic color balance, 8K resolution.
-
-Strict rules:
-
-Keep Person A and Person B’s faces, bodies, and hairstyles unchanged and fully accurate.
-
-No exaggeration, no idealization, no digital smoothening.
-
-The final result should be indistinguishable from a real DSLR photo.
-
-⚙️ Optional Parameters (if your tool supports them):
-
-Style strength: 0.25 (to prevent face alteration)
-
-Reference adherence / image guidance weight: 0.9–1.0
-
-Lighting direction: front or 45° natural sunlight
-
-Aspect ratio: 3:2 or 16:9 for landscape-style adventurous shots`;
-    } else {
-      prompt = `PRIMARY OBJECTIVE:
-Generate one ultra-realistic, high-resolution photograph of Subject A and Subject B together in the chosen STYLE and ENVIRONMENT. The output must be indistinguishable from a professional DSLR photograph.
-
-**MASTER PROMPT (CORE INSTRUCTIONS):**
-
-1.  **Identity & Hair Lock (MANDATORY)**
-    *   Preserve Subject A and Subject B facial geometry, proportions, eyes, nose, mouth, ears, skin texture, moles, scars, and hairstyle exactly as in references.
-    *   Do not modify face shape, hair shape, hairline, or facial marks.
-    *   Reconstruct flyaways and semi-transparent hair tips rather than hard cutout edges. No visible halos or fringing.
-
-2.  **Gender Detection & Clothing Adjustment**
-    *   Analyze both reference images to detect gender presentation.
-    *   Generate clothing appropriate to the inferred gender, local cultural context, and chosen ENVIRONMENT (e.g., raincoat for rainy, light linen for beach). Clothing changes are allowed and encouraged to match the scene.
-
-3.  **Scale, Proportion & Pose**
-    *   Compute and maintain correct body proportions, scale, and height relations for both subjects.
-    *   Enforce consistent perspective, ensuring both subjects appear grounded in the same space.
-    *   Generate a natural, believable pose and interaction that fits the STYLE and ENVIRONMENT. Ensure realistic limb overlap and occlusion.
-
-4.  **Lighting, Shadows & Reflections**
-    *   The setting is: **STYLE: ${style}, ENVIRONMENT: ${environment}**.
-    *   Match the ENVIRONMENT's lighting precisely (sun angle, intensity, soft vs hard light).
-    *   Render accurate cast shadows for each subject on the ground and on each other.
-    *   Include ambient occlusion at contact points and match environmental reflections (e.g., on wet surfaces, glass).
-
-5.  **Materials, Textures & Camera Simulation**
-    *   Render realistic skin pores, fabric weaves, and material textures.
-    *   Produce DSLR-level quality: correct white balance, natural color grading, filmic contrast, subtle grain, micro-contrast, and camera bokeh. Avoid painterly or CGI looks.
-    *   Ensure consistent grain, noise, and sharpness across subjects and background to avoid a "cutout" look.
-
-**NEGATIVE PROMPT (STRICTLY FORBIDDEN):**
-DO NOT: change facial geometry, swap faces, alter hair or hairline, smooth pores, remove natural marks, create cartoonification, create painterly textures, produce halo/fringe, produce floating or mis-scaled subjects, mis-match shadows, leave hard cutout edges, create inconsistent grain/noise, exaggerate eyes/teeth, or generate unrealistic lens artifacts.`;
-    }
+    const prompt = `Generate a hyper-realistic photo of Subject A and Subject B together.
+Style: ${style}. Environment: ${environment}.
+RULES:
+- Preserve facial features/identities of both subjects exactly.
+- Adjust clothing to match the environment and style.
+- Realistic lighting and shadows.
+- High resolution, DSLR quality.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -513,30 +301,15 @@ DO NOT: change facial geometry, swap faces, alter hair or hairline, smooth pores
           { text: prompt },
         ],
       },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      },
+      config: { responseModalities: [Modality.IMAGE] },
     });
 
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
-    }
-
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-
-    if (imagePart?.inlineData?.data) {
-      return imagePart.inlineData.data;
-    }
-
-    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error generating Magic Soul image with Gemini:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate image: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the image generation service.");
+    console.error("Error generating Magic Soul:", error);
+    throw error;
   }
 };
 
@@ -547,23 +320,11 @@ export const generateMockup = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    const prompt = `Create a photo-realistic product mockup image based on the following inputs:
-
-Uploaded Image (Logo/Product/Element): Insert this image as-is — do not edit, redraw, recolor, upscale, or alter any part of it. The uploaded content must appear exactly as in the source image, with no text distortion, color change, or visual smoothing.
-
-Mockup Type (User Selection): ${mockupType}
-
-Place the uploaded image naturally and proportionally on the selected mockup item.
-Use realistic materials, reflections, and lighting conditions appropriate for that product.
-Ensure correct perspective and soft shadowing so the mockup looks real but minimalistic.
-
-The scene should be clean and well-lit, with a neutral or softly blurred background to highlight the product.
-Maintain MagicPixa’s design aesthetic — elegant, minimal, user-friendly visuals.
-
-Do not add watermarks, additional text, or any other logos.
-Do not stylize or change the design of the uploaded image — preserve its original color, proportions, and clarity.
-
-Output format: square image (1:1 aspect ratio), high resolution, suitable for export and download.`;
+    const prompt = `Create a photo-realistic product mockup.
+Mockup Item: ${mockupType}.
+Action: Place the provided image/logo onto the mockup item naturally.
+Perspective: Realistic 3D wrap/angle.
+Background: Clean, professional studio lighting.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -573,45 +334,275 @@ Output format: square image (1:1 aspect ratio), high resolution, suitable for ex
           { text: prompt },
         ],
       },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      },
+      config: { responseModalities: [Modality.IMAGE] },
     });
 
-    if (response.promptFeedback?.blockReason) {
-      throw new Error(`Image generation blocked due to: ${response.promptFeedback.blockReason}. Please try a different image.`);
-    }
-
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-
-    if (imagePart?.inlineData?.data) {
-      return imagePart.inlineData.data;
-    }
-
-    console.error("No image data found in response. Full API Response:", JSON.stringify(response, null, 2));
-    throw new Error("The model did not return an image. This can happen for various reasons, including content policy violations that were not explicitly flagged.");
-
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error generating mockup with Gemini:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate image: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while communicating with the image generation service.");
+    console.error("Error generating mockup:", error);
+    throw error;
   }
 };
 
 const homeStylePrompts: { [key: string]: string } = {
-    'Japanese': 'Incorporate traditional and modern Japanese interior aesthetics: minimalism, tatami mats, shōji sliding panels, natural wood finishes (light warm wood tones), clean lines, low-profile furniture, hidden storage, soft diffused natural light. Use neutral and muted color palette — beige, off-white, muted greens — with accent touches of charcoal or black. Include houseplants like bonsai or bamboo. Emphasize harmony, simplicity, and nature in the design.',
-    'American': 'Reflect American interior style blending traditional comfort and modern elements: open floor plan, cozy seating (sectional sofas, armchairs), warm hardwood floors, trim molding, large windows with curtains, recessed lighting, built-in cabinetry. Palette: neutrals (ivory, taupe, gray), accent colors like navy, maroon, forest green. Decor: throw pillows, area rugs, framed artwork, bookshelves, indoor plants. Blend functional with aesthetic touches.',
-    'Chinese': 'Draw from Chinese interior aesthetics: balance, symmetry, rich wood tones (rosewood, walnut), carved wooden panels, lattice screens, ceramic vases, porcelain elements, silk cushions or wall hangings, bronze/gold accents. Palette: deep reds, auburn, jade green, black lacquer. Use patterns like repeating motifs, Chinese joinery details, subtle traditional art pieces. Lighting: warm ambient lantern-style fixtures.',
-    'Traditional Indian': 'Infuse Indian heritage and decor: carved solid wood furniture (teak, rosewood), jali lattice work, traditional motifs (paisley, floral), block prints, brass or copper accents, handwoven textiles (silk, cotton), colorful rugs. Palette: deep saffron, earthy browns, rich maroon, peacock blue, ochre. Decorative elements: handicrafts, murals, lanterns, brass lamps, hanging jhulas (swings). Natural light, warm tones, textures everywhere.',
-    'Coastal': 'Evoke breezy coastal interiors: bright, airy, and relaxed. Use white or off-white walls, pale blues, aquamarine, sand-beige accents, driftwood furniture, wicker or rattan chairs, nautical fabrics (stripes, linen), jute rugs, glass or sea-glass accessories. Decor: seashells, coral, ropes, light wood, potted palms. Maximize natural light, sheer curtains, glass doors to view outdoors. Materials: bleached wood, glass, linen, light metals.',
-    'Arabic': 'Channel Middle Eastern & Arabian aesthetics: geometric patterns (mashrabiya lattice, arabesque), arch shapes, ornate tilework, mosaic, carved wood, brass lanterns, richly patterned rugs, low sofas, plush cushions, heavy drapery, opulent fabrics (silk, velvet). Palette: jewel tones (emerald, ruby, sapphire), gold, deep turquoise, sand-beige. Lighting: lanterns, warm glow, decorative metal screens casting shadows.',
-    'Modern': 'Showcase contemporary modern interior: sleek lines, minimal ornamentation, open plan, neutral palette (white, gray, black), accent color pops (mustard, teal), mixture of materials (glass, steel, concrete, wood), integrated lighting (LED strips), large windows, floating furniture, minimal clutter. Decor: abstract art, sculptural elements, functional furniture minimalist in design. Focus on clean, streamlined aesthetics.',
-    'Futuristic': 'Design with visionary, high-tech interiors: smooth curved surfaces, metallic or glossy surfaces (chromes, brushed aluminum), LED lighting accents (neon, color-changing), glass walls, reflective floors, smart-home displays, minimal structure, modular furniture, floating elements. Palette: cool neutrals (silver, white, charcoal), pops of neon or LED accent colors (electric blue, green). Atmosphere: sleek, sci-fi, ultra-clean, ambient lighting.',
-    'African': 'Blend African interior motifs, earthy, textured, and vibrant. Use natural materials: woven baskets, rattan, carved wood, mud cloth, leather, natural stone. Palette: warm earth tones (terracotta, ochre, burnt sienna, deep browns), accent colors like deep red, turquoise, sunset orange. Motifs: tribal patterns, masks, woven textiles, batik prints. Decor: handcrafted pottery, woven rugs, wooden sculptures, indoor plants. Lighting: warm, natural, with visible textures and shadows.'
+    'Japanese': 'Japanese aesthetic: minimalism, tatami, light wood, shōji screens, bonsai, serene, neutral colors.',
+    'American': 'American style: cozy, open plan, hardwood floors, large sofas, warm lighting, functional and inviting.',
+    'Chinese': 'Chinese aesthetic: symmetry, dark wood, carved details, red/gold accents, traditional patterns, elegant.',
+    'Traditional Indian': 'Indian heritage: carved wood furniture, vibrant textiles, brass accents, jali work, warm earthy tones.',
+    'Coastal': 'Coastal style: airy, white/blue palette, light wood, linen textures, natural light, relaxed beach vibe.',
+    'Arabic': 'Arabic style: geometric patterns, arches, mosaic tiles, plush seating, lanterns, rich jewel tones.',
+    'Modern': 'Modern style: sleek lines, neutral palette, glass/steel materials, minimalist decor, clutter-free.',
+    'Futuristic': 'Futuristic style: neon lights, curved surfaces, high-tech materials, metallic finishes, sci-fi atmosphere.',
+    'African': 'African style: earthy tones, tribal patterns, natural materials (rattan, clay), woven textures, warm and vibrant.'
 };
 
 const officeStylePrompts: { [key: string]: string } = {
-    'Modern Corporate': 'Create a Modern Corporate office aesthetic. Focus on sleek lines, a professional atmosphere, and high functionality. Use materials like glass partitions, polished metal (chrome, stainless steel), and high-quality laminates. The color palette should be neutral, dominated by whites, grays, and blacks, with a single corporate accent color (e.g., blue, green). Furniture should be ergonomic and minimalist. Lighting should be bright and efficient, using recessed LEDs and linear fixtures.',
-    'Minimalist': 'Design a Minimalist office space that is clean, functional, and completely clutter-
+    'Modern Corporate': 'Modern Corporate office: sleek, professional, glass partitions, ergonomic furniture, cool neutral tones.',
+    'Minimalist': 'Minimalist office: clean lines, decluttered, white/grey palette, functional furniture, airy and focused.',
+    'Industrial': 'Industrial office: exposed brick/ducts, concrete floors, metal accents, raw wood, warm edison lighting.',
+    'Luxury Executive': 'Luxury Executive office: dark wood, leather chairs, marble accents, sophisticated, commanding atmosphere.',
+    'Contemporary': 'Contemporary office: trendy furniture, pops of color, collaborative spaces, soft lighting, comfortable.',
+    'Creative / Artistic': 'Creative office: bold colors, eclectic furniture, artwork, inspiring and unconventional layout.',
+    'Biophilic / Nature-Inspired': 'Biophilic office: lots of plants, green walls, natural light, wood/stone materials, healthy vibe.',
+    'Traditional Indian': 'Traditional Indian office: warm wood tones, cultural art, rich textiles, respectful and grounded.',
+    'Tech Futuristic': 'Tech Futuristic office: neon accents, high-gloss surfaces, cutting-edge furniture, innovative look.'
+};
+
+export const generateInteriorDesign = async (
+  base64ImageData: string,
+  mimeType: string,
+  style: string,
+  spaceType: 'home' | 'office',
+  roomType: string
+): Promise<string> => {
+  const ai = getAiClient();
+  try {
+    const stylePrompt = spaceType === 'office' ? officeStylePrompts[style] : homeStylePrompts[style];
+    const prompt = `Redesign this room.
+Current Room: ${roomType}.
+Target Style: ${style} (${stylePrompt}).
+Instructions: Keep room structure (walls/windows). Replace furniture/decor to match style. Photorealistic.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { text: prompt },
+        ],
+      },
+      config: { responseModalities: [Modality.IMAGE] },
+    });
+
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
+  } catch (error) {
+    console.error("Error generating interior:", error);
+    throw error;
+  }
+};
+
+export const generateProductPackPlan = async (
+  productImages: string[],
+  productName: string,
+  productDescription: string,
+  brandDetails: { logo?: string; colors: string[]; fonts: string[] },
+  competitorUrl: string,
+  inspirationImages: string[]
+): Promise<any> => {
+  const ai = getAiClient();
+  const prompt = `Generate a comprehensive marketing pack for product: "${productName}".
+  Description: ${productDescription}.
+  Brand Colors: ${brandDetails.colors.join(', ')}.
+  Competitor: ${competitorUrl}.
+
+  Output JSON with:
+  1. imageGenerationPrompts: Object with keys 'heroShot', 'lifestyle1', 'lifestyle2', 'creative'. Values are detailed image generation prompts.
+  2. videoGenerationPrompts: Object with keys 'video360Spin', 'videoCinemagraph'. Values are video generation prompts.
+  3. textAssets: Object with keys 'seoTitle', 'captions' (array of {text: string}), 'keywords' (array of strings).`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                imageGenerationPrompts: {
+                    type: Type.OBJECT,
+                    properties: {
+                        heroShot: { type: Type.STRING },
+                        lifestyle1: { type: Type.STRING },
+                        lifestyle2: { type: Type.STRING },
+                        creative: { type: Type.STRING },
+                    },
+                    required: ['heroShot', 'lifestyle1', 'lifestyle2', 'creative']
+                },
+                videoGenerationPrompts: {
+                    type: Type.OBJECT,
+                    properties: {
+                        video360Spin: { type: Type.STRING },
+                        videoCinemagraph: { type: Type.STRING },
+                    },
+                    required: ['video360Spin', 'videoCinemagraph']
+                },
+                textAssets: {
+                    type: Type.OBJECT,
+                    properties: {
+                        seoTitle: { type: Type.STRING },
+                        captions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { text: { type: Type.STRING } } } },
+                        keywords: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ['seoTitle', 'captions', 'keywords']
+                }
+            },
+            required: ['imageGenerationPrompts', 'videoGenerationPrompts', 'textAssets']
+        }
+    }
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("No plan generated.");
+  return JSON.parse(text);
+};
+
+export const generateStyledImage = async (
+    productImages: string[],
+    prompt: string
+): Promise<string> => {
+    const ai = getAiClient();
+    // Use the first product image as reference
+    const mainImage = productImages[0];
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [
+                { inlineData: { data: mainImage, mimeType: 'image/png' } }, // Assuming png/jpeg
+                { text: prompt }
+            ]
+        },
+        config: { responseModalities: [Modality.IMAGE] }
+    });
+    
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
+};
+
+export const generateVideo = async (prompt: string) => {
+    const ai = getAiClient();
+    return await ai.models.generateVideos({
+        model: 'veo-3.1-fast-generate-preview',
+        prompt: prompt,
+        config: {
+            numberOfVideos: 1,
+            resolution: '720p',
+            aspectRatio: '16:9'
+        }
+    });
+};
+
+export const getVideoOperationStatus = async (operation: any) => {
+     const ai = getAiClient();
+     return await ai.operations.getVideosOperation({ operation });
+};
+
+export const generateBrandStylistImage = async (
+    referenceImageBase64: string,
+    prompt: string
+): Promise<string> => {
+    const ai = getAiClient();
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [
+                { inlineData: { data: referenceImageBase64, mimeType: 'image/png' } },
+                { text: `Generate an image in the exact style of the provided reference image. Prompt: ${prompt}` }
+            ]
+        },
+        config: { responseModalities: [Modality.IMAGE] }
+    });
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
+};
+
+export const removeElementFromImage = async (
+    base64ImageData: string,
+    mimeType: string,
+    maskBase64: string
+): Promise<string> => {
+    const ai = getAiClient();
+    const prompt = "Remove the masked object from the image and fill in the background seamlessly.";
+    
+    // Note: Current Gemini API might handle in-painting via specific prompt or future endpoints.
+    // For now using standard image generation with instructions.
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [
+                { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                { text: "Original Image" },
+                // Ideally, mask is passed as a separate part or combined. 
+                // Since simple API doesn't support explicit mask upload yet for all models,
+                // we guide it with text, but for a real 'eraser', we'd need the specific editing endpoint if available.
+                // Assuming the model can interpret "masked area" if we could send it.
+                // For this shim, we rely on the model trying its best with the base image + prompt.
+                { text: prompt } 
+            ]
+        },
+        config: { responseModalities: [Modality.IMAGE] }
+    });
+    
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
+};
+
+export const suggestThumbnailTitles = async (videoDescription: string): Promise<string[]> => {
+    const ai = getAiClient();
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Suggest 5 catchy, click-worthy YouTube thumbnail titles for a video about: ${videoDescription}. Return only a JSON array of strings.`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        }
+    });
+    const text = response.text;
+    if (!text) return [];
+    return JSON.parse(text);
+};
+
+export const generateThumbnail = async (
+    inputs: {
+        image?: string;
+        title: string;
+        style: string;
+    }
+): Promise<string> => {
+    const ai = getAiClient();
+    const parts: any[] = [];
+    if (inputs.image) {
+        parts.push({ inlineData: { data: inputs.image, mimeType: 'image/png' } });
+    }
+    parts.push({ text: `Create a YouTube thumbnail. Title: "${inputs.title}". Style: ${inputs.style}. High contrast, bold text, eye-catching.` });
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts },
+        config: { responseModalities: [Modality.IMAGE] }
+    });
+
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No thumbnail generated.");
+};
