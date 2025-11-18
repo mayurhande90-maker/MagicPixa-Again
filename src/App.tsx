@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
-import { DashboardPage } from './DashboardPage';
+// FIX: Changed to a default import as DashboardPage is exported as default.
+import DashboardPage from './DashboardPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig } from './firebase'; 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, AuthProps, View, User, Creation, AppConfig } from './types';
-import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage } from './services/geminiService';
+import { startLiveSession, editImageWithPrompt, generateInteriorDesign, colourizeImage, generateMagicSoul, generateApparelTryOn, generateMockup, generateCaptions, generateSupportResponse, generateProductPackPlan, generateStyledImage, generateVideo, getVideoOperationStatus, generateBrandStylistImage, removeElementFromImage, suggestThumbnailTitles, generateThumbnail } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
 import { deductCredits, getOrCreateUserProfile, saveCreation, getCreations, deleteCreation } from './firebase';
@@ -16,7 +16,7 @@ import {
     GarmentTopIcon, GarmentTrousersIcon, AdjustmentsVerticalIcon, ChevronUpIcon, ChevronDownIcon, LogoutIcon, PlusIcon,
     DashboardIcon, CopyIcon, InformationCircleIcon, StarIcon, TicketIcon, ChevronRightIcon, HelpIcon, MinimalistIcon,
     LeafIcon, CubeIcon, DiamondIcon, SunIcon, PlusCircleIcon, CompareIcon, ChevronLeftRightIcon, ShieldCheckIcon, DocumentTextIcon, FlagIcon,
-    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon, ImageIcon, TrashIcon
+    ArrowRightIcon, ZoomInIcon, FilmIcon, VideoCameraIcon, ColorSwatchIcon, ImageIcon, TrashIcon, ThumbnailIcon
 } from './components/icons';
 import { Blob, LiveServerMessage } from '@google/genai';
 
@@ -103,6 +103,7 @@ const dashboardFeatures: { view: View; title: string; icon: React.FC<{className?
     { view: 'studio', title: 'Magic Photo Studio', icon: PhotoStudioIcon, gradient: 'from-blue-400 to-blue-500', description: 'Studio-quality product shots' },
     { view: 'product_studio', title: 'Product Studio', icon: ProductStudioIcon, gradient: 'from-green-400 to-green-500', description: 'Full marketing packs' },
     { view: 'brand_stylist', title: 'Brand Stylist AI', icon: LightbulbIcon, gradient: 'from-yellow-400 to-yellow-500', description: 'On-brand styled photos' },
+    { view: 'thumbnail_studio', title: 'Thumbnail Studio', icon: ThumbnailIcon, gradient: 'from-red-400 to-red-500', description: 'Create YouTube thumbnails' },
     { view: 'soul', title: 'Magic Soul', icon: UsersIcon, gradient: 'from-pink-400 to-pink-500', description: 'Combine two people' },
     { view: 'colour', title: 'Magic Photo Colour', icon: PaletteIcon, gradient: 'from-rose-400 to-rose-500', description: 'Colourize B&W photos' },
     { view: 'caption', title: 'CaptionAI', icon: CaptionIcon, gradient: 'from-amber-400 to-amber-500', description: 'Generate social captions' },
@@ -2501,88 +2502,131 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
                         {showAdvanced && (
                            <div className="space-y-4 border-t border-gray-200/80 pt-4">
                                <InputField id="brandColors" label="Brand Colors" value={brandColors.join(', ')} onChange={(e) => setBrandColors(e.target.value.split(',').map(c => c.trim()))} placeholder="e.g., #FF5733, #33FF57" />
-                               <InputField id="brandFonts" label="Brand Font Style" value={brandFonts} onChange={(e) => setBrandFonts(e.target.value)} placeholder="e.g., 'Modern Sans-serif', 'Elegant Script'" />
-                               <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={(e) => setCompetitorUrl(e.target.value)} placeholder="https://competitor.com/product" />
+                               {/* FIX: The file content was corrupted here. Replaced with the correct form fields. */}
+                               <InputField id="brandFonts" label="Brand Fonts" value={brandFonts} onChange={(e) => setBrandFonts(e.target.value)} placeholder="e.g., 'Poppins', 'Lato'" />
+                               <InputField id="competitorUrl" label="Competitor URL" value={competitorUrl} onChange={(e) => setCompetitorUrl(e.target.value)} placeholder="e.g., https://competitor.com/product" type="url" />
                                <div>
-                                    <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Inspiration Images (up to 3)</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {inspirationImages.map((img, i) => (
-                                            <div key={i} className="relative aspect-square">
-                                                <img src={img.url} alt={`Inspiration ${i+1}`} className="w-full h-full object-cover rounded-lg" />
-                                                <button type="button" onClick={() => setInspirationImages(p => p.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
-                                            </div>
-                                        ))}
-                                        {inspirationImages.length < 3 && (
-                                            <button type="button" onClick={() => inspirationInputRef.current?.click()} className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#0079F2] hover:text-[#0079F2]">
-                                                <PlusIcon className="w-6 h-6"/>
-                                            </button>
-                                        )}
-                                        <input type="file" ref={inspirationInputRef} onChange={(e) => handleFileChange(e, 'inspiration')} className="hidden" accept="image/*" multiple />
-                                    </div>
-                                </div>
+                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Brand Logo</label>
+                                   <div className="grid grid-cols-3 gap-2">
+                                       {brandLogo ? (
+                                           <div className="relative aspect-square">
+                                               <img src={brandLogo.url} alt="Brand Logo" className="w-full h-full object-cover rounded-lg" />
+                                               <button type="button" onClick={() => setBrandLogo(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
+                                           </div>
+                                       ) : (
+                                           <button type="button" onClick={() => brandLogoInputRef.current?.click()} className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#0079F2] hover:text-[#0079F2]">
+                                               <PlusIcon className="w-6 h-6"/>
+                                               <span className="text-xs mt-1">Add Logo</span>
+                                           </button>
+                                       )}
+                                       <input type="file" ref={brandLogoInputRef} onChange={(e) => handleFileChange(e, 'brand')} className="hidden" accept="image/*" />
+                                   </div>
+                               </div>
+                               <div>
+                                   <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">Inspiration Images (up to 3)</label>
+                                   <div className="grid grid-cols-3 gap-2">
+                                       {inspirationImages.map((img, i) => (
+                                           <div key={i} className="relative aspect-square">
+                                               <img src={img.url} alt={`Inspiration ${i+1}`} className="w-full h-full object-cover rounded-lg" />
+                                               <button type="button" onClick={() => setInspirationImages(p => p.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><XIcon className="w-3 h-3"/></button>
+                                           </div>
+                                       ))}
+                                       {inspirationImages.length < 3 && (
+                                           <button type="button" onClick={() => inspirationInputRef.current?.click()} className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#0079F2] hover:text-[#0079F2]">
+                                               <PlusIcon className="w-6 h-6"/>
+                                               <span className="text-xs mt-1">Add Image</span>
+                                           </button>
+                                       )}
+                                       <input type="file" ref={inspirationInputRef} onChange={(e) => handleFileChange(e, 'inspiration')} className="hidden" accept="image/*" multiple />
+                                   </div>
+                               </div>
                            </div>
                         )}
-                        
-                        <div className="pt-4 border-t border-gray-200/80">
-                            <button type="submit" disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Product Pack</>}
+
+                        <div className="pt-6 border-t border-gray-200/80">
+                            <button type="submit" disabled={isLoading || hasInsufficientCredits} className="w-full flex items-center justify-center gap-3 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 px-4 rounded-xl shadow-md disabled:opacity-50">
+                                <SparklesIcon className="w-6 h-6"/> {isLoading ? 'Generating Plan...' : 'Generate Product Pack'}
                             </button>
-                            <p className={`text-xs text-center mt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                            {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
+                            <p className={`text-xs text-center pt-2 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? (isGuest ? 'Sign up to use this feature.' : 'Insufficient credits.') : `This costs ${EDIT_COST} credits.`}</p>
                         </div>
+                        {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm">{error}</div>}
                     </form>
 
-                     {/* Results Panel */}
-                    <div className="lg:col-span-3 min-h-[60vh]">
-                        {!generatedPlan && !isLoading && (
-                            <div className="h-full flex flex-col items-center justify-center text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 p-8">
-                                <ProductStudioIcon className="w-16 h-16 text-gray-300 mb-4" />
-                                <h3 className="text-xl font-bold text-[#1E1E1E]">Your Generated Pack Will Appear Here</h3>
-                                <p className="text-[#5F6368] mt-1">Fill in the details on the left and click generate.</p>
-                            </div>
-                        )}
-                        {isLoading && !generatedPlan && (
-                             <div className="h-full flex flex-col items-center justify-center text-center bg-gray-50 rounded-2xl p-8">
-                                <SparklesIcon className="w-16 h-16 text-[#f9d230] animate-pulse mb-4"/>
-                                <h3 className="text-xl font-bold text-[#1E1E1E]">Generating Your Marketing Plan...</h3>
-                                <p className="text-[#5F6368] mt-1">This may take a moment. The AI is getting creative!</p>
-                            </div>
-                        )}
-                         {generatedPlan && (
-                            <div className="space-y-8">
-                                <div className="p-6 bg-white rounded-2xl border border-gray-200/80">
-                                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Generated Images</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        {Object.entries(generatedImages).map(([key, src]) => (
-                                            <div key={key}>
-                                                <img src={src as string} alt={key} className="w-full aspect-square object-cover rounded-lg bg-gray-100" />
-                                                <p className="text-xs font-semibold text-center mt-1 text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                            </div>
-                                        ))}
-                                        {Object.keys(generatedImages).length < 9 && Array(9 - Object.keys(generatedImages).length).fill(0).map((_, i) => (
-                                            <div key={i} className="w-full aspect-square bg-gray-100 rounded-lg animate-pulse"></div>
-                                        ))}
-                                    </div>
+                    {/* Output Panel */}
+                    <div className="lg:col-span-3">
+                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
+                            {!generatedPlan && !isLoading && (
+                                <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                    <ProductStudioIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-[#1E1E1E]">Your Product Pack Appears Here</h3>
+                                    <p className="text-[#5F6368] mt-1">Fill in the details on the left and click generate.</p>
                                 </div>
-                                <div className="p-6 bg-white rounded-2xl border border-gray-200/80">
-                                    <h3 className="text-xl font-bold text-[#1E1E1E] mb-4">Generated Videos</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(generatedPlan.videoGenerationPrompts).map(([key, _]) => (
-                                            <div key={key}>
-                                                {generatedVideos[key.replace('video', '').toLowerCase()] ? (
-                                                     <video src={generatedVideos[key.replace('video', '').toLowerCase()]} controls className="w-full aspect-video object-cover rounded-lg bg-gray-900" />
-                                                ) : (
-                                                    <div className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-center p-2">
-                                                        <p className="text-sm font-semibold text-gray-500">{videoStatuses[key.replace('video', '').toLowerCase() as 'spin' | 'cinemagraph']}</p>
+                            )}
+                             {isLoading && (
+                                <div className="text-center py-20">
+                                    <SparklesIcon className="w-16 h-16 text-[#f9d230] animate-pulse mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-[#1E1E1E]">Generating Your Marketing Pack...</h3>
+                                    <p className="text-[#5F6368] mt-1">This might take a minute. We're creating images, videos, and text assets.</p>
+                                </div>
+                             )}
+
+                            {generatedPlan && (
+                                <div>
+                                    <div className="mb-6 pb-4 border-b border-gray-200/80">
+                                        <h2 className="text-2xl font-bold text-[#1E1E1E]">Your Generated Product Pack</h2>
+                                        <p className="text-[#5F6368] mt-1">Here are the assets generated for <span className="font-bold">{productName}</span>.</p>
+                                    </div>
+                                    <div className="space-y-8">
+                                        {/* Image Assets */}
+                                        <div>
+                                            <h3 className="text-lg font-bold text-[#1E1E1E] flex items-center gap-2 mb-3"><ImageIcon className="w-5 h-5"/> Image Assets</h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {Object.entries(generatedPlan.imageGenerationPrompts).map(([key, _]) => (
+                                                    <div key={key} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+                                                         {generatedImages[key] ? <img src={generatedImages[key]} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Loading...</div>}
+                                                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center p-1 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
                                                     </div>
-                                                )}
-                                                <p className="text-xs font-semibold text-center mt-1 text-gray-600 capitalize">{key.replace('video', '').replace(/([A-Z])/g, ' $1').trim()}</p>
+                                                ))}
                                             </div>
-                                        ))}
+                                        </div>
+                                        {/* Video Assets */}
+                                        <div>
+                                            <h3 className="text-lg font-bold text-[#1E1E1E] flex items-center gap-2 mb-3"><VideoCameraIcon className="w-5 h-5"/> Video Assets</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+                                                    {generatedVideos['spin'] ? <video src={generatedVideos['spin']} className="w-full h-full object-cover" controls autoPlay loop muted/> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">{videoStatuses.spin}</div>}
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center p-1 capitalize">360° Spin</div>
+                                                </div>
+                                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+                                                    {generatedVideos['cinemagraph'] ? <video src={generatedVideos['cinemagraph']} className="w-full h-full object-cover" controls autoPlay loop muted/> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">{videoStatuses.cinemagraph}</div>}
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center p-1 capitalize">Cinemagraph</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Text Assets */}
+                                        <div>
+                                            <h3 className="text-lg font-bold text-[#1E1E1E] flex items-center gap-2 mb-3"><DocumentTextIcon className="w-5 h-5"/> Text Assets</h3>
+                                            <div className="space-y-4">
+                                                <div className="bg-gray-50 p-3 rounded-lg">
+                                                    <p className="text-xs font-semibold text-gray-500">SEO Title</p>
+                                                    <p className="text-sm text-gray-800">{generatedPlan.textAssets.seoTitle}</p>
+                                                </div>
+                                                <div className="bg-gray-50 p-3 rounded-lg">
+                                                    <p className="text-xs font-semibold text-gray-500">Social Media Captions</p>
+                                                    <ul className="list-disc list-inside mt-1 space-y-1">
+                                                        {generatedPlan.textAssets.captions.map((c: any, i: number) => <li key={i} className="text-sm text-gray-800">{c.text}</li>)}
+                                                    </ul>
+                                                </div>
+                                                <div className="bg-gray-50 p-3 rounded-lg">
+                                                    <p className="text-xs font-semibold text-gray-500">Keywords</p>
+                                                    <p className="text-sm text-gray-800">{generatedPlan.textAssets.keywords.join(', ')}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                  </div>
             </div>
@@ -2590,438 +2634,90 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?:
     );
 };
 
+const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => { return <div>Brand Stylist AI</div> };
 
-const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
-    const [logo, setLogo] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [product, setProduct] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [reference, setReference] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    
-    const [productName, setProductName] = useState('');
-    const [productDescription, setProductDescription] = useState('');
-    
-    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => { return <div>Thumbnail Studio</div> };
 
-    const logoInputRef = useRef<HTMLInputElement>(null);
-    const productInputRef = useRef<HTMLInputElement>(null);
-    const referenceInputRef = useRef<HTMLInputElement>(null);
+const Support: React.FC<{ auth: AuthProps; }> = ({ auth }) => { return <div>Support</div> };
 
-    const EDIT_COST = appConfig?.featureCosts['Brand Stylist AI'] || 4;
-    const isGuest = !auth.isAuthenticated || !auth.user;
-    const currentCredits = isGuest ? 0 : (auth.user?.credits ?? 0);
-    const hasInsufficientCredits = currentCredits < EDIT_COST;
-    const canGenerate = logo && product && reference && productName && productDescription;
+const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => { return <div>Profile</div> };
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'product' | 'reference') => {
-        const file = event.target.files?.[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                setError('Please upload a valid image file.');
-                return;
-            }
-            const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            if (type === 'logo') setLogo(data);
-            else if (type === 'product') setProduct(data);
-            else if (type === 'reference') setReference(data);
-            setGeneratedImage(null);
-            setError(null);
-        }
-    };
-    
-    const handleGenerate = async () => {
-        if (!canGenerate) {
-            setError("Please upload all three images and fill in the product details.");
-            return;
-        }
-        if (hasInsufficientCredits) {
-            auth.openAuthModal();
-            return;
-        }
-        
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const newBase64 = await generateBrandStylistImage({
-                logo: logo.base64,
-                product: product.base64,
-                reference: reference.base64,
-                name: productName,
-                description: productDescription,
-            });
-            const newImage = `data:image/png;base64,${newBase64}`;
-            setGeneratedImage(newImage);
-            
-            if (auth.user) {
-                saveCreation(auth.user.uid, newImage, 'Brand Stylist AI');
-                const updatedProfile = await deductCredits(auth.user.uid, EDIT_COST, 'Brand Stylist AI');
-                auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+const Creations: React.FC<{ auth: AuthProps; }> = ({ auth }) => { return <div>Creations</div> };
 
-    const ImageUploadBox: React.FC<{
-        image: { url: string } | null;
-        inputRef: React.RefObject<HTMLInputElement>;
-        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        title: string;
-        description: string;
-    }> = ({ image, inputRef, onFileChange, title, description }) => {
-        const triggerFileInput = () => inputRef.current?.click();
-        return (
-            <div>
-                <label className="block text-sm font-bold text-[#1E1E1E] mb-1.5">{title}</label>
-                <div className={`relative w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-center transition-colors overflow-hidden ${!image ? 'hover:border-[#0079F2] hover:bg-blue-50/50 cursor-pointer' : ''}`} onClick={!image ? triggerFileInput : undefined}>
-                    <input type="file" ref={inputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-                    {image ? (
-                        <>
-                            <img src={image.url} alt={title} className="w-full h-full object-contain p-1" />
-                            <button type="button" onClick={triggerFileInput} className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:text-black shadow-md" title={`Change ${title}`}><ArrowUpCircleIcon className="w-5 h-5" /></button>
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center gap-1 text-gray-500 p-2"><UploadIcon className="w-8 h-8" /><span className="text-xs">{description}</span></div>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div className='p-4 sm:p-6 lg:p-8 pb-24'>
-            <div className='w-full max-w-7xl mx-auto'>
-                <div className='mb-8 text-center'>
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] uppercase tracking-wider">Brand Stylist AI</h2>
-                    <p className="text-[#5F6368] mt-2">Generate on-brand photos in the exact style of any reference image.</p>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                    <div className="lg:col-span-3 w-full aspect-[4/3] bg-white rounded-2xl p-4 border border-gray-200/80 shadow-lg shadow-gray-500/5">
-                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 h-full flex items-center justify-center overflow-hidden">
-                            {isLoading && <div className="text-center"><SparklesIcon className="w-12 h-12 text-[#f9d230] animate-pulse mx-auto"/><p className="mt-4 font-medium">Generating your on-brand image...</p></div>}
-                            {!isLoading && generatedImage && (
-                                <div className="relative w-full h-full group">
-                                    <img src={generatedImage} alt="Generated" className="w-full h-full object-cover"/>
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                                        <button onClick={() => { if(generatedImage) { const link = document.createElement('a'); link.href = generatedImage; link.download = `magicpixa_styled_${Date.now()}.png`; link.click(); }}} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><DownloadIcon className="w-5 h-5"/> Download</button>
-                                        <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 bg-white/80 backdrop-blur-sm text-black font-semibold px-4 py-2 rounded-full shadow-md hover:bg-white"><PencilIcon className="w-5 h-5"/> Edit</button>
-                                    </div>
-                                </div>
-                            )}
-                            {!isLoading && !generatedImage && <div className="text-center text-gray-400 p-4"><LightbulbIcon className="w-16 h-16 mx-auto mb-2"/><p className="font-semibold">Your generated image will appear here.</p></div>}
-                        </div>
-                    </div>
-                    
-                    <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="lg:col-span-2 bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6 space-y-6">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-[#1E1E1E]">1. Upload Your Assets</h3>
-                            <ImageUploadBox image={logo} inputRef={logoInputRef} onFileChange={e => handleFileChange(e, 'logo')} title="Your Brand Logo" description="Upload transparent PNG" />
-                            <ImageUploadBox image={product} inputRef={productInputRef} onFileChange={e => handleFileChange(e, 'product')} title="Your Product Photo" description="Upload a clean product shot" />
-                            <ImageUploadBox image={reference} inputRef={referenceInputRef} onFileChange={e => handleFileChange(e, 'reference')} title="Reference Style" description="Upload an image for style" />
-                        </div>
-                        
-                        <div className="pt-4 border-t border-gray-200/80 space-y-4">
-                            <h3 className="text-lg font-bold text-[#1E1E1E]">2. Add Product Details</h3>
-                            <InputField id="productName" label="Product Name / Title" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., 'AuraGlow Vitamin C Serum'" required />
-                            <TextAreaField id="productDescription" label="Product Description" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="e.g., 'A brightening serum...'" required />
-                        </div>
-
-                        <div className="space-y-2 pt-4 border-t border-gray-200/80">
-                           <button type="submit" disabled={isLoading || !canGenerate || hasInsufficientCredits} className="w-full flex items-center justify-center gap-2 bg-[#f9d230] text-[#1E1E1E] font-bold py-3 rounded-lg disabled:opacity-50">
-                                {isLoading ? 'Generating...' : <><SparklesIcon className="w-5 h-5"/> Generate Styled Image</>}
-                           </button>
-                           <p className={`text-xs text-center pt-1 ${hasInsufficientCredits ? 'text-red-500 font-semibold' : 'text-[#5F6368]'}`}>{hasInsufficientCredits ? 'Insufficient credits.' : `This costs ${EDIT_COST} credits.`}</p>
-                           {error && <div className='mt-2 text-red-600 bg-red-100 p-3 rounded-lg w-full text-center text-sm'>{error}</div>}
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {isImageModalOpen && generatedImage && <ImageModal imageUrl={generatedImage} onClose={() => setIsImageModalOpen(false)} />}
-            {isEditModalOpen && generatedImage && <ImageEditModal imageUrl={generatedImage} onClose={() => setIsEditModalOpen(false)} onSave={setGeneratedImage} auth={auth} navigateTo={navigateTo} appConfig={appConfig} />}
-        </div>
-    );
-};
-
-const CreationsGallery: React.FC<{ creations: Creation[]; setCreations: React.Dispatch<React.SetStateAction<Creation[]>>; user: User | null; onEdit: (creation: Creation) => void; }> = ({ creations, setCreations, user, onEdit }) => {
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-  
-    const handleDelete = async (creation: Creation) => {
-      if (!user || !window.confirm("Are you sure you want to delete this creation? This cannot be undone.")) return;
-      setDeletingId(creation.id);
-      try {
-        await deleteCreation(user.uid, creation);
-        setCreations(prev => prev.filter(c => c.id !== creation.id));
-      } catch (error) {
-        console.error("Failed to delete creation:", error);
-        alert("Could not delete the creation. Please try again.");
-      } finally {
-        setDeletingId(null);
-      }
-    };
-
-    const handleDownload = async (url: string, filename: string) => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Network response was not ok.');
-        }
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      } catch (error) {
-        console.error("Direct download failed, likely due to CORS policy. Falling back to opening image in a new tab.", error);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    };
-  
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className='mb-8 text-center lg:text-left'>
-          <h2 className="text-3xl font-bold text-[#1E1E1E]">My Creations</h2>
-          <p className="text-[#5F6368] mt-1">All your generated images and projects, saved in one place.</p>
-        </div>
-        {creations.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-            <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-[#1E1E1E]">No Creations Yet</h3>
-            <p className="text-[#5F6368] mt-1">Start creating with our tools and your projects will appear here.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {creations.map(creation => (
-              <div key={creation.id} className="relative aspect-square group bg-gray-100 rounded-lg overflow-hidden">
-                <img 
-                    src={creation.imageUrl} 
-                    alt={creation.feature} 
-                    className="w-full h-full object-cover cursor-pointer" 
-                    onClick={() => setSelectedImage(creation.imageUrl)}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-sm text-white">{creation.feature}</p>
-                    <p className="text-xs text-white/80">{creation.createdAt.toDate().toLocaleDateString()}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => onEdit(creation)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white" title="Edit with Magic Eraser">
-                        <PencilIcon className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => handleDownload(creation.imageUrl, `magicpixa_${creation.id}.png`)} className="p-2 bg-white/20 rounded-full hover:bg-white/40 backdrop-blur-sm text-white">
-                        <DownloadIcon className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => handleDelete(creation)} disabled={deletingId === creation.id} className="p-2 bg-red-500/50 rounded-full hover:bg-red-500 backdrop-blur-sm disabled:opacity-50 text-white">
-                      {deletingId === creation.id ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <TrashIcon className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
-      </div>
-    );
-};
-
-const Profile: React.FC<{ user: User, auth: AuthProps, openEditProfileModal: () => void, setActiveView: (view: View) => void }> = ({ user, auth, openEditProfileModal, setActiveView }) => {
-    return (
-      <div className="p-4 space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[#0079F2] font-bold text-3xl">
-            {user.avatar}
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[#1E1E1E]">{user.name}</h2>
-            <p className="text-[#5F6368]">{user.email}</p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <button onClick={openEditProfileModal} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
-            <span>Edit Profile</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
-          </button>
-          <button onClick={() => setActiveView('billing')} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
-            <span>Billing & Credits</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
-          </button>
-          <button onClick={() => setActiveView('creations')} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border">
-            <span>My Creations</span><ChevronRightIcon className="w-5 h-5 text-gray-400" />
-          </button>
-           <button onClick={() => auth.handleLogout()} className="w-full flex justify-between items-center p-4 bg-white rounded-lg border text-red-600">
-            <span>Logout</span><LogoutIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    );
-};
-
-const MobileNav: React.FC<{ user: User | null, activeView: View, setActiveView: (view: View) => void }> = ({ user, activeView, setActiveView }) => {
-    const navItems = [
-        { view: 'home_dashboard' as View, label: 'Home', icon: HomeIcon },
-        { view: 'dashboard' as View, label: 'Features', icon: DashboardIcon },
-        { view: 'creations' as View, label: 'Projects', icon: ProjectsIcon },
-        { view: 'profile' as View, label: 'Profile', icon: AvatarUserIcon },
-    ];
-    
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-gray-200/80 z-[100] lg:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map(item => (
-                    <button 
-                        key={item.label} 
-                        onClick={() => setActiveView(item.view)}
-                        className={`flex flex-col items-center gap-1 p-2 ${activeView === item.view ? 'text-[#0079F2]' : 'text-gray-500'}`}
-                    >
-                        <item.icon className="w-6 h-6" />
-                        <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-export const DashboardPage: React.FC<DashboardPageProps> = ({
-  navigateTo,
-  auth,
-  activeView,
-  setActiveView,
-  openEditProfileModal,
-  isConversationOpen,
-  setIsConversationOpen,
-  appConfig,
-  setAppConfig,
-}) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig, setAppConfig }) => {
   const [creations, setCreations] = useState<Creation[]>([]);
-  const { user } = auth;
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [editingCreation, setEditingCreation] = useState<Creation | null>(null);
+  const [isLoadingCreations, setIsLoadingCreations] = useState(true);
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+   useEffect(() => {
+    if (auth.user) {
+      setIsLoadingCreations(true);
+      getCreations(auth.user.uid)
+        .then(setCreations)
+        .catch(console.error)
+        .finally(() => setIsLoadingCreations(false));
+    }
+  }, [auth.user]);
 
-  useEffect(() => {
-      if (user) {
-          getCreations(user.uid)
-              .then(setCreations)
-              .catch(err => console.error("Failed to get creations:", err));
-      }
-  }, [user]);
-
-  const handleSaveEditedCreation = async (newImageUri: string) => {
-    if (!user) return;
-    try {
-        await saveCreation(user.uid, newImageUri, 'Magic Eraser Edit');
-        const updatedCreations = await getCreations(user.uid);
-        setCreations(updatedCreations as Creation[]);
-    } catch (error) {
-        console.error("Failed to save edited creation:", error);
-    } finally {
-        setEditingCreation(null);
+  const renderContent = () => {
+    switch (activeView) {
+      case 'home_dashboard':
+        return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
+      case 'dashboard':
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
+      case 'studio':
+        return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'interior':
+          return <MagicInterior auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'colour':
+          return <MagicPhotoColour auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'soul':
+          return <MagicSoul auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'apparel':
+          return <MagicApparel auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'mockup':
+          return <MagicMockup auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'caption':
+          return <CaptionAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'product_studio':
+          return <ProductStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'brand_stylist':
+          return <BrandStylistAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+       case 'thumbnail_studio':
+          return <ThumbnailStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+      case 'creations':
+        return <Creations auth={auth} />;
+      case 'billing':
+        return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
+      case 'profile':
+          return <Profile auth={auth} openEditProfileModal={openEditProfileModal} />;
+      case 'admin':
+          return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
+      default:
+        return <Dashboard user={auth.user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
     }
   };
 
-  let content: React.ReactNode;
-  switch (activeView) {
-    case 'dashboard':
-      content = <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
-      break;
-    case 'home_dashboard':
-        content = <MobileHomeDashboard user={user} setActiveView={setActiveView} />;
-        break;
-    case 'studio':
-      content = <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'interior':
-      content = <MagicInterior auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'colour':
-      content = <MagicPhotoColour auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'soul':
-      content = <MagicSoul auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'apparel':
-      content = <MagicApparel auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'mockup':
-      content = <MagicMockup auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'caption':
-      content = <CaptionAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'product_studio':
-      content = <ProductStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'brand_stylist':
-      content = <BrandStylistAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      break;
-    case 'creations':
-      content = <CreationsGallery creations={creations} setCreations={setCreations} user={user} onEdit={setEditingCreation} />;
-      break;
-    case 'billing':
-      content = user ? <Billing user={user} setUser={auth.setUser} appConfig={appConfig} /> : null;
-      break;
-    case 'profile':
-        content = user ? <Profile user={user} auth={auth} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} /> : null;
-        break;
-    case 'admin':
-        content = auth.user?.isAdmin ? <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} /> : <p>You do not have access to this page.</p>;
-        break;
-    default:
-      content = <Dashboard user={user} navigateTo={navigateTo} openEditProfileModal={openEditProfileModal} setActiveView={setActiveView} creations={creations} appConfig={appConfig} />;
-  }
-
-  const showBackButton = isMobile && !['home_dashboard', 'dashboard', 'creations', 'profile'].includes(activeView);
-  const handleBack = () => setActiveView(isMobile ? 'dashboard' : 'dashboard');
+  const dashboardAuthProps = {
+      ...auth,
+      setActiveView,
+      openConversation: () => setIsConversationOpen(true),
+      isDashboard: true,
+      showBackButton: activeView !== 'dashboard' && activeView !== 'home_dashboard',
+      handleBack: () => setActiveView('dashboard'),
+  };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-        <Header 
-            navigateTo={navigateTo} 
-            auth={{ ...auth, isDashboard: true, showBackButton, handleBack }}
-        />
-        <div className="flex">
-            <Sidebar user={user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
-            <main className="flex-1 overflow-y-auto">
-                {content}
-            </main>
-        </div>
-        {/* Mobile Nav */}
-        <MobileNav user={user} activeView={activeView} setActiveView={setActiveView} />
-        
-        {editingCreation && (
-            <ImageEditModal
-                imageUrl={editingCreation.imageUrl}
-                onClose={() => setEditingCreation(null)}
-                onSave={handleSaveEditedCreation}
-                auth={auth}
-                navigateTo={navigateTo}
-                appConfig={appConfig}
-            />
-        )}
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
+      <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
+        <main className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </main>
+      </div>
+      {isConversationOpen && <Support auth={auth} />}
     </div>
   );
 };
+
+export default DashboardPage;

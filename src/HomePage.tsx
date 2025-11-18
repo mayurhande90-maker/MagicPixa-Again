@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon, ThumbnailIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -35,6 +35,14 @@ const features = [
         title: "Brand Stylist AI",
         description: "Generate on-brand photos or graphics in the exact style of any reference image.",
         color: "bg-yellow-500",
+        disabled: false,
+    },
+    {
+        id: 'thumbnail_studio',
+        icon: <ThumbnailIcon className="w-10 h-10 text-white" />,
+        title: "Thumbnail Studio",
+        description: "Create click-worthy YouTube thumbnails in seconds. No design skills needed.",
+        color: "bg-red-500",
         disabled: false,
     },
     {
