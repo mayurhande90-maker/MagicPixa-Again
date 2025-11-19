@@ -75,6 +75,33 @@ const InputField: React.FC<any> = ({ label, id, ...props }) => (
     </div>
 );
 
+// Visual Selector for Prompt-Less UI
+const VisualSelector: React.FC<{ 
+    label: string; 
+    options: { id: string; label: string; color?: string }[]; 
+    selected: string; 
+    onSelect: (id: string) => void; 
+}> = ({ label, options, selected, onSelect }) => (
+    <div className="mb-6">
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</label>
+        <div className="grid grid-cols-2 gap-3">
+            {options.map(opt => (
+                <button 
+                    key={opt.id} 
+                    onClick={() => onSelect(opt.id)}
+                    className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-all ${
+                        selected === opt.id 
+                        ? 'border-yellow-400 bg-yellow-50 text-black shadow-sm' 
+                        : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+                    }`}
+                >
+                    {opt.label}
+                </button>
+            ))}
+        </div>
+    </div>
+);
+
 const SelectField: React.FC<any> = ({ label, children, ...props }) => (
     <div className="mb-4">
          {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</label>}
@@ -98,12 +125,12 @@ const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ image
     </div>
 );
 
-// --- Standardized Layout Component ---
+// --- Standardized Layout Component (Strict 2-Column) ---
 const FeatureLayout: React.FC<{
     title: string;
     icon: React.ReactNode;
-    leftContent: React.ReactNode; // The Upload/Preview Area
-    rightContent: React.ReactNode; // The Controls Area
+    leftContent: React.ReactNode; // The Canvas
+    rightContent: React.ReactNode; // The Controls
     onGenerate: () => void;
     isGenerating: boolean;
     canGenerate: boolean;
@@ -112,7 +139,8 @@ const FeatureLayout: React.FC<{
     onResetResult?: () => void;
 }> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult }) => {
     return (
-        <div className="h-full flex flex-col p-4 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="h-full flex flex-col p-4 lg:p-8 max-w-[1800px] mx-auto">
+            {/* Header */}
             <div className="mb-6 flex items-center gap-3">
                 <div className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
                     {icon}
@@ -120,57 +148,60 @@ const FeatureLayout: React.FC<{
                 <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
-                {/* LEFT SIDE: Canvas / Visuals */}
-                <div className="lg:col-span-8 bg-gray-100 rounded-3xl border border-gray-200 overflow-hidden relative group">
+            {/* Main Content Grid */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
+                
+                {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
+                <div className="lg:col-span-8 bg-[#F3F4F6] rounded-2xl border border-gray-200 overflow-hidden relative flex flex-col justify-center items-center">
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1E1E1E] relative">
+                        <div className="w-full h-full flex items-center justify-center bg-[#1E1E1E] relative animate-fadeIn">
                              <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl" />
-                             <div className="absolute top-4 right-4 flex gap-2">
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20">
+                             <div className="absolute top-4 right-4 flex gap-2 z-10">
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20 shadow-lg">
                                     <DownloadIcon className="w-6 h-6"/>
                                 </button>
                                 {onResetResult && (
-                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20">
+                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20 shadow-lg">
                                         <XIcon className="w-6 h-6"/>
                                     </button>
                                 )}
                              </div>
                         </div>
                     ) : (
-                        <div className="w-full h-full p-4 sm:p-8 flex flex-col justify-center">
+                        <div className="w-full h-full p-4 sm:p-8 flex flex-col">
                             {leftContent}
                         </div>
                     )}
                 </div>
 
-                {/* RIGHT SIDE: Control Panel */}
+                {/* RIGHT COLUMN: Control Deck */}
                 <div className="lg:col-span-4 flex flex-col h-full">
-                    <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-sm flex-1 flex flex-col">
-                        <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Controls</h3>
+                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col h-full">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 border-b border-gray-100 pb-4">Configuration</h3>
                         
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
                             {rightContent}
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100">
+                        <div className="mt-6 pt-6 border-t border-gray-100 bg-white sticky bottom-0">
                             <button 
                                 onClick={onGenerate} 
                                 disabled={isGenerating || !canGenerate}
-                                className="w-full bg-[#f9d230] hover:bg-[#eec51f] text-black text-lg font-bold py-4 rounded-xl shadow-lg shadow-yellow-400/20 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
+                                className="w-full bg-[#F9D230] hover:bg-[#eec51f] text-black text-lg font-bold py-4 rounded-xl shadow-lg shadow-yellow-400/20 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3 active:scale-95"
                             >
                                 {isGenerating ? (
                                     <>
-                                        <SparklesIcon className="w-6 h-6 animate-spin"/> Generating...
+                                        <SparklesIcon className="w-6 h-6 animate-spin"/> Processing...
                                     </>
                                 ) : (
                                     <>
-                                        <SparklesIcon className="w-6 h-6"/> Generate
+                                        <SparklesIcon className="w-6 h-6"/> Generate Magic
                                     </>
                                 )}
                             </button>
-                            <p className="text-center text-xs font-medium text-gray-400 mt-3 flex items-center justify-center gap-1">
-                                Cost: <span className="text-gray-600 font-bold">{creditCost} Credits</span>
+                            <p className="text-center text-xs font-bold text-gray-400 mt-3 flex items-center justify-center gap-1">
+                                <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                                Cost: {creditCost} Credits
                             </p>
                         </div>
                     </div>
@@ -184,13 +215,13 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full min-h-[300px] border-3 border-dashed border-gray-300 bg-gray-50 hover:bg-white hover:border-yellow-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group"
+        className="w-full h-full min-h-[300px] border-3 border-dashed border-gray-300 bg-white hover:border-yellow-400 hover:bg-yellow-50/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group shadow-sm"
     >
-        <div className="p-4 bg-white rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
-            {icon || <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-yellow-500 transition-colors" />}
+        <div className="p-5 bg-gray-50 rounded-full mb-4 group-hover:scale-110 transition-transform group-hover:bg-yellow-100">
+            {icon || <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-yellow-600 transition-colors" />}
         </div>
-        <p className="text-gray-500 font-semibold group-hover:text-gray-800 transition-colors">{label}</p>
-        <p className="text-xs text-gray-400 mt-2">Supports JPG, PNG</p>
+        <p className="text-gray-600 font-bold text-lg group-hover:text-gray-900 transition-colors">{label}</p>
+        <p className="text-xs text-gray-400 mt-2 font-medium">Supports JPG, PNG</p>
     </div>
 );
 
@@ -199,15 +230,24 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
 
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [prompt, setPrompt] = useState('');
+    const [style, setStyle] = useState('studio_minimal');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+
+    const styles = [
+        { id: 'studio_minimal', label: 'Minimal Studio' },
+        { id: 'neon_cyberpunk', label: 'Neon Cyberpunk' },
+        { id: 'nature_sunlight', label: 'Nature Sunlight' },
+        { id: 'luxury_gold', label: 'Luxury Gold' },
+        { id: 'industrial_raw', label: 'Industrial Raw' },
+        { id: 'pastel_dream', label: 'Pastel Dream' },
+    ];
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         setLoading(true);
         try {
-            const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, prompt || 'automatic');
+            const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, style);
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, 'Magic Photo Studio');
@@ -233,29 +273,29 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg object-contain" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <>
-                        <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
-                        <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    <div className="w-full h-full p-4">
+                         <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
+                         <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
                 )
             }
             rightContent={
                 <div className="space-y-6">
-                    <InputField 
-                        label="Describe Desired Look" 
-                        placeholder="e.g. Cinematic lighting, neon background, luxury podium..." 
-                        value={prompt} 
-                        onChange={(e: any) => setPrompt(e.target.value)} 
+                    <VisualSelector 
+                        label="Select Aesthetic" 
+                        options={styles} 
+                        selected={style} 
+                        onSelect={setStyle} 
                     />
                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                        <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> Pro Tip</h4>
+                        <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> AI Magic</h4>
                         <p className="text-xs text-blue-600 leading-relaxed">
-                            For best results, upload a photo with good lighting. If you leave the description blank, our AI will automatically enhance the photo for a professional studio look.
+                            Our AI will automatically analyze your product and place it in the selected environment with perfect lighting and shadows.
                         </p>
                     </div>
                 </div>
@@ -270,6 +310,15 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
     const [roomType, setRoomType] = useState('Living Room');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+
+    const styles = [
+        { id: 'Modern', label: 'Modern' },
+        { id: 'Japanese', label: 'Japanese' },
+        { id: 'Industrial', label: 'Industrial' },
+        { id: 'Coastal', label: 'Coastal' },
+        { id: 'Futuristic', label: 'Futuristic' },
+        { id: 'Traditional Indian', label: 'Indian' }
+    ];
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
@@ -301,22 +350,25 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
                         <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <>
+                    <div className="w-full h-full p-4">
                         <UploadPlaceholder label="Upload Room Photo" onClick={() => document.getElementById('interior-upload')?.click()} />
                         <input id="interior-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    </div>
                 )
             }
             rightContent={
                 <div className="space-y-6">
-                    <SelectField label="Design Style" value={style} onChange={(e: any) => setStyle(e.target.value)}>
-                        {['Modern', 'Japanese', 'American', 'Coastal', 'Futuristic', 'Traditional Indian', 'Arabic', 'Industrial', 'Minimalist'].map(s => <option key={s} value={s}>{s}</option>)}
-                    </SelectField>
+                    <VisualSelector 
+                        label="Design Style" 
+                        options={styles} 
+                        selected={style} 
+                        onSelect={setStyle} 
+                    />
                     <SelectField label="Room Type" value={roomType} onChange={(e: any) => setRoomType(e.target.value)}>
                         {['Living Room', 'Bedroom', 'Kitchen', 'Office', 'Bathroom', 'Dining Room'].map(s => <option key={s} value={s}>{s}</option>)}
                     </SelectField>
@@ -362,32 +414,31 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
                         <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <>
+                    <div className="w-full h-full p-4">
                         <UploadPlaceholder label="Upload B&W Photo" onClick={() => document.getElementById('colour-upload')?.click()} />
                         <input id="colour-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    </div>
                 )
             }
             rightContent={
                 <div className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Enhancement Mode</label>
-                        <div className="grid grid-cols-1 gap-3">
-                            <button onClick={() => setMode('restore')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'restore' ? 'border-rose-500 bg-rose-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                                <div className="font-bold text-gray-900">Restore & Colourize</div>
-                                <div className="text-xs text-gray-500 mt-1">Fixes scratches, noise, and adds color.</div>
-                            </button>
-                            <button onClick={() => setMode('colourize_only')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'colourize_only' ? 'border-rose-500 bg-rose-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                                <div className="font-bold text-gray-900">Colourize Only</div>
-                                <div className="text-xs text-gray-500 mt-1">Adds color without repairing damage.</div>
-                            </button>
-                        </div>
-                    </div>
+                    <VisualSelector 
+                        label="Enhancement Mode" 
+                        options={[
+                            { id: 'restore', label: 'Restore & Color' },
+                            { id: 'colourize_only', label: 'Color Only' }
+                        ]} 
+                        selected={mode} 
+                        onSelect={(id) => setMode(id as any)} 
+                    />
+                    <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                        "Restore" removes scratches and noise. "Color Only" preserves the original texture.
+                    </p>
                 </div>
             }
         />
@@ -397,16 +448,25 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
     const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [style, setStyle] = useState('Cinematic');
-    const [env, setEnv] = useState('Coffee Shop');
+    const [theme, setTheme] = useState('Wedding');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+
+    const themes = [
+        { id: 'Wedding', label: 'Royal Wedding' },
+        { id: 'Adventure', label: 'Travel Adventure' },
+        { id: 'Cyberpunk', label: 'Sci-Fi City' },
+        { id: 'Vintage', label: 'Vintage 90s' },
+        { id: 'Office', label: 'Corporate' },
+        { id: 'Beach', label: 'Sunset Beach' }
+    ];
 
     const handleGenerate = async () => {
         if (!personA || !personB || !auth.user) return;
         setLoading(true);
         try {
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, env);
+            // Map theme to detailed prompts internally
+            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, theme, theme);
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, 'Magic Soul');
@@ -431,31 +491,31 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             resultImage={result}
             onResetResult={() => setResult(null)}
             leftContent={
-                <div className="h-full flex flex-col gap-4">
-                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
+                <div className="h-full flex flex-col gap-4 p-4 w-full">
+                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
                         {personA ? (
                              <>
                                 <img src={personA.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Subject A</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Subject A</div>
                              </>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full">
                                 <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Subject A</span>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Person 1</span>
                             </div>
                         )}
                         <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                      </div>
-                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
+                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
                         {personB ? (
                              <>
                                 <img src={personB.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Subject B</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Subject B</div>
                              </>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full">
                                 <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Subject B</span>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Person 2</span>
                             </div>
                         )}
                         <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
@@ -464,17 +524,11 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             }
             rightContent={
                 <div className="space-y-6">
-                     <InputField 
-                        label="Environment" 
-                        value={env} 
-                        onChange={(e: any) => setEnv(e.target.value)} 
-                        placeholder="e.g., Paris Cafe, Beach at Sunset..."
-                    />
-                    <InputField 
-                        label="Art Style" 
-                        value={style} 
-                        onChange={(e: any) => setStyle(e.target.value)} 
-                        placeholder="e.g., Cinematic, Oil Painting, Anime..."
+                     <VisualSelector 
+                        label="Select Scene Theme" 
+                        options={themes} 
+                        selected={theme} 
+                        onSelect={setTheme} 
                     />
                 </div>
             }
@@ -518,12 +572,12 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
             resultImage={result}
             onResetResult={() => setResult(null)}
             leftContent={
-                <div className="h-full flex flex-col gap-4">
-                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
+                <div className="h-full flex flex-col gap-4 p-4 w-full">
+                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
                         {model ? (
                              <>
                                 <img src={model.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Model</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Model</div>
                              </>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full">
@@ -533,11 +587,11 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
                         )}
                         <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                      </div>
-                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
+                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
                         {garment ? (
                              <>
                                 <img src={garment.url} className="w-full h-full object-contain" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Garment</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Garment</div>
                              </>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full">
@@ -554,13 +608,13 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Garment Type</label>
                         <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setType('top')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                            <button onClick={() => setType('top')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-sm' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}>
                                 <GarmentTopIcon className="w-8 h-8"/>
-                                <span className="font-bold text-sm">Top</span>
+                                <span className="font-bold text-sm">Tops</span>
                             </button>
-                            <button onClick={() => setType('bottom')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                            <button onClick={() => setType('bottom')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-sm' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}>
                                 <GarmentTrousersIcon className="w-8 h-8"/>
-                                <span className="font-bold text-sm">Bottom</span>
+                                <span className="font-bold text-sm">Bottoms</span>
                             </button>
                         </div>
                     </div>
@@ -606,22 +660,32 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppCo
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
                         <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <>
+                    <div className="w-full h-full p-4">
                         <UploadPlaceholder label="Upload Logo / Design" onClick={() => document.getElementById('mockup-upload')?.click()} />
                         <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    </div>
                 )
             }
             rightContent={
                 <div className="space-y-6">
-                    <SelectField label="Product Type" value={type} onChange={(e: any) => setType(e.target.value)}>
-                        {['T-Shirt', 'Mug', 'Tote Bag', 'Phone Case', 'Notebook', 'Laptop'].map(t => <option key={t} value={t}>{t}</option>)}
-                    </SelectField>
+                    <VisualSelector 
+                        label="Product Type" 
+                        options={[
+                            { id: 'T-Shirt', label: 'T-Shirt' },
+                            { id: 'Mug', label: 'Mug' },
+                            { id: 'Phone Case', label: 'Phone Case' },
+                            { id: 'Notebook', label: 'Notebook' },
+                            { id: 'Laptop', label: 'Laptop' },
+                            { id: 'Tote Bag', label: 'Tote Bag' }
+                        ]}
+                        selected={type} 
+                        onSelect={setType} 
+                    />
                 </div>
             }
         />
@@ -662,30 +726,32 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             isGenerating={loading}
             canGenerate={!!image}
             onGenerate={handleGenerate}
-            resultImage={null} // Caption AI uses a text result list instead of an image
+            resultImage={null} 
             leftContent={
                  image ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
                         <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <>
+                    <div className="w-full h-full p-4">
                         <UploadPlaceholder label="Upload Photo" onClick={() => document.getElementById('caption-upload')?.click()} />
                         <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    </div>
                 )
             }
             rightContent={
                  <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">Generated Captions</h3>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">Generated Results</h3>
                     {captions.length > 0 ? captions.map((c, i) => (
-                        <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm relative group hover:bg-white transition-all">
+                        <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm relative group hover:bg-white transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
                              <p className="text-gray-800 font-medium mb-2 leading-relaxed">"{c.caption}"</p>
                              <p className="text-blue-600 text-sm font-mono">{c.hashtags}</p>
-                             <button onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg border border-gray-200 shadow-sm"><CopyIcon className="w-4 h-4"/></button>
+                             <div className="absolute top-2 right-2 p-2 text-gray-400 bg-white rounded-lg border border-gray-200 opacity-0 group-hover:opacity-100">
+                                <CopyIcon className="w-4 h-4"/>
+                             </div>
                         </div>
-                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">Captions will appear here...</div>}
+                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-sm">Click generate to see captions</div>}
                 </div>
             }
         />
@@ -695,19 +761,28 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
 const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [productName, setProductName] = useState('');
-    const [description, setDescription] = useState('');
+    const [vibe, setVibe] = useState('Professional');
     const [loading, setLoading] = useState(false);
     const [resultPlan, setResultPlan] = useState<any | null>(null);
+
+    const vibes = [
+        { id: 'Professional', label: 'Professional' },
+        { id: 'Playful', label: 'Playful' },
+        { id: 'Luxury', label: 'Luxury' },
+        { id: 'Eco-Friendly', label: 'Eco-Friendly' }
+    ];
 
     const handleGenerate = async () => {
         if (!productImage || !auth.user) return;
         setLoading(true);
         try {
+            // Map vibe to description for the service
+            const desc = `A ${vibe} product.`;
             const res = await generateProductPackPlan(
                 [productImage.base64.base64], 
                 productName, 
-                description, 
-                { colors: [], fonts: [] }, // Simplified for this view
+                desc, 
+                { colors: [], fonts: [] }, 
                 '', 
                 []
             );
@@ -728,15 +803,15 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
             icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
             creditCost={appConfig?.featureCosts['Product Studio'] || 5}
             isGenerating={loading}
-            canGenerate={!!productImage}
+            canGenerate={!!productImage && !!productName}
             onGenerate={handleGenerate}
             resultImage={null}
             leftContent={
                  resultPlan ? (
-                    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6 p-4 w-full">
                          <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold text-gray-900">Strategy Plan</h3>
-                            <button onClick={() => setResultPlan(null)} className="text-sm text-gray-500 hover:text-gray-900">Reset</button>
+                            <button onClick={() => setResultPlan(null)} className="text-sm text-gray-500 hover:text-gray-900 underline">Reset</button>
                          </div>
                          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                              <h4 className="font-bold text-blue-600 mb-4 flex items-center gap-2"><SparklesIcon className="w-4 h-4"/> SEO & Copy</h4>
@@ -767,29 +842,27 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
                     </div>
                 ) : (
                     productImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center">
+                        <div className="relative w-full h-full flex items-center justify-center p-4">
                             <img src={productImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                            <button onClick={() => setProductImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                            <button onClick={() => setProductImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                         </div>
                     ) : (
-                        <>
+                        <div className="w-full h-full p-4">
                             <UploadPlaceholder label="Upload Product" onClick={() => document.getElementById('prod-upload')?.click()} />
                             <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                        </>
+                        </div>
                     )
                 )
             }
             rightContent={
                  <div className="space-y-6">
                     <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                    <div className="mb-4">
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description</label>
-                        <textarea 
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all min-h-[100px]"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        ></textarea>
-                    </div>
+                    <VisualSelector 
+                        label="Brand Vibe" 
+                        options={vibes} 
+                        selected={vibe} 
+                        onSelect={setVibe} 
+                    />
                 </div>
             }
         />
@@ -798,15 +871,22 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
 
 const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [refImage, setRefImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [prompt, setPrompt] = useState('');
+    const [outputType, setOutputType] = useState('Social Media Post');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+
+    const types = [
+        { id: 'Social Media Post', label: 'Social Post' },
+        { id: 'Banner Ad', label: 'Banner Ad' },
+        { id: 'Hero Image', label: 'Hero Image' },
+        { id: 'Product Showcase', label: 'Product Shot' }
+    ];
 
     const handleGenerate = async () => {
         if (!refImage || !auth.user) return;
         setLoading(true);
         try {
-            const res = await generateBrandStylistImage(refImage.base64.base64, prompt);
+            const res = await generateBrandStylistImage(refImage.base64.base64, `Create a ${outputType}`);
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, 'Brand Stylist AI');
@@ -832,30 +912,28 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: Ap
             onResetResult={() => setResult(null)}
             leftContent={
                 refImage ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
                         <img src={refImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setRefImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
-                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs">Reference Style</div>
+                        <button onClick={() => setRefImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">Reference Style</div>
                     </div>
                 ) : (
-                    <>
+                    <div className="w-full h-full p-4">
                         <UploadPlaceholder label="Upload Style Reference" onClick={() => document.getElementById('brand-upload')?.click()} />
                         <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </>
+                    </div>
                 )
             }
             rightContent={
                 <div className="space-y-6">
-                    <InputField 
-                        label="Creation Prompt" 
-                        placeholder="e.g. A coffee cup on a wooden table" 
-                        value={prompt} 
-                        onChange={(e: any) => setPrompt(e.target.value)} 
+                    <VisualSelector 
+                        label="Output Format" 
+                        options={types} 
+                        selected={outputType} 
+                        onSelect={setOutputType} 
                     />
-                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                        <p className="text-xs text-yellow-800 leading-relaxed">
-                            Upload an image that has the <strong>exact style</strong> you want to copy (lighting, colors, texture). Then describe what new object you want to create in that style.
-                        </p>
+                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 text-xs text-yellow-800">
+                        Upload an image that represents your brand style. We will generate new assets matching this exact aesthetic.
                     </div>
                 </div>
             }
@@ -927,21 +1005,14 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         setError(null);
 
         try {
-            // 1. Extract Frames Client-Side
-            const frames = await extractFramesFromVideo(file, 6); // Extract 6 frames
+            const frames = await extractFramesFromVideo(file, 6); 
             setScannedFrames(frames);
-
-            // 2. AI Analysis
             setStatusMessage("AI is analyzing content & generating titles...");
             const analysis = await analyzeVideoFrames(frames);
-            
             setSuggestedTitles(analysis.titles);
-            
-            // Auto-select the best frame if available
             if (analysis.bestFrameIndex >= 0 && analysis.bestFrameIndex < frames.length) {
                 setSubjectA(frames[analysis.bestFrameIndex]);
             }
-            
             setStatusMessage("");
         } catch (err: any) {
             console.error(err);
@@ -960,7 +1031,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         setError(null);
         try {
             setStatusMessage("Researching viral trends for this topic...");
-            
             const resultBase64 = await generateThumbnail({
                 category: category || 'general',
                 title: videoTitle,
@@ -968,10 +1038,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                 subjectA: subjectA.base64.base64,
                 subjectB: subjectB?.base64.base64
             });
-            
             const imageUrl = `data:image/png;base64,${resultBase64}`;
             setGeneratedThumbnail(imageUrl);
-            
              if (auth.user) {
                  saveCreation(auth.user.uid, imageUrl, 'Thumbnail Studio');
                  const updatedProfile = await deductCredits(auth.user.uid, 2, 'Thumbnail Studio');
@@ -997,10 +1065,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             onResetResult={() => setGeneratedThumbnail(null)}
             leftContent={
                 <div className="h-full w-full overflow-y-auto custom-scrollbar p-4">
-                    {/* This section acts as the "Canvas" showing all inputs visually */}
                      <div className="grid grid-cols-2 gap-4 h-full">
-                         {/* Subject A */}
-                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => subjectAInputRef.current?.click()}>
+                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => subjectAInputRef.current?.click()}>
                             {subjectA ? (
                                 <img src={subjectA.url} className="w-full h-full object-cover rounded-lg" />
                             ) : (
@@ -1012,8 +1078,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                             <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
                         </div>
 
-                        {/* Reference */}
-                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => referenceInputRef.current?.click()}>
+                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => referenceInputRef.current?.click()}>
                              {referenceImage ? (
                                 <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg" />
                             ) : (
@@ -1025,9 +1090,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                             <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
                         </div>
 
-                        {/* Subject B (Conditional) */}
                         {category === 'podcast' && (
-                            <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => subjectBInputRef.current?.click()}>
+                            <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => subjectBInputRef.current?.click()}>
                                 {subjectB ? (
                                     <img src={subjectB.url} className="w-full h-full object-cover rounded-lg" />
                                 ) : (
@@ -1039,9 +1103,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                             </div>
                         )}
 
-                         {/* Scanned Frames Display (If Video) */}
                          {scannedFrames.length > 0 && (
-                             <div className="col-span-2 mt-4">
+                             <div className="col-span-2 mt-4 bg-gray-50 p-4 rounded-xl">
                                  <p className="text-xs font-bold text-gray-500 mb-2">VIDEO FRAMES (Click to Select)</p>
                                  <div className="flex gap-2 overflow-x-auto pb-2">
                                      {scannedFrames.map((frame, idx) => (
@@ -1054,7 +1117,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                          )}
                      </div>
 
-                     {/* Hidden Inputs */}
                     <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
                     <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
                     <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
@@ -1062,7 +1124,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             }
             rightContent={
                 <div className="space-y-6">
-                    {/* Category */}
                     <div>
                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">1. Category</label>
                          <div className="grid grid-cols-3 gap-2">
@@ -1074,7 +1135,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                         </div>
                     </div>
 
-                     {/* Input Method Switch */}
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">2. Input Source</label>
                         <div className="flex bg-gray-100 p-1 rounded-xl">
@@ -1095,7 +1155,6 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                         )}
                     </div>
 
-                    {/* Title */}
                     <div>
                         <InputField 
                             label="3. Video Title" 
