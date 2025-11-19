@@ -327,6 +327,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
+            // Start analysis loading state immediately to hide controls
+            setIsAnalyzing(true);
+            
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
@@ -336,9 +339,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             setBrandStyle('');
             setVisualType('');
             setSelectedPrompt(null);
+            setSuggestedPrompts([]);
 
-            // Trigger Auto-Analysis
-            setIsAnalyzing(true);
             try {
                 const prompts = await analyzeProductImage(base64.base64, base64.mimeType);
                 setSuggestedPrompts(prompts);
@@ -440,7 +442,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
             generateButtonStyle={{
-                className: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30",
+                className: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30 border-none",
                 hideIcon: true
             }}
             leftContent={
