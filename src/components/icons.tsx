@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Existing Icons
@@ -64,7 +65,7 @@ export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = ''
     <div className={`flex items-center ${className}`}>
         <span className="text-2xl font-bold">
             <span className="!text-black dark:text-gray-200">Magic</span>
-            <span className="text-yellow-400">Pixa</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Pixa</span>
         </span>
     </div>
 );
