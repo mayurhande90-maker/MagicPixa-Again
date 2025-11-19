@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon } from './icons';
 
 interface SidebarProps {
   user: User | null;
@@ -45,7 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
-    { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, disabled: false },
     { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, disabled: false },
     { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, disabled: false },
     { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },
@@ -100,3 +99,4 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
 };
 
 export default Sidebar;
+// Removed credits display from sidebar.
