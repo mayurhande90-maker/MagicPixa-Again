@@ -219,10 +219,11 @@ export const analyzeProductImage = async (
     try {
         const prompt = `Analyse the uploaded product image in depth. Identify the exact product type, its visible design, shape, packaging material, printed text, logos, colors, proportions, surface details, and category.
         
-        Based on this analysis, generate exactly 4 user-facing prompt sentences (8-15 words each). 
-        These four prompts must be natural, descriptive instructions that a user might say.
-        Example: "Place the product on a sleek marble table with soft morning sunlight."
-        Example: "Showcase the product on a wooden podium surrounded by fresh green leaves."
+        Based on this analysis, generate exactly 4 short, conversational requests that a user would ask an AI editor. 
+        These should sound natural and spoken, not like a robotic description.
+        Example: "Put this on a sleek marble table with some soft sunlight."
+        Example: "Show this floating in the air with fresh water splashes around it."
+        Example: "Place it on a wooden desk next to a laptop and coffee."
         
         Return ONLY a JSON array of strings.`;
 
@@ -244,19 +245,19 @@ export const analyzeProductImage = async (
         });
         const jsonText = response.text?.trim();
         if (!jsonText) return [
-            "Place the product in a minimalist studio setting with soft, clean shadows",
-            "Showcase this item on a luxury gold podium with dramatic lighting",
-            "Set the product in a natural environment with sunlight and fresh leaves",
-            "Display on a dark elegant surface with sharp reflections and mood lighting"
+            "Put this on a clean white table with soft shadows",
+            "Show this product on a luxury gold podium",
+            "Place it in a nature setting with sunlight and leaves",
+            "Make it look moody on a dark reflective surface"
         ];
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product:", e);
         return [
-            "Place the product in a minimalist studio setting with soft, clean shadows",
-            "Showcase this item on a luxury gold podium with dramatic lighting",
-            "Set the product in a natural environment with sunlight and fresh leaves",
-            "Display on a dark elegant surface with sharp reflections and mood lighting"
+            "Put this on a clean white table with soft shadows",
+            "Show this product on a luxury gold podium",
+            "Place it in a nature setting with sunlight and leaves",
+            "Make it look moody on a dark reflective surface"
         ];
     }
 }

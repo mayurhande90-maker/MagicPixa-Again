@@ -347,10 +347,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             } catch (err) {
                 console.error(err);
                 setSuggestedPrompts([
-                    "Place the product in a minimalist studio setting with soft, clean shadows",
-                    "Showcase this item on a luxury gold podium with dramatic lighting",
-                    "Set the product in a natural environment with sunlight and fresh leaves",
-                    "Display on a dark elegant surface with sharp reflections and mood lighting"
+                    "Put this on a clean white table with soft shadows",
+                    "Show this product on a luxury gold podium",
+                    "Place it in a nature setting with sunlight and leaves",
+                    "Make it look moody on a dark reflective surface"
                 ]);
             } finally {
                 setIsAnalyzing(false);
@@ -552,8 +552,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'} transition-opacity duration-300`}></div>
                                                     
                                                     {/* Inner Content */}
-                                                    <div className="relative h-full w-full bg-white rounded-full flex items-center justify-center px-5 py-3">
-                                                        <span className="text-sm font-medium italic text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                                                    <div className={`relative h-full w-full rounded-full flex items-center justify-center px-5 py-3 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
+                                                        <span className={`text-sm font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
                                                             "{prompt}"
                                                         </span>
                                                     </div>
