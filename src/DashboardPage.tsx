@@ -448,7 +448,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             leftContent={
                 image ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
-                         {/* Loading Overlay with Blur and Progress Bar */}
+                         {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
                                 <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
@@ -458,13 +458,29 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                         )}
 
+                        {/* ANALYSIS SCANNER ANIMATION */}
+                        {isAnalyzing && (
+                            <div className="absolute inset-0 z-20 bg-black/10 backdrop-blur-[1px] rounded-xl overflow-hidden flex items-center justify-center">
+                                {/* The Scanner Beam */}
+                                <div className="w-full h-[2px] bg-[#4D7CFF] shadow-[0_0_15px_#4D7CFF] absolute top-0 left-0 animate-[scan_2s_linear_infinite]"></div>
+                                {/* Trailing gradient behind beam */}
+                                <div className="w-full h-32 bg-gradient-to-t from-[#4D7CFF]/20 to-transparent absolute top-0 left-0 animate-[scan_2s_linear_infinite] -translate-y-full"></div>
+                                
+                                {/* Status Badge */}
+                                <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-30 animate-pulse">
+                                    <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
+                                    <span className="text-xs font-bold tracking-widest uppercase">Analyzing Image...</span>
+                                </div>
+                            </div>
+                        )}
+
                         <img 
                             src={image.url} 
                             className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'filter blur-sm brightness-90 scale-95' : ''}`} 
                         />
                         
-                        {/* Top Right Re-Upload Button */}
-                        {!loading && (
+                        {/* Top Right Re-Upload Button (Only when idle) */}
+                        {!loading && !isAnalyzing && (
                             <button 
                                 onClick={() => document.getElementById('studio-upload-redo')?.click()} 
                                 className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
@@ -484,6 +500,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             @keyframes fadeInUp {
                                 from { opacity: 0; transform: translateY(10px); }
                                 to { opacity: 1; transform: translateY(0); }
+                            }
+                            @keyframes scan {
+                                0% { top: 0%; }
+                                50% { top: 100%; }
+                                100% { top: 0%; }
                             }
                         `}</style>
                     </div>
@@ -528,9 +549,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {(!category || isAnalyzing) && (
                             <div className={`transition-all duration-300 ${category ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
                                 {isAnalyzing ? (
-                                    <div className="p-6 bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-3 border border-blue-100 animate-pulse">
-                                        <SparklesIcon className="w-6 h-6 text-blue-500 animate-spin"/>
-                                        <p className="text-sm font-bold text-blue-700">Analyzing product details...</p>
+                                    // Simplified Analyzing State for Right Panel (Focus is on Image now)
+                                    <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
+                                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Scanning...</p>
                                     </div>
                                 ) : suggestedPrompts.length > 0 ? (
                                     <div>
