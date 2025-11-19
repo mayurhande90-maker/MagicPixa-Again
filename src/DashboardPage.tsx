@@ -54,7 +54,9 @@ import {
     GarmentTopIcon,
     GarmentTrousersIcon,
     CopyIcon,
-    CheckIcon
+    CheckIcon,
+    RetryIcon,
+    PencilIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -149,8 +151,9 @@ const FeatureLayout: React.FC<{
     creditCost: number;
     resultImage: string | null;
     onResetResult?: () => void;
+    onNewSession?: () => void;
     description?: string;
-}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult, description }) => {
+}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult, onNewSession, description }) => {
     return (
         <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-white">
             {/* Header */}
@@ -173,15 +176,24 @@ const FeatureLayout: React.FC<{
                         <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
                              <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl relative z-10" />
-                             <div className="absolute top-6 right-6 flex gap-3 z-20">
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-black px-4 py-3 rounded-xl transition-all border border-white/20 shadow-lg font-medium flex items-center gap-2 group">
-                                    <DownloadIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Download
-                                </button>
-                                {onResetResult && (
-                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-red-500 text-white px-4 py-3 rounded-xl transition-all border border-white/20 shadow-lg font-medium flex items-center gap-2 group">
-                                        <XIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Close
+                             
+                             {/* Result Actions */}
+                             <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-20">
+                                {onNewSession && (
+                                     <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
+                                        <TrashIcon className="w-5 h-5"/>
+                                        <span className="hidden sm:inline">New Project</span>
                                     </button>
                                 )}
+                                {onResetResult && (
+                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
+                                        <RetryIcon className="w-5 h-5"/>
+                                        <span className="hidden sm:inline">Regenerate</span>
+                                    </button>
+                                )}
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#F9D230] hover:bg-[#fce06b] text-black px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-400/20 font-bold flex items-center gap-2 transform hover:scale-105">
+                                    <DownloadIcon className="w-5 h-5"/> Download
+                                </button>
                              </div>
                         </div>
                     ) : (
@@ -258,7 +270,7 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
 
 // Helper for the new button-grid selectors
 const SelectionGrid: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
-    <div className="mb-6">
+    <div className="mb-6 animate-fadeIn">
         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">{label}</label>
         <div className="flex flex-wrap gap-2">
             {options.map(opt => {
@@ -267,7 +279,7 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
                     <button 
                         key={opt}
                         onClick={() => onChange(opt)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-200 ${
+                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-200 transform active:scale-95 ${
                             isSelected 
                             ? 'bg-[#1E1E1E] text-white border-[#1E1E1E] shadow-md' 
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
@@ -292,9 +304,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
     // Manual Refinement State
-    const [category, setCategory] = useState('Electronics');
-    const [brandStyle, setBrandStyle] = useState('Minimal');
-    const [visualType, setVisualType] = useState('Studio');
+    const [category, setCategory] = useState('');
+    const [brandStyle, setBrandStyle] = useState('');
+    const [visualType, setVisualType] = useState('');
 
     const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Automotive'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
@@ -306,6 +318,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
             
+            // Reset States on new upload
+            setCategory('');
+            setBrandStyle('');
+            setVisualType('');
+            setSelectedPrompt(null);
+
             // Trigger Auto-Analysis
             setIsAnalyzing(true);
             try {
@@ -320,6 +338,38 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         }
     };
 
+    // Mutually Exclusive Selection Logic
+    const handlePromptSelect = (prompt: string) => {
+        if (selectedPrompt === prompt) {
+             setSelectedPrompt(null); // Deselect
+        } else {
+             setSelectedPrompt(prompt);
+             setCategory(''); // Clear manual flow
+             setBrandStyle('');
+             setVisualType('');
+        }
+    };
+
+    const handleCategorySelect = (val: string) => {
+        if (category === val) {
+             setCategory(''); // Deselect (Step back)
+             setBrandStyle('');
+             setVisualType('');
+        } else {
+             setCategory(val);
+             setSelectedPrompt(null); // Clear AI selection
+        }
+    };
+
+    const handleBrandStyleSelect = (val: string) => {
+        if (brandStyle === val) {
+            setBrandStyle('');
+            setVisualType('');
+        } else {
+            setBrandStyle(val);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         setLoading(true);
@@ -328,8 +378,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             let generationDirection = "";
             if (selectedPrompt) {
                 generationDirection = selectedPrompt;
+            } else if (category) {
+                generationDirection = `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.`;
             } else {
-                generationDirection = `${visualType} shot of ${category} product. Style: ${brandStyle}.`;
+                generationDirection = "Professional studio lighting";
             }
 
             const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
@@ -346,6 +398,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         }
     };
 
+    // Helper to reset the session completely
+    const handleNewSession = () => {
+        setImage(null);
+        setResult(null);
+        setCategory('');
+        setBrandStyle('');
+        setVisualType('');
+        setSuggestedPrompts([]);
+        setSelectedPrompt(null);
+    };
+
     return (
         <FeatureLayout 
             title="Magic Photo Studio"
@@ -353,13 +416,14 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
             creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
             isGenerating={loading}
-            canGenerate={!!image && (!isAnalyzing)}
+            canGenerate={!!image && !isAnalyzing && (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))}
             onGenerate={handleGenerate}
             resultImage={result}
             onResetResult={() => setResult(null)}
+            onNewSession={handleNewSession}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
                          {/* Loading Overlay with Blur and Progress Bar */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
@@ -375,11 +439,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'filter blur-sm brightness-90 scale-95' : ''}`} 
                         />
                         
+                        {/* Top Right Re-Upload Button */}
                         {!loading && (
-                            <button onClick={() => { setImage(null); setSuggestedPrompts([]); setSelectedPrompt(null); }} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105 z-40">
-                                <TrashIcon className="w-5 h-5"/>
+                            <button 
+                                onClick={() => document.getElementById('studio-upload-redo')?.click()} 
+                                className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#F9D230] hover:text-black text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
+                                title="Change Photo"
+                            >
+                                <UploadIcon className="w-5 h-5"/>
                             </button>
                         )}
+                        <input id="studio-upload-redo" type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                         
                         <style>{`
                             @keyframes progress {
@@ -401,78 +471,108 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 )
             }
             rightContent={
-                <div className="space-y-8">
-                    {isAnalyzing ? (
-                        <div className="p-6 bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-3 border border-blue-100 animate-pulse">
-                            <SparklesIcon className="w-6 h-6 text-blue-500 animate-spin"/>
-                            <p className="text-sm font-bold text-blue-700">Analyzing product details...</p>
+                !image ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
+                        <div className="bg-gray-100 p-4 rounded-full mb-4">
+                            <ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/>
                         </div>
-                    ) : suggestedPrompts.length > 0 ? (
-                        <div>
-                             <div className="flex items-center justify-between mb-3 ml-1">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
-                                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
-                            </div>
-                            <div className="flex flex-col gap-3">
-                                {suggestedPrompts.map((prompt, idx) => (
-                                    <button 
-                                        key={idx} 
-                                        onClick={() => setSelectedPrompt(prompt === selectedPrompt ? null : prompt)}
-                                        style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'backwards' }}
-                                        className={`w-full p-4 rounded-2xl text-sm font-bold transition-all border-2 text-left flex items-center justify-between animate-[fadeInUp_0.5s_ease-out] ${
-                                            selectedPrompt === prompt 
-                                            ? 'border-[#F9D230] bg-yellow-50 shadow-md text-gray-900 scale-[1.02]' 
-                                            : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPrompt === prompt ? 'bg-[#F9D230]' : 'bg-gray-100'}`}>
-                                                <SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-black' : 'text-gray-400'}`}/>
-                                            </div>
-                                            <span>{prompt}</span>
+                        <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
+                        <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-8 animate-fadeIn">
+                        {/* AI Suggestions Section */}
+                        {(!category || isAnalyzing) && (
+                            <div className={`transition-all duration-300 ${category ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                                {isAnalyzing ? (
+                                    <div className="p-6 bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-3 border border-blue-100 animate-pulse">
+                                        <SparklesIcon className="w-6 h-6 text-blue-500 animate-spin"/>
+                                        <p className="text-sm font-bold text-blue-700">Analyzing product details...</p>
+                                    </div>
+                                ) : suggestedPrompts.length > 0 ? (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3 ml-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
+                                            <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
                                         </div>
-                                        {selectedPrompt === prompt && <CheckIcon className="w-5 h-5 text-[#F9D230]"/>}
-                                    </button>
-                                ))}
+                                        <div className="flex flex-col gap-3">
+                                            {suggestedPrompts.map((prompt, idx) => (
+                                                <button 
+                                                    key={idx} 
+                                                    onClick={() => handlePromptSelect(prompt)}
+                                                    style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'backwards' }}
+                                                    className={`w-full p-4 rounded-2xl text-sm font-bold transition-all border-2 text-left flex items-center justify-between animate-[fadeInUp_0.5s_ease-out] ${
+                                                        selectedPrompt === prompt 
+                                                        ? 'border-[#F9D230] bg-yellow-50 shadow-md text-gray-900 scale-[1.02]' 
+                                                        : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPrompt === prompt ? 'bg-[#F9D230]' : 'bg-gray-100'}`}>
+                                                            <SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-black' : 'text-gray-400'}`}/>
+                                                        </div>
+                                                        <span>{prompt}</span>
+                                                    </div>
+                                                    {selectedPrompt === prompt && <CheckIcon className="w-5 h-5 text-[#F9D230]"/>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
-                        </div>
-                    ) : null}
+                        )}
 
-                    <div className="relative">
-                        <div className="flex items-center gap-2 mb-6 pt-4 border-t border-gray-100">
-                            <div className="h-px flex-1 bg-gray-200"></div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR REFINE MANUALLY</span>
-                            <div className="h-px flex-1 bg-gray-200"></div>
-                        </div>
-                        
-                        {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
-                        <SelectionGrid 
-                            label="Product Category" 
-                            options={categories} 
-                            value={category} 
-                            onChange={(val) => { setCategory(val); setSelectedPrompt(null); }} 
-                        />
-                        <SelectionGrid 
-                            label="Brand Style" 
-                            options={brandStyles} 
-                            value={brandStyle} 
-                            onChange={(val) => { setBrandStyle(val); setSelectedPrompt(null); }} 
-                        />
-                        <SelectionGrid 
-                            label="Visual Type" 
-                            options={visualTypes} 
-                            value={visualType} 
-                            onChange={(val) => { setVisualType(val); setSelectedPrompt(null); }} 
-                        />
-                    </div>
+                        {/* Divider (Visible if both sections are technically available) */}
+                        {!selectedPrompt && !category && (
+                            <div className="relative">
+                                <div className="flex items-center gap-2 py-2">
+                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR REFINE MANUALLY</span>
+                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                </div>
+                            </div>
+                        )}
 
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                        <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4 text-yellow-500"/> Pro Tip</h4>
-                        <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                            Our AI will automatically preserve your product's text, logo, and shape while building a hyper-realistic environment around it.
-                        </p>
+                        {/* Manual Refinement Section */}
+                        {!selectedPrompt && (
+                            <div className="relative animate-fadeIn">
+                                {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
+                                <SelectionGrid 
+                                    label="1. Product Category" 
+                                    options={categories} 
+                                    value={category} 
+                                    onChange={handleCategorySelect} 
+                                />
+                                
+                                {category && (
+                                    <SelectionGrid 
+                                        label="2. Brand Style" 
+                                        options={brandStyles} 
+                                        value={brandStyle} 
+                                        onChange={handleBrandStyleSelect} 
+                                    />
+                                )}
+
+                                {category && brandStyle && (
+                                    <SelectionGrid 
+                                        label="3. Visual Type" 
+                                        options={visualTypes} 
+                                        value={visualType} 
+                                        onChange={setVisualType} 
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {/* Helper Text */}
+                        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4 text-yellow-500"/> Pro Tip</h4>
+                            <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                                Our AI will automatically preserve your product's text, logo, and shape while building a hyper-realistic environment around it.
+                            </p>
+                        </div>
                     </div>
-                </div>
+                )
             }
         />
     );
