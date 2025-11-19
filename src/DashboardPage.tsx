@@ -175,10 +175,11 @@ const FeatureLayout: React.FC<{
         className?: string;
         hideIcon?: boolean;
     };
+    resultHeightClass?: string;
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
-    generateButtonStyle 
+    generateButtonStyle, resultHeightClass
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
 
@@ -202,11 +203,11 @@ const FeatureLayout: React.FC<{
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div className="h-full flex flex-col justify-start">
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner min-h-[400px]">
+                        <div className={`w-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner ${resultHeightClass || 'h-full min-h-[400px]'}`}>
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
                              <img 
                                 src={resultImage} 
-                                className="max-w-full max-h-full object-contain shadow-2xl relative z-10 cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]" 
+                                className="w-full h-full object-contain shadow-2xl relative z-10 cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]" 
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
@@ -499,6 +500,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
+            resultHeightClass="h-[560px]"
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
