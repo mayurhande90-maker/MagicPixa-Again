@@ -470,7 +470,26 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     </div>
                 ) : (
                     <div className="w-full h-full">
-                         <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
+                        {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
+                        <div 
+                            onClick={() => document.getElementById('studio-upload')?.click()}
+                            className="w-full h-full border-2 border-dashed border-gray-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl"
+                        >
+                            <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
+                            </div>
+                            
+                            <div className="relative z-10 mt-6 text-center space-y-2 px-6">
+                                <p className="text-xl font-bold text-gray-500 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">Upload Product Photo</p>
+                                <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
+                                    <div className="bg-gray-50 rounded-full px-3 py-1">
+                                        <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
+                                            Click to Browse
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                          <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                     </div>
                 )
