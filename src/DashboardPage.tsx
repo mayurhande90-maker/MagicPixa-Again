@@ -69,20 +69,131 @@ interface DashboardPageProps {
 }
 
 const InputField: React.FC<any> = ({ label, id, ...props }) => (
-    <div>
-        {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
-        <input id={id} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0079F2] focus:outline-none" {...props} />
+    <div className="mb-4">
+        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</label>}
+        <input id={id} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all" {...props} />
+    </div>
+);
+
+const SelectField: React.FC<any> = ({ label, children, ...props }) => (
+    <div className="mb-4">
+         {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</label>}
+         <div className="relative">
+            <select className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all" {...props}>
+                {children}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+         </div>
     </div>
 );
 
 const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ imageUrl, onClose }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-        <div className="relative max-w-4xl max-h-full">
-            <button onClick={onClose} className="absolute -top-10 right-0 text-white hover:text-gray-300"><XIcon className="w-8 h-8" /></button>
-            <img src={imageUrl} alt="Full view" className="max-w-full max-h-[80vh] rounded-lg shadow-2xl" />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={onClose}>
+        <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center">
+            <button onClick={onClose} className="absolute -top-12 right-0 text-white hover:text-yellow-400 transition-colors"><XIcon className="w-8 h-8" /></button>
+            <img src={imageUrl} alt="Full view" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
         </div>
     </div>
 );
+
+// --- Standardized Layout Component ---
+const FeatureLayout: React.FC<{
+    title: string;
+    icon: React.ReactNode;
+    leftContent: React.ReactNode; // The Upload/Preview Area
+    rightContent: React.ReactNode; // The Controls Area
+    onGenerate: () => void;
+    isGenerating: boolean;
+    canGenerate: boolean;
+    creditCost: number;
+    resultImage: string | null;
+    onResetResult?: () => void;
+}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult }) => {
+    return (
+        <div className="h-full flex flex-col p-4 lg:p-8 max-w-[1600px] mx-auto">
+            <div className="mb-6 flex items-center gap-3">
+                <div className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                    {icon}
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
+                {/* LEFT SIDE: Canvas / Visuals */}
+                <div className="lg:col-span-8 bg-gray-100 rounded-3xl border border-gray-200 overflow-hidden relative group">
+                    {resultImage ? (
+                        <div className="w-full h-full flex items-center justify-center bg-[#1E1E1E] relative">
+                             <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl" />
+                             <div className="absolute top-4 right-4 flex gap-2">
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20">
+                                    <DownloadIcon className="w-6 h-6"/>
+                                </button>
+                                {onResetResult && (
+                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20">
+                                        <XIcon className="w-6 h-6"/>
+                                    </button>
+                                )}
+                             </div>
+                        </div>
+                    ) : (
+                        <div className="w-full h-full p-4 sm:p-8 flex flex-col justify-center">
+                            {leftContent}
+                        </div>
+                    )}
+                </div>
+
+                {/* RIGHT SIDE: Control Panel */}
+                <div className="lg:col-span-4 flex flex-col h-full">
+                    <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-sm flex-1 flex flex-col">
+                        <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Controls</h3>
+                        
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            {rightContent}
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                            <button 
+                                onClick={onGenerate} 
+                                disabled={isGenerating || !canGenerate}
+                                className="w-full bg-[#f9d230] hover:bg-[#eec51f] text-black text-lg font-bold py-4 rounded-xl shadow-lg shadow-yellow-400/20 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <SparklesIcon className="w-6 h-6 animate-spin"/> Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <SparklesIcon className="w-6 h-6"/> Generate
+                                    </>
+                                )}
+                            </button>
+                            <p className="text-center text-xs font-medium text-gray-400 mt-3 flex items-center justify-center gap-1">
+                                Cost: <span className="text-gray-600 font-bold">{creditCost} Credits</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Upload Placeholder Component ---
+const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
+    <div 
+        onClick={onClick}
+        className="w-full h-full min-h-[300px] border-3 border-dashed border-gray-300 bg-gray-50 hover:bg-white hover:border-yellow-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group"
+    >
+        <div className="p-4 bg-white rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
+            {icon || <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-yellow-500 transition-colors" />}
+        </div>
+        <p className="text-gray-500 font-semibold group-hover:text-gray-800 transition-colors">{label}</p>
+        <p className="text-xs text-gray-400 mt-2">Supports JPG, PNG</p>
+    </div>
+);
+
 
 // --- Feature Components ---
 
@@ -111,22 +222,45 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><PhotoStudioIcon className="w-6 h-6 text-blue-500"/> Magic Photo Studio</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('studio-upload')?.click()}>
-                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Image</div>}
-                        <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+        <FeatureLayout 
+            title="Magic Photo Studio"
+            icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                image ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
-                    <InputField label="Style / Theme (Optional)" placeholder="e.g. Professional studio lighting, dark background..." value={prompt} onChange={(e: any) => setPrompt(e.target.value)} />
-                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? <SparklesIcon className="w-5 h-5 animate-spin"/> : <SparklesIcon className="w-5 h-5"/>} Generate</button>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
+                        <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </>
+                )
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <InputField 
+                        label="Describe Desired Look" 
+                        placeholder="e.g. Cinematic lighting, neon background, luxury podium..." 
+                        value={prompt} 
+                        onChange={(e: any) => setPrompt(e.target.value)} 
+                    />
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> Pro Tip</h4>
+                        <p className="text-xs text-blue-600 leading-relaxed">
+                            For best results, upload a photo with good lighting. If you leave the description blank, our AI will automatically enhance the photo for a professional studio look.
+                        </p>
+                    </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -156,29 +290,39 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><HomeIcon className="w-6 h-6 text-orange-500"/> Magic Interior</h2>
-             <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('interior-upload')?.click()}>
-                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Room Photo</div>}
+        <FeatureLayout 
+            title="Magic Interior"
+            icon={<HomeIcon className="w-6 h-6 text-orange-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Interior'] || 2}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                image ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Room Photo" onClick={() => document.getElementById('interior-upload')?.click()} />
                         <input id="interior-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <select className="px-4 py-2 border rounded-lg" value={style} onChange={e => setStyle(e.target.value)}>
-                            {['Modern', 'Japanese', 'American', 'Coastal', 'Futuristic'].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                         <select className="px-4 py-2 border rounded-lg" value={roomType} onChange={e => setRoomType(e.target.value)}>
-                            {['Living Room', 'Bedroom', 'Kitchen', 'Office'].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-orange-600 text-white py-3 rounded-xl font-bold hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Designing...' : 'Redesign Room'}</button>
+                    </>
+                )
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <SelectField label="Design Style" value={style} onChange={(e: any) => setStyle(e.target.value)}>
+                        {['Modern', 'Japanese', 'American', 'Coastal', 'Futuristic', 'Traditional Indian', 'Arabic', 'Industrial', 'Minimalist'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </SelectField>
+                    <SelectField label="Room Type" value={roomType} onChange={(e: any) => setRoomType(e.target.value)}>
+                        {['Living Room', 'Bedroom', 'Kitchen', 'Office', 'Bathroom', 'Dining Room'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </SelectField>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -207,25 +351,46 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><PaletteIcon className="w-6 h-6 text-rose-500"/> Magic Photo Colour</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('colour-upload')?.click()}>
-                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload B&W Photo</div>}
+        <FeatureLayout 
+            title="Magic Photo Colour"
+            icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Photo Colour'] || 2}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                image ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload B&W Photo" onClick={() => document.getElementById('colour-upload')?.click()} />
                         <input id="colour-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </>
+                )
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Enhancement Mode</label>
+                        <div className="grid grid-cols-1 gap-3">
+                            <button onClick={() => setMode('restore')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'restore' ? 'border-rose-500 bg-rose-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                <div className="font-bold text-gray-900">Restore & Colourize</div>
+                                <div className="text-xs text-gray-500 mt-1">Fixes scratches, noise, and adds color.</div>
+                            </button>
+                            <button onClick={() => setMode('colourize_only')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'colourize_only' ? 'border-rose-500 bg-rose-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                <div className="font-bold text-gray-900">Colourize Only</div>
+                                <div className="text-xs text-gray-500 mt-1">Adds color without repairing damage.</div>
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={() => setMode('restore')} className={`flex-1 py-2 rounded-lg border-2 font-semibold ${mode === 'restore' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-gray-200'}`}>Restore & Colourize</button>
-                        <button onClick={() => setMode('colourize_only')} className={`flex-1 py-2 rounded-lg border-2 font-semibold ${mode === 'colourize_only' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-gray-200'}`}>Colourize Only</button>
-                    </div>
-                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold hover:bg-rose-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Processing...' : 'Enhance Photo'}</button>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -256,29 +421,64 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><UsersIcon className="w-6 h-6 text-pink-500"/> Magic Soul</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('soul-a-upload')?.click()}>
-                            {personA ? <img src={personA.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Person A</div>}
-                            <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                        </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('soul-b-upload')?.click()}>
-                            {personB ? <img src={personB.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Person B</div>}
-                            <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                        </div>
-                    </div>
-                    <InputField label="Style" value={style} onChange={(e: any) => setStyle(e.target.value)} />
-                    <InputField label="Environment" value={env} onChange={(e: any) => setEnv(e.target.value)} />
-                    <button onClick={handleGenerate} disabled={loading || !personA || !personB} className="w-full bg-pink-600 text-white py-3 rounded-xl font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Merging...' : 'Create Magic Soul'}</button>
+        <FeatureLayout 
+            title="Magic Soul"
+            icon={<UsersIcon className="w-6 h-6 text-pink-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Soul'] || 3}
+            isGenerating={loading}
+            canGenerate={!!personA && !!personB}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                <div className="h-full flex flex-col gap-4">
+                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
+                        {personA ? (
+                             <>
+                                <img src={personA.url} className="w-full h-full object-cover" />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Subject A</div>
+                             </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Subject A</span>
+                            </div>
+                        )}
+                        <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                     </div>
+                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
+                        {personB ? (
+                             <>
+                                <img src={personB.url} className="w-full h-full object-cover" />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Subject B</div>
+                             </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Subject B</span>
+                            </div>
+                        )}
+                        <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                     </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+            }
+            rightContent={
+                <div className="space-y-6">
+                     <InputField 
+                        label="Environment" 
+                        value={env} 
+                        onChange={(e: any) => setEnv(e.target.value)} 
+                        placeholder="e.g., Paris Cafe, Beach at Sunset..."
+                    />
+                    <InputField 
+                        label="Art Style" 
+                        value={style} 
+                        onChange={(e: any) => setStyle(e.target.value)} 
+                        placeholder="e.g., Cinematic, Oil Painting, Anime..."
+                    />
                 </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -308,31 +508,65 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><UsersIcon className="w-6 h-6 text-teal-500"/> Magic Apparel</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('apparel-model')?.click()}>
-                            {model ? <img src={model.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Model</div>}
-                            <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                        </div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('apparel-garment')?.click()}>
-                            {garment ? <img src={garment.url} className="h-32 w-full object-contain rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Garment</div>}
-                            <input id="apparel-garment" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setGarment({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+        <FeatureLayout 
+            title="Magic Apparel"
+            icon={<UsersIcon className="w-6 h-6 text-teal-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Apparel'] || 3}
+            isGenerating={loading}
+            canGenerate={!!model && !!garment}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                <div className="h-full flex flex-col gap-4">
+                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
+                        {model ? (
+                             <>
+                                <img src={model.url} className="w-full h-full object-cover" />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Model</div>
+                             </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500 mb-2"/>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Model</span>
+                            </div>
+                        )}
+                        <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                     </div>
+                     <div className="flex-1 relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
+                        {garment ? (
+                             <>
+                                <img src={garment.url} className="w-full h-full object-contain" />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 text-center">Garment</div>
+                             </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500 mb-2"/>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Cloth</span>
+                            </div>
+                        )}
+                        <input id="apparel-garment" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setGarment({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                     </div>
+                </div>
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Garment Type</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => setType('top')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                                <GarmentTopIcon className="w-8 h-8"/>
+                                <span className="font-bold text-sm">Top</span>
+                            </button>
+                            <button onClick={() => setType('bottom')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                                <GarmentTrousersIcon className="w-8 h-8"/>
+                                <span className="font-bold text-sm">Bottom</span>
+                            </button>
                         </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={() => setType('top')} className={`flex-1 py-2 rounded-lg border-2 flex items-center justify-center gap-2 ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-600' : 'border-gray-200'}`}><GarmentTopIcon className="w-5 h-5"/> Tops</button>
-                        <button onClick={() => setType('bottom')} className={`flex-1 py-2 rounded-lg border-2 flex items-center justify-center gap-2 ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-600' : 'border-gray-200'}`}><GarmentTrousersIcon className="w-5 h-5"/> Bottoms</button>
-                    </div>
-                    <button onClick={handleGenerate} disabled={loading || !model || !garment} className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Fitting...' : 'Try On'}</button>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -361,24 +595,36 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppCo
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><MockupIcon className="w-6 h-6 text-indigo-500"/> Magic Mockup</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('mockup-upload')?.click()}>
-                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Design/Logo</div>}
-                        <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+         <FeatureLayout 
+            title="Magic Mockup"
+            icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>}
+            creditCost={appConfig?.featureCosts['Magic Mockup'] || 2}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                image ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
-                    <select className="w-full px-4 py-2 border rounded-lg" value={type} onChange={e => setType(e.target.value)}>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Logo / Design" onClick={() => document.getElementById('mockup-upload')?.click()} />
+                        <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </>
+                )
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <SelectField label="Product Type" value={type} onChange={(e: any) => setType(e.target.value)}>
                         {['T-Shirt', 'Mug', 'Tote Bag', 'Phone Case', 'Notebook', 'Laptop'].map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Mocking up...' : 'Generate Mockup'}</button>
+                    </SelectField>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -409,27 +655,40 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><CaptionIcon className="w-6 h-6 text-amber-500"/> CaptionAI</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('caption-upload')?.click()}>
-                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Photo</div>}
-                        <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+        <FeatureLayout 
+            title="CaptionAI"
+            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+            creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={null} // Caption AI uses a text result list instead of an image
+            leftContent={
+                 image ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
-                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Thinking...' : 'Generate Captions'}</button>
-                </div>
-                <div className="space-y-4">
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Photo" onClick={() => document.getElementById('caption-upload')?.click()} />
+                        <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </>
+                )
+            }
+            rightContent={
+                 <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">Generated Captions</h3>
                     {captions.length > 0 ? captions.map((c, i) => (
-                        <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative group">
-                             <p className="text-gray-800 font-medium mb-2">"{c.caption}"</p>
-                             <p className="text-blue-600 text-sm">{c.hashtags}</p>
-                             <button onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"><CopyIcon className="w-5 h-5"/></button>
+                        <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm relative group hover:bg-white transition-all">
+                             <p className="text-gray-800 font-medium mb-2 leading-relaxed">"{c.caption}"</p>
+                             <p className="text-blue-600 text-sm font-mono">{c.hashtags}</p>
+                             <button onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg border border-gray-200 shadow-sm"><CopyIcon className="w-4 h-4"/></button>
                         </div>
-                    )) : <div className="bg-gray-100 rounded-xl h-full flex items-center justify-center text-gray-400">Captions will appear here</div>}
+                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">Captions will appear here...</div>}
                 </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
@@ -464,58 +723,76 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><ProductStudioIcon className="w-6 h-6 text-green-500"/> Product Studio</h2>
-            {!resultPlan ? (
-                <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('prod-upload')?.click()}>
-                        {productImage ? <img src={productImage.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Product Image</div>}
-                        <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                    <InputField label="Description" value={description} onChange={(e: any) => setDescription(e.target.value)} />
-                    <button onClick={handleGenerate} disabled={loading || !productImage} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Generating Strategy...' : 'Create Product Pack'}</button>
-                </div>
-            ) : (
-                <div className="space-y-8">
-                    <button onClick={() => setResultPlan(null)} className="text-gray-500 hover:text-gray-800 mb-4">&larr; Back</button>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                            <h3 className="font-bold text-lg mb-4 text-blue-600">Marketing Copy</h3>
-                            <div className="space-y-4">
+        <FeatureLayout 
+            title="Product Studio"
+            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
+            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
+            isGenerating={loading}
+            canGenerate={!!productImage}
+            onGenerate={handleGenerate}
+            resultImage={null}
+            leftContent={
+                 resultPlan ? (
+                    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                         <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-gray-900">Strategy Plan</h3>
+                            <button onClick={() => setResultPlan(null)} className="text-sm text-gray-500 hover:text-gray-900">Reset</button>
+                         </div>
+                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                             <h4 className="font-bold text-blue-600 mb-4 flex items-center gap-2"><SparklesIcon className="w-4 h-4"/> SEO & Copy</h4>
+                             <div className="space-y-4">
                                 <div>
                                     <p className="text-xs font-bold text-gray-500 uppercase">SEO Title</p>
-                                    <p className="text-lg font-semibold">{resultPlan.textAssets.seoTitle}</p>
+                                    <p className="text-lg font-semibold text-gray-800">{resultPlan.textAssets.seoTitle}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs font-bold text-gray-500 uppercase">Keywords</p>
                                     <div className="flex flex-wrap gap-2 mt-1">
-                                        {resultPlan.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-600">{k}</span>)}
+                                        {resultPlan.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-gray-100 rounded-md text-sm text-gray-600 border border-gray-200">{k}</span>)}
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs font-bold text-gray-500 uppercase">Social Captions</p>
-                                    <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
-                                        {resultPlan.textAssets.captions.map((c: any, i: number) => <li key={i}>{c.text}</li>)}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                             <h3 className="font-bold text-lg mb-4 text-purple-600">Visual Concepts</h3>
-                             <div className="space-y-4">
+                             </div>
+                         </div>
+                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                             <h4 className="font-bold text-purple-600 mb-4 flex items-center gap-2"><PaletteIcon className="w-4 h-4"/> Visual Strategy</h4>
+                             <div className="space-y-3">
                                 {Object.entries(resultPlan.imageGenerationPrompts).map(([key, prompt]: any) => (
-                                    <div key={key} className="p-3 bg-gray-50 rounded-lg">
-                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">{key}</p>
-                                        <p className="text-sm text-gray-700 italic">"{prompt}"</p>
+                                    <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                        <p className="text-sm text-gray-700 italic leading-relaxed">"{prompt}"</p>
                                     </div>
                                 ))}
                              </div>
+                         </div>
+                    </div>
+                ) : (
+                    productImage ? (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <img src={productImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                            <button onClick={() => setProductImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
                         </div>
+                    ) : (
+                        <>
+                            <UploadPlaceholder label="Upload Product" onClick={() => document.getElementById('prod-upload')?.click()} />
+                            <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                        </>
+                    )
+                )
+            }
+            rightContent={
+                 <div className="space-y-6">
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                    <div className="mb-4">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description</label>
+                        <textarea 
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all min-h-[100px]"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        ></textarea>
                     </div>
                 </div>
-            )}
-        </div>
+            }
+        />
     );
 };
 
@@ -544,29 +821,52 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: Ap
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><LightbulbIcon className="w-6 h-6 text-yellow-500"/> Brand Stylist AI</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('brand-upload')?.click()}>
-                        {refImage ? <img src={refImage.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Reference Style</div>}
-                        <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+         <FeatureLayout 
+            title="Brand Stylist AI"
+            icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>}
+            creditCost={appConfig?.featureCosts['Brand Stylist AI'] || 4}
+            isGenerating={loading}
+            canGenerate={!!refImage}
+            onGenerate={handleGenerate}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            leftContent={
+                refImage ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={refImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
+                        <button onClick={() => setRefImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs">Reference Style</div>
                     </div>
-                    <InputField label="What to create?" placeholder="e.g. A coffee cup on a wooden table" value={prompt} onChange={(e: any) => setPrompt(e.target.value)} />
-                    <button onClick={handleGenerate} disabled={loading || !refImage} className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Styling...' : 'Generate On-Brand Image'}</button>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Style Reference" onClick={() => document.getElementById('brand-upload')?.click()} />
+                        <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </>
+                )
+            }
+            rightContent={
+                <div className="space-y-6">
+                    <InputField 
+                        label="Creation Prompt" 
+                        placeholder="e.g. A coffee cup on a wooden table" 
+                        value={prompt} 
+                        onChange={(e: any) => setPrompt(e.target.value)} 
+                    />
+                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                        <p className="text-xs text-yellow-800 leading-relaxed">
+                            Upload an image that has the <strong>exact style</strong> you want to copy (lighting, colors, texture). Then describe what new object you want to create in that style.
+                        </p>
+                    </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
-                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
-                </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
 
 const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
     const [activeTab, setActiveTab] = useState<'photo' | 'video'>('photo');
-    const [category, setCategory] = useState<string | null>(null);
+    const [category, setCategory] = useState<string>('podcast');
     
     // Media States
     const [subjectA, setSubjectA] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
@@ -686,191 +986,140 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
     };
 
     return (
-        <div className='p-6 pb-24'>
-            <div className='max-w-7xl mx-auto'>
-                <h2 className="text-3xl font-bold text-[#1E1E1E] flex items-center justify-center gap-2 mb-8"><ThumbnailIcon className="w-8 h-8 text-red-500" /> Thumbnail Studio</h2>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {/* Left Column: Inputs */}
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-                        
-                        {/* 1. Category */}
-                        <div>
-                            <h3 className="font-bold mb-3 text-gray-800">1. Select Category</h3>
-                            <div className="grid grid-cols-3 gap-2">
-                                {categories.map(cat => (
-                                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-xl border-2 flex flex-col items-center transition-all ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 hover:border-red-200'}`}>
-                                        {cat.icon}<span className="text-xs font-bold mt-1">{cat.label}</span>
+        <FeatureLayout 
+            title="Thumbnail Studio"
+            icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>}
+            creditCost={appConfig?.featureCosts['Thumbnail Studio'] || 2}
+            isGenerating={isGenerating}
+            canGenerate={!!referenceImage && !!subjectA && !!videoTitle}
+            onGenerate={handleGenerate}
+            resultImage={generatedThumbnail}
+            onResetResult={() => setGeneratedThumbnail(null)}
+            leftContent={
+                <div className="h-full w-full overflow-y-auto custom-scrollbar p-4">
+                    {/* This section acts as the "Canvas" showing all inputs visually */}
+                     <div className="grid grid-cols-2 gap-4 h-full">
+                         {/* Subject A */}
+                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => subjectAInputRef.current?.click()}>
+                            {subjectA ? (
+                                <img src={subjectA.url} className="w-full h-full object-cover rounded-lg" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <UsersIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
+                                    <span className="text-xs font-bold text-gray-500">Main Subject</span>
+                                </div>
+                            )}
+                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
+                        </div>
+
+                        {/* Reference */}
+                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => referenceInputRef.current?.click()}>
+                             {referenceImage ? (
+                                <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <LightbulbIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
+                                    <span className="text-xs font-bold text-gray-500">Style Reference</span>
+                                </div>
+                            )}
+                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
+                        </div>
+
+                        {/* Subject B (Conditional) */}
+                        {category === 'podcast' && (
+                            <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400" onClick={() => subjectBInputRef.current?.click()}>
+                                {subjectB ? (
+                                    <img src={subjectB.url} className="w-full h-full object-cover rounded-lg" />
+                                ) : (
+                                    <div className="text-center p-4">
+                                        <UsersIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
+                                        <span className="text-xs font-bold text-gray-500">Guest (Optional)</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                         {/* Scanned Frames Display (If Video) */}
+                         {scannedFrames.length > 0 && (
+                             <div className="col-span-2 mt-4">
+                                 <p className="text-xs font-bold text-gray-500 mb-2">VIDEO FRAMES (Click to Select)</p>
+                                 <div className="flex gap-2 overflow-x-auto pb-2">
+                                     {scannedFrames.map((frame, idx) => (
+                                         <div key={idx} onClick={() => setSubjectA(frame)} className={`w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500' : 'border-transparent'}`}>
+                                             <img src={frame.url} className="w-full h-full object-cover" />
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
+                         )}
+                     </div>
+
+                     {/* Hidden Inputs */}
+                    <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
+                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
+                    <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
+                </div>
+            }
+            rightContent={
+                <div className="space-y-6">
+                    {/* Category */}
+                    <div>
+                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">1. Category</label>
+                         <div className="grid grid-cols-3 gap-2">
+                            {categories.map(cat => (
+                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-2 rounded-xl border-2 flex flex-col items-center transition-all ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 hover:border-red-200'}`}>
+                                    {cat.icon}<span className="text-[10px] font-bold mt-1">{cat.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                     {/* Input Method Switch */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">2. Input Source</label>
+                        <div className="flex bg-gray-100 p-1 rounded-xl">
+                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'photo' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Photo Upload</button>
+                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'video' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Smart Video Scan</button>
+                        </div>
+                        {activeTab === 'video' && (
+                            <div className="mt-3">
+                                 <div className="border-2 border-dashed border-red-200 bg-red-50 rounded-xl p-4 text-center cursor-pointer hover:bg-red-100 transition-colors" onClick={() => videoInputRef.current?.click()}>
+                                    {isScanningVideo ? (
+                                        <span className="text-sm font-bold text-red-600 flex items-center justify-center gap-2"><SparklesIcon className="animate-spin w-4 h-4"/> Scanning...</span>
+                                    ) : (
+                                        <span className="text-sm font-bold text-gray-700 flex items-center justify-center gap-2"><VideoCameraIcon className="w-4 h-4"/> Upload Video File</span>
+                                    )}
+                                    <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                        <InputField 
+                            label="3. Video Title" 
+                            value={videoTitle} 
+                            onChange={(e:any) => setVideoTitle(e.target.value)} 
+                            placeholder="e.g., I Tried iPhone 16..." 
+                        />
+                         {suggestedTitles.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase">AI Suggestions:</p>
+                                {suggestedTitles.slice(0, 3).map((t, i) => (
+                                    <button key={i} onClick={() => setVideoTitle(t)} className="block w-full text-left text-xs p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded truncate transition-colors">
+                                        {t}
                                     </button>
                                 ))}
                             </div>
-                        </div>
-
-                        {category && (
-                            <>
-                                {/* 2. Content Input (Photo vs Video Tabs) */}
-                                <div>
-                                    <h3 className="font-bold mb-3 text-gray-800">2. Upload Content</h3>
-                                    <div className="flex border-b border-gray-200 mb-4">
-                                        <button 
-                                            onClick={() => setActiveTab('photo')}
-                                            className={`flex-1 py-2 text-sm font-bold ${activeTab === 'photo' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500'}`}
-                                        >
-                                            Upload Photo
-                                        </button>
-                                        <button 
-                                            onClick={() => setActiveTab('video')}
-                                            className={`flex-1 py-2 text-sm font-bold ${activeTab === 'video' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500'}`}
-                                        >
-                                            Smart Video Scan
-                                        </button>
-                                    </div>
-
-                                    {activeTab === 'photo' ? (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
-                                                {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Main Subject</span></>}
-                                                <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
-                                            </div>
-                                            {category === 'podcast' && (
-                                                <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
-                                                    {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Guest (Optional)</span></>}
-                                                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {/* Video Uploader */}
-                                            <div className="border-2 border-dashed border-red-200 bg-red-50 rounded-xl p-6 text-center cursor-pointer hover:bg-red-100 transition-colors" onClick={() => videoInputRef.current?.click()}>
-                                                {isScanningVideo ? (
-                                                    <div className="flex flex-col items-center">
-                                                        <SparklesIcon className="w-8 h-8 animate-spin text-red-500 mb-2"/>
-                                                        <span className="text-sm font-bold text-red-600">Scanning Video...</span>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <VideoCameraIcon className="w-8 h-8 text-red-500 mx-auto mb-2"/>
-                                                        <span className="text-sm font-bold text-gray-700">Upload Local Video</span>
-                                                        <p className="text-xs text-gray-500 mt-1">We'll extract the best frames automatically</p>
-                                                    </>
-                                                )}
-                                                <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
-                                            </div>
-
-                                            {/* Scanned Results */}
-                                            {scannedFrames.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs font-bold text-gray-500 mb-2">SELECT BEST FRAME:</p>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {scannedFrames.map((frame, idx) => (
-                                                            <div 
-                                                                key={idx} 
-                                                                onClick={() => setSubjectA(frame)}
-                                                                className={`aspect-video rounded-lg overflow-hidden cursor-pointer border-2 ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500 ring-2 ring-red-200' : 'border-transparent'}`}
-                                                            >
-                                                                <img src={frame.url} className="w-full h-full object-cover" />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                             {suggestedTitles.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs font-bold text-gray-500 mb-2">AI SUGGESTED TITLES:</p>
-                                                    <div className="flex flex-col gap-2">
-                                                        {suggestedTitles.map((t, i) => (
-                                                            <button key={i} onClick={() => setVideoTitle(t)} className="text-left text-xs p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 truncate">
-                                                                {t}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* 3. Title */}
-                                <div>
-                                    <h3 className="font-bold mb-3 text-gray-800">3. Video Title</h3>
-                                    <InputField 
-                                        value={videoTitle} 
-                                        onChange={(e:any) => setVideoTitle(e.target.value)} 
-                                        placeholder="e.g., I Tried iPhone 16..." 
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Tip: Be descriptive. The AI uses this to generate relevant backgrounds.</p>
-                                </div>
-
-                                {/* 4. Reference */}
-                                <div>
-                                    <h3 className="font-bold mb-3 text-gray-800">4. Reference Style</h3>
-                                    <div className="aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => referenceInputRef.current?.click()}>
-                                        {referenceImage ? <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Upload Reference Image</span></>}
-                                        <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
-                                    </div>
-                                </div>
-
-                                {/* Generate Button */}
-                                <button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex flex-col items-center justify-center gap-1">
-                                    {isGenerating ? (
-                                        <>
-                                            <SparklesIcon className="w-6 h-6 animate-spin" />
-                                            <span className="text-sm">{statusMessage || "Generating..."}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="flex items-center gap-2 text-lg"><SparklesIcon className="w-5 h-5"/> Generate Viral Thumbnail</span>
-                                        </>
-                                    )}
-                                </button>
-                            </>
                         )}
-                        {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-100">{error}</p>}
                     </div>
 
-                    {/* Right Column: Result */}
-                    <div className="lg:col-span-3 bg-gray-50 p-6 rounded-2xl shadow-inner border border-gray-200 flex flex-col items-center justify-center min-h-[600px]">
-                         {generatedThumbnail ? (
-                             <div className="w-full flex flex-col items-center">
-                                 <div className="relative w-full shadow-2xl rounded-xl overflow-hidden group">
-                                     <img src={generatedThumbnail} className="w-full h-auto"/>
-                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                                 </div>
-                                 <div className="flex gap-4 mt-8">
-                                    <button onClick={() => { const a = document.createElement('a'); a.href=generatedThumbnail; a.download='viral-thumb.png'; a.click(); }} className="flex items-center gap-2 bg-[#1E1E1E] text-white px-8 py-3 rounded-full font-bold hover:bg-black transition-colors shadow-lg">
-                                        <DownloadIcon className="w-5 h-5"/> Download HD
-                                    </button>
-                                    <button onClick={() => setGeneratedThumbnail(null)} className="flex items-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-sm border border-gray-300">
-                                        Create Another
-                                    </button>
-                                 </div>
-                             </div>
-                         ) : (
-                             <div className="text-center text-gray-400 max-w-md">
-                                 {isGenerating ? (
-                                     <div className="flex flex-col items-center">
-                                         <div className="w-24 h-24 relative mb-6">
-                                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                             <div className="absolute inset-0 border-4 border-red-500 rounded-full border-t-transparent animate-spin"></div>
-                                             <SparklesIcon className="absolute inset-0 m-auto w-10 h-10 text-red-500 animate-pulse"/>
-                                         </div>
-                                         <h3 className="text-xl font-bold text-gray-700 mb-2">Creating Magic...</h3>
-                                         <p className="text-sm">{statusMessage}</p>
-                                     </div>
-                                 ) : (
-                                     <>
-                                        <ThumbnailIcon className="w-24 h-24 mx-auto mb-6 opacity-20"/>
-                                        <h3 className="text-xl font-bold text-gray-500 mb-2">Ready to go viral?</h3>
-                                        <p className="text-sm">Select a category and upload your content to generate a high-CTR thumbnail.</p>
-                                     </>
-                                 )}
-                             </div>
-                         )}
-                    </div>
+                    {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
+                    {isGenerating && <div className="text-xs text-center text-gray-500 animate-pulse">{statusMessage}</div>}
                 </div>
-            </div>
-        </div>
+            }
+        />
     );
 };
 
