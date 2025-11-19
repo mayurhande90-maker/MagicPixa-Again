@@ -22,10 +22,10 @@ import {
     generateBrandStylistImage,
     generateThumbnail,
     startLiveSession,
-    analyzeVideoFrames // Imported for video analysis
+    analyzeVideoFrames
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { extractFramesFromVideo } from './utils/videoUtils'; // Imported for local video processing
+import { extractFramesFromVideo } from './utils/videoUtils';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -48,7 +48,10 @@ import {
     DashboardIcon,
     XIcon,
     AudioWaveIcon,
-    ArrowRightIcon
+    ArrowRightIcon,
+    GarmentTopIcon,
+    GarmentTrousersIcon,
+    CopyIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -179,14 +182,386 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
     );
 };
 
-// ... Other simplified feature components ...
-const MagicPhotoColour: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const MagicSoul: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const MagicApparel: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const MagicMockup: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const CaptionAI: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const ProductStudio: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
-const BrandStylistAI: React.FC<any> = ({auth, appConfig}) => <div className="p-6 text-center">Feature coming soon...</div>;
+const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [mode, setMode] = useState<'restore' | 'colourize_only'>('restore');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await colourizeImage(image.base64.base64, image.base64.mimeType, mode);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, 'Magic Photo Colour');
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Photo Colour'] || 2, 'Magic Photo Colour');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><PaletteIcon className="w-6 h-6 text-rose-500"/> Magic Photo Colour</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('colour-upload')?.click()}>
+                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload B&W Photo</div>}
+                        <input id="colour-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
+                    <div className="flex gap-4">
+                        <button onClick={() => setMode('restore')} className={`flex-1 py-2 rounded-lg border-2 font-semibold ${mode === 'restore' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-gray-200'}`}>Restore & Colourize</button>
+                        <button onClick={() => setMode('colourize_only')} className={`flex-1 py-2 rounded-lg border-2 font-semibold ${mode === 'colourize_only' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-gray-200'}`}>Colourize Only</button>
+                    </div>
+                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold hover:bg-rose-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Processing...' : 'Enhance Photo'}</button>
+                </div>
+                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
+                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [style, setStyle] = useState('Cinematic');
+    const [env, setEnv] = useState('Coffee Shop');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!personA || !personB || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, style, env);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, 'Magic Soul');
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Soul'] || 3, 'Magic Soul');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><UsersIcon className="w-6 h-6 text-pink-500"/> Magic Soul</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('soul-a-upload')?.click()}>
+                            {personA ? <img src={personA.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Person A</div>}
+                            <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                        </div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('soul-b-upload')?.click()}>
+                            {personB ? <img src={personB.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Person B</div>}
+                            <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                        </div>
+                    </div>
+                    <InputField label="Style" value={style} onChange={(e: any) => setStyle(e.target.value)} />
+                    <InputField label="Environment" value={env} onChange={(e: any) => setEnv(e.target.value)} />
+                    <button onClick={handleGenerate} disabled={loading || !personA || !personB} className="w-full bg-pink-600 text-white py-3 rounded-xl font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Merging...' : 'Create Magic Soul'}</button>
+                </div>
+                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
+                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [model, setModel] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [garment, setGarment] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [type, setType] = useState('top');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!model || !garment || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateApparelTryOn(model.base64.base64, model.base64.mimeType, [{ type, base64: garment.base64.base64, mimeType: garment.base64.mimeType }]);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, 'Magic Apparel');
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Apparel'] || 3, 'Magic Apparel');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Try-on failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><UsersIcon className="w-6 h-6 text-teal-500"/> Magic Apparel</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('apparel-model')?.click()}>
+                            {model ? <img src={model.url} className="h-32 w-full object-cover rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Model</div>}
+                            <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                        </div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('apparel-garment')?.click()}>
+                            {garment ? <img src={garment.url} className="h-32 w-full object-contain rounded-lg" /> : <div className="py-8 text-gray-400 text-sm"><UploadIcon className="w-6 h-6 mx-auto mb-1"/>Garment</div>}
+                            <input id="apparel-garment" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setGarment({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <button onClick={() => setType('top')} className={`flex-1 py-2 rounded-lg border-2 flex items-center justify-center gap-2 ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-600' : 'border-gray-200'}`}><GarmentTopIcon className="w-5 h-5"/> Tops</button>
+                        <button onClick={() => setType('bottom')} className={`flex-1 py-2 rounded-lg border-2 flex items-center justify-center gap-2 ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-600' : 'border-gray-200'}`}><GarmentTrousersIcon className="w-5 h-5"/> Bottoms</button>
+                    </div>
+                    <button onClick={handleGenerate} disabled={loading || !model || !garment} className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Fitting...' : 'Try On'}</button>
+                </div>
+                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
+                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [type, setType] = useState('T-Shirt');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateMockup(image.base64.base64, image.base64.mimeType, type);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, 'Magic Mockup');
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Mockup'] || 2, 'Magic Mockup');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><MockupIcon className="w-6 h-6 text-indigo-500"/> Magic Mockup</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('mockup-upload')?.click()}>
+                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Design/Logo</div>}
+                        <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
+                    <select className="w-full px-4 py-2 border rounded-lg" value={type} onChange={e => setType(e.target.value)}>
+                        {['T-Shirt', 'Mug', 'Tote Bag', 'Phone Case', 'Notebook', 'Laptop'].map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Mocking up...' : 'Generate Mockup'}</button>
+                </div>
+                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
+                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [captions, setCaptions] = useState<{caption: string, hashtags: string}[]>([]);
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
+            setCaptions(res);
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['CaptionAI'] || 1, 'CaptionAI');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert('Copied!');
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><CaptionIcon className="w-6 h-6 text-amber-500"/> CaptionAI</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('caption-upload')?.click()}>
+                        {image ? <img src={image.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Photo</div>}
+                        <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
+                    <button onClick={handleGenerate} disabled={loading || !image} className="w-full bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Thinking...' : 'Generate Captions'}</button>
+                </div>
+                <div className="space-y-4">
+                    {captions.length > 0 ? captions.map((c, i) => (
+                        <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative group">
+                             <p className="text-gray-800 font-medium mb-2">"{c.caption}"</p>
+                             <p className="text-blue-600 text-sm">{c.hashtags}</p>
+                             <button onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"><CopyIcon className="w-5 h-5"/></button>
+                        </div>
+                    )) : <div className="bg-gray-100 rounded-xl h-full flex items-center justify-center text-gray-400">Captions will appear here</div>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [productName, setProductName] = useState('');
+    const [description, setDescription] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [resultPlan, setResultPlan] = useState<any | null>(null);
+
+    const handleGenerate = async () => {
+        if (!productImage || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateProductPackPlan(
+                [productImage.base64.base64], 
+                productName, 
+                description, 
+                { colors: [], fonts: [] }, // Simplified for this view
+                '', 
+                []
+            );
+            setResultPlan(res);
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Product Studio'] || 5, 'Product Studio');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-6xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><ProductStudioIcon className="w-6 h-6 text-green-500"/> Product Studio</h2>
+            {!resultPlan ? (
+                <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('prod-upload')?.click()}>
+                        {productImage ? <img src={productImage.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Product Image</div>}
+                        <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                    <InputField label="Description" value={description} onChange={(e: any) => setDescription(e.target.value)} />
+                    <button onClick={handleGenerate} disabled={loading || !productImage} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Generating Strategy...' : 'Create Product Pack'}</button>
+                </div>
+            ) : (
+                <div className="space-y-8">
+                    <button onClick={() => setResultPlan(null)} className="text-gray-500 hover:text-gray-800 mb-4">&larr; Back</button>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-lg mb-4 text-blue-600">Marketing Copy</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">SEO Title</p>
+                                    <p className="text-lg font-semibold">{resultPlan.textAssets.seoTitle}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Keywords</p>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {resultPlan.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-600">{k}</span>)}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Social Captions</p>
+                                    <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
+                                        {resultPlan.textAssets.captions.map((c: any, i: number) => <li key={i}>{c.text}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                             <h3 className="font-bold text-lg mb-4 text-purple-600">Visual Concepts</h3>
+                             <div className="space-y-4">
+                                {Object.entries(resultPlan.imageGenerationPrompts).map(([key, prompt]: any) => (
+                                    <div key={key} className="p-3 bg-gray-50 rounded-lg">
+                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">{key}</p>
+                                        <p className="text-sm text-gray-700 italic">"{prompt}"</p>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [refImage, setRefImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [prompt, setPrompt] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!refImage || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateBrandStylistImage(refImage.base64.base64, prompt);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, 'Brand Stylist AI');
+            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Brand Stylist AI'] || 4, 'Brand Stylist AI');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><LightbulbIcon className="w-6 h-6 text-yellow-500"/> Brand Stylist AI</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50" onClick={() => document.getElementById('brand-upload')?.click()}>
+                        {refImage ? <img src={refImage.url} className="max-h-64 mx-auto rounded-lg" /> : <div className="py-10 text-gray-500"><UploadIcon className="w-10 h-10 mx-auto mb-2"/>Upload Reference Style</div>}
+                        <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                    </div>
+                    <InputField label="What to create?" placeholder="e.g. A coffee cup on a wooden table" value={prompt} onChange={(e: any) => setPrompt(e.target.value)} />
+                    <button onClick={handleGenerate} disabled={loading || !refImage} className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2">{loading ? 'Styling...' : 'Generate On-Brand Image'}</button>
+                </div>
+                <div className="bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px]">
+                    {result ? <img src={result} className="max-h-full rounded-lg shadow-lg" /> : <p className="text-gray-400">Result will appear here</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
