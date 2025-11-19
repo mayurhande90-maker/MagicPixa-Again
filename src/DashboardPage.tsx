@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
@@ -34,7 +35,7 @@ import {
     DownloadIcon, 
     TrashIcon, 
     ProjectsIcon,
-    MicrophoneIcon,
+    MicrophoneIcon, 
     CubeIcon,
     UsersIcon,
     VideoCameraIcon,
@@ -52,7 +53,8 @@ import {
     ArrowRightIcon,
     GarmentTopIcon,
     GarmentTrousersIcon,
-    CopyIcon
+    CopyIcon,
+    CheckIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -254,6 +256,31 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
 
 // --- Feature Components ---
 
+// Helper for the new button-grid selectors
+const SelectionGrid: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
+    <div className="mb-6">
+        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">{label}</label>
+        <div className="flex flex-wrap gap-2">
+            {options.map(opt => {
+                const isSelected = value === opt;
+                return (
+                    <button 
+                        key={opt}
+                        onClick={() => onChange(opt)}
+                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-200 ${
+                            isSelected 
+                            ? 'bg-[#1E1E1E] text-white border-[#1E1E1E] shadow-md' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
+                        }`}
+                    >
+                        {opt}
+                    </button>
+                )
+            })}
+        </div>
+    </div>
+);
+
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -269,7 +296,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [brandStyle, setBrandStyle] = useState('Minimal');
     const [visualType, setVisualType] = useState('Studio');
 
-    const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Books & Stationery', 'Automotive Parts'];
+    const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Automotive'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
 
@@ -332,9 +359,39 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md object-contain" />
-                        <button onClick={() => { setImage(null); setSuggestedPrompts([]); setSelectedPrompt(null); }} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden">
+                         {/* Loading Overlay with Blur and Progress Bar */}
+                         {loading && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
+                                <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                                    <div className="h-full bg-[#F9D230] animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                </div>
+                                <p className="mt-4 text-sm font-bold text-gray-600 bg-white/80 px-4 py-1 rounded-full shadow-sm">Polishing pixels...</p>
+                            </div>
+                        )}
+
+                        <img 
+                            src={image.url} 
+                            className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'filter blur-sm brightness-90 scale-95' : ''}`} 
+                        />
+                        
+                        {!loading && (
+                            <button onClick={() => { setImage(null); setSuggestedPrompts([]); setSelectedPrompt(null); }} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105 z-40">
+                                <TrashIcon className="w-5 h-5"/>
+                            </button>
+                        )}
+                        
+                        <style>{`
+                            @keyframes progress {
+                                0% { width: 0%; margin-left: 0; }
+                                50% { width: 100%; margin-left: 0; }
+                                100% { width: 0%; margin-left: 100%; }
+                            }
+                            @keyframes fadeInUp {
+                                from { opacity: 0; transform: translateY(10px); }
+                                to { opacity: 1; transform: translateY(0); }
+                            }
+                        `}</style>
                     </div>
                 ) : (
                     <div className="w-full h-full">
@@ -356,37 +413,57 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
                                 <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-3">
                                 {suggestedPrompts.map((prompt, idx) => (
                                     <button 
                                         key={idx} 
                                         onClick={() => setSelectedPrompt(prompt === selectedPrompt ? null : prompt)}
-                                        className={`p-3 rounded-xl text-sm font-bold transition-all border-2 text-left flex items-start gap-2 ${selectedPrompt === prompt ? 'border-[#F9D230] bg-yellow-50 shadow-sm text-gray-900' : 'border-gray-100 bg-white hover:border-blue-200 text-gray-600'}`}
+                                        style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'backwards' }}
+                                        className={`w-full p-4 rounded-2xl text-sm font-bold transition-all border-2 text-left flex items-center justify-between animate-[fadeInUp_0.5s_ease-out] ${
+                                            selectedPrompt === prompt 
+                                            ? 'border-[#F9D230] bg-yellow-50 shadow-md text-gray-900 scale-[1.02]' 
+                                            : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600 hover:bg-gray-50'
+                                        }`}
                                     >
-                                        <span className="mt-0.5"><SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-[#F9D230]' : 'text-blue-400'}`}/></span>
-                                        {prompt}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPrompt === prompt ? 'bg-[#F9D230]' : 'bg-gray-100'}`}>
+                                                <SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-black' : 'text-gray-400'}`}/>
+                                            </div>
+                                            <span>{prompt}</span>
+                                        </div>
+                                        {selectedPrompt === prompt && <CheckIcon className="w-5 h-5 text-[#F9D230]"/>}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     ) : null}
 
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 pt-4 border-t border-gray-100">
+                    <div className="relative">
+                        <div className="flex items-center gap-2 mb-6 pt-4 border-t border-gray-100">
                             <div className="h-px flex-1 bg-gray-200"></div>
-                            <span className="text-xs font-bold text-gray-400 uppercase">OR REFINE MANUALLY</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR REFINE MANUALLY</span>
                             <div className="h-px flex-1 bg-gray-200"></div>
                         </div>
                         
-                        <SelectField label="Product Category" value={category} onChange={(e:any) => { setCategory(e.target.value); setSelectedPrompt(null); }}>
-                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                        </SelectField>
-                        <SelectField label="Brand Style" value={brandStyle} onChange={(e:any) => { setBrandStyle(e.target.value); setSelectedPrompt(null); }}>
-                            {brandStyles.map(s => <option key={s} value={s}>{s}</option>)}
-                        </SelectField>
-                        <SelectField label="Visual Type" value={visualType} onChange={(e:any) => { setVisualType(e.target.value); setSelectedPrompt(null); }}>
-                            {visualTypes.map(v => <option key={v} value={v}>{v}</option>)}
-                        </SelectField>
+                        {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
+                        <SelectionGrid 
+                            label="Product Category" 
+                            options={categories} 
+                            value={category} 
+                            onChange={(val) => { setCategory(val); setSelectedPrompt(null); }} 
+                        />
+                        <SelectionGrid 
+                            label="Brand Style" 
+                            options={brandStyles} 
+                            value={brandStyle} 
+                            onChange={(val) => { setBrandStyle(val); setSelectedPrompt(null); }} 
+                        />
+                        <SelectionGrid 
+                            label="Visual Type" 
+                            options={visualTypes} 
+                            value={visualType} 
+                            onChange={(val) => { setVisualType(val); setSelectedPrompt(null); }} 
+                        />
                     </div>
 
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
