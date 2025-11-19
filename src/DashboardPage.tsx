@@ -205,8 +205,8 @@ const FeatureLayout: React.FC<{
                              </div>
                         </div>
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-full h-full relative flex flex-col items-center justify-center">
+                        <div className="w-full h-full flex flex-col items-center justify-start">
+                            <div className="w-full relative flex flex-col items-center">
                                 {leftContent}
                             </div>
                         </div>
@@ -526,7 +526,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         `}</style>
                     </div>
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full flex justify-center">
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
@@ -678,6 +678,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 };
 
 const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+// ... (rest of the file content remains unchanged from previous version, just updated the specific components above)
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [style, setStyle] = useState('Modern');
     const [roomType, setRoomType] = useState('Living Room');
