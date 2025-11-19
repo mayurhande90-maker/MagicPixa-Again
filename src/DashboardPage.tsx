@@ -217,7 +217,8 @@ const FeatureLayout: React.FC<{
 
                 {/* RIGHT COLUMN: Control Deck */}
                 {/* CHANGED: col-span-2 (2/5 = 40%) */}
-                <div className="lg:col-span-2 flex flex-col h-fit">
+                {/* UPDATED: h-full to force equal height with left column */}
+                <div className="lg:col-span-2 flex flex-col h-full">
                     <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 overflow-hidden">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
