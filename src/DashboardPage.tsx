@@ -153,7 +153,15 @@ const FeatureLayout: React.FC<{
     onResetResult?: () => void;
     onNewSession?: () => void;
     description?: string;
-}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult, onNewSession, description }) => {
+    generateButtonStyle?: {
+        className?: string;
+        hideIcon?: boolean;
+    };
+}> = ({ 
+    title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
+    creditCost, resultImage, onResetResult, onNewSession, description,
+    generateButtonStyle 
+}) => {
     return (
         <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-white">
             {/* Header */}
@@ -221,16 +229,21 @@ const FeatureLayout: React.FC<{
                             <button 
                                 onClick={onGenerate} 
                                 disabled={isGenerating || !canGenerate}
-                                className="group w-full bg-[#F9D230] hover:bg-[#fce06b] text-black text-lg font-bold py-5 rounded-2xl shadow-lg shadow-yellow-400/20 hover:shadow-yellow-400/40 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95"
+                                className={`group w-full text-lg font-bold py-5 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
+                                    generateButtonStyle?.className 
+                                    ? generateButtonStyle.className 
+                                    : "bg-[#F9D230] hover:bg-[#fce06b] text-black shadow-yellow-400/20 hover:shadow-yellow-400/40"
+                                }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <div className="w-6 h-6 border-3 border-black/20 border-t-black rounded-full animate-spin"></div> 
+                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin ${generateButtonStyle?.className ? "border-white/30 border-t-white" : "border-black/20 border-t-black"}`}></div> 
                                         <span className="animate-pulse">Generating Magic...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/> Generate Magic
+                                        {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
+                                        Generate Magic
                                     </>
                                 )}
                             </button>
@@ -426,6 +439,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
+            generateButtonStyle={{
+                className: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30",
+                hideIcon: true
+            }}
             leftContent={
                 image ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
@@ -546,8 +563,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                         )}
 
-                        {/* Divider (Visible if both sections are technically available) */}
-                        {!selectedPrompt && !category && (
+                        {/* Divider (Visible if both sections are technically available and NOT analyzing) */}
+                        {!selectedPrompt && !category && !isAnalyzing && (
                             <div className="relative">
                                 <div className="flex items-center gap-2 py-2">
                                     <div className="h-px flex-1 bg-gray-200"></div>
@@ -557,8 +574,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                         )}
 
-                        {/* Manual Refinement Section */}
-                        {!selectedPrompt && (
+                        {/* Manual Refinement Section (Visible when NOT analyzing) */}
+                        {!selectedPrompt && !isAnalyzing && (
                             <div className="relative animate-fadeIn">
                                 {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
                                 <SelectionGrid 
