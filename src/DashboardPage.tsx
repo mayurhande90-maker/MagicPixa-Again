@@ -69,58 +69,67 @@ interface DashboardPageProps {
 }
 
 const InputField: React.FC<any> = ({ label, id, ...props }) => (
-    <div className="mb-4">
-        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</label>}
-        <input id={id} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all" {...props} />
+    <div className="mb-6">
+        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
+        <input id={id} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-[#F9D230] rounded-2xl focus:bg-white outline-none transition-all font-medium text-gray-800 placeholder-gray-400" {...props} />
     </div>
 );
 
-// Visual Selector for Prompt-Less UI
+// Visual Selector for Prompt-Less UI - Premium Card Style
 const VisualSelector: React.FC<{ 
     label: string; 
     options: { id: string; label: string; color?: string }[]; 
     selected: string; 
     onSelect: (id: string) => void; 
 }> = ({ label, options, selected, onSelect }) => (
-    <div className="mb-6">
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</label>
+    <div className="mb-8">
+        <div className="flex items-center justify-between mb-3 ml-1">
+             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+             <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold tracking-wide">REQUIRED</span>
+        </div>
         <div className="grid grid-cols-2 gap-3">
-            {options.map(opt => (
-                <button 
-                    key={opt.id} 
-                    onClick={() => onSelect(opt.id)}
-                    className={`p-3 rounded-xl border-2 text-sm font-bold text-center transition-all ${
-                        selected === opt.id 
-                        ? 'border-yellow-400 bg-yellow-50 text-black shadow-sm' 
-                        : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
-                    }`}
-                >
-                    {opt.label}
-                </button>
-            ))}
+            {options.map(opt => {
+                const isSelected = selected === opt.id;
+                return (
+                    <button 
+                        key={opt.id} 
+                        onClick={() => onSelect(opt.id)}
+                        className={`relative group overflow-hidden rounded-2xl p-4 text-left transition-all duration-300 border-2 ${
+                            isSelected 
+                            ? 'border-[#F9D230] bg-yellow-50/30 shadow-md' 
+                            : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'
+                        }`}
+                    >
+                        <div className={`w-full h-full flex flex-col justify-between gap-3`}>
+                            <div className={`w-3 h-3 rounded-full ${isSelected ? 'bg-[#F9D230]' : 'bg-gray-300 group-hover:bg-gray-400'} transition-colors duration-300`}></div>
+                            <span className={`font-bold text-sm ${isSelected ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'} transition-colors duration-300`}>{opt.label}</span>
+                        </div>
+                    </button>
+                )
+            })}
         </div>
     </div>
 );
 
 const SelectField: React.FC<any> = ({ label, children, ...props }) => (
-    <div className="mb-4">
-         {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</label>}
+    <div className="mb-6">
+         {label && <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
          <div className="relative">
-            <select className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none transition-all" {...props}>
+            <select className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-[#F9D230] rounded-2xl appearance-none focus:bg-white outline-none transition-all font-medium text-gray-800 cursor-pointer" {...props}>
                 {children}
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
          </div>
     </div>
 );
 
 const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ imageUrl, onClose }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={onClose}>
-        <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center">
-            <button onClick={onClose} className="absolute -top-12 right-0 text-white hover:text-yellow-400 transition-colors"><XIcon className="w-8 h-8" /></button>
-            <img src={imageUrl} alt="Full view" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
+        <div className="relative w-full h-full flex items-center justify-center">
+            <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"><XIcon className="w-8 h-8" /></button>
+            <img src={imageUrl} alt="Full view" className="max-w-full max-h-full rounded-lg shadow-2xl object-contain" />
         </div>
     </div>
 );
@@ -139,36 +148,40 @@ const FeatureLayout: React.FC<{
     onResetResult?: () => void;
 }> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult }) => {
     return (
-        <div className="h-full flex flex-col p-4 lg:p-8 max-w-[1800px] mx-auto">
+        <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-white">
             {/* Header */}
-            <div className="mb-6 flex items-center gap-3">
-                <div className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="mb-8 flex items-center gap-4 border-b border-gray-100 pb-6">
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                     {icon}
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                    <p className="text-sm text-gray-500 font-medium">AI Powered Creation Tool</p>
+                </div>
             </div>
 
             {/* Main Content Grid */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 min-h-[600px]">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                <div className="lg:col-span-8 bg-[#F3F4F6] rounded-2xl border border-gray-200 overflow-hidden relative flex flex-col justify-center items-center">
+                <div className="lg:col-span-8 h-full flex flex-col">
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1E1E1E] relative animate-fadeIn">
-                             <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl" />
-                             <div className="absolute top-4 right-4 flex gap-2 z-10">
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20 shadow-lg">
-                                    <DownloadIcon className="w-6 h-6"/>
+                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner">
+                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
+                             <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl relative z-10" />
+                             <div className="absolute top-6 right-6 flex gap-3 z-20">
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-black px-4 py-3 rounded-xl transition-all border border-white/20 shadow-lg font-medium flex items-center gap-2 group">
+                                    <DownloadIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Download
                                 </button>
                                 {onResetResult && (
-                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white p-3 rounded-xl transition-all border border-white/20 shadow-lg">
-                                        <XIcon className="w-6 h-6"/>
+                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-red-500 text-white px-4 py-3 rounded-xl transition-all border border-white/20 shadow-lg font-medium flex items-center gap-2 group">
+                                        <XIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Close
                                     </button>
                                 )}
                              </div>
                         </div>
                     ) : (
-                        <div className="w-full h-full p-4 sm:p-8 flex flex-col">
+                        <div className="w-full h-full">
                             {leftContent}
                         </div>
                     )}
@@ -176,33 +189,39 @@ const FeatureLayout: React.FC<{
 
                 {/* RIGHT COLUMN: Control Deck */}
                 <div className="lg:col-span-4 flex flex-col h-full">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col h-full">
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 border-b border-gray-100 pb-4">Configuration</h3>
+                    <div className="bg-white rounded-3xl flex-1 flex flex-col h-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
+                            <div className="h-1 w-12 bg-gray-100 rounded-full"></div>
+                        </div>
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                             {rightContent}
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100 bg-white sticky bottom-0">
+                        <div className="mt-8 pt-6 border-t border-gray-100 sticky bottom-0 bg-white/95 backdrop-blur z-10">
                             <button 
                                 onClick={onGenerate} 
                                 disabled={isGenerating || !canGenerate}
-                                className="w-full bg-[#F9D230] hover:bg-[#eec51f] text-black text-lg font-bold py-4 rounded-xl shadow-lg shadow-yellow-400/20 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3 active:scale-95"
+                                className="group w-full bg-[#F9D230] hover:bg-[#fce06b] text-black text-lg font-bold py-5 rounded-2xl shadow-lg shadow-yellow-400/20 hover:shadow-yellow-400/40 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95"
                             >
                                 {isGenerating ? (
                                     <>
-                                        <SparklesIcon className="w-6 h-6 animate-spin"/> Processing...
+                                        <div className="w-6 h-6 border-3 border-black/20 border-t-black rounded-full animate-spin"></div> 
+                                        <span className="animate-pulse">Generating Magic...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <SparklesIcon className="w-6 h-6"/> Generate Magic
+                                        <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/> Generate Magic
                                     </>
                                 )}
                             </button>
-                            <p className="text-center text-xs font-bold text-gray-400 mt-3 flex items-center justify-center gap-1">
-                                <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
-                                Cost: {creditCost} Credits
-                            </p>
+                            <div className="text-center mt-4 flex items-center justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                                    <span className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></span>
+                                    Cost: {creditCost} Credits
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -211,17 +230,22 @@ const FeatureLayout: React.FC<{
     );
 };
 
-// --- Upload Placeholder Component ---
+// --- Enhanced Upload Placeholder Component ---
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full min-h-[300px] border-3 border-dashed border-gray-300 bg-white hover:border-yellow-400 hover:bg-yellow-50/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group shadow-sm"
+        className="w-full h-full min-h-[500px] border-[3px] border-dotted border-gray-300 hover:border-[#F9D230] bg-gray-50/30 hover:bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden"
     >
-        <div className="p-5 bg-gray-50 rounded-full mb-4 group-hover:scale-110 transition-transform group-hover:bg-yellow-100">
-            {icon || <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-yellow-600 transition-colors" />}
+        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-0 group-hover:opacity-30 transition-opacity duration-500 pointer-events-none"></div>
+        
+        <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 ring-1 ring-gray-100 group-hover:ring-[#F9D230]/30">
+            {icon || <UploadIcon className="w-12 h-12 text-gray-300 group-hover:text-[#F9D230] transition-colors duration-300" />}
         </div>
-        <p className="text-gray-600 font-bold text-lg group-hover:text-gray-900 transition-colors">{label}</p>
-        <p className="text-xs text-gray-400 mt-2 font-medium">Supports JPG, PNG</p>
+        
+        <div className="relative z-10 mt-8 text-center space-y-2 px-6">
+            <p className="text-xl font-bold text-gray-400 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">{label}</p>
+            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#F9D230] transition-colors delay-75 bg-white/50 px-3 py-1 rounded-full">Click to Browse</p>
+        </div>
     </div>
 );
 
@@ -273,29 +297,29 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg object-contain" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md object-contain" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                          <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
                          <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
                 )
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <VisualSelector 
                         label="Select Aesthetic" 
                         options={styles} 
                         selected={style} 
                         onSelect={setStyle} 
                     />
-                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                        <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> AI Magic</h4>
-                        <p className="text-xs text-blue-600 leading-relaxed">
-                            Our AI will automatically analyze your product and place it in the selected environment with perfect lighting and shadows.
+                    <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> AI Magic</h4>
+                        <p className="text-xs text-blue-600/80 leading-relaxed font-medium">
+                            Our AI will automatically analyze your product's geometry and material to place it in the selected environment with physically accurate lighting, reflections, and shadows.
                         </p>
                     </div>
                 </div>
@@ -350,19 +374,19 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                         <UploadPlaceholder label="Upload Room Photo" onClick={() => document.getElementById('interior-upload')?.click()} />
                         <input id="interior-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
                 )
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <VisualSelector 
                         label="Design Style" 
                         options={styles} 
@@ -414,19 +438,19 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                         <UploadPlaceholder label="Upload B&W Photo" onClick={() => document.getElementById('colour-upload')?.click()} />
                         <input id="colour-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
                 )
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <VisualSelector 
                         label="Enhancement Mode" 
                         options={[
@@ -436,9 +460,11 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         selected={mode} 
                         onSelect={(id) => setMode(id as any)} 
                     />
-                    <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-                        "Restore" removes scratches and noise. "Color Only" preserves the original texture.
-                    </p>
+                    <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
+                         <p className="text-xs text-rose-600/80 font-medium leading-relaxed">
+                            "Restore & Color" intelligently removes scratches, dust, and noise while adding color. "Color Only" preserves the original texture and grain.
+                        </p>
+                    </div>
                 </div>
             }
         />
@@ -491,31 +517,35 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             resultImage={result}
             onResetResult={() => setResult(null)}
             leftContent={
-                <div className="h-full flex flex-col gap-4 p-4 w-full">
-                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
+                <div className="h-full flex flex-col gap-6 w-full">
+                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-pink-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
                         {personA ? (
                              <>
                                 <img src={personA.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Subject A</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Subject A</div>
                              </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Person 1</span>
+                            <div className="flex flex-col items-center justify-center h-full p-6">
+                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
+                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500"/>
+                                </div>
+                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Person 1</span>
                             </div>
                         )}
                         <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                      </div>
-                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-pink-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
+                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-pink-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
                         {personB ? (
                              <>
                                 <img src={personB.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Subject B</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Subject B</div>
                              </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Person 2</span>
+                            <div className="flex flex-col items-center justify-center h-full p-6">
+                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
+                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500"/>
+                                </div>
+                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Person 2</span>
                             </div>
                         )}
                         <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
@@ -523,7 +553,7 @@ const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
                 </div>
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                      <VisualSelector 
                         label="Select Scene Theme" 
                         options={themes} 
@@ -572,31 +602,35 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
             resultImage={result}
             onResetResult={() => setResult(null)}
             leftContent={
-                <div className="h-full flex flex-col gap-4 p-4 w-full">
-                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
+                <div className="h-full flex flex-col gap-6 w-full">
+                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-teal-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
                         {model ? (
                              <>
                                 <img src={model.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Model</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Model</div>
                              </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Model</span>
+                            <div className="flex flex-col items-center justify-center h-full p-6">
+                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
+                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500"/>
+                                </div>
+                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Model</span>
                             </div>
                         )}
                         <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                      </div>
-                     <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 bg-white hover:border-teal-400 transition-colors group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
+                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-teal-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
                         {garment ? (
                              <>
                                 <img src={garment.url} className="w-full h-full object-contain" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs font-bold p-2 text-center">Garment</div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Garment</div>
                              </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500 mb-2"/>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-gray-700">Upload Cloth</span>
+                            <div className="flex flex-col items-center justify-center h-full p-6">
+                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
+                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500"/>
+                                </div>
+                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Cloth</span>
                             </div>
                         )}
                         <input id="apparel-garment" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setGarment({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
@@ -604,16 +638,20 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
                 </div>
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Garment Type</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Garment Type</label>
                         <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setType('top')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-sm' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}>
-                                <GarmentTopIcon className="w-8 h-8"/>
+                            <button onClick={() => setType('top')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'}`}>
+                                <div className={`p-2 rounded-full ${type === 'top' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
+                                    <GarmentTopIcon className="w-6 h-6"/>
+                                </div>
                                 <span className="font-bold text-sm">Tops</span>
                             </button>
-                            <button onClick={() => setType('bottom')} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-sm' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}>
-                                <GarmentTrousersIcon className="w-8 h-8"/>
+                            <button onClick={() => setType('bottom')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'}`}>
+                                <div className={`p-2 rounded-full ${type === 'bottom' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
+                                    <GarmentTrousersIcon className="w-6 h-6"/>
+                                </div>
                                 <span className="font-bold text-sm">Bottoms</span>
                             </button>
                         </div>
@@ -660,19 +698,19 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppCo
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                         <UploadPlaceholder label="Upload Logo / Design" onClick={() => document.getElementById('mockup-upload')?.click()} />
                         <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
                 )
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <VisualSelector 
                         label="Product Type" 
                         options={[
@@ -729,12 +767,12 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             resultImage={null} 
             leftContent={
                  image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={image.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                         <UploadPlaceholder label="Upload Photo" onClick={() => document.getElementById('caption-upload')?.click()} />
                         <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
@@ -742,16 +780,16 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             }
             rightContent={
                  <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">Generated Results</h3>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Generated Results</h3>
                     {captions.length > 0 ? captions.map((c, i) => (
-                        <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm relative group hover:bg-white transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
+                        <div key={i} className="bg-gray-50 p-4 rounded-2xl border border-transparent hover:border-gray-200 shadow-sm relative group hover:bg-white transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
                              <p className="text-gray-800 font-medium mb-2 leading-relaxed">"{c.caption}"</p>
                              <p className="text-blue-600 text-sm font-mono">{c.hashtags}</p>
                              <div className="absolute top-2 right-2 p-2 text-gray-400 bg-white rounded-lg border border-gray-200 opacity-0 group-hover:opacity-100">
                                 <CopyIcon className="w-4 h-4"/>
                              </div>
                         </div>
-                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-sm">Click generate to see captions</div>}
+                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50 text-sm font-medium">Click generate to see captions</div>}
                 </div>
             }
         />
@@ -842,12 +880,12 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
                     </div>
                 ) : (
                     productImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center p-4">
-                            <img src={productImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                            <button onClick={() => setProductImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                            <img src={productImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                            <button onClick={() => setProductImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                         </div>
                     ) : (
-                        <div className="w-full h-full p-4">
+                        <div className="w-full h-full">
                             <UploadPlaceholder label="Upload Product" onClick={() => document.getElementById('prod-upload')?.click()} />
                             <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                         </div>
@@ -855,8 +893,8 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
                 )
             }
             rightContent={
-                 <div className="space-y-6">
-                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                 <div className="space-y-8">
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Eco-Water Bottle"/>
                     <VisualSelector 
                         label="Brand Vibe" 
                         options={vibes} 
@@ -912,27 +950,27 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: Ap
             onResetResult={() => setResult(null)}
             leftContent={
                 refImage ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={refImage.url} className="max-w-full max-h-full rounded-lg shadow-lg" />
-                        <button onClick={() => setRefImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-red-500"><TrashIcon className="w-5 h-5"/></button>
-                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">Reference Style</div>
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <img src={refImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
+                        <button onClick={() => setRefImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
+                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide shadow-xl">Reference Style</div>
                     </div>
                 ) : (
-                    <div className="w-full h-full p-4">
+                    <div className="w-full h-full">
                         <UploadPlaceholder label="Upload Style Reference" onClick={() => document.getElementById('brand-upload')?.click()} />
                         <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
                     </div>
                 )
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <VisualSelector 
                         label="Output Format" 
                         options={types} 
                         selected={outputType} 
                         onSelect={setOutputType} 
                     />
-                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 text-xs text-yellow-800">
+                     <div className="p-5 bg-yellow-50/50 rounded-2xl border border-yellow-100 text-xs text-yellow-800/80 font-medium leading-relaxed">
                         Upload an image that represents your brand style. We will generate new assets matching this exact aesthetic.
                     </div>
                 </div>
@@ -1064,51 +1102,51 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             resultImage={generatedThumbnail}
             onResetResult={() => setGeneratedThumbnail(null)}
             leftContent={
-                <div className="h-full w-full overflow-y-auto custom-scrollbar p-4">
-                     <div className="grid grid-cols-2 gap-4 h-full">
-                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => subjectAInputRef.current?.click()}>
+                <div className="h-full w-full overflow-y-auto custom-scrollbar">
+                     <div className="grid grid-cols-2 gap-6 h-full">
+                        <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectAInputRef.current?.click()}>
                             {subjectA ? (
-                                <img src={subjectA.url} className="w-full h-full object-cover rounded-lg" />
+                                <img src={subjectA.url} className="w-full h-full object-cover rounded-2xl" />
                             ) : (
                                 <div className="text-center p-4">
-                                    <UsersIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
-                                    <span className="text-xs font-bold text-gray-500">Main Subject</span>
+                                    <UsersIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Main Subject</span>
                                 </div>
                             )}
-                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
+                            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold">REQUIRED</div>
                         </div>
 
-                        <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => referenceInputRef.current?.click()}>
+                        <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => referenceInputRef.current?.click()}>
                              {referenceImage ? (
-                                <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg" />
+                                <img src={referenceImage.url} className="w-full h-full object-cover rounded-2xl" />
                             ) : (
                                 <div className="text-center p-4">
-                                    <LightbulbIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
-                                    <span className="text-xs font-bold text-gray-500">Style Reference</span>
+                                    <LightbulbIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Style Reference</span>
                                 </div>
                             )}
-                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded">Required</div>
+                            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold">REQUIRED</div>
                         </div>
 
                         {category === 'podcast' && (
-                            <div className="aspect-video bg-white border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors" onClick={() => subjectBInputRef.current?.click()}>
+                            <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectBInputRef.current?.click()}>
                                 {subjectB ? (
-                                    <img src={subjectB.url} className="w-full h-full object-cover rounded-lg" />
+                                    <img src={subjectB.url} className="w-full h-full object-cover rounded-2xl" />
                                 ) : (
                                     <div className="text-center p-4">
-                                        <UsersIcon className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
-                                        <span className="text-xs font-bold text-gray-500">Guest (Optional)</span>
+                                        <UsersIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Guest (Optional)</span>
                                     </div>
                                 )}
                             </div>
                         )}
 
                          {scannedFrames.length > 0 && (
-                             <div className="col-span-2 mt-4 bg-gray-50 p-4 rounded-xl">
-                                 <p className="text-xs font-bold text-gray-500 mb-2">VIDEO FRAMES (Click to Select)</p>
-                                 <div className="flex gap-2 overflow-x-auto pb-2">
+                             <div className="col-span-2 mt-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                                 <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">Video Frames (Click to Select)</p>
+                                 <div className="flex gap-3 overflow-x-auto pb-2">
                                      {scannedFrames.map((frame, idx) => (
-                                         <div key={idx} onClick={() => setSubjectA(frame)} className={`w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500' : 'border-transparent'}`}>
+                                         <div key={idx} onClick={() => setSubjectA(frame)} className={`w-28 h-20 flex-shrink-0 rounded-xl overflow-hidden border-[3px] cursor-pointer transition-all ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500 ring-2 ring-red-200' : 'border-transparent opacity-70 hover:opacity-100'}`}>
                                              <img src={frame.url} className="w-full h-full object-cover" />
                                          </div>
                                      ))}
@@ -1123,31 +1161,31 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                 </div>
             }
             rightContent={
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <div>
-                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">1. Category</label>
+                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Category</label>
                          <div className="grid grid-cols-3 gap-2">
                             {categories.map(cat => (
-                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-2 rounded-xl border-2 flex flex-col items-center transition-all ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 hover:border-red-200'}`}>
-                                    {cat.icon}<span className="text-[10px] font-bold mt-1">{cat.label}</span>
+                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-2xl border-2 flex flex-col items-center transition-all duration-300 ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600 shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}>
+                                    {cat.icon}<span className="text-[10px] font-bold mt-2">{cat.label}</span>
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">2. Input Source</label>
-                        <div className="flex bg-gray-100 p-1 rounded-xl">
-                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'photo' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Photo Upload</button>
-                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'video' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Smart Video Scan</button>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Input Source</label>
+                        <div className="flex bg-gray-100 p-1.5 rounded-2xl">
+                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'photo' ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>Photo Upload</button>
+                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'video' ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>Smart Video Scan</button>
                         </div>
                         {activeTab === 'video' && (
-                            <div className="mt-3">
-                                 <div className="border-2 border-dashed border-red-200 bg-red-50 rounded-xl p-4 text-center cursor-pointer hover:bg-red-100 transition-colors" onClick={() => videoInputRef.current?.click()}>
+                            <div className="mt-4">
+                                 <div className="border-[3px] border-dotted border-red-200 bg-red-50/50 rounded-2xl p-5 text-center cursor-pointer hover:bg-red-50 hover:border-red-300 transition-all" onClick={() => videoInputRef.current?.click()}>
                                     {isScanningVideo ? (
-                                        <span className="text-sm font-bold text-red-600 flex items-center justify-center gap-2"><SparklesIcon className="animate-spin w-4 h-4"/> Scanning...</span>
+                                        <span className="text-sm font-bold text-red-600 flex items-center justify-center gap-2 animate-pulse"><SparklesIcon className="animate-spin w-4 h-4"/> Scanning...</span>
                                     ) : (
-                                        <span className="text-sm font-bold text-gray-700 flex items-center justify-center gap-2"><VideoCameraIcon className="w-4 h-4"/> Upload Video File</span>
+                                        <span className="text-sm font-bold text-gray-600 flex items-center justify-center gap-2 group-hover:text-red-600 transition-colors"><VideoCameraIcon className="w-5 h-5 text-gray-400"/> Upload Video File</span>
                                     )}
                                     <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
                                 </div>
@@ -1163,10 +1201,10 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                             placeholder="e.g., I Tried iPhone 16..." 
                         />
                          {suggestedTitles.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase">AI Suggestions:</p>
+                            <div className="mt-3 space-y-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase ml-1">AI Suggestions:</p>
                                 {suggestedTitles.slice(0, 3).map((t, i) => (
-                                    <button key={i} onClick={() => setVideoTitle(t)} className="block w-full text-left text-xs p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded truncate transition-colors">
+                                    <button key={i} onClick={() => setVideoTitle(t)} className="block w-full text-left text-xs font-medium p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl truncate transition-colors border border-blue-100">
                                         {t}
                                     </button>
                                 ))}
@@ -1174,8 +1212,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                         )}
                     </div>
 
-                    {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
-                    {isGenerating && <div className="text-xs text-center text-gray-500 animate-pulse">{statusMessage}</div>}
+                    {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-2xl font-medium">{error}</div>}
+                    {isGenerating && <div className="text-xs text-center text-gray-400 font-mono animate-pulse">{statusMessage}</div>}
                 </div>
             }
         />
