@@ -396,6 +396,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
       const defaultConfig: AppConfig = {
         featureCosts: {
           'Magic Photo Studio': 2,
+          'Thumbnail Studio': 2, // Added default cost for Thumbnail Studio
           'Product Studio': 5,
           'Brand Stylist AI': 4,
           'Magic Soul': 3,
@@ -408,6 +409,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
         },
         featureToggles: {
           'studio': true,
+          'thumbnail_studio': true, // Enabled by default
           'product_studio': true,
           'brand_stylist': true,
           'soul': true,
