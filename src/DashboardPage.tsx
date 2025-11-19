@@ -225,13 +225,13 @@ const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content containing inputs AND button */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                            <div className="flex flex-col justify-center min-h-full">
-                                <div className="space-y-2 mb-6">
+                            <div className="flex flex-col min-h-full">
+                                <div className="space-y-2 mb-6 flex-1">
                                     {rightContent}
                                 </div>
 
-                                {/* Generate Button moved here to remove gap */}
-                                <div className="mt-4 pt-4 border-t border-gray-200 bg-[#F6F7FA]">
+                                {/* Generate Button moved to bottom */}
+                                <div className="mt-auto pt-4 border-t border-gray-200 bg-[#F6F7FA]">
                                     <button 
                                         onClick={onGenerate} 
                                         disabled={isGenerating || !canGenerate}
