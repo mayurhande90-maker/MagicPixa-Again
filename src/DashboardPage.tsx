@@ -163,9 +163,9 @@ const FeatureLayout: React.FC<{
     generateButtonStyle 
 }) => {
     return (
-        <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-[#FFFFFF]">
+        <div className="h-full flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
             {/* Header */}
-            <div className="mb-6 border-b border-gray-100 pb-4">
+            <div className="mb-5 border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-4 mb-2">
                     <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                         {icon}
@@ -176,7 +176,7 @@ const FeatureLayout: React.FC<{
             </div>
 
             {/* Main Content Grid */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 min-h-[500px]">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px]">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div className="lg:col-span-8 h-full flex flex-col">
@@ -215,13 +215,13 @@ const FeatureLayout: React.FC<{
 
                 {/* RIGHT COLUMN: Control Deck */}
                 <div className="lg:col-span-4 flex flex-col h-full max-h-full">
-                    <div className="bg-[#F6F7FA] p-6 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 max-h-full overflow-hidden">
-                        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 max-h-full overflow-hidden">
+                        <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
                             {rightContent}
                         </div>
 
@@ -561,12 +561,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
                     </div>
                 ) : (
-                    <div className="space-y-6 animate-fadeIn">
+                    <div className="space-y-4 animate-fadeIn p-1">
                         {/* AI Suggestions Section */}
                         {(!category || isAnalyzing) && (
-                            <div className={`transition-all duration-300 ${category ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                            <div className={`transition-all duration-300 ${category ? 'hidden' : ''}`}>
                                 {isAnalyzing ? (
-                                    // Simplified Analyzing State for Right Panel (Focus is on Image now)
                                     <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
                                     </div>
@@ -574,29 +573,39 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     <div>
                                         <div className="flex items-center justify-between mb-3 ml-1">
                                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
-                                            <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                                            {selectedPrompt ? (
+                                                 <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
+                                                     Clear Selection
+                                                 </button>
+                                            ) : (
+                                                 <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                                            )}
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            {suggestedPrompts.map((prompt, idx) => (
-                                                <button 
-                                                    key={idx} 
-                                                    onClick={() => handlePromptSelect(prompt)}
-                                                    style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
-                                                    className={`group relative w-full rounded-full p-[2px] transition-all duration-300 transform active:scale-95 animate-[fadeInUp_0.5s_ease-out] ${
-                                                        selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
-                                                    }`}
-                                                >
-                                                    {/* Gradient Border Layer */}
-                                                    <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
-                                                    
-                                                    {/* Inner Content */}
-                                                    <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
-                                                        <span className={`text-xs font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
-                                                            "{prompt}"
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ))}
+                                            {suggestedPrompts.map((prompt, idx) => {
+                                                // Hide others if one is selected to reduce height
+                                                if (selectedPrompt && selectedPrompt !== prompt) return null;
+                                                return (
+                                                    <button 
+                                                        key={idx} 
+                                                        onClick={() => handlePromptSelect(prompt)}
+                                                        style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
+                                                        className={`group relative w-full rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
+                                                            selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
+                                                        }`}
+                                                    >
+                                                        {/* Gradient Border Layer */}
+                                                        <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                        
+                                                        {/* Inner Content */}
+                                                        <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
+                                                            <span className={`text-xs font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                                "{prompt}"
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 ) : null}
@@ -617,13 +626,32 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Manual Refinement Section (Visible when NOT analyzing) */}
                         {!selectedPrompt && !isAnalyzing && (
                             <div className="relative animate-fadeIn space-y-4">
-                                {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
-                                <SelectionGrid 
-                                    label="1. Product Category" 
-                                    options={categories} 
-                                    value={category} 
-                                    onChange={handleCategorySelect} 
-                                />
+                                {/* Product Category with Clear Button and Hiding Logic */}
+                                <div>
+                                     <div className="flex items-center justify-between mb-3 ml-1">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Product Category</label>
+                                        {category && (
+                                             <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
+                                                 Clear
+                                             </button>
+                                        )}
+                                     </div>
+                                     <div className="flex flex-wrap gap-2">
+                                        {categories.map(opt => (
+                                            <button 
+                                                key={opt}
+                                                onClick={() => handleCategorySelect(opt)}
+                                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform ${
+                                                    category === opt 
+                                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm active:scale-95'
+                                                } ${category && category !== opt ? 'hidden' : ''}`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                     </div>
+                                </div>
                                 
                                 {category && (
                                     <SelectionGrid 
