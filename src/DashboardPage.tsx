@@ -226,7 +226,7 @@ const FeatureLayout: React.FC<{
                         {/* Scrollable Content containing inputs AND button */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                             <div className="flex flex-col min-h-full">
-                                <div className="space-y-2 mb-6 flex-1">
+                                <div className="space-y-2 mb-6 flex-1 flex flex-col justify-center">
                                     {rightContent}
                                 </div>
 
@@ -1704,21 +1704,86 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
         }
     }, [auth.user]);
 
+    const groupCreationsByDate = (creations: Creation[]) => {
+        const groups: { [key: string]: Creation[] } = {};
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        creations.forEach(c => {
+            if (!c.createdAt) return;
+            const date = new Date(c.createdAt.seconds * 1000);
+            let key = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            
+            if (date.toDateString() === today.toDateString()) {
+                key = 'Today';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                key = 'Yesterday';
+            }
+            
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(c);
+        });
+        return groups;
+    };
+
+    const groupedCreations = groupCreationsByDate(creations);
+    const sortedKeys = Object.keys(groupedCreations); // Since creations come sorted desc, groups created in order should correspond.
+
     return (
-        <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-[#1A1A1E]"><ProjectsIcon className="w-6 h-6"/> My Creations</h2>
-            {isLoading ? <div className="text-center py-10">Loading...</div> : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {creations.map(c => (
-                        <div key={c.id} className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer" onClick={() => setSelectedImage(c.imageUrl)}>
-                            <img src={c.imageUrl} className="w-full h-full object-cover" loading="lazy"/>
-                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
-                                 <span className="text-white text-xs font-bold">{c.feature}</span>
-                                 <div className="flex gap-2">
-                                    <button onClick={(e) => {e.stopPropagation(); const a = document.createElement('a'); a.href=c.imageUrl; a.download='img.png'; a.click(); }} className="text-white"><DownloadIcon className="w-4 h-4"/></button>
-                                    <button onClick={async (e) => {e.stopPropagation(); if(auth.user) { await deleteCreation(auth.user.uid, c); setCreations(creations.filter(x => x.id !== c.id)); }}} className="text-red-400"><TrashIcon className="w-4 h-4"/></button>
-                                 </div>
-                             </div>
+        <div className="p-6 max-w-7xl mx-auto">
+            <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-[#1A1A1E]"><ProjectsIcon className="w-6 h-6"/> My Creations</h2>
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4D7CFF]"></div>
+                </div>
+            ) : creations.length === 0 ? (
+                 <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                    <div className="inline-block p-4 bg-white rounded-full shadow-sm mb-4">
+                        <PhotoStudioIcon className="w-8 h-8 text-gray-400"/>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-600">No creations yet</h3>
+                    <p className="text-gray-400 mb-6">Start creating amazing visuals today!</p>
+                    <button onClick={() => navigateTo('dashboard', 'studio')} className="bg-[#F9D230] text-[#1A1A1E] px-6 py-2 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors">Start Creating</button>
+                 </div>
+            ) : (
+                <div className="space-y-10 animate-fadeIn">
+                    {sortedKeys.map(date => (
+                        <div key={date}>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 pl-1 border-b border-gray-100 pb-2 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-gray-300"></span> {date}
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                {groupedCreations[date].map(c => (
+                                    <div key={c.id} className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer bg-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(c.imageUrl)}>
+                                        <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy"/>
+                                         {/* Always visible gradient overlay */}
+                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-4">
+                                             <div className="flex justify-between items-end w-full">
+                                                  <span className="text-white/90 text-[10px] font-bold uppercase tracking-wide line-clamp-1 max-w-[60%]">{c.feature}</span>
+                                                  <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={(e) => {e.stopPropagation(); const a = document.createElement('a'); a.href=c.imageUrl; a.download='magicpixa-creation.png'; a.click(); }} 
+                                                        className="p-2 bg-white/10 hover:bg-white/30 text-white rounded-full backdrop-blur-md transition-colors"
+                                                        title="Download"
+                                                    >
+                                                        <DownloadIcon className="w-4 h-4"/>
+                                                    </button>
+                                                    <button 
+                                                        onClick={async (e) => {e.stopPropagation(); if(auth.user && confirm('Are you sure you want to delete this?')) { await deleteCreation(auth.user.uid, c); setCreations(creations.filter(x => x.id !== c.id)); }}} 
+                                                        className="p-2 bg-white/10 hover:bg-red-500/80 text-white rounded-full backdrop-blur-md transition-colors hover:text-white"
+                                                        title="Delete"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4"/>
+                                                    </button>
+                                                  </div>
+                                             </div>
+                                         </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>
