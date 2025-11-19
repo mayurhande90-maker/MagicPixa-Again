@@ -176,7 +176,7 @@ const FeatureLayout: React.FC<{
             </div>
 
             {/* Main Content Grid */}
-            {/* CHANGED: Switched to grid-cols-2 for a 50/50 split for equal sizing */}
+            {/* 50/50 Split for equal sizing */}
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
@@ -215,7 +215,7 @@ const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                {/* UPDATED: h-full to force equal height with left column */}
+                {/* h-full to force equal height with left column */}
                 <div className="flex flex-col h-full">
                     <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 overflow-hidden">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -223,36 +223,40 @@ const FeatureLayout: React.FC<{
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
-                            {rightContent}
-                        </div>
+                        {/* Scrollable Content containing inputs AND button */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                            <div className="space-y-2 mb-6">
+                                {rightContent}
+                            </div>
 
-                        <div className="mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-[#F6F7FA]/95 backdrop-blur z-10 flex-shrink-0">
-                            <button 
-                                onClick={onGenerate} 
-                                disabled={isGenerating || !canGenerate}
-                                className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
-                                    generateButtonStyle?.className 
-                                    ? generateButtonStyle.className 
-                                    : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
-                                }`}
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                        <span className="animate-pulse">Generating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
-                                        Generate
-                                    </>
-                                )}
-                            </button>
-                            <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                                <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
-                                    <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
-                                    Cost: {creditCost} Credits
+                            {/* Generate Button moved here to remove gap */}
+                            <div className="mt-4 pt-4 border-t border-gray-200 bg-[#F6F7FA]">
+                                <button 
+                                    onClick={onGenerate} 
+                                    disabled={isGenerating || !canGenerate}
+                                    className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
+                                        generateButtonStyle?.className 
+                                        ? generateButtonStyle.className 
+                                        : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
+                                    }`}
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
+                                            <span className="animate-pulse">Generating...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
+                                            Generate
+                                        </>
+                                    )}
+                                </button>
+                                <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                    <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                        <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                                        Cost: {creditCost} Credits
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -467,7 +471,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }}
             leftContent={
                 image ? (
-                    /* CHANGED: Updated to w-full to match right column width for equal sizing */
+                    /* w-full for equal sizing */
                     <div className="relative h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
@@ -531,7 +535,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 ) : (
                     <div className="w-full flex justify-center">
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
-                        {/* CHANGED: Updated to w-full for equal sizing */}
+                        {/* w-full for equal sizing */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
                             className="h-[560px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
