@@ -161,7 +161,7 @@ const AddCreditsModal: React.FC<{
                     {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-md">{error}</p>}
                     <div className="flex justify-end gap-3 pt-2">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                        <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-semibold text-white bg-[#0079F2] rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-semibold text-[#1A1A1E] bg-[#F9D230] rounded-lg hover:bg-[#dfbc2b] disabled:opacity-50">
                             {isLoading ? 'Adding...' : 'Confirm'}
                         </button>
                     </div>
@@ -391,7 +391,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                 onClick={() => setActiveTab(tab)}
                                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-sm capitalize ${
                                     activeTab === tab
-                                        ? 'border-blue-500 text-blue-600'
+                                        ? 'border-[#F9D230] text-yellow-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                             >
@@ -560,7 +560,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                         {/* Save Button */}
                         <div className="flex justify-end items-center gap-4 pt-4 border-t">
                             {saveSuccess && <p className="text-green-600 flex items-center gap-1 text-sm"><CheckIcon className="w-4 h-4"/> Saved successfully!</p>}
-                            <button onClick={handleConfigSave} disabled={isSaving} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                            <button onClick={handleConfigSave} disabled={isSaving} className="px-6 py-2 bg-[#F9D230] text-[#1A1A1E] font-semibold rounded-lg hover:bg-[#dfbc2b] disabled:opacity-50">
                                 {isSaving ? 'Saving...' : 'Save All Settings'}
                             </button>
                         </div>

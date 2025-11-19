@@ -197,7 +197,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     </p>
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                      className="bg-[#4D7CFF] text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-500/30"
+                      className="bg-[#F9D230] text-[#1A1A1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/30 hover:bg-[#dfbc2b]"
                     >
                         Start Creating for Free
                     </button>
@@ -266,8 +266,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
                         {creditPacks.map((pack, index) => (
-                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#4D7CFF] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
-                                {pack.popular && <p className="text-center bg-[#4D7CFF] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#F9D230] shadow-lg shadow-yellow-500/10' : 'border-gray-200/80'}`}>
+                                {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
                                 <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{pack.name}</h3>
                                 <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                                 
@@ -292,7 +292,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 
                                 <button 
                                     onClick={() => navigateTo('dashboard', 'billing')}
-                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#4D7CFF] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1A1A1E] hover:bg-gray-200'}`}
+                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b]' : 'bg-gray-100 text-[#1A1A1E] hover:bg-gray-200'}`}
                                 >
                                     Buy Now
                                 </button>

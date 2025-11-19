@@ -199,7 +199,7 @@ const FeatureLayout: React.FC<{
                                         <span className="hidden sm:inline">Regenerate</span>
                                     </button>
                                 )}
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#4D7CFF] hover:bg-blue-600 text-white px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
                                     <DownloadIcon className="w-5 h-5"/> Download
                                 </button>
                              </div>
@@ -232,12 +232,12 @@ const FeatureLayout: React.FC<{
                                 className={`group w-full text-lg font-bold py-5 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
                                     generateButtonStyle?.className 
                                     ? generateButtonStyle.className 
-                                    : "bg-[#4D7CFF] hover:bg-blue-600 text-white shadow-blue-500/20 hover:shadow-blue-500/40"
+                                    : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
                                 }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-white/30 border-t-white`}></div> 
+                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
                                         <span className="animate-pulse">Generating Magic...</span>
                                     </>
                                 ) : (
@@ -442,7 +442,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
             generateButtonStyle={{
-                className: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30 border-none",
+                className: "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none",
                 hideIcon: true
             }}
             leftContent={
@@ -1715,7 +1715,7 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
                             <p className="text-sm text-gray-400 font-medium">Available Credits</p>
                             <p className="text-2xl font-bold">{user?.credits || 0}</p>
                         </div>
-                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-[#4D7CFF] hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors">
+                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] text-sm font-bold rounded-lg transition-colors">
                             Top Up
                         </button>
                     </div>
@@ -1729,7 +1729,7 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
                         <h2 className="text-xl font-bold text-[#1A1A1E] flex items-center gap-2">
                             <ProjectsIcon className="w-5 h-5 text-gray-500" /> Recent Projects
                         </h2>
-                        <button onClick={() => setActiveView('creations')} className="text-[#4D7CFF] text-sm font-semibold hover:underline">View All</button>
+                        <button onClick={() => setActiveView('creations')} className="text-yellow-600 text-sm font-semibold hover:underline">View All</button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {recentCreations.map((c: any) => (

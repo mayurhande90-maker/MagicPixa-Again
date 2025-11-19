@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
         </nav>
         {!auth.isAuthenticated && (
             <div className="mt-auto">
-                <button onClick={() => { auth.openAuthModal(); setIsMobileMenuOpen(false); }} className="w-full text-lg font-semibold bg-[#4D7CFF] text-white px-4 py-3 rounded-xl">
+                <button onClick={() => { auth.openAuthModal(); setIsMobileMenuOpen(false); }} className="w-full text-lg font-semibold bg-[#F9D230] text-[#1A1A1E] px-4 py-3 rounded-xl">
                     Sign In
                 </button>
             </div>
@@ -98,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                       <>
                         <button 
                             onClick={auth.openConversation}
-                            className="flex items-center gap-2 bg-white text-[#4D7CFF] font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-[#4D7CFF]/20 hover:border-[#4D7CFF] hover:bg-blue-50 transition-all"
+                            className="flex items-center gap-2 bg-white text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-[#F9D230] hover:bg-yellow-50 transition-all"
                         >
                             <AudioWaveIcon className="w-4 h-4" />
                             <span>Magic Conversation</span>
@@ -116,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                 </>
               ) : (
                 <>
-                  <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-white text-[#4D7CFF] px-4 py-2 rounded-xl border-2 border-[#4D7CFF] hover:bg-blue-50 transition-colors">
+                  <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl border-2 border-[#F9D230] hover:bg-[#dfbc2b] transition-colors">
                     Sign In
                   </button>
                   <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#1A1A1E] md:hidden" aria-label="Open navigation menu">

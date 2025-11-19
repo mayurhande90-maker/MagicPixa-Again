@@ -33,7 +33,7 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
                 </p>
                 <button
                     onClick={onClose}
-                    className="w-full bg-[#4D7CFF] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full bg-[#F9D230] text-[#1A1A1E] font-semibold py-3 rounded-lg hover:bg-[#dfbc2b] transition-colors"
                 >
                     Continue Creating
                 </button>
@@ -268,8 +268,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
           
             <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
                 {creditPacks.map((pack, index) => (
-                    <div key={index} className={`relative bg-white p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${pack.popular ? 'border-[#4D7CFF] shadow-lg shadow-blue-500/10' : 'border-gray-200/80 hover:border-blue-300'}`}>
-                        {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#4D7CFF] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
+                    <div key={index} className={`relative bg-white p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${pack.popular ? 'border-[#F9D230] shadow-lg shadow-blue-500/10' : 'border-gray-200/80 hover:border-blue-300'}`}>
+                        {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
                         <div className="flex-1">
                             <h3 className="font-bold text-lg text-gray-800">{pack.name}</h3>
                             <p className="text-2xl font-bold text-[#4D7CFF] my-1">{pack.totalCredits} <span className="text-base font-medium text-gray-500">Credits</span></p>
@@ -283,7 +283,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                                 disabled={loadingPackage !== null}
                                 className={`w-24 font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm ${
                                 pack.popular
-                                    ? 'bg-[#4D7CFF] text-white hover:bg-blue-700'
+                                    ? 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b]'
                                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                 }`}
                             >
@@ -375,7 +375,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                   </div>
                   <button 
                     onClick={() => setIsInfoModalOpen(false)}
-                    className="w-full mt-6 bg-[#4D7CFF] text-white font-semibold py-2.5 rounded-lg"
+                    className="w-full mt-6 bg-[#F9D230] text-[#1A1A1E] font-semibold py-2.5 rounded-lg"
                   >
                       Got it
                   </button>
