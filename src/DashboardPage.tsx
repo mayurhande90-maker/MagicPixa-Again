@@ -73,6 +73,24 @@ interface DashboardPageProps {
     setAppConfig: (config: AppConfig) => void;
 }
 
+const downloadImage = async (url: string, filename: string) => {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.warn("Download failed, opening in new tab", error);
+        window.open(url, '_blank');
+    }
+};
+
 const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
         {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
@@ -200,7 +218,7 @@ const FeatureLayout: React.FC<{
                                         <span className="hidden sm:inline">Regenerate</span>
                                     </button>
                                 )}
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
+                                <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
                                     <DownloadIcon className="w-5 h-5"/> Download
                                 </button>
                              </div>
@@ -1765,7 +1783,10 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
                                                   <span className="text-white/90 text-[10px] font-bold uppercase tracking-wide line-clamp-1 max-w-[60%]">{c.feature}</span>
                                                   <div className="flex gap-2">
                                                     <button 
-                                                        onClick={(e) => {e.stopPropagation(); const a = document.createElement('a'); a.href=c.imageUrl; a.download='magicpixa-creation.png'; a.click(); }} 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            downloadImage(c.imageUrl, `magicpixa-${c.id}.png`);
+                                                        }} 
                                                         className="p-2 bg-white/10 hover:bg-white/30 text-white rounded-full backdrop-blur-md transition-colors"
                                                         title="Download"
                                                     >
