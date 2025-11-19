@@ -47,7 +47,8 @@ import {
     ProductStudioIcon,
     DashboardIcon,
     XIcon,
-    AudioWaveIcon
+    AudioWaveIcon,
+    ArrowRightIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -674,34 +675,96 @@ const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: V
     </div>
 );
 
-const Dashboard: React.FC<any> = ({ navigateTo, setActiveView }) => (
-    <div className="p-6 max-w-7xl mx-auto">
-        <div className="text-center mb-10">
-             <h2 className="text-3xl font-bold text-gray-900">Your Creative Dashboard</h2>
-             <p className="text-gray-500">Select a tool to get started.</p>
+const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }) => {
+    const tools = [
+        { id: 'studio', label: 'Magic Photo Studio', desc: 'Pro product photography.', icon: PhotoStudioIcon, color: 'bg-blue-500', bg: 'bg-blue-50' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', desc: 'Viral YouTube thumbnails.', icon: ThumbnailIcon, color: 'bg-red-500', bg: 'bg-red-50' },
+        { id: 'product_studio', label: 'Product Studio', desc: 'Full product marketing packs.', icon: ProductStudioIcon, color: 'bg-indigo-500', bg: 'bg-indigo-50' },
+        { id: 'brand_stylist', label: 'Brand Stylist', desc: 'Style transfer for brands.', icon: LightbulbIcon, color: 'bg-yellow-500', bg: 'bg-yellow-50' },
+        { id: 'interior', label: 'Magic Interior', desc: 'Redesign any room instantly.', icon: HomeIcon, color: 'bg-orange-500', bg: 'bg-orange-50' },
+        { id: 'soul', label: 'Magic Soul', desc: 'Merge people into one photo.', icon: UsersIcon, color: 'bg-pink-500', bg: 'bg-pink-50' },
+        { id: 'apparel', label: 'Magic Apparel', desc: 'Virtual clothing try-on.', icon: UsersIcon, color: 'bg-teal-500', bg: 'bg-teal-50' },
+        { id: 'colour', label: 'Photo Colourize', desc: 'Restore vintage photos.', icon: PaletteIcon, color: 'bg-rose-500', bg: 'bg-rose-50' },
+        { id: 'caption', label: 'CaptionAI', desc: 'Social media captions.', icon: CaptionIcon, color: 'bg-amber-500', bg: 'bg-amber-50' },
+        { id: 'mockup', label: 'Magic Mockup', desc: 'Realistic product mockups.', icon: MockupIcon, color: 'bg-cyan-500', bg: 'bg-cyan-50' },
+    ];
+
+    const recentCreations = creations?.slice(0, 4) || [];
+
+    return (
+        <div className="p-6 max-w-7xl mx-auto space-y-12">
+            {/* Welcome Banner */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#1E1E1E] to-[#2d2d2d] rounded-3xl p-8 sm:p-12 text-white shadow-2xl">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
+                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div>
+                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}! 👋</h1>
+                        <p className="text-gray-400 text-lg">Ready to create something amazing today?</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                        <div className="p-3 bg-yellow-400/20 rounded-full">
+                            <SparklesIcon className="w-8 h-8 text-yellow-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-400 font-medium">Available Credits</p>
+                            <p className="text-2xl font-bold">{user?.credits || 0}</p>
+                        </div>
+                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-black text-sm font-bold rounded-lg transition-colors">
+                            Top Up
+                        </button>
+                    </div>
+                 </div>
+            </div>
+
+            {/* Recent Creations */}
+            {recentCreations.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <ProjectsIcon className="w-5 h-5 text-gray-500" /> Recent Projects
+                        </h2>
+                        <button onClick={() => setActiveView('creations')} className="text-blue-600 text-sm font-semibold hover:underline">View All</button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {recentCreations.map((c: any) => (
+                            <div key={c.id} className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 cursor-pointer" onClick={() => setActiveView('creations')}>
+                                <img src={c.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                    <span className="text-white text-xs font-medium truncate">{c.feature}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Tools Grid */}
+            <div className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-900">All Creative Tools</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    {tools.map(item => (
+                        <button 
+                            key={item.id} 
+                            onClick={() => setActiveView(item.id as View)} 
+                            className="group bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-left flex flex-col h-full"
+                        >
+                            <div className="flex items-start justify-between w-full mb-4">
+                                <div className={`p-3.5 rounded-xl ${item.bg} ${item.color.replace('bg-', 'text-')} group-hover:scale-110 transition-transform duration-300`}>
+                                    <item.icon className="w-7 h-7"/>
+                                </div>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
+                                    <ArrowRightIcon className="w-5 h-5"/>
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-gray-900 mb-1">{item.label}</h3>
+                            <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {[
-                 { id: 'studio', label: 'Magic Photo Studio', desc: 'Pro product shots.', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-                 { id: 'thumbnail_studio', label: 'Thumbnail Studio', desc: 'Viral YouTube thumbs.', icon: ThumbnailIcon, color: 'bg-red-500' },
-                 { id: 'interior', label: 'Magic Interior', desc: 'Redesign any room.', icon: HomeIcon, color: 'bg-orange-500' },
-                 { id: 'soul', label: 'Magic Soul', desc: 'Merge people into one.', icon: UsersIcon, color: 'bg-pink-500' },
-                 { id: 'creations', label: 'My Creations', desc: 'View your gallery.', icon: ProjectsIcon, color: 'bg-purple-500' },
-                 { id: 'billing', label: 'Billing', desc: 'Manage credits.', icon: LightbulbIcon, color: 'bg-green-500' },
-             ].map(item => (
-                 <button key={item.id} onClick={() => setActiveView(item.id as View)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all text-left flex items-start gap-4 group">
-                     <div className={`p-4 rounded-xl text-white ${item.color} group-hover:scale-110 transition-transform`}>
-                         <item.icon className="w-6 h-6"/>
-                     </div>
-                     <div>
-                         <h3 className="font-bold text-lg text-gray-900">{item.label}</h3>
-                         <p className="text-sm text-gray-500">{item.desc}</p>
-                     </div>
-                 </button>
-             ))}
-        </div>
-    </div>
-);
+    );
+};
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig, setAppConfig }) => {
   const [creations, setCreations] = useState<Creation[]>([]);
@@ -730,7 +793,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
       case 'billing': return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
       case 'profile': return <Profile auth={auth} openEditProfileModal={openEditProfileModal} />;
       case 'admin': return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
-      default: return <Dashboard user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+      default: return <Dashboard user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} creations={creations} />;
     }
   };
 
