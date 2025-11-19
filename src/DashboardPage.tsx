@@ -205,8 +205,8 @@ const FeatureLayout: React.FC<{
                              </div>
                         </div>
                     ) : (
-                        <div className="w-full h-full flex items-start justify-center">
-                            <div className="w-full h-full relative flex flex-col">
+                        <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-full h-full relative flex flex-col items-center justify-center">
                                 {leftContent}
                             </div>
                         </div>
@@ -465,7 +465,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }}
             leftContent={
                 image ? (
-                    <div className="relative w-full aspect-[3/4] max-h-[380px] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto">
+                    <div className="relative h-[420px] w-auto aspect-[3/4] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -530,7 +530,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
-                            className="w-full aspect-[3/4] max-h-[380px] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
+                            className="h-[420px] w-auto aspect-[3/4] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
                                 <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
