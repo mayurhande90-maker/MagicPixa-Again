@@ -165,8 +165,8 @@ const FeatureLayout: React.FC<{
     return (
         <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-[#FFFFFF]">
             {/* Header */}
-            <div className="mb-8 border-b border-gray-100 pb-6">
-                <div className="flex items-center gap-4 mb-3">
+            <div className="mb-6 border-b border-gray-100 pb-4">
+                <div className="flex items-center gap-4 mb-2">
                     <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                         {icon}
                     </div>
@@ -176,12 +176,12 @@ const FeatureLayout: React.FC<{
             </div>
 
             {/* Main Content Grid */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 min-h-[600px]">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 min-h-[500px]">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div className="lg:col-span-8 h-full flex flex-col">
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner">
+                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner min-h-[400px]">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
                              <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl relative z-10" />
                              
@@ -206,7 +206,7 @@ const FeatureLayout: React.FC<{
                         </div>
                     ) : (
                         <div className="w-full h-full flex items-start justify-center">
-                            <div className="w-full aspect-[4/3] relative">
+                            <div className="w-full h-full relative flex flex-col">
                                 {leftContent}
                             </div>
                         </div>
@@ -214,9 +214,9 @@ const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                <div className="lg:col-span-4 flex flex-col h-full">
-                    <div className="bg-[#F6F7FA] p-6 rounded-3xl flex-1 flex flex-col h-full border border-gray-100">
-                        <div className="flex items-center justify-between mb-6">
+                <div className="lg:col-span-4 flex flex-col h-full max-h-full">
+                    <div className="bg-[#F6F7FA] p-6 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 max-h-full overflow-hidden">
+                        <div className="flex items-center justify-between mb-6 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
@@ -225,11 +225,11 @@ const FeatureLayout: React.FC<{
                             {rightContent}
                         </div>
 
-                        <div className="mt-8 pt-6 border-t border-gray-200 sticky bottom-0 bg-[#F6F7FA]/95 backdrop-blur z-10">
+                        <div className="mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-[#F6F7FA]/95 backdrop-blur z-10 flex-shrink-0">
                             <button 
                                 onClick={onGenerate} 
                                 disabled={isGenerating || !canGenerate}
-                                className={`group w-full text-lg font-bold py-5 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
+                                className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
                                     generateButtonStyle?.className 
                                     ? generateButtonStyle.className 
                                     : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
@@ -238,18 +238,18 @@ const FeatureLayout: React.FC<{
                                 {isGenerating ? (
                                     <>
                                         <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                        <span className="animate-pulse">Generating Magic...</span>
+                                        <span className="animate-pulse">Generating...</span>
                                     </>
                                 ) : (
                                     <>
                                         {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
-                                        Generate Magic
+                                        Generate
                                     </>
                                 )}
                             </button>
-                            <div className="text-center mt-4 flex items-center justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                                <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-gray-200">
-                                    <span className="w-2 h-2 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                            <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                    <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
                                     Cost: {creditCost} Credits
                                 </div>
                             </div>
@@ -265,7 +265,7 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md"
+        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md aspect-video max-h-[450px]"
     >
         <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
             {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#4D7CFF] transition-colors duration-300" />}
@@ -292,10 +292,10 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
                     <button 
                         key={opt}
                         onClick={() => onChange(opt)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-200 transform active:scale-95 ${
+                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
                             isSelected 
-                            ? 'bg-[#1A1A1E] text-white border-[#1A1A1E] shadow-md' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'
                         }`}
                     >
                         {opt}
@@ -309,6 +309,7 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
 
     // Analysis State
@@ -325,6 +326,21 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
 
+    // Animation Timer for Loading Text
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (loading) {
+            const steps = ["Analyzing Composition...", "Building Environment...", "Adjusting Lighting...", "Rendering Details...", "Polishing Pixels..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 1500);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             // Start analysis loading state immediately to hide controls
@@ -340,6 +356,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             setVisualType('');
             setSelectedPrompt(null);
             setSuggestedPrompts([]);
+            setResult(null);
 
             try {
                 const prompts = await analyzeProductImage(base64.base64, base64.mimeType);
@@ -392,6 +409,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+        setResult(null); // CLEAR PREVIOUS RESULT TO SHOW ANIMATION AGAIN
         setLoading(true);
         try {
             // Determine the direction: Selected Suggestion OR Manual Combination
@@ -432,7 +450,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     return (
         <FeatureLayout 
             title="Magic Photo Studio"
-            description="Transform simple photos into professional, studio-quality product shots in one click. Perfect for e-commerce and social media."
+            description="Transform simple photos into professional, studio-quality product shots in one click. Perfect for e-commerce."
             icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
             creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
             isGenerating={loading}
@@ -442,41 +460,41 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
             generateButtonStyle={{
-                className: "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none",
+                className: "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
+                    <div className="relative w-full aspect-video max-h-[450px] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
                          {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
-                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
-                                <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                                    <div className="h-full bg-[#4D7CFF] animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="mt-4 text-sm font-bold text-gray-600 bg-white/80 px-4 py-1 rounded-full shadow-sm">Polishing pixels...</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
                         )}
 
-                        {/* ANALYSIS SCANNER ANIMATION */}
+                        {/* ANALYSIS SCANNER ANIMATION (Horizontal) */}
                         {isAnalyzing && (
-                            <div className="absolute inset-0 z-20 bg-black/10 backdrop-blur-[1px] rounded-xl overflow-hidden flex items-center justify-center">
-                                {/* The Scanner Beam */}
-                                <div className="w-full h-[2px] bg-[#4D7CFF] shadow-[0_0_15px_#4D7CFF] absolute top-0 left-0 animate-[scan_2s_linear_infinite]"></div>
+                            <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center">
+                                {/* Horizontal Scanner Beam */}
+                                <div className="absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30"></div>
                                 {/* Trailing gradient behind beam */}
-                                <div className="w-full h-32 bg-gradient-to-t from-[#4D7CFF]/20 to-transparent absolute top-0 left-0 animate-[scan_2s_linear_infinite] -translate-y-full"></div>
+                                <div className="absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20"></div>
                                 
                                 {/* Status Badge */}
-                                <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-30 animate-pulse">
+                                <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight">
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">Analyzing Image...</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">Scanning Image...</span>
                                 </div>
                             </div>
                         )}
 
                         <img 
                             src={image.url} 
-                            className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'filter blur-sm brightness-90 scale-95' : ''}`} 
+                            className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} 
                         />
                         
                         {/* Top Right Re-Upload Button (Only when idle) */}
@@ -501,29 +519,28 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 from { opacity: 0; transform: translateY(10px); }
                                 to { opacity: 1; transform: translateY(0); }
                             }
-                            @keyframes scan {
-                                0% { top: 0%; }
-                                50% { top: 100%; }
-                                100% { top: 0%; }
+                            @keyframes scan-horizontal {
+                                0% { left: 0%; }
+                                100% { left: 100%; }
                             }
                         `}</style>
                     </div>
                 ) : (
-                    <div className="w-full h-full">
+                    <div className="w-full h-full flex items-center justify-center">
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
-                            className="w-full h-full border-2 border-dashed border-gray-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl"
+                            className="w-full aspect-video max-h-[450px] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl"
                         >
-                            <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
+                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
                             </div>
                             
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                 <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Product Photo</p>
                                 <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
                                     <div className="bg-gray-50 rounded-full px-3 py-1">
-                                        <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
                                             Click to Browse
                                         </p>
                                     </div>
@@ -544,14 +561,14 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
                     </div>
                 ) : (
-                    <div className="space-y-8 animate-fadeIn">
+                    <div className="space-y-6 animate-fadeIn">
                         {/* AI Suggestions Section */}
                         {(!category || isAnalyzing) && (
                             <div className={`transition-all duration-300 ${category ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
                                 {isAnalyzing ? (
                                     // Simplified Analyzing State for Right Panel (Focus is on Image now)
                                     <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
-                                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Scanning...</p>
+                                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
                                     </div>
                                 ) : suggestedPrompts.length > 0 ? (
                                     <div>
@@ -559,22 +576,22 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
                                             <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
                                         </div>
-                                        <div className="flex flex-col gap-3">
+                                        <div className="flex flex-col gap-2">
                                             {suggestedPrompts.map((prompt, idx) => (
                                                 <button 
                                                     key={idx} 
                                                     onClick={() => handlePromptSelect(prompt)}
-                                                    style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'backwards' }}
+                                                    style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
                                                     className={`group relative w-full rounded-full p-[2px] transition-all duration-300 transform active:scale-95 animate-[fadeInUp_0.5s_ease-out] ${
                                                         selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
                                                     }`}
                                                 >
                                                     {/* Gradient Border Layer */}
-                                                    <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                    <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
                                                     
                                                     {/* Inner Content */}
-                                                    <div className={`relative h-full w-full rounded-full flex items-center justify-center px-5 py-3 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
-                                                        <span className={`text-sm font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                    <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
+                                                        <span className={`text-xs font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
                                                             "{prompt}"
                                                         </span>
                                                     </div>
@@ -589,7 +606,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Divider (Visible if both sections are technically available and NOT analyzing) */}
                         {!selectedPrompt && !category && !isAnalyzing && (
                             <div className="relative">
-                                <div className="flex items-center gap-2 py-2">
+                                <div className="flex items-center gap-2 py-1">
                                     <div className="h-px flex-1 bg-gray-200"></div>
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR REFINE MANUALLY</span>
                                     <div className="h-px flex-1 bg-gray-200"></div>
@@ -599,7 +616,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
                         {/* Manual Refinement Section (Visible when NOT analyzing) */}
                         {!selectedPrompt && !isAnalyzing && (
-                            <div className="relative animate-fadeIn">
+                            <div className="relative animate-fadeIn space-y-4">
                                 {/* Replaced Dropdowns with Button Grids (Tag Cloud Style) */}
                                 <SelectionGrid 
                                     label="1. Product Category" 
