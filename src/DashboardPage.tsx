@@ -253,7 +253,8 @@ const FeatureLayout: React.FC<{
                         {/* Scrollable Content containing inputs AND button */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                             <div className="flex flex-col min-h-full">
-                                <div className="space-y-2 mb-6 flex-1 flex flex-col justify-center">
+                                {/* Changed justify-center to justify-start to align content to top */}
+                                <div className="space-y-2 mb-6 flex-1 flex flex-col justify-start">
                                     {rightContent}
                                 </div>
 
@@ -629,7 +630,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                         key={idx} 
                                                         onClick={() => handlePromptSelect(prompt)}
                                                         style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
-                                                        className={`group relative w-full rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
+                                                        className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
                                                             selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
                                                         }`}
                                                     >
@@ -638,7 +639,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                         
                                                         {/* Inner Content */}
                                                         <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
-                                                            <span className={`text-xs font-medium italic ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                            <span className={`text-xs font-medium italic text-left ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
                                                                 "{prompt}"
                                                             </span>
                                                         </div>
