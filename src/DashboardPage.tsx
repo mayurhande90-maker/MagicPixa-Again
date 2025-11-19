@@ -163,7 +163,7 @@ const FeatureLayout: React.FC<{
     generateButtonStyle 
 }) => {
     return (
-        <div className="h-full flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
+        <div className="flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
             {/* Header */}
             <div className="mb-5 border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-4 mb-2">
@@ -177,7 +177,7 @@ const FeatureLayout: React.FC<{
 
             {/* Main Content Grid */}
             {/* 50/50 Split for equal sizing */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div className="h-full flex flex-col justify-start">
