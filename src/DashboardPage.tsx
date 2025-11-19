@@ -21,9 +21,11 @@ import {
     editImageWithPrompt,
     generateBrandStylistImage,
     generateThumbnail,
-    startLiveSession
+    startLiveSession,
+    analyzeVideoFrames // Imported for video analysis
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
+import { extractFramesFromVideo } from './utils/videoUtils'; // Imported for local video processing
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -187,18 +189,30 @@ const BrandStylistAI: React.FC<any> = ({auth, appConfig}) => <div className="p-6
 
 
 const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
+    const [activeTab, setActiveTab] = useState<'photo' | 'video'>('photo');
     const [category, setCategory] = useState<string | null>(null);
-    const [subjectA, setSubjectA] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [subjectB, setSubjectB] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ file: File; url: string; base64: Base64File } | null>(null);
+    
+    // Media States
+    const [subjectA, setSubjectA] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
+    const [subjectB, setSubjectB] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
+    const [referenceImage, setReferenceImage] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
     const [videoTitle, setVideoTitle] = useState('');
+    
+    // Smart Video Scan States
+    const [isScanningVideo, setIsScanningVideo] = useState(false);
+    const [scannedFrames, setScannedFrames] = useState<{ url: string; base64: Base64File }[]>([]);
+    const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+    
+    // Generation States
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedThumbnail, setGeneratedThumbnail] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [statusMessage, setStatusMessage] = useState("");
     
     const subjectAInputRef = useRef<HTMLInputElement>(null);
     const subjectBInputRef = useRef<HTMLInputElement>(null);
     const referenceInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
         { id: 'podcast', label: 'Podcast', icon: <MicrophoneIcon className="w-6 h-6" /> },
@@ -226,14 +240,51 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         }
     };
 
+    const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        setIsScanningVideo(true);
+        setScannedFrames([]);
+        setSuggestedTitles([]);
+        setStatusMessage("Scanning video for best frames...");
+        setError(null);
+
+        try {
+            // 1. Extract Frames Client-Side
+            const frames = await extractFramesFromVideo(file, 6); // Extract 6 frames
+            setScannedFrames(frames);
+
+            // 2. AI Analysis
+            setStatusMessage("AI is analyzing content & generating titles...");
+            const analysis = await analyzeVideoFrames(frames);
+            
+            setSuggestedTitles(analysis.titles);
+            
+            // Auto-select the best frame if available
+            if (analysis.bestFrameIndex >= 0 && analysis.bestFrameIndex < frames.length) {
+                setSubjectA(frames[analysis.bestFrameIndex]);
+            }
+            
+            setStatusMessage("");
+        } catch (err: any) {
+            console.error(err);
+            setError("Failed to scan video. Please try a shorter video or different format.");
+        } finally {
+            setIsScanningVideo(false);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!referenceImage || !subjectA || !videoTitle.trim()) {
-            setError("Please provide all required inputs.");
+            setError("Please provide all required inputs (Category, Content, Title, Reference).");
             return;
         }
         setIsGenerating(true);
         setError(null);
         try {
+            setStatusMessage("Researching viral trends for this topic...");
+            
             const resultBase64 = await generateThumbnail({
                 category: category || 'general',
                 title: videoTitle,
@@ -241,8 +292,10 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                 subjectA: subjectA.base64.base64,
                 subjectB: subjectB?.base64.base64
             });
+            
             const imageUrl = `data:image/png;base64,${resultBase64}`;
             setGeneratedThumbnail(imageUrl);
+            
              if (auth.user) {
                  saveCreation(auth.user.uid, imageUrl, 'Thumbnail Studio');
                  const updatedProfile = await deductCredits(auth.user.uid, 2, 'Thumbnail Studio');
@@ -252,6 +305,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             setError(err.message || "Failed to generate thumbnail.");
         } finally {
             setIsGenerating(false);
+            setStatusMessage("");
         }
     };
 
@@ -259,68 +313,182 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
         <div className='p-6 pb-24'>
             <div className='max-w-7xl mx-auto'>
                 <h2 className="text-3xl font-bold text-[#1E1E1E] flex items-center justify-center gap-2 mb-8"><ThumbnailIcon className="w-8 h-8 text-red-500" /> Thumbnail Studio</h2>
+                
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* Left Column: Inputs */}
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
+                        
+                        {/* 1. Category */}
                         <div>
-                            <h3 className="font-bold mb-3">1. Select Category</h3>
+                            <h3 className="font-bold mb-3 text-gray-800">1. Select Category</h3>
                             <div className="grid grid-cols-3 gap-2">
                                 {categories.map(cat => (
-                                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-xl border-2 flex flex-col items-center ${category === cat.id ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}>
+                                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-xl border-2 flex flex-col items-center transition-all ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 hover:border-red-200'}`}>
                                         {cat.icon}<span className="text-xs font-bold mt-1">{cat.label}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
+
                         {category && (
                             <>
+                                {/* 2. Content Input (Photo vs Video Tabs) */}
                                 <div>
-                                    <h3 className="font-bold mb-3">2. Upload Content</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
-                                            {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
-                                            <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
-                                        </div>
-                                        {category === 'podcast' && (
-                                            <div className="aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
-                                                {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
-                                                <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
-                                            </div>
-                                        )}
+                                    <h3 className="font-bold mb-3 text-gray-800">2. Upload Content</h3>
+                                    <div className="flex border-b border-gray-200 mb-4">
+                                        <button 
+                                            onClick={() => setActiveTab('photo')}
+                                            className={`flex-1 py-2 text-sm font-bold ${activeTab === 'photo' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500'}`}
+                                        >
+                                            Upload Photo
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('video')}
+                                            className={`flex-1 py-2 text-sm font-bold ${activeTab === 'video' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500'}`}
+                                        >
+                                            Smart Video Scan
+                                        </button>
                                     </div>
+
+                                    {activeTab === 'photo' ? (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectAInputRef.current?.click()}>
+                                                {subjectA ? <img src={subjectA.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Main Subject</span></>}
+                                                <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
+                                            </div>
+                                            {category === 'podcast' && (
+                                                <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => subjectBInputRef.current?.click()}>
+                                                    {subjectB ? <img src={subjectB.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Guest (Optional)</span></>}
+                                                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {/* Video Uploader */}
+                                            <div className="border-2 border-dashed border-red-200 bg-red-50 rounded-xl p-6 text-center cursor-pointer hover:bg-red-100 transition-colors" onClick={() => videoInputRef.current?.click()}>
+                                                {isScanningVideo ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <SparklesIcon className="w-8 h-8 animate-spin text-red-500 mb-2"/>
+                                                        <span className="text-sm font-bold text-red-600">Scanning Video...</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <VideoCameraIcon className="w-8 h-8 text-red-500 mx-auto mb-2"/>
+                                                        <span className="text-sm font-bold text-gray-700">Upload Local Video</span>
+                                                        <p className="text-xs text-gray-500 mt-1">We'll extract the best frames automatically</p>
+                                                    </>
+                                                )}
+                                                <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
+                                            </div>
+
+                                            {/* Scanned Results */}
+                                            {scannedFrames.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-500 mb-2">SELECT BEST FRAME:</p>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {scannedFrames.map((frame, idx) => (
+                                                            <div 
+                                                                key={idx} 
+                                                                onClick={() => setSubjectA(frame)}
+                                                                className={`aspect-video rounded-lg overflow-hidden cursor-pointer border-2 ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500 ring-2 ring-red-200' : 'border-transparent'}`}
+                                                            >
+                                                                <img src={frame.url} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                             {suggestedTitles.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-500 mb-2">AI SUGGESTED TITLES:</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        {suggestedTitles.map((t, i) => (
+                                                            <button key={i} onClick={() => setVideoTitle(t)} className="text-left text-xs p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 truncate">
+                                                                {t}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* 3. Title */}
                                 <div>
-                                    <h3 className="font-bold mb-3">3. Video Title (Context for AI)</h3>
-                                    <InputField value={videoTitle} onChange={(e:any) => setVideoTitle(e.target.value)} placeholder="e.g., Budget 2025 Analysis" />
+                                    <h3 className="font-bold mb-3 text-gray-800">3. Video Title</h3>
+                                    <InputField 
+                                        value={videoTitle} 
+                                        onChange={(e:any) => setVideoTitle(e.target.value)} 
+                                        placeholder="e.g., I Tried iPhone 16..." 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Tip: Be descriptive. The AI uses this to generate relevant backgrounds.</p>
                                 </div>
+
+                                {/* 4. Reference */}
                                 <div>
-                                    <h3 className="font-bold mb-3">4. Reference Style</h3>
-                                    <div className="aspect-video border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => referenceInputRef.current?.click()}>
-                                        {referenceImage ? <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg"/> : <UploadIcon className="w-8 h-8 text-gray-400"/>}
+                                    <h3 className="font-bold mb-3 text-gray-800">4. Reference Style</h3>
+                                    <div className="aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50" onClick={() => referenceInputRef.current?.click()}>
+                                        {referenceImage ? <img src={referenceImage.url} className="w-full h-full object-cover rounded-lg"/> : <><UploadIcon className="w-8 h-8 text-gray-400"/><span className="text-xs text-gray-500 mt-2 font-medium">Upload Reference Image</span></>}
                                         <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
                                     </div>
                                 </div>
-                                <button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+
+                                {/* Generate Button */}
+                                <button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex flex-col items-center justify-center gap-1">
                                     {isGenerating ? (
                                         <>
-                                            <SparklesIcon className="w-5 h-5 animate-spin" />
-                                            <span>Researching Viral Trends...</span>
+                                            <SparklesIcon className="w-6 h-6 animate-spin" />
+                                            <span className="text-sm">{statusMessage || "Generating..."}</span>
                                         </>
-                                    ) : 'Generate Viral Thumbnail'}
+                                    ) : (
+                                        <>
+                                            <span className="flex items-center gap-2 text-lg"><SparklesIcon className="w-5 h-5"/> Generate Viral Thumbnail</span>
+                                        </>
+                                    )}
                                 </button>
                             </>
                         )}
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-100">{error}</p>}
                     </div>
-                    <div className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center min-h-[500px]">
+
+                    {/* Right Column: Result */}
+                    <div className="lg:col-span-3 bg-gray-50 p-6 rounded-2xl shadow-inner border border-gray-200 flex flex-col items-center justify-center min-h-[600px]">
                          {generatedThumbnail ? (
-                             <div className="w-full">
-                                 <img src={generatedThumbnail} className="w-full rounded-xl shadow-lg mb-4"/>
-                                 <button onClick={() => { const a = document.createElement('a'); a.href=generatedThumbnail; a.download='thumb.png'; a.click(); }} className="flex items-center gap-2 bg-gray-900 text-white px-6 py-2 rounded-full mx-auto"><DownloadIcon className="w-5 h-5"/> Download</button>
+                             <div className="w-full flex flex-col items-center">
+                                 <div className="relative w-full shadow-2xl rounded-xl overflow-hidden group">
+                                     <img src={generatedThumbnail} className="w-full h-auto"/>
+                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                 </div>
+                                 <div className="flex gap-4 mt-8">
+                                    <button onClick={() => { const a = document.createElement('a'); a.href=generatedThumbnail; a.download='viral-thumb.png'; a.click(); }} className="flex items-center gap-2 bg-[#1E1E1E] text-white px-8 py-3 rounded-full font-bold hover:bg-black transition-colors shadow-lg">
+                                        <DownloadIcon className="w-5 h-5"/> Download HD
+                                    </button>
+                                    <button onClick={() => setGeneratedThumbnail(null)} className="flex items-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-sm border border-gray-300">
+                                        Create Another
+                                    </button>
+                                 </div>
                              </div>
                          ) : (
-                             <div className="text-center text-gray-400">
-                                 {isGenerating ? <SparklesIcon className="w-16 h-16 animate-pulse mx-auto mb-4 text-yellow-400"/> : <ThumbnailIcon className="w-16 h-16 mx-auto mb-4"/>}
-                                 <p>{isGenerating ? "Scanning YouTube for trends..." : "Result will appear here"}</p>
+                             <div className="text-center text-gray-400 max-w-md">
+                                 {isGenerating ? (
+                                     <div className="flex flex-col items-center">
+                                         <div className="w-24 h-24 relative mb-6">
+                                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                             <div className="absolute inset-0 border-4 border-red-500 rounded-full border-t-transparent animate-spin"></div>
+                                             <SparklesIcon className="absolute inset-0 m-auto w-10 h-10 text-red-500 animate-pulse"/>
+                                         </div>
+                                         <h3 className="text-xl font-bold text-gray-700 mb-2">Creating Magic...</h3>
+                                         <p className="text-sm">{statusMessage}</p>
+                                     </div>
+                                 ) : (
+                                     <>
+                                        <ThumbnailIcon className="w-24 h-24 mx-auto mb-6 opacity-20"/>
+                                        <h3 className="text-xl font-bold text-gray-500 mb-2">Ready to go viral?</h3>
+                                        <p className="text-sm">Select a category and upload your content to generate a high-CTR thumbnail.</p>
+                                     </>
+                                 )}
                              </div>
                          )}
                     </div>

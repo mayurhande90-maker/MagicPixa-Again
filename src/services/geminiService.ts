@@ -582,6 +582,54 @@ export const suggestThumbnailTitles = async (videoDescription: string): Promise<
     return JSON.parse(text);
 };
 
+export const analyzeVideoFrames = async (
+    frames: { base64: Base64File }[]
+): Promise<{ titles: string[]; bestFrameIndex: number }> => {
+    const ai = getAiClient();
+    
+    const parts: any[] = [];
+    parts.push({ 
+        text: `Analyze these video frames from a single video. 
+        1. Generate 5 engaging, viral, clickbait-style YouTube video titles that would fit this content.
+        2. Identify the single best frame (0-indexed) to use as a thumbnail base. Look for clear expressions, high action, or interesting composition.
+        Return JSON.` 
+    });
+
+    for (const frame of frames) {
+        parts.push({
+            inlineData: {
+                data: frame.base64.base64,
+                mimeType: frame.base64.mimeType
+            }
+        });
+    }
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    titles: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    },
+                    bestFrameIndex: {
+                        type: Type.INTEGER
+                    }
+                },
+                required: ["titles", "bestFrameIndex"]
+            }
+        }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No analysis result generated.");
+    return JSON.parse(text);
+};
+
 export const generateThumbnail = async (
     inputs: {
         category: string;
