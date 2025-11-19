@@ -180,6 +180,8 @@ const FeatureLayout: React.FC<{
     creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle 
 }) => {
+    const [isZoomed, setIsZoomed] = useState(false);
+
     return (
         <div className="flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
             {/* Header */}
@@ -202,25 +204,32 @@ const FeatureLayout: React.FC<{
                     {resultImage ? (
                         <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner min-h-[400px]">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
-                             <img src={resultImage} className="max-w-full max-h-full object-contain shadow-2xl relative z-10" />
+                             <img 
+                                src={resultImage} 
+                                className="max-w-full max-h-full object-contain shadow-2xl relative z-10 cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]" 
+                                onClick={() => setIsZoomed(true)}
+                                title="Click to zoom"
+                             />
                              
                              {/* Result Actions */}
-                             <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-20">
-                                {onNewSession && (
-                                     <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
-                                        <TrashIcon className="w-5 h-5"/>
-                                        <span className="hidden sm:inline">New Project</span>
+                             <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-20 pointer-events-none">
+                                <div className="pointer-events-auto flex gap-4">
+                                    {onNewSession && (
+                                         <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
+                                            <TrashIcon className="w-5 h-5"/>
+                                            <span className="hidden sm:inline">New Project</span>
+                                        </button>
+                                    )}
+                                    {onResetResult && (
+                                        <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
+                                            <RetryIcon className="w-5 h-5"/>
+                                            <span className="hidden sm:inline">Regenerate</span>
+                                        </button>
+                                    )}
+                                    <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
+                                        <DownloadIcon className="w-5 h-5"/> Download
                                     </button>
-                                )}
-                                {onResetResult && (
-                                    <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
-                                        <RetryIcon className="w-5 h-5"/>
-                                        <span className="hidden sm:inline">Regenerate</span>
-                                    </button>
-                                )}
-                                <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
-                                    <DownloadIcon className="w-5 h-5"/> Download
-                                </button>
+                                </div>
                              </div>
                         </div>
                     ) : (
@@ -283,6 +292,10 @@ const FeatureLayout: React.FC<{
                     </div>
                 </div>
             </div>
+
+            {isZoomed && resultImage && (
+                <ImageModal imageUrl={resultImage} onClose={() => setIsZoomed(false)} />
+            )}
         </div>
     );
 };
