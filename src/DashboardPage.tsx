@@ -225,37 +225,39 @@ const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content containing inputs AND button */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                            <div className="space-y-2 mb-6">
-                                {rightContent}
-                            </div>
+                            <div className="flex flex-col justify-center min-h-full">
+                                <div className="space-y-2 mb-6">
+                                    {rightContent}
+                                </div>
 
-                            {/* Generate Button moved here to remove gap */}
-                            <div className="mt-4 pt-4 border-t border-gray-200 bg-[#F6F7FA]">
-                                <button 
-                                    onClick={onGenerate} 
-                                    disabled={isGenerating || !canGenerate}
-                                    className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
-                                        generateButtonStyle?.className 
-                                        ? generateButtonStyle.className 
-                                        : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
-                                    }`}
-                                >
-                                    {isGenerating ? (
-                                        <>
-                                            <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                            <span className="animate-pulse">Generating...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
-                                            Generate
-                                        </>
-                                    )}
-                                </button>
-                                <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                                    <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
-                                        <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
-                                        Cost: {creditCost} Credits
+                                {/* Generate Button moved here to remove gap */}
+                                <div className="mt-4 pt-4 border-t border-gray-200 bg-[#F6F7FA]">
+                                    <button 
+                                        onClick={onGenerate} 
+                                        disabled={isGenerating || !canGenerate}
+                                        className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
+                                            generateButtonStyle?.className 
+                                            ? generateButtonStyle.className 
+                                            : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
+                                        }`}
+                                    >
+                                        {isGenerating ? (
+                                            <>
+                                                <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
+                                                <span className="animate-pulse">Generating...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
+                                                Generate
+                                            </>
+                                        )}
+                                    </button>
+                                    <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                        <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                            <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                                            Cost: {creditCost} Credits
+                                        </div>
                                     </div>
                                 </div>
                             </div>
