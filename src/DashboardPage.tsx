@@ -176,12 +176,11 @@ const FeatureLayout: React.FC<{
             </div>
 
             {/* Main Content Grid */}
-            {/* CHANGED: Switched to grid-cols-5 for a 60/40 split to reduce the gap */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-[500px]">
+            {/* CHANGED: Switched to grid-cols-2 for a 50/50 split for equal sizing */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                {/* CHANGED: col-span-3 (3/5 = 60%) */}
-                <div className="lg:col-span-3 h-full flex flex-col justify-start">
+                <div className="h-full flex flex-col justify-start">
                     {resultImage ? (
                         <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner min-h-[400px]">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
@@ -216,9 +215,8 @@ const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                {/* CHANGED: col-span-2 (2/5 = 40%) */}
                 {/* UPDATED: h-full to force equal height with left column */}
-                <div className="lg:col-span-2 flex flex-col h-full">
+                <div className="flex flex-col h-full">
                     <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 overflow-hidden">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
@@ -469,8 +467,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }}
             leftContent={
                 image ? (
-                    /* CHANGED: Updated height to 560px to fill screen */
-                    <div className="relative h-[560px] w-auto aspect-[3/4] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                    /* CHANGED: Updated to w-full to match right column width for equal sizing */
+                    <div className="relative h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -533,10 +531,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 ) : (
                     <div className="w-full flex justify-center">
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
-                        {/* CHANGED: Updated height to 560px */}
+                        {/* CHANGED: Updated to w-full for equal sizing */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
-                            className="h-[560px] w-auto aspect-[3/4] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
+                            className="h-[560px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
                                 <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
