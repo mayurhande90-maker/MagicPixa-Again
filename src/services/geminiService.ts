@@ -211,16 +211,69 @@ OUTPUT: Photorealistic image.`;
   }
 };
 
+export const analyzeProductImage = async (
+    base64ImageData: string,
+    mimeType: string
+): Promise<string[]> => {
+    const ai = getAiClient();
+    try {
+        const prompt = `Analyse the uploaded product image in depth. Identify the exact product type, its visible design, shape, packaging material, printed text, logos, colors, proportions, surface details, and category.
+        
+        Based on this analysis, generate exactly 4 very short user-facing prompts (3–8 words each). 
+        These four prompts must describe different marketing-ready directions (e.g. "Luxury marble podium", "Fresh water splash", "Minimal studio white", "Sunlit cozy table").
+        They must remain extremely simple for the user.
+        
+        Return ONLY a JSON array of strings.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { text: prompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
+        });
+        const jsonText = response.text?.trim();
+        if (!jsonText) return ["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"];
+        return JSON.parse(jsonText);
+    } catch (e) {
+        console.error("Error analyzing product:", e);
+        return ["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"];
+    }
+}
+
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
-  theme: string
+  styleInstructions: string
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    let prompt = `Analyze the product in this image. Generate a hyper-realistic marketing-ready photo.
-CRITICAL: The product itself (packaging, logo, text) must remain unchanged.
-STYLE: ${theme === 'automatic' ? 'Professional product photography background.' : theme}`;
+    // "World Class" System Prompt Construction
+    let prompt = `TASK: Professional Product Photography Generation.
+    
+    INSTRUCTIONS:
+    1. Analyse the uploaded product image in depth. Identify the exact product type, visible design, shape, packaging, logos, text, and colors.
+    2. **CRITICAL RULE**: Do not modify or alter any part of the product itself. The product’s design, color accuracy, text, logo placement, and identity must remain EXACTLY as in the original image.
+    3. Build a new photorealistic environment around the product based on this direction: "${styleInstructions}".
+    
+    EXECUTION GUIDELINES:
+    - Use lighting, reflections, shadows, props, and composition that match the chosen direction.
+    - Ensure no AI artifacts, distortions, incorrect text, or warped shapes on the product.
+    - Make the final output look like a real commercial photo shoot, not AI-generated.
+    - Use physically accurate shadows, depth, reflections, and color grading.
+    - Maintain high-resolution, polished, social-media-ready quality.
+    
+    OUTPUT:
+    Generate a final marketing-ready image that feels real, premium, and professionally photographed, while preserving the product exactly as it appears.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

@@ -22,7 +22,8 @@ import {
     generateBrandStylistImage,
     generateThumbnail,
     startLiveSession,
-    analyzeVideoFrames
+    analyzeVideoFrames,
+    analyzeProductImage
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { extractFramesFromVideo } from './utils/videoUtils';
@@ -146,18 +147,19 @@ const FeatureLayout: React.FC<{
     creditCost: number;
     resultImage: string | null;
     onResetResult?: () => void;
-}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult }) => {
+    description?: string;
+}> = ({ title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, creditCost, resultImage, onResetResult, description }) => {
     return (
         <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-white">
             {/* Header */}
-            <div className="mb-8 flex items-center gap-4 border-b border-gray-100 pb-6">
-                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                    {icon}
-                </div>
-                <div>
+            <div className="mb-8 border-b border-gray-100 pb-6">
+                <div className="flex items-center gap-4 mb-3">
+                    <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                        {icon}
+                    </div>
                     <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                    <p className="text-sm text-gray-500 font-medium">AI Powered Creation Tool</p>
                 </div>
+                {description && <p className="text-sm text-gray-500 font-medium max-w-2xl">{description}</p>}
             </div>
 
             {/* Main Content Grid */}
@@ -181,8 +183,10 @@ const FeatureLayout: React.FC<{
                              </div>
                         </div>
                     ) : (
-                        <div className="w-full h-full">
-                            {leftContent}
+                        <div className="w-full h-full flex items-start justify-center">
+                            <div className="w-full aspect-[4/3] relative">
+                                {leftContent}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -234,17 +238,15 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full min-h-[500px] border-[3px] border-dotted border-gray-300 hover:border-[#F9D230] bg-gray-50/30 hover:bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden"
+        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#F9D230] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md"
     >
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-0 group-hover:opacity-30 transition-opacity duration-500 pointer-events-none"></div>
-        
-        <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 ring-1 ring-gray-100 group-hover:ring-[#F9D230]/30">
-            {icon || <UploadIcon className="w-12 h-12 text-gray-300 group-hover:text-[#F9D230] transition-colors duration-300" />}
+        <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+            {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#F9D230] transition-colors duration-300" />}
         </div>
         
-        <div className="relative z-10 mt-8 text-center space-y-2 px-6">
-            <p className="text-xl font-bold text-gray-400 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">{label}</p>
-            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#F9D230] transition-colors delay-75 bg-white/50 px-3 py-1 rounded-full">Click to Browse</p>
+        <div className="relative z-10 mt-6 text-center space-y-2 px-6">
+            <p className="text-xl font-bold text-gray-500 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">{label}</p>
+            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#F9D230] transition-colors delay-75 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
         </div>
     </div>
 );
@@ -254,24 +256,56 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
 
 const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [style, setStyle] = useState('studio_minimal');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
 
-    const styles = [
-        { id: 'studio_minimal', label: 'Minimal Studio' },
-        { id: 'neon_cyberpunk', label: 'Neon Cyberpunk' },
-        { id: 'nature_sunlight', label: 'Nature Sunlight' },
-        { id: 'luxury_gold', label: 'Luxury Gold' },
-        { id: 'industrial_raw', label: 'Industrial Raw' },
-        { id: 'pastel_dream', label: 'Pastel Dream' },
-    ];
+    // Analysis State
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
+    const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+
+    // Manual Refinement State
+    const [category, setCategory] = useState('Electronics');
+    const [brandStyle, setBrandStyle] = useState('Minimal');
+    const [visualType, setVisualType] = useState('Studio');
+
+    const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Books & Stationery', 'Automotive Parts'];
+    const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
+    const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            
+            // Trigger Auto-Analysis
+            setIsAnalyzing(true);
+            try {
+                const prompts = await analyzeProductImage(base64.base64, base64.mimeType);
+                setSuggestedPrompts(prompts);
+            } catch (err) {
+                console.error(err);
+                setSuggestedPrompts(["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"]);
+            } finally {
+                setIsAnalyzing(false);
+            }
+        }
+    };
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         setLoading(true);
         try {
-            const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, style);
+            // Determine the direction: Selected Suggestion OR Manual Combination
+            let generationDirection = "";
+            if (selectedPrompt) {
+                generationDirection = selectedPrompt;
+            } else {
+                generationDirection = `${visualType} shot of ${category} product. Style: ${brandStyle}.`;
+            }
+
+            const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, 'Magic Photo Studio');
@@ -288,38 +322,77 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     return (
         <FeatureLayout 
             title="Magic Photo Studio"
+            description="Transform simple photos into professional, studio-quality product shots in one click. Perfect for e-commerce and social media."
             icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
             creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
             isGenerating={loading}
-            canGenerate={!!image}
+            canGenerate={!!image && (!isAnalyzing)}
             onGenerate={handleGenerate}
             resultImage={result}
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md object-contain" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => { setImage(null); setSuggestedPrompts([]); setSelectedPrompt(null); }} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ) : (
                     <div className="w-full h-full">
                          <UploadPlaceholder label="Upload Product Photo" onClick={() => document.getElementById('studio-upload')?.click()} />
-                         <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
+                         <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                     </div>
                 )
             }
             rightContent={
                 <div className="space-y-8">
-                    <VisualSelector 
-                        label="Select Aesthetic" 
-                        options={styles} 
-                        selected={style} 
-                        onSelect={setStyle} 
-                    />
-                    <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
-                        <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4"/> AI Magic</h4>
-                        <p className="text-xs text-blue-600/80 leading-relaxed font-medium">
-                            Our AI will automatically analyze your product's geometry and material to place it in the selected environment with physically accurate lighting, reflections, and shadows.
+                    {isAnalyzing ? (
+                        <div className="p-6 bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-3 border border-blue-100 animate-pulse">
+                            <SparklesIcon className="w-6 h-6 text-blue-500 animate-spin"/>
+                            <p className="text-sm font-bold text-blue-700">Analyzing product details...</p>
+                        </div>
+                    ) : suggestedPrompts.length > 0 ? (
+                        <div>
+                             <div className="flex items-center justify-between mb-3 ml-1">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
+                                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {suggestedPrompts.map((prompt, idx) => (
+                                    <button 
+                                        key={idx} 
+                                        onClick={() => setSelectedPrompt(prompt === selectedPrompt ? null : prompt)}
+                                        className={`p-3 rounded-xl text-sm font-bold transition-all border-2 text-left flex items-start gap-2 ${selectedPrompt === prompt ? 'border-[#F9D230] bg-yellow-50 shadow-sm text-gray-900' : 'border-gray-100 bg-white hover:border-blue-200 text-gray-600'}`}
+                                    >
+                                        <span className="mt-0.5"><SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-[#F9D230]' : 'text-blue-400'}`}/></span>
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <div>
+                        <div className="flex items-center gap-2 mb-4 pt-4 border-t border-gray-100">
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                            <span className="text-xs font-bold text-gray-400 uppercase">OR REFINE MANUALLY</span>
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                        </div>
+                        
+                        <SelectField label="Product Category" value={category} onChange={(e:any) => { setCategory(e.target.value); setSelectedPrompt(null); }}>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </SelectField>
+                        <SelectField label="Brand Style" value={brandStyle} onChange={(e:any) => { setBrandStyle(e.target.value); setSelectedPrompt(null); }}>
+                            {brandStyles.map(s => <option key={s} value={s}>{s}</option>)}
+                        </SelectField>
+                        <SelectField label="Visual Type" value={visualType} onChange={(e:any) => { setVisualType(e.target.value); setSelectedPrompt(null); }}>
+                            {visualTypes.map(v => <option key={v} value={v}>{v}</option>)}
+                        </SelectField>
+                    </div>
+
+                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4 text-yellow-500"/> Pro Tip</h4>
+                        <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                            Our AI will automatically preserve your product's text, logo, and shape while building a hyper-realistic environment around it.
                         </p>
                     </div>
                 </div>
