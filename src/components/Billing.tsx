@@ -27,13 +27,13 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
                         <path className="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
                     </svg>
                 </div>
-                <h2 id="payment-success-title" className="text-2xl font-bold text-[#1E1E1E] mt-6 mb-2">Payment Successful!</h2>
+                <h2 id="payment-success-title" className="text-2xl font-bold text-[#1A1A1E] mt-6 mb-2">Payment Successful!</h2>
                 <p className="text-[#5F6368] mb-6">
-                    You're all set! We've added <span className="font-bold text-[#1E1E1E]">{creditsAdded} credits</span> to your account.
+                    You're all set! We've added <span className="font-bold text-[#1A1A1E]">{creditsAdded} credits</span> to your account.
                 </p>
                 <button
                     onClick={onClose}
-                    className="w-full bg-[#0079F2] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full bg-[#4D7CFF] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                     Continue Creating
                 </button>
@@ -178,7 +178,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
         email: user.email,
       },
       theme: {
-        color: "#0079F2"
+        color: "#4D7CFF"
       },
       modal: {
         ondismiss: () => {
@@ -233,11 +233,11 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
     <>
       <div className="p-4 sm:p-6 lg:p-8 pb-16 h-full flex flex-col">
         <div className='mb-8 text-center lg:text-left'>
-          <h2 className="text-3xl font-bold text-[#1E1E1E]">Billing & Credits</h2>
+          <h2 className="text-3xl font-bold text-[#1A1A1E]">Billing & Credits</h2>
           <p className="text-[#5F6368] mt-1">Top up your credits or review your usage history.</p>
         </div>
 
-        <div className="bg-gradient-to-br from-[#0079F2] to-indigo-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden mb-8">
+        <div className="bg-gradient-to-br from-[#4D7CFF] to-indigo-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden mb-8">
             <div className="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full opacity-50"></div>
             <div className="absolute bottom-[-50px] left-[-20px] w-48 h-48 bg-white/10 rounded-full opacity-50"></div>
             <div className="relative z-10">
@@ -251,7 +251,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                 </div>
                 <div className="mt-4">
                     <div className="w-full bg-white/20 rounded-full h-2">
-                        <div className="bg-white h-2 rounded-full" style={{ width: `${creditPercentage}%` }}></div>
+                        <div className="bg-[#6EFACC] h-2 rounded-full" style={{ width: `${creditPercentage}%` }}></div>
                     </div>
                      <p className="text-xs text-indigo-200 mt-1 text-right">
                         {user.credits} / {maxCreditsForMeter}
@@ -262,18 +262,18 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
 
         <div className="mb-12">
             <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-[#1E1E1E] mb-2">Recharge Your Creative Energy</h3>
+                <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2">Recharge Your Creative Energy</h3>
                 <p className="text-lg text-[#5F6368]">Choose a credit pack that fits your needs. No subscriptions.</p>
             </div>
           
             <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
                 {creditPacks.map((pack, index) => (
-                    <div key={index} className={`relative bg-white p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${pack.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80 hover:border-blue-300'}`}>
-                        {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
+                    <div key={index} className={`relative bg-white p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${pack.popular ? 'border-[#4D7CFF] shadow-lg shadow-blue-500/10' : 'border-gray-200/80 hover:border-blue-300'}`}>
+                        {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#4D7CFF] text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
                         <div className="flex-1">
                             <h3 className="font-bold text-lg text-gray-800">{pack.name}</h3>
-                            <p className="text-2xl font-bold text-[#0079F2] my-1">{pack.totalCredits} <span className="text-base font-medium text-gray-500">Credits</span></p>
-                            {pack.bonus > 0 && <p className="text-xs font-semibold text-green-600">{pack.credits} + {pack.bonus} Bonus!</p>}
+                            <p className="text-2xl font-bold text-[#4D7CFF] my-1">{pack.totalCredits} <span className="text-base font-medium text-gray-500">Credits</span></p>
+                            {pack.bonus > 0 && <p className="text-xs font-semibold text-[#6EFACC] text-emerald-600">{pack.credits} + {pack.bonus} Bonus!</p>}
                             <p className="text-xs text-gray-500 mt-2">₹{(pack.price / pack.totalCredits).toFixed(2)} per credit</p>
                         </div>
                         <div className="text-right flex flex-col items-end">
@@ -283,7 +283,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                                 disabled={loadingPackage !== null}
                                 className={`w-24 font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm ${
                                 pack.popular
-                                    ? 'bg-[#0079F2] text-white hover:bg-blue-700'
+                                    ? 'bg-[#4D7CFF] text-white hover:bg-blue-700'
                                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                 }`}
                             >
@@ -301,8 +301,8 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
 
         <div>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-[#1E1E1E]">Credit Usage History</h3>
-                <button onClick={() => setIsInfoModalOpen(true)} className="text-gray-400 hover:text-[#0079F2]">
+                <h3 className="text-xl font-bold text-[#1A1A1E]">Credit Usage History</h3>
+                <button onClick={() => setIsInfoModalOpen(true)} className="text-gray-400 hover:text-[#4D7CFF]">
                     <InformationCircleIcon className="w-6 h-6"/>
                 </button>
             </div>
@@ -361,7 +361,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                   >
                       <XIcon className="w-6 h-6"/>
                   </button>
-                  <h3 className="text-lg font-bold text-[#1E1E1E] mb-4">How Credits Work</h3>
+                  <h3 className="text-lg font-bold text-[#1A1A1E] mb-4">How Credits Work</h3>
                   <p className="text-sm text-gray-600 mb-4">
                       Each feature in MagicPixa uses a certain amount of credits. Here is a quick breakdown of the costs per generation:
                   </p>
@@ -369,13 +369,13 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                       {creditCosts.map(item => (
                           <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg text-sm">
                               <span className="text-gray-700">{item.feature}</span>
-                              <span className="font-bold text-[#1E1E1E]">{item.cost}</span>
+                              <span className="font-bold text-[#1A1A1E]">{item.cost}</span>
                           </div>
                       ))}
                   </div>
                   <button 
                     onClick={() => setIsInfoModalOpen(false)}
-                    className="w-full mt-6 bg-[#0079F2] text-white font-semibold py-2.5 rounded-lg"
+                    className="w-full mt-6 bg-[#4D7CFF] text-white font-semibold py-2.5 rounded-lg"
                   >
                       Got it
                   </button>

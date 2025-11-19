@@ -76,7 +76,7 @@ interface DashboardPageProps {
 const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
         {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
-        <input id={id} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-[#F9D230] rounded-2xl focus:bg-white outline-none transition-all font-medium text-gray-800 placeholder-gray-400" {...props} />
+        <input id={id} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E] placeholder-gray-400" {...props} />
     </div>
 );
 
@@ -90,7 +90,7 @@ const VisualSelector: React.FC<{
     <div className="mb-8">
         <div className="flex items-center justify-between mb-3 ml-1">
              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-             <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold tracking-wide">REQUIRED</span>
+             <span className="text-[10px] bg-gray-200 text-gray-500 px-2 py-1 rounded-full font-bold tracking-wide">REQUIRED</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
             {options.map(opt => {
@@ -101,13 +101,13 @@ const VisualSelector: React.FC<{
                         onClick={() => onSelect(opt.id)}
                         className={`relative group overflow-hidden rounded-2xl p-4 text-left transition-all duration-300 border-2 ${
                             isSelected 
-                            ? 'border-[#F9D230] bg-yellow-50/30 shadow-md' 
-                            : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'
+                            ? 'border-[#4D7CFF] bg-[#4D7CFF]/5 shadow-md' 
+                            : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'
                         }`}
                     >
                         <div className={`w-full h-full flex flex-col justify-between gap-3`}>
-                            <div className={`w-3 h-3 rounded-full ${isSelected ? 'bg-[#F9D230]' : 'bg-gray-300 group-hover:bg-gray-400'} transition-colors duration-300`}></div>
-                            <span className={`font-bold text-sm ${isSelected ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'} transition-colors duration-300`}>{opt.label}</span>
+                            <div className={`w-3 h-3 rounded-full ${isSelected ? 'bg-[#4D7CFF]' : 'bg-gray-300 group-hover:bg-gray-400'} transition-colors duration-300`}></div>
+                            <span className={`font-bold text-sm ${isSelected ? 'text-[#1A1A1E]' : 'text-gray-500 group-hover:text-gray-700'} transition-colors duration-300`}>{opt.label}</span>
                         </div>
                     </button>
                 )
@@ -120,7 +120,7 @@ const SelectField: React.FC<any> = ({ label, children, ...props }) => (
     <div className="mb-6">
          {label && <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
          <div className="relative">
-            <select className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-[#F9D230] rounded-2xl appearance-none focus:bg-white outline-none transition-all font-medium text-gray-800 cursor-pointer" {...props}>
+            <select className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl appearance-none outline-none transition-all font-medium text-[#1A1A1E] cursor-pointer" {...props}>
                 {children}
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
@@ -163,14 +163,14 @@ const FeatureLayout: React.FC<{
     generateButtonStyle 
 }) => {
     return (
-        <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-white">
+        <div className="h-full flex flex-col p-6 lg:p-10 max-w-[1800px] mx-auto bg-[#FFFFFF]">
             {/* Header */}
             <div className="mb-8 border-b border-gray-100 pb-6">
                 <div className="flex items-center gap-4 mb-3">
                     <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                         {icon}
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                    <h1 className="text-2xl font-bold text-[#1A1A1E]">{title}</h1>
                 </div>
                 {description && <p className="text-sm text-gray-500 font-medium max-w-2xl">{description}</p>}
             </div>
@@ -199,7 +199,7 @@ const FeatureLayout: React.FC<{
                                         <span className="hidden sm:inline">Regenerate</span>
                                     </button>
                                 )}
-                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#F9D230] hover:bg-[#fce06b] text-black px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-400/20 font-bold flex items-center gap-2 transform hover:scale-105">
+                                <button onClick={() => { const a = document.createElement('a'); a.href=resultImage; a.download='magicpixa-creation.png'; a.click(); }} className="bg-[#4D7CFF] hover:bg-blue-600 text-white px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
                                     <DownloadIcon className="w-5 h-5"/> Download
                                 </button>
                              </div>
@@ -215,29 +215,29 @@ const FeatureLayout: React.FC<{
 
                 {/* RIGHT COLUMN: Control Deck */}
                 <div className="lg:col-span-4 flex flex-col h-full">
-                    <div className="bg-white rounded-3xl flex-1 flex flex-col h-full">
+                    <div className="bg-[#F6F7FA] p-6 rounded-3xl flex-1 flex flex-col h-full border border-gray-100">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
-                            <div className="h-1 w-12 bg-gray-100 rounded-full"></div>
+                            <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                             {rightContent}
                         </div>
 
-                        <div className="mt-8 pt-6 border-t border-gray-100 sticky bottom-0 bg-white/95 backdrop-blur z-10">
+                        <div className="mt-8 pt-6 border-t border-gray-200 sticky bottom-0 bg-[#F6F7FA]/95 backdrop-blur z-10">
                             <button 
                                 onClick={onGenerate} 
                                 disabled={isGenerating || !canGenerate}
                                 className={`group w-full text-lg font-bold py-5 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
                                     generateButtonStyle?.className 
                                     ? generateButtonStyle.className 
-                                    : "bg-[#F9D230] hover:bg-[#fce06b] text-black shadow-yellow-400/20 hover:shadow-yellow-400/40"
+                                    : "bg-[#4D7CFF] hover:bg-blue-600 text-white shadow-blue-500/20 hover:shadow-blue-500/40"
                                 }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin ${generateButtonStyle?.className ? "border-white/30 border-t-white" : "border-black/20 border-t-black"}`}></div> 
+                                        <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-white/30 border-t-white`}></div> 
                                         <span className="animate-pulse">Generating Magic...</span>
                                     </>
                                 ) : (
@@ -248,8 +248,8 @@ const FeatureLayout: React.FC<{
                                 )}
                             </button>
                             <div className="text-center mt-4 flex items-center justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                                    <span className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></span>
+                                <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-gray-200">
+                                    <span className="w-2 h-2 bg-[#6EFACC] rounded-full animate-pulse"></span>
                                     Cost: {creditCost} Credits
                                 </div>
                             </div>
@@ -265,15 +265,15 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#F9D230] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md"
+        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md"
     >
         <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-            {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#F9D230] transition-colors duration-300" />}
+            {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#4D7CFF] transition-colors duration-300" />}
         </div>
         
         <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-            <p className="text-xl font-bold text-gray-500 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">{label}</p>
-            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#F9D230] transition-colors delay-75 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
+            <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{label}</p>
+            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#4D7CFF] transition-colors delay-75 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
         </div>
     </div>
 );
@@ -294,7 +294,7 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
                         onClick={() => onChange(opt)}
                         className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-200 transform active:scale-95 ${
                             isSelected 
-                            ? 'bg-[#1E1E1E] text-white border-[#1E1E1E] shadow-md' 
+                            ? 'bg-[#1A1A1E] text-white border-[#1A1A1E] shadow-md' 
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
                         }`}
                     >
@@ -452,7 +452,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
                                 <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                                    <div className="h-full bg-[#F9D230] animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className="h-full bg-[#4D7CFF] animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="mt-4 text-sm font-bold text-gray-600 bg-white/80 px-4 py-1 rounded-full shadow-sm">Polishing pixels...</p>
                             </div>
@@ -467,7 +467,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {!loading && (
                             <button 
                                 onClick={() => document.getElementById('studio-upload-redo')?.click()} 
-                                className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#F9D230] hover:text-black text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
+                                className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
                                 title="Change Photo"
                             >
                                 <UploadIcon className="w-5 h-5"/>
@@ -499,7 +499,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                             
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-                                <p className="text-xl font-bold text-gray-500 group-hover:text-gray-900 transition-colors duration-300 tracking-tight">Upload Product Photo</p>
+                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Product Photo</p>
                                 <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
                                     <div className="bg-gray-50 rounded-full px-3 py-1">
                                         <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
@@ -516,7 +516,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             rightContent={
                 !image ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                        <div className="bg-gray-100 p-4 rounded-full mb-4">
+                        <div className="bg-white p-4 rounded-full mb-4 border border-gray-100">
                             <ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/>
                         </div>
                         <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
@@ -659,7 +659,7 @@ const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                         <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
@@ -723,7 +723,7 @@ const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                         <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
@@ -927,13 +927,13 @@ const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppC
                     <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Garment Type</label>
                         <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setType('top')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'}`}>
+                            <button onClick={() => setType('top')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'}`}>
                                 <div className={`p-2 rounded-full ${type === 'top' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
                                     <GarmentTopIcon className="w-6 h-6"/>
                                 </div>
                                 <span className="font-bold text-sm">Tops</span>
                             </button>
-                            <button onClick={() => setType('bottom')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'}`}>
+                            <button onClick={() => setType('bottom')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'}`}>
                                 <div className={`p-2 rounded-full ${type === 'bottom' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
                                     <GarmentTrousersIcon className="w-6 h-6"/>
                                 </div>
@@ -983,7 +983,7 @@ const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppCo
             onResetResult={() => setResult(null)}
             leftContent={
                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                         <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
@@ -1052,7 +1052,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
             resultImage={null} 
             leftContent={
                  image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                         <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                     </div>
@@ -1067,14 +1067,14 @@ const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConf
                  <div className="space-y-4">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Generated Results</h3>
                     {captions.length > 0 ? captions.map((c, i) => (
-                        <div key={i} className="bg-gray-50 p-4 rounded-2xl border border-transparent hover:border-gray-200 shadow-sm relative group hover:bg-white transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
+                        <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-gray-300 shadow-sm relative group transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
                              <p className="text-gray-800 font-medium mb-2 leading-relaxed">"{c.caption}"</p>
                              <p className="text-blue-600 text-sm font-mono">{c.hashtags}</p>
                              <div className="absolute top-2 right-2 p-2 text-gray-400 bg-white rounded-lg border border-gray-200 opacity-0 group-hover:opacity-100">
                                 <CopyIcon className="w-4 h-4"/>
                              </div>
                         </div>
-                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50 text-sm font-medium">Click generate to see captions</div>}
+                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-white/50 text-sm font-medium">Click generate to see captions</div>}
                 </div>
             }
         />
@@ -1133,7 +1133,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
                  resultPlan ? (
                     <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6 p-4 w-full">
                          <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-gray-900">Strategy Plan</h3>
+                            <h3 className="text-xl font-bold text-[#1A1A1E]">Strategy Plan</h3>
                             <button onClick={() => setResultPlan(null)} className="text-sm text-gray-500 hover:text-gray-900 underline">Reset</button>
                          </div>
                          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -1165,7 +1165,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: App
                     </div>
                 ) : (
                     productImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                             <img src={productImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                             <button onClick={() => setProductImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                         </div>
@@ -1235,7 +1235,7 @@ const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: Ap
             onResetResult={() => setResult(null)}
             leftContent={
                 refImage ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
                         <img src={refImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
                         <button onClick={() => setRefImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide shadow-xl">Reference Style</div>
@@ -1389,7 +1389,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
             leftContent={
                 <div className="h-full w-full overflow-y-auto custom-scrollbar">
                      <div className="grid grid-cols-2 gap-6 h-full">
-                        <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectAInputRef.current?.click()}>
+                        <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectAInputRef.current?.click()}>
                             {subjectA ? (
                                 <img src={subjectA.url} className="w-full h-full object-cover rounded-2xl" />
                             ) : (
@@ -1401,7 +1401,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                             <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold">REQUIRED</div>
                         </div>
 
-                        <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => referenceInputRef.current?.click()}>
+                        <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => referenceInputRef.current?.click()}>
                              {referenceImage ? (
                                 <img src={referenceImage.url} className="w-full h-full object-cover rounded-2xl" />
                             ) : (
@@ -1414,7 +1414,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                         </div>
 
                         {category === 'podcast' && (
-                            <div className="aspect-video bg-gray-50/30 border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 hover:bg-white transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectBInputRef.current?.click()}>
+                            <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectBInputRef.current?.click()}>
                                 {subjectB ? (
                                     <img src={subjectB.url} className="w-full h-full object-cover rounded-2xl" />
                                 ) : (
@@ -1451,7 +1451,7 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                          <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Category</label>
                          <div className="grid grid-cols-3 gap-2">
                             {categories.map(cat => (
-                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-2xl border-2 flex flex-col items-center transition-all duration-300 ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600 shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}>
+                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-2xl border-2 flex flex-col items-center transition-all duration-300 ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600 shadow-sm' : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
                                     {cat.icon}<span className="text-[10px] font-bold mt-2">{cat.label}</span>
                                 </button>
                             ))}
@@ -1461,8 +1461,8 @@ const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view
                     <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Input Source</label>
                         <div className="flex bg-gray-100 p-1.5 rounded-2xl">
-                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'photo' ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>Photo Upload</button>
-                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'video' ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>Smart Video Scan</button>
+                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'photo' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}>Photo Upload</button>
+                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'video' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}>Smart Video Scan</button>
                         </div>
                         {activeTab === 'video' && (
                             <div className="mt-4">
@@ -1582,7 +1582,7 @@ const Support: React.FC<{ auth: AuthProps; onClose: () => void }> = ({ auth, onC
 
     return (
         <div className="fixed bottom-4 right-4 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
+            <div className="bg-[#4D7CFF] p-4 text-white flex justify-between items-center">
                 <h3 className="font-bold flex items-center gap-2"><AudioWaveIcon className="w-5 h-5"/> Live Support</h3>
                 <button onClick={onClose}><XIcon className="w-5 h-5"/></button>
             </div>
@@ -1599,18 +1599,18 @@ const Support: React.FC<{ auth: AuthProps; onClose: () => void }> = ({ auth, onC
 
 const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => (
     <div className="p-6 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">My Profile</h2>
+        <h2 className="text-2xl font-bold mb-6 text-[#1A1A1E]">My Profile</h2>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center gap-4 mb-6">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-[#4D7CFF]">
                     {auth.user?.avatar}
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold">{auth.user?.name}</h3>
+                    <h3 className="text-xl font-bold text-[#1A1A1E]">{auth.user?.name}</h3>
                     <p className="text-gray-500">{auth.user?.email}</p>
                 </div>
             </div>
-            <button onClick={openEditProfileModal} className="bg-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200">Edit Profile</button>
+            <button onClick={openEditProfileModal} className="bg-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 text-[#1A1A1E]">Edit Profile</button>
         </div>
     </div>
 );
@@ -1632,7 +1632,7 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: Vie
 
     return (
         <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><ProjectsIcon className="w-6 h-6"/> My Creations</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-[#1A1A1E]"><ProjectsIcon className="w-6 h-6"/> My Creations</h2>
             {isLoading ? <div className="text-center py-10">Loading...</div> : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {creations.map(c => (
@@ -1658,10 +1658,10 @@ const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: V
     <div className="p-4 pb-24">
          <div className="flex items-center justify-between mb-6">
              <div>
-                 <h1 className="text-2xl font-bold text-gray-900">Hello, {user?.name.split(' ')[0] || 'Creator'} 👋</h1>
+                 <h1 className="text-2xl font-bold text-[#1A1A1E]">Hello, {user?.name.split(' ')[0] || 'Creator'} 👋</h1>
                  <p className="text-sm text-gray-500">What will you create today?</p>
              </div>
-             <div className="bg-yellow-100 px-3 py-1 rounded-full text-yellow-800 text-sm font-bold flex items-center gap-1">
+             <div className="bg-[#6EFACC]/20 px-3 py-1 rounded-full text-[#1A1A1E] text-sm font-bold flex items-center gap-1 border border-[#6EFACC]/30">
                  <SparklesIcon className="w-4 h-4"/> {user?.credits || 0}
              </div>
          </div>
@@ -1700,7 +1700,7 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-12">
             {/* Welcome Banner */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#1E1E1E] to-[#2d2d2d] rounded-3xl p-8 sm:p-12 text-white shadow-2xl">
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#1A1A1E] to-[#2d2d2d] rounded-3xl p-8 sm:p-12 text-white shadow-2xl">
                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
                  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
@@ -1708,14 +1708,14 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
                         <p className="text-gray-400 text-lg">Ready to create something amazing today?</p>
                     </div>
                     <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                        <div className="p-3 bg-yellow-400/20 rounded-full">
-                            <SparklesIcon className="w-8 h-8 text-yellow-400" />
+                        <div className="p-3 bg-[#6EFACC]/20 rounded-full">
+                            <SparklesIcon className="w-8 h-8 text-[#6EFACC]" />
                         </div>
                         <div>
                             <p className="text-sm text-gray-400 font-medium">Available Credits</p>
                             <p className="text-2xl font-bold">{user?.credits || 0}</p>
                         </div>
-                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-black text-sm font-bold rounded-lg transition-colors">
+                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-[#4D7CFF] hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors">
                             Top Up
                         </button>
                     </div>
@@ -1726,10 +1726,10 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
             {recentCreations.length > 0 && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-[#1A1A1E] flex items-center gap-2">
                             <ProjectsIcon className="w-5 h-5 text-gray-500" /> Recent Projects
                         </h2>
-                        <button onClick={() => setActiveView('creations')} className="text-blue-600 text-sm font-semibold hover:underline">View All</button>
+                        <button onClick={() => setActiveView('creations')} className="text-[#4D7CFF] text-sm font-semibold hover:underline">View All</button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {recentCreations.map((c: any) => (
@@ -1746,7 +1746,7 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
 
             {/* Tools Grid */}
             <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900">All Creative Tools</h2>
+                <h2 className="text-xl font-bold text-[#1A1A1E]">All Creative Tools</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     {tools.map(item => (
                         <button 
@@ -1762,7 +1762,7 @@ const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }
                                     <ArrowRightIcon className="w-5 h-5"/>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-gray-900 mb-1">{item.label}</h3>
+                            <h3 className="font-bold text-[#1A1A1E] mb-1">{item.label}</h3>
                             <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
                         </button>
                     ))}
@@ -1813,7 +1813,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeV
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
+    <div className="min-h-screen bg-[#FFFFFF] flex flex-col">
       <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />

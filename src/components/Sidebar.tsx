@@ -21,7 +21,7 @@ const NavButton: React.FC<{
         disabled={item.disabled}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
             activeView === item.id
-                ? 'bg-[#0079F2]/10 text-[#0079F2]'
+                ? 'bg-[#4D7CFF]/15 text-[#4D7CFF]'
                 : item.disabled
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-[#5F6368] hover:bg-gray-100'
@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
   }
 
   return (
-    <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200/80 p-4 flex-col">
+    <aside className="hidden lg:flex w-72 bg-[#F4F6F8] border-r border-gray-200/80 p-4 flex-col">
         <nav className="flex-1 space-y-1">
             {navStructure.map((item, index) => {
             if (item.type === 'divider') {

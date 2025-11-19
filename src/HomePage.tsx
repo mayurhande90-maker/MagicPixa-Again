@@ -180,25 +180,24 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   return (
     <>
       <Header navigateTo={navigateTo} auth={auth} />
-      <main className="bg-[#F9FAFB] pb-20 lg:pb-0">
+      <main className="bg-[#FFFFFF] pb-20 lg:pb-0">
         {/* Hero Section */}
         <section id="home" className="text-center py-20 px-4">
             <div className="relative max-w-5xl mx-auto bg-white p-8 sm:p-12 md:p-20 rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden">
                 <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
-                <div className="absolute -top-40 -left-40 w-96 h-96 bg-yellow-200/50 rounded-full blur-3xl animate-blob"></div>
-                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-pink-200/50 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+                <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
                 
                 <div className="relative z-10 max-w-4xl mx-auto">
-                    <h1 className="text-4xl md:text-6xl font-bold text-[#1E1E1E] mb-4 leading-tight">
-                        Create Stunning Visuals, <span className="text-[#0079F2]">No Prompt Required</span>
+                    <h1 className="text-4xl md:text-6xl font-bold text-[#1A1A1E] mb-4 leading-tight">
+                        Create Stunning Visuals, <span className="text-[#4D7CFF]">No Prompt Required</span>
                     </h1>
                     <p className="text-lg md:text-xl text-[#5F6368] max-w-2xl mx-auto mb-10">
                         MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
                     </p>
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                      className="bg-[#f9d230] text-[#1E1E1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-[#f9d230]/40"
+                      className="bg-[#4D7CFF] text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-blue-500/30"
                     >
                         Start Creating for Free
                     </button>
@@ -210,9 +209,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         {/* Sections below are hidden on mobile to provide a focused, non-scrolling experience */}
         <div className="hidden lg:block">
             {/* Features Section */}
-            <section id="features" className="py-20 px-4 bg-[#F9FAFB]">
+            <section id="features" className="py-20 px-4 bg-[#F6F7FA]">
                 <div className="max-w-6xl mx-auto text-center bg-white p-8 sm:p-12 md:p-16 rounded-3xl shadow-sm border border-gray-200/80">
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Everything You Need to Create</h2>
+                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Everything You Need to Create</h2>
                     <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {featuresWithConfig.map((feature, index) => (
@@ -229,7 +228,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{feature.title}</h3>
+                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{feature.title}</h3>
                                 <p className="text-[#5F6368]">{feature.description}</p>
                             </div>
                         ))}
@@ -240,17 +239,17 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             {/* Reviews Section */}
             <section id="reviews" className="py-20 px-4 bg-white">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Loved by Creators Everywhere</h2>
+                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Loved by Creators Everywhere</h2>
                     <p className="text-lg text-[#5F6368] mb-12">Don't just take our word for it. Here's what our users say.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {reviews.map((review, index) => (
-                            <div key={index} className="bg-[#F9FAFB] p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left">
+                            <div key={index} className="bg-[#F6F7FA] p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left">
                                 <div className="flex items-center mb-4">
                                     {[...Array(5)].map((_, i) => <StarIcon key={i} className="w-5 h-5 text-yellow-400" />)}
                                 </div>
                                 <p className="text-[#5F6368] mb-6 italic">"{review.review}"</p>
                                 <div>
-                                    <p className="font-bold text-[#1E1E1E]">{review.name}</p>
+                                    <p className="font-bold text-[#1A1A1E]">{review.name}</p>
                                     <p className="text-sm text-[#5F6368]">{review.location}</p>
                                 </div>
                             </div>
@@ -260,40 +259,40 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-20 px-4 bg-[#F9FAFB]">
+            <section id="pricing" className="py-20 px-4 bg-[#F6F7FA]">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Recharge Your Creative Energy</h2>
+                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Recharge Your Creative Energy</h2>
                     <p className="text-lg text-[#5F6368] mb-12">Simple, one-time credit packs. No subscriptions needed.</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
                         {creditPacks.map((pack, index) => (
-                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#0079F2] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
-                                {pack.popular && <p className="text-center bg-[#0079F2] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
-                                <h3 className="text-xl font-bold text-[#1E1E1E] mb-2">{pack.name}</h3>
+                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#4D7CFF] shadow-lg shadow-blue-500/10' : 'border-gray-200/80'}`}>
+                                {pack.popular && <p className="text-center bg-[#4D7CFF] text-white text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{pack.name}</h3>
                                 <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                                 
                                 <div className="my-2">
-                                    <span className="text-4xl font-bold text-[#1E1E1E]">
+                                    <span className="text-4xl font-bold text-[#1A1A1E]">
                                         {pack.totalCredits}
                                     </span>
                                     <span className="text-[#5F6368] ml-1">Credits</span>
                                 </div>
                                 <div className="h-5 mb-4">
                                   {pack.bonus > 0 && (
-                                      <p className="text-sm font-semibold text-emerald-500">
+                                      <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
                                           {pack.credits} + {pack.bonus} Bonus!
                                       </p>
                                   )}
                                 </div>
                                 
                                 <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
-                                    <span className="text-2xl font-bold text-[#1E1E1E]">₹{pack.price}</span>
+                                    <span className="text-2xl font-bold text-[#1A1A1E]">₹{pack.price}</span>
                                     <p className="text-xs text-gray-500">One-time payment</p>
                                 </div>
                                 
                                 <button 
                                     onClick={() => navigateTo('dashboard', 'billing')}
-                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#0079F2] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1E1E1E] hover:bg-gray-200'}`}
+                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#4D7CFF] text-white hover:bg-blue-700' : 'bg-gray-100 text-[#1A1A1E] hover:bg-gray-200'}`}
                                 >
                                     Buy Now
                                 </button>
@@ -306,7 +305,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             {/* About Us Section */}
             <section id="about" className="py-20 px-4 bg-white">
             <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-3xl font-bold text-[#1E1E1E] mb-3">Our Mission</h2>
+                <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Our Mission</h2>
                 <p className="text-lg text-[#5F6368]">
                 At MagicPixa, we believe that creativity should be accessible to everyone. Our mission is to empower individuals and businesses with powerful, intuitive AI tools that make professional-quality visual content creation as simple as a single click. We're dedicated to pushing the boundaries of what's possible, so you can focus on what matters most: bringing your ideas to life.
                 </p>
