@@ -219,9 +219,10 @@ export const analyzeProductImage = async (
     try {
         const prompt = `Analyse the uploaded product image in depth. Identify the exact product type, its visible design, shape, packaging material, printed text, logos, colors, proportions, surface details, and category.
         
-        Based on this analysis, generate exactly 4 very short user-facing prompts (3–8 words each). 
-        These four prompts must describe different marketing-ready directions (e.g. "Luxury marble podium", "Fresh water splash", "Minimal studio white", "Sunlit cozy table").
-        They must remain extremely simple for the user.
+        Based on this analysis, generate exactly 4 user-facing prompt sentences (8-15 words each). 
+        These four prompts must be natural, descriptive instructions that a user might say.
+        Example: "Place the product on a sleek marble table with soft morning sunlight."
+        Example: "Showcase the product on a wooden podium surrounded by fresh green leaves."
         
         Return ONLY a JSON array of strings.`;
 
@@ -242,11 +243,21 @@ export const analyzeProductImage = async (
             }
         });
         const jsonText = response.text?.trim();
-        if (!jsonText) return ["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"];
+        if (!jsonText) return [
+            "Place the product in a minimalist studio setting with soft, clean shadows",
+            "Showcase this item on a luxury gold podium with dramatic lighting",
+            "Set the product in a natural environment with sunlight and fresh leaves",
+            "Display on a dark elegant surface with sharp reflections and mood lighting"
+        ];
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product:", e);
-        return ["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"];
+        return [
+            "Place the product in a minimalist studio setting with soft, clean shadows",
+            "Showcase this item on a luxury gold podium with dramatic lighting",
+            "Set the product in a natural environment with sunlight and fresh leaves",
+            "Display on a dark elegant surface with sharp reflections and mood lighting"
+        ];
     }
 }
 

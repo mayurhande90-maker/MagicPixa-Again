@@ -331,7 +331,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 setSuggestedPrompts(prompts);
             } catch (err) {
                 console.error(err);
-                setSuggestedPrompts(["Studio Minimal", "Luxury Gold", "Nature Sunlight", "Dark Elegant"]);
+                setSuggestedPrompts([
+                    "Place the product in a minimalist studio setting with soft, clean shadows",
+                    "Showcase this item on a luxury gold podium with dramatic lighting",
+                    "Set the product in a natural environment with sunlight and fresh leaves",
+                    "Display on a dark elegant surface with sharp reflections and mood lighting"
+                ]);
             } finally {
                 setIsAnalyzing(false);
             }
@@ -501,19 +506,19 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     key={idx} 
                                                     onClick={() => handlePromptSelect(prompt)}
                                                     style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'backwards' }}
-                                                    className={`w-full p-4 rounded-2xl text-sm font-bold transition-all border-2 text-left flex items-center justify-between animate-[fadeInUp_0.5s_ease-out] ${
-                                                        selectedPrompt === prompt 
-                                                        ? 'border-[#F9D230] bg-yellow-50 shadow-md text-gray-900 scale-[1.02]' 
-                                                        : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600 hover:bg-gray-50'
+                                                    className={`group relative w-full rounded-full p-[2px] transition-all duration-300 transform active:scale-95 animate-[fadeInUp_0.5s_ease-out] ${
+                                                        selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
                                                     }`}
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPrompt === prompt ? 'bg-[#F9D230]' : 'bg-gray-100'}`}>
-                                                            <SparklesIcon className={`w-4 h-4 ${selectedPrompt === prompt ? 'text-black' : 'text-gray-400'}`}/>
-                                                        </div>
-                                                        <span>{prompt}</span>
+                                                    {/* Gradient Border Layer */}
+                                                    <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                    
+                                                    {/* Inner Content */}
+                                                    <div className="relative h-full w-full bg-white rounded-full flex items-center justify-center px-5 py-3">
+                                                        <span className="text-sm font-medium italic text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                                                            "{prompt}"
+                                                        </span>
                                                     </div>
-                                                    {selectedPrompt === prompt && <CheckIcon className="w-5 h-5 text-[#F9D230]"/>}
                                                 </button>
                                             ))}
                                         </div>
@@ -563,14 +568,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 )}
                             </div>
                         )}
-
-                        {/* Helper Text */}
-                        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                            <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><LightbulbIcon className="w-4 h-4 text-yellow-500"/> Pro Tip</h4>
-                            <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                                Our AI will automatically preserve your product's text, logo, and shape while building a hyper-realistic environment around it.
-                            </p>
-                        </div>
                     </div>
                 )
             }
