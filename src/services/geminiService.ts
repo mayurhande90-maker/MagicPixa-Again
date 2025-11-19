@@ -277,6 +277,12 @@ export const editImageWithPrompt = async (
     2. **CRITICAL RULE**: Do not modify or alter any part of the product itself. The product’s design, color accuracy, text, logo placement, and identity must remain EXACTLY as in the original image.
     3. Build a new photorealistic environment around the product based on this direction: "${styleInstructions}".
     
+    *** PHYSICAL SCALE & REALISM PROTOCOL ***
+    - You MUST analyze the real-world size of the product (e.g., a perfume bottle is 10cm, a sofa is 2m).
+    - The environment MUST be scaled proportionally. Do NOT place a small product in a giant world or vice versa.
+    - Example: A pair of headphones on a table should look like headphones, not the size of a car.
+    - Use realistic camera focal lengths (e.g., 50mm, 85mm) suitable for the product size.
+
     EXECUTION GUIDELINES:
     - Use lighting, reflections, shadows, props, and composition that match the chosen direction.
     - Ensure no AI artifacts, distortions, incorrect text, or warped shapes on the product.
@@ -285,7 +291,7 @@ export const editImageWithPrompt = async (
     - Maintain high-resolution, polished, social-media-ready quality.
     
     OUTPUT:
-    Generate a final marketing-ready image that feels real, premium, and professionally photographed, while preserving the product exactly as it appears.`;
+    Generate a final marketing-ready image that feels real, premium, and professionally photographed, while preserving the product exactly as it appears and in correct scale.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

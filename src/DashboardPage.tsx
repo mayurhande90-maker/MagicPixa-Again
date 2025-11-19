@@ -214,8 +214,8 @@ const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                <div className="lg:col-span-4 flex flex-col h-full max-h-full">
-                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 max-h-full overflow-hidden">
+                <div className="lg:col-span-4 flex flex-col h-fit">
+                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 overflow-hidden">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
@@ -460,12 +460,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
             generateButtonStyle={{
-                className: "bg-gradient-to-r from-yellow-400 to-orange-500 text-[#1A1A1E] shadow-lg shadow-orange-500/30 border-none hover:scale-[1.02]",
+                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
             leftContent={
                 image ? (
-                    <div className="relative w-full aspect-[4/3] max-h-[380px] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group">
+                    <div className="relative w-full aspect-[3/4] max-h-[380px] flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto">
                          {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -530,7 +530,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
                         <div 
                             onClick={() => document.getElementById('studio-upload')?.click()}
-                            className="w-full aspect-[4/3] max-h-[380px] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl"
+                            className="w-full aspect-[3/4] max-h-[380px] border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
                                 <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
