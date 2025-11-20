@@ -712,8 +712,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* STEP 2: Configuration (Visible if Mode Selected) */}
                         {studioMode && (
                             <div className="animate-fadeIn relative">
-                                {/* Back Button */}
-                                <div className="absolute -top-12 left-0">
+                                {/* Back Button - FIXED LAYOUT */}
+                                <div className="flex items-center mb-4 -ml-2"> 
                                     <button 
                                         onClick={() => {
                                             setStudioMode(null);
@@ -721,7 +721,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                             setCategory(''); setBrandStyle(''); setVisualType('');
                                             setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
                                         }} 
-                                        className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2"
+                                        className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-lg hover:bg-gray-100"
                                     >
                                         <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
                                     </button>
