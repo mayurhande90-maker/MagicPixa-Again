@@ -936,14 +936,36 @@ const InspirationTicker = () => (
     </div>
 );
 
-const OmniBar = () => (
-    <div className="relative w-full max-w-2xl mx-auto group z-20">
+const OmniBar: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
+    <div className="relative w-full max-w-3xl mx-auto group z-20">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
-        <div className="relative bg-white rounded-full shadow-xl flex items-center px-6 py-4 cursor-text transition-transform duration-300 hover:scale-[1.01]">
-            <SparklesIcon className="w-6 h-6 text-[#4D7CFF] mr-4 animate-pulse" />
-            <span className="text-gray-400 text-lg font-medium select-none">What do you want to create today?</span>
-            <div className="ml-auto flex items-center gap-2">
-                <kbd className="hidden sm:inline-block px-2 py-1 bg-gray-100 text-gray-400 text-xs rounded font-mono">⌘ K</kbd>
+        
+        <div className="relative bg-white rounded-full shadow-xl flex items-center justify-between px-4 py-3 transition-transform duration-300 hover:scale-[1.01]">
+            
+            <div className="flex items-center gap-2 px-4 border-r border-gray-100 pr-6">
+                <SparklesIcon className="w-5 h-5 text-[#F9D230]" />
+                <span className="font-bold text-[#1A1A1E] text-sm uppercase tracking-wider">Quick Start</span>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar px-2">
+                 <button onClick={() => navigateTo('dashboard', 'studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-blue-50 transition-colors group/btn whitespace-nowrap">
+                    <span className="text-lg">🛍️</span>
+                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-blue-600">Product Shot</span>
+                 </button>
+                 <button onClick={() => navigateTo('dashboard', 'studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-purple-50 transition-colors group/btn whitespace-nowrap">
+                    <span className="text-lg">👥</span>
+                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-purple-600">Model Shot</span>
+                 </button>
+                 <button onClick={() => navigateTo('dashboard', 'thumbnail_studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-red-50 transition-colors group/btn whitespace-nowrap">
+                    <span className="text-lg">▶️</span>
+                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-red-600">Thumbnail</span>
+                 </button>
+            </div>
+
+            <div className="pl-4 border-l border-gray-100">
+                 <button onClick={() => navigateTo('dashboard', 'studio')} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-[#4D7CFF] hover:bg-blue-50 transition-colors" title="Upload Any Image">
+                    <UploadIcon className="w-5 h-5" />
+                 </button>
             </div>
         </div>
     </div>
@@ -973,9 +995,20 @@ const BentoGrid: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">Product Studio</h3>
                     <p className="text-gray-500 max-w-xs">Generate a complete marketing pack from a single photo.</p>
                 </div>
-                <div className="mt-8 flex gap-4">
-                     <div className="h-32 w-32 bg-gray-100 rounded-xl rotate-[-6deg] shadow-sm border border-gray-200 group-hover:rotate-[-12deg] transition-transform duration-500"></div>
-                     <div className="h-32 w-32 bg-gray-200 rounded-xl rotate-[3deg] shadow-md border border-gray-300 z-10 group-hover:rotate-[6deg] transition-transform duration-500 group-hover:scale-110"></div>
+                
+                <div className="mt-8 flex gap-4 justify-center lg:justify-start">
+                     {/* "Before" Representation */}
+                     <div className="h-32 w-32 bg-white rounded-xl rotate-[-6deg] shadow-md border border-gray-100 group-hover:rotate-[-12deg] transition-transform duration-500 flex flex-col items-center justify-center p-2 relative overflow-hidden">
+                         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.2)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-no-repeat opacity-10"></div>
+                         <CubeIcon className="w-12 h-12 text-gray-300 mb-2" />
+                         <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Original</span>
+                     </div>
+                     
+                     {/* "After" Representation */}
+                     <div className="h-32 w-32 bg-gradient-to-br from-[#4D7CFF] to-purple-600 rounded-xl rotate-[3deg] shadow-xl shadow-blue-500/20 border border-white/20 z-10 group-hover:rotate-[6deg] transition-transform duration-500 group-hover:scale-110 flex flex-col items-center justify-center p-2 relative">
+                         <SparklesIcon className="w-12 h-12 text-white mb-2 animate-pulse" />
+                         <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Magic Result</span>
+                     </div>
                 </div>
             </div>
         </div>
@@ -987,8 +1020,19 @@ const BentoGrid: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
                 <div className="p-3 bg-purple-100 w-fit rounded-2xl mb-4 text-purple-600"><UsersIcon className="w-6 h-6"/></div>
                 <h3 className="text-xl font-bold text-gray-800 mb-1">Magic Model</h3>
                 <p className="text-xs text-gray-500 mb-6">Turn products into lifestyle shots.</p>
-                <div className="flex-1 w-full bg-gray-100 rounded-xl relative overflow-hidden group-hover:shadow-inner">
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xs">Model Preview</div>
+                
+                <div className="flex-1 w-full bg-gray-50 rounded-xl relative overflow-hidden group-hover:shadow-inner mt-4 border border-gray-100">
+                    <div className="absolute inset-0 flex">
+                        <div className="w-1/2 h-full bg-white flex items-center justify-center border-r border-gray-100">
+                             <UsersIcon className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <div className="w-1/2 h-full bg-purple-50 flex items-center justify-center">
+                             <UsersIcon className="w-8 h-8 text-purple-500" />
+                        </div>
+                    </div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-400 text-xs border border-gray-100 z-10">
+                        <div className="w-1 h-full bg-gray-200"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1079,7 +1123,7 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                             <p className="text-gray-500 text-lg">Your studio is ready.</p>
                         </div>
 
-                        <OmniBar />
+                        <OmniBar navigateTo={navigateTo} />
                     </div>
 
                     {/* Main Navigation */}
@@ -1110,6 +1154,13 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                 }
                 .animate-marquee {
                     animation: marquee 30s linear infinite;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
                 }
             `}</style>
         </div>
