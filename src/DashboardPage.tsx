@@ -419,12 +419,24 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
+            
+            // Reset Session State But KEEP Image
+            setResult(null);
+            setStudioMode(null);
+            setCategory('');
+            setBrandStyle('');
+            setVisualType('');
+            setModelType('');
+            setModelRegion('');
+            setSkinTone('');
+            setBodyType('');
+            setSuggestedPrompts([]);
+            setSuggestedModelPrompts([]);
+            setSelectedPrompt(null);
+            
+            // Set the new image
             setImage({ url: URL.createObjectURL(file), base64 });
             
-            // Reset ALL States on new upload
-            handleNewSession();
-            setResult(null);
-
             try {
                 const prompts = await analyzeProductImage(base64.base64, base64.mimeType);
                 setSuggestedPrompts(prompts);
@@ -497,9 +509,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
             if (studioMode === 'model') {
                  cost = appConfig?.featureCosts['Model Shot'] || 3;
-                 // GENERATE MODEL SHOT
-                 // If user selected an AI prompt, use it as a freeform override.
-                 // Otherwise, use structured inputs.
                  res = await generateModelShot(image.base64.base64, image.base64.mimeType, {
                     modelType,
                     region: modelRegion,
@@ -509,7 +518,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                  });
             } else {
                 cost = appConfig?.featureCosts['Magic Photo Studio'] || 2;
-                // GENERATE PRODUCT SHOT
                 let generationDirection = "";
                 if (selectedPrompt) {
                     generationDirection = selectedPrompt;
@@ -534,13 +542,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         }
     };
 
-    // Helper to reset the session completely
     const handleNewSession = () => {
-        // Don't clear image if calling internally, but if button clicked, clear it.
-        // This function is passed to FeatureLayout 'New Project', which implies new upload.
-        // But internal reset logic is different. Let's separate.
         setImage(null); 
-        // Reset everything else
         setResult(null);
         setStudioMode(null);
         setCategory('');
@@ -555,14 +558,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSelectedPrompt(null);
     };
 
-    // Determine canGenerate based on mode
     const canGenerate = !!image && !isAnalyzing && !!studioMode && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
             : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType))
     );
 
-    // Determine current cost to display
     const currentCost = studioMode === 'model' 
         ? (appConfig?.featureCosts['Model Shot'] || 3) 
         : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
@@ -586,9 +587,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }}
             leftContent={
                 image ? (
-                    /* w-full for equal sizing */
                     <div className="relative h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                         {/* Loading Overlay with Blur and Progress Bar for GENERATION */}
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
@@ -598,15 +597,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                         )}
 
-                        {/* ANALYSIS SCANNER ANIMATION (Horizontal) */}
                         {(isAnalyzing || isAnalyzingModel) && (
                             <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center">
-                                {/* Horizontal Scanner Beam */}
                                 <div className="absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30"></div>
-                                {/* Trailing gradient behind beam */}
                                 <div className="absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20"></div>
-                                
-                                {/* Status Badge */}
                                 <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight">
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
                                     <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Analyzing Model Context...' : 'Scanning Image...'}</span>
@@ -619,7 +613,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} 
                         />
                         
-                        {/* Top Right Re-Upload Button (Only when idle) */}
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <button 
                                 onClick={() => redoFileInputRef.current?.click()} 
@@ -649,8 +642,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     </div>
                 ) : (
                     <div className="w-full flex justify-center">
-                        {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
-                        {/* w-full for equal sizing */}
                         <div 
                             onClick={() => fileInputRef.current?.click()}
                             className="h-[560px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
@@ -727,7 +718,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                         onClick={() => {
                                             setStudioMode(null);
                                             setSelectedPrompt(null);
-                                            // Clear specific mode selections
                                             setCategory(''); setBrandStyle(''); setVisualType('');
                                             setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
                                         }} 
@@ -737,8 +727,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </button>
                                 </div>
 
-                                {/* AI Suggestions (Common) */}
-                                {/* Logic: Show suggestions if NO manual selections made yet (category or modelType) OR currently analyzing */}
                                 {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
                                     <div className={`transition-all duration-300 mb-6`}>
                                         {isAnalyzing || isAnalyzingModel ? (
@@ -768,10 +756,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                                     selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
                                                                 }`}
                                                             >
-                                                                {/* Gradient Border Layer */}
                                                                 <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
                                                                 
-                                                                {/* Inner Content */}
                                                                 <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
                                                                     <span className={`text-xs font-medium italic text-left ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
                                                                         "{prompt}"
@@ -786,7 +772,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </div>
                                 )}
 
-                                {/* Divider if AI suggestions available but not selected */}
                                 {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="relative mb-6">
                                         <div className="flex items-center gap-2 py-1">
@@ -797,11 +782,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </div>
                                 )}
 
-                                {/* MODE SPECIFIC CONTROLS */}
                                 {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="space-y-6 animate-fadeIn">
                                         {studioMode === 'product' ? (
-                                            // PRODUCT SHOT WORKFLOW
                                             <>
                                                  <div>
                                                      <div className="flex items-center justify-between mb-3 ml-1">
@@ -836,7 +819,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                 )}
                                             </>
                                         ) : (
-                                            // MODEL SHOT WORKFLOW
                                             <>
                                                 <SelectionGrid 
                                                     label="1. Model Type" 
@@ -844,7 +826,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     value={modelType} 
                                                     onChange={(val) => {
                                                         setModelType(val);
-                                                        // Reset subsequent steps if changing top level
                                                         setModelRegion(''); setSkinTone(''); setBodyType('');
                                                     }} 
                                                 />
@@ -894,1285 +875,171 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-const MagicInterior: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [style, setStyle] = useState('Modern');
-    const [roomType, setRoomType] = useState('Living Room');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const styles = [
-        { id: 'Modern', label: 'Modern' },
-        { id: 'Japanese', label: 'Japanese' },
-        { id: 'Industrial', label: 'Industrial' },
-        { id: 'Coastal', label: 'Coastal' },
-        { id: 'Futuristic', label: 'Futuristic' },
-        { id: 'Traditional Indian', label: 'Indian' }
-    ];
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, 'home', roomType);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Interior');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Interior'] || 2, 'Magic Interior');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Magic Interior"
-            icon={<HomeIcon className="w-6 h-6 text-orange-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Interior'] || 2}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <div className="w-full h-full">
-                        <UploadPlaceholder label="Upload Room Photo" onClick={() => document.getElementById('interior-upload')?.click()} />
-                        <input id="interior-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                )
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <VisualSelector 
-                        label="Design Style" 
-                        options={styles} 
-                        selected={style} 
-                        onSelect={setStyle} 
-                    />
-                    <SelectField label="Room Type" value={roomType} onChange={(e: any) => setRoomType(e.target.value)}>
-                        {['Living Room', 'Bedroom', 'Kitchen', 'Office', 'Bathroom', 'Dining Room'].map(s => <option key={s} value={s}>{s}</option>)}
-                    </SelectField>
-                </div>
-            }
-        />
-    );
-};
-
-const MagicPhotoColour: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [mode, setMode] = useState<'restore' | 'colourize_only'>('restore');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await colourizeImage(image.base64.base64, image.base64.mimeType, mode);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Photo Colour');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Photo Colour'] || 2, 'Magic Photo Colour');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Magic Photo Colour"
-            icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Photo Colour'] || 2}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <div className="w-full h-full">
-                        <UploadPlaceholder label="Upload B&W Photo" onClick={() => document.getElementById('colour-upload')?.click()} />
-                        <input id="colour-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                )
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <VisualSelector 
-                        label="Enhancement Mode" 
-                        options={[
-                            { id: 'restore', label: 'Restore & Color' },
-                            { id: 'colourize_only', label: 'Color Only' }
-                        ]} 
-                        selected={mode} 
-                        onSelect={(id) => setMode(id as any)} 
-                    />
-                    <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
-                         <p className="text-xs text-rose-600/80 font-medium leading-relaxed">
-                            "Restore & Color" intelligently removes scratches, dust, and noise while adding color. "Color Only" preserves the original texture and grain.
-                        </p>
-                    </div>
-                </div>
-            }
-        />
-    );
-};
-
-const MagicSoul: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [theme, setTheme] = useState('Wedding');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const themes = [
-        { id: 'Wedding', label: 'Royal Wedding' },
-        { id: 'Adventure', label: 'Travel Adventure' },
-        { id: 'Cyberpunk', label: 'Sci-Fi City' },
-        { id: 'Vintage', label: 'Vintage 90s' },
-        { id: 'Office', label: 'Corporate' },
-        { id: 'Beach', label: 'Sunset Beach' }
-    ];
-
-    const handleGenerate = async () => {
-        if (!personA || !personB || !auth.user) return;
-        setLoading(true);
-        try {
-            // Map theme to detailed prompts internally
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, theme, theme);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Soul');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Soul'] || 3, 'Magic Soul');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Magic Soul"
-            icon={<UsersIcon className="w-6 h-6 text-pink-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Soul'] || 3}
-            isGenerating={loading}
-            canGenerate={!!personA && !!personB}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                <div className="h-full flex flex-col gap-6 w-full">
-                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-pink-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('soul-a-upload')?.click()}>
-                        {personA ? (
-                             <>
-                                <img src={personA.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Subject A</div>
-                             </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-6">
-                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
-                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500"/>
-                                </div>
-                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Person 1</span>
-                            </div>
-                        )}
-                        <input id="soul-a-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonA({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                     </div>
-                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-pink-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('soul-b-upload')?.click()}>
-                        {personB ? (
-                             <>
-                                <img src={personB.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Subject B</div>
-                             </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-6">
-                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
-                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-pink-500"/>
-                                </div>
-                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Person 2</span>
-                            </div>
-                        )}
-                        <input id="soul-b-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setPersonB({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                     </div>
-                </div>
-            }
-            rightContent={
-                <div className="space-y-8">
-                     <VisualSelector 
-                        label="Select Scene Theme" 
-                        options={themes} 
-                        selected={theme} 
-                        onSelect={setTheme} 
-                    />
-                </div>
-            }
-        />
-    );
-};
-
-const MagicApparel: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [model, setModel] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [garment, setGarment] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [type, setType] = useState('top');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const handleGenerate = async () => {
-        if (!model || !garment || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateApparelTryOn(model.base64.base64, model.base64.mimeType, [{ type, base64: garment.base64.base64, mimeType: garment.base64.mimeType }]);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Apparel');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Apparel'] || 3, 'Magic Apparel');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Try-on failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Magic Apparel"
-            icon={<UsersIcon className="w-6 h-6 text-teal-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Apparel'] || 3}
-            isGenerating={loading}
-            canGenerate={!!model && !!garment}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                <div className="h-full flex flex-col gap-6 w-full">
-                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-teal-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('apparel-model')?.click()}>
-                        {model ? (
-                             <>
-                                <img src={model.url} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Model</div>
-                             </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-6">
-                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
-                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500"/>
-                                </div>
-                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Model</span>
-                            </div>
-                        )}
-                        <input id="apparel-model" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setModel({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                     </div>
-                     <div className="flex-1 relative rounded-3xl overflow-hidden border-[3px] border-dotted border-gray-300 bg-gray-50/30 hover:bg-white hover:border-teal-400 transition-all duration-300 group cursor-pointer" onClick={() => document.getElementById('apparel-garment')?.click()}>
-                        {garment ? (
-                             <>
-                                <img src={garment.url} className="w-full h-full object-contain" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-xs font-bold p-3 text-center uppercase tracking-wider">Garment</div>
-                             </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-6">
-                                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-4">
-                                    <UploadIcon className="w-8 h-8 text-gray-300 group-hover:text-teal-500"/>
-                                </div>
-                                <span className="text-lg font-bold text-gray-400 group-hover:text-gray-800 transition-colors">Upload Cloth</span>
-                            </div>
-                        )}
-                        <input id="apparel-garment" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setGarment({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                     </div>
-                </div>
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Garment Type</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setType('top')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'top' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'}`}>
-                                <div className={`p-2 rounded-full ${type === 'top' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
-                                    <GarmentTopIcon className="w-6 h-6"/>
-                                </div>
-                                <span className="font-bold text-sm">Tops</span>
-                            </button>
-                            <button onClick={() => setType('bottom')} className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-300 group ${type === 'bottom' ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md' : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'}`}>
-                                <div className={`p-2 rounded-full ${type === 'bottom' ? 'bg-teal-200' : 'bg-gray-200 group-hover:bg-gray-300'} transition-colors`}>
-                                    <GarmentTrousersIcon className="w-6 h-6"/>
-                                </div>
-                                <span className="font-bold text-sm">Bottoms</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
-        />
-    );
-};
-
-const MagicMockup: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [type, setType] = useState('T-Shirt');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateMockup(image.base64.base64, image.base64.mimeType, type);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Mockup');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Mockup'] || 2, 'Magic Mockup');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-         <FeatureLayout 
-            title="Magic Mockup"
-            icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Mockup'] || 2}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <div className="w-full h-full">
-                        <UploadPlaceholder label="Upload Logo / Design" onClick={() => document.getElementById('mockup-upload')?.click()} />
-                        <input id="mockup-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                )
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <VisualSelector 
-                        label="Product Type" 
-                        options={[
-                            { id: 'T-Shirt', label: 'T-Shirt' },
-                            { id: 'Mug', label: 'Mug' },
-                            { id: 'Phone Case', label: 'Phone Case' },
-                            { id: 'Notebook', label: 'Notebook' },
-                            { id: 'Laptop', label: 'Laptop' },
-                            { id: 'Tote Bag', label: 'Tote Bag' }
-                        ]}
-                        selected={type} 
-                        onSelect={setType} 
-                    />
-                </div>
-            }
-        />
-    );
-};
-
-const CaptionAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [captions, setCaptions] = useState<{caption: string, hashtags: string}[]>([]);
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
-            setCaptions(res);
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['CaptionAI'] || 1, 'CaptionAI');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        alert('Copied!');
-    };
-
-    return (
-        <FeatureLayout 
-            title="CaptionAI"
-            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
-            creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={null} 
-            leftContent={
-                 image ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                        <button onClick={() => setImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <div className="w-full h-full">
-                        <UploadPlaceholder label="Upload Photo" onClick={() => document.getElementById('caption-upload')?.click()} />
-                        <input id="caption-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                )
-            }
-            rightContent={
-                 <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Generated Results</h3>
-                    {captions.length > 0 ? captions.map((c, i) => (
-                        <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-gray-300 shadow-sm relative group transition-all cursor-pointer" onClick={() => copyToClipboard(`${c.caption} ${c.hashtags}`)}>
-                             <p className="text-gray-800 font-medium mb-2 leading-relaxed">"{c.caption}"</p>
-                             <p className="text-blue-600 text-sm font-mono">{c.hashtags}</p>
-                             <div className="absolute top-2 right-2 p-2 text-gray-400 bg-white rounded-lg border border-gray-200 opacity-0 group-hover:opacity-100">
-                                <CopyIcon className="w-4 h-4"/>
-                             </div>
-                        </div>
-                    )) : <div className="h-32 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-white/50 text-sm font-medium">Click generate to see captions</div>}
-                </div>
-            }
-        />
-    );
-};
-
-const ProductStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [productName, setProductName] = useState('');
-    const [vibe, setVibe] = useState('Professional');
-    const [loading, setLoading] = useState(false);
-    const [resultPlan, setResultPlan] = useState<any | null>(null);
-
-    const vibes = [
-        { id: 'Professional', label: 'Professional' },
-        { id: 'Playful', label: 'Playful' },
-        { id: 'Luxury', label: 'Luxury' },
-        { id: 'Eco-Friendly', label: 'Eco-Friendly' }
-    ];
-
-    const handleGenerate = async () => {
-        if (!productImage || !auth.user) return;
-        setLoading(true);
-        try {
-            // Map vibe to description for the service
-            const desc = `A ${vibe} product.`;
-            const res = await generateProductPackPlan(
-                [productImage.base64.base64], 
-                productName, 
-                desc, 
-                { colors: [], fonts: [] }, 
-                '', 
-                []
-            );
-            setResultPlan(res);
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Product Studio'] || 5, 'Product Studio');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Product Studio"
-            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
-            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
-            isGenerating={loading}
-            canGenerate={!!productImage && !!productName}
-            onGenerate={handleGenerate}
-            resultImage={null}
-            leftContent={
-                 resultPlan ? (
-                    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6 p-4 w-full">
-                         <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-[#1A1A1E]">Strategy Plan</h3>
-                            <button onClick={() => setResultPlan(null)} className="text-sm text-gray-500 hover:text-gray-900 underline">Reset</button>
-                         </div>
-                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                             <h4 className="font-bold text-blue-600 mb-4 flex items-center gap-2"><SparklesIcon className="w-4 h-4"/> SEO & Copy</h4>
-                             <div className="space-y-4">
-                                <div>
-                                    <p className="text-xs font-bold text-gray-500 uppercase">SEO Title</p>
-                                    <p className="text-lg font-semibold text-gray-800">{resultPlan.textAssets.seoTitle}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-gray-500 uppercase">Keywords</p>
-                                    <div className="flex flex-wrap gap-2 mt-1">
-                                        {resultPlan.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-gray-100 rounded-md text-sm text-gray-600 border border-gray-200">{k}</span>)}
-                                    </div>
-                                </div>
-                             </div>
-                         </div>
-                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                             <h4 className="font-bold text-purple-600 mb-4 flex items-center gap-2"><PaletteIcon className="w-4 h-4"/> Visual Strategy</h4>
-                             <div className="space-y-3">
-                                {Object.entries(resultPlan.imageGenerationPrompts).map(([key, prompt]: any) => (
-                                    <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                        <p className="text-sm text-gray-700 italic leading-relaxed">"{prompt}"</p>
-                                    </div>
-                                ))}
-                             </div>
-                         </div>
-                    </div>
-                ) : (
-                    productImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                            <img src={productImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                            <button onClick={() => setProductImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                        </div>
-                    ) : (
-                        <div className="w-full h-full">
-                            <UploadPlaceholder label="Upload Product" onClick={() => document.getElementById('prod-upload')?.click()} />
-                            <input id="prod-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setProductImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                        </div>
-                    )
-                )
-            }
-            rightContent={
-                 <div className="space-y-8">
-                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Eco-Water Bottle"/>
-                    <VisualSelector 
-                        label="Brand Vibe" 
-                        options={vibes} 
-                        selected={vibe} 
-                        onSelect={setVibe} 
-                    />
-                </div>
-            }
-        />
-    );
-};
-
-const BrandStylistAI: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [refImage, setRefImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [outputType, setOutputType] = useState('Social Media Post');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const types = [
-        { id: 'Social Media Post', label: 'Social Post' },
-        { id: 'Banner Ad', label: 'Banner Ad' },
-        { id: 'Hero Image', label: 'Hero Image' },
-        { id: 'Product Showcase', label: 'Product Shot' }
-    ];
-
-    const handleGenerate = async () => {
-        if (!refImage || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateBrandStylistImage(refImage.base64.base64, `Create a ${outputType}`);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, 'Brand Stylist AI');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Brand Stylist AI'] || 4, 'Brand Stylist AI');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-         <FeatureLayout 
-            title="Brand Stylist AI"
-            icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>}
-            creditCost={appConfig?.featureCosts['Brand Stylist AI'] || 4}
-            isGenerating={loading}
-            canGenerate={!!refImage}
-            onGenerate={handleGenerate}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            leftContent={
-                refImage ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <img src={refImage.url} className="max-w-full max-h-full rounded-xl shadow-md" />
-                        <button onClick={() => setRefImage(null)} className="absolute top-6 right-6 bg-white p-3 rounded-xl shadow-lg hover:bg-red-50 text-red-500 transition-all hover:scale-105"><TrashIcon className="w-5 h-5"/></button>
-                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide shadow-xl">Reference Style</div>
-                    </div>
-                ) : (
-                    <div className="w-full h-full">
-                        <UploadPlaceholder label="Upload Style Reference" onClick={() => document.getElementById('brand-upload')?.click()} />
-                        <input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={async (e) => { if (e.target.files?.[0]) setRefImage({ url: URL.createObjectURL(e.target.files[0]), base64: await fileToBase64(e.target.files[0]) }) }} />
-                    </div>
-                )
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <VisualSelector 
-                        label="Output Format" 
-                        options={types} 
-                        selected={outputType} 
-                        onSelect={setOutputType} 
-                    />
-                     <div className="p-5 bg-yellow-50/50 rounded-2xl border border-yellow-100 text-xs text-yellow-800/80 font-medium leading-relaxed">
-                        Upload an image that represents your brand style. We will generate new assets matching this exact aesthetic.
-                    </div>
-                </div>
-            }
-        />
-    );
-};
-
-
-const ThumbnailStudio: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; appConfig: AppConfig | null; }> = ({ auth, navigateTo, appConfig }) => {
-    const [activeTab, setActiveTab] = useState<'photo' | 'video'>('photo');
-    const [category, setCategory] = useState<string>('podcast');
-    
-    // Media States
-    const [subjectA, setSubjectA] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
-    const [subjectB, setSubjectB] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ file?: File; url: string; base64: Base64File } | null>(null);
-    const [videoTitle, setVideoTitle] = useState('');
-    
-    // Smart Video Scan States
-    const [isScanningVideo, setIsScanningVideo] = useState(false);
-    const [scannedFrames, setScannedFrames] = useState<{ url: string; base64: Base64File }[]>([]);
-    const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
-    
-    // Generation States
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedThumbnail, setGeneratedThumbnail] = useState<string | null>(null);
+// --- Conversation Overlay Component ---
+const ConversationOverlay: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+    const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+    const [messages, setMessages] = useState<{ role: 'user' | 'model', text: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [statusMessage, setStatusMessage] = useState("");
-    
-    const subjectAInputRef = useRef<HTMLInputElement>(null);
-    const subjectBInputRef = useRef<HTMLInputElement>(null);
-    const referenceInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
+    const sessionRef = useRef<any>(null);
 
-    const categories = [
-        { id: 'podcast', label: 'Podcast', icon: <MicrophoneIcon className="w-6 h-6" /> },
-        { id: 'unboxing', label: 'Unboxing', icon: <CubeIcon className="w-6 h-6" /> },
-        { id: 'gaming', label: 'Gaming', icon: <UsersIcon className="w-6 h-6" /> },
-        { id: 'vlog', label: 'Vlog', icon: <VideoCameraIcon className="w-6 h-6" /> },
-        { id: 'informative', label: 'Informative', icon: <LightbulbIcon className="w-6 h-6" /> },
-    ];
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'A' | 'B' | 'Ref') => {
-        const file = event.target.files?.[0];
-        if (file) {
-             if (!file.type.startsWith('image/')) {
-                setError('Please upload a valid image file.');
-                return;
-            }
-            const base64 = await fileToBase64(file);
-            const data = { file, url: URL.createObjectURL(file), base64 };
-            
-            if (type === 'A') setSubjectA(data);
-            else if (type === 'B') setSubjectB(data);
-            else setReferenceImage(data);
-            
-            setError(null);
-        }
-    };
-
-    const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        
-        setIsScanningVideo(true);
-        setScannedFrames([]);
-        setSuggestedTitles([]);
-        setStatusMessage("Scanning video for best frames...");
-        setError(null);
-
-        try {
-            const frames = await extractFramesFromVideo(file, 6); 
-            setScannedFrames(frames);
-            setStatusMessage("AI is analyzing content & generating titles...");
-            const analysis = await analyzeVideoFrames(frames);
-            setSuggestedTitles(analysis.titles);
-            if (analysis.bestFrameIndex >= 0 && analysis.bestFrameIndex < frames.length) {
-                setSubjectA(frames[analysis.bestFrameIndex]);
-            }
-            setStatusMessage("");
-        } catch (err: any) {
-            console.error(err);
-            setError("Failed to scan video. Please try a shorter video or different format.");
-        } finally {
-            setIsScanningVideo(false);
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!referenceImage || !subjectA || !videoTitle.trim()) {
-            setError("Please provide all required inputs (Category, Content, Title, Reference).");
-            return;
-        }
-        setIsGenerating(true);
-        setError(null);
-        try {
-            setStatusMessage("Researching viral trends for this topic...");
-            const resultBase64 = await generateThumbnail({
-                category: category || 'general',
-                title: videoTitle,
-                referenceImage: referenceImage.base64.base64,
-                subjectA: subjectA.base64.base64,
-                subjectB: subjectB?.base64.base64
-            });
-            const imageUrl = `data:image/png;base64,${resultBase64}`;
-            setGeneratedThumbnail(imageUrl);
-             if (auth.user) {
-                 saveCreation(auth.user.uid, imageUrl, 'Thumbnail Studio');
-                 const updatedProfile = await deductCredits(auth.user.uid, 2, 'Thumbnail Studio');
-                 auth.setUser(prev => prev ? { ...prev, credits: updatedProfile.credits } : null);
-            }
-        } catch (err: any) {
-            setError(err.message || "Failed to generate thumbnail.");
-        } finally {
-            setIsGenerating(false);
-            setStatusMessage("");
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Thumbnail Studio"
-            icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>}
-            creditCost={appConfig?.featureCosts['Thumbnail Studio'] || 2}
-            isGenerating={isGenerating}
-            canGenerate={!!referenceImage && !!subjectA && !!videoTitle}
-            onGenerate={handleGenerate}
-            resultImage={generatedThumbnail}
-            onResetResult={() => setGeneratedThumbnail(null)}
-            leftContent={
-                <div className="h-full w-full overflow-y-auto custom-scrollbar">
-                     <div className="grid grid-cols-2 gap-6 h-full">
-                        <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectAInputRef.current?.click()}>
-                            {subjectA ? (
-                                <img src={subjectA.url} className="w-full h-full object-cover rounded-2xl" />
-                            ) : (
-                                <div className="text-center p-4">
-                                    <UsersIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Main Subject</span>
-                                </div>
-                            )}
-                            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold">REQUIRED</div>
-                        </div>
-
-                        <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => referenceInputRef.current?.click()}>
-                             {referenceImage ? (
-                                <img src={referenceImage.url} className="w-full h-full object-cover rounded-2xl" />
-                            ) : (
-                                <div className="text-center p-4">
-                                    <LightbulbIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Style Reference</span>
-                                </div>
-                            )}
-                            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold">REQUIRED</div>
-                        </div>
-
-                        {category === 'podcast' && (
-                            <div className="aspect-video bg-white border-[3px] border-dotted border-gray-300 rounded-3xl flex flex-col items-center justify-center relative cursor-pointer hover:border-red-400 transition-all duration-300 group shadow-sm hover:shadow-lg" onClick={() => subjectBInputRef.current?.click()}>
-                                {subjectB ? (
-                                    <img src={subjectB.url} className="w-full h-full object-cover rounded-2xl" />
-                                ) : (
-                                    <div className="text-center p-4">
-                                        <UsersIcon className="w-10 h-10 text-gray-300 mx-auto mb-3 group-hover:text-red-500 transition-colors"/>
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-800">Guest (Optional)</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                         {scannedFrames.length > 0 && (
-                             <div className="col-span-2 mt-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                                 <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">Video Frames (Click to Select)</p>
-                                 <div className="flex gap-3 overflow-x-auto pb-2">
-                                     {scannedFrames.map((frame, idx) => (
-                                         <div key={idx} onClick={() => setSubjectA(frame)} className={`w-28 h-20 flex-shrink-0 rounded-xl overflow-hidden border-[3px] cursor-pointer transition-all ${subjectA?.base64.base64 === frame.base64.base64 ? 'border-red-500 ring-2 ring-red-200' : 'border-transparent opacity-70 hover:opacity-100'}`}>
-                                             <img src={frame.url} className="w-full h-full object-cover" />
-                                         </div>
-                                     ))}
-                                 </div>
-                             </div>
-                         )}
-                     </div>
-
-                    <input type="file" ref={subjectAInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'A')} />
-                    <input type="file" ref={subjectBInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'B')} />
-                    <input type="file" ref={referenceInputRef} className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'Ref')} />
-                </div>
-            }
-            rightContent={
-                <div className="space-y-8">
-                    <div>
-                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Category</label>
-                         <div className="grid grid-cols-3 gap-2">
-                            {categories.map(cat => (
-                                <button key={cat.id} onClick={() => setCategory(cat.id)} className={`p-3 rounded-2xl border-2 flex flex-col items-center transition-all duration-300 ${category === cat.id ? 'border-red-500 bg-red-50 text-red-600 shadow-sm' : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
-                                    {cat.icon}<span className="text-[10px] font-bold mt-2">{cat.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Input Source</label>
-                        <div className="flex bg-gray-100 p-1.5 rounded-2xl">
-                            <button onClick={() => setActiveTab('photo')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'photo' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}>Photo Upload</button>
-                            <button onClick={() => setActiveTab('video')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeTab === 'video' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}>Smart Video Scan</button>
-                        </div>
-                        {activeTab === 'video' && (
-                            <div className="mt-4">
-                                 <div className="border-[3px] border-dotted border-red-200 bg-red-50/50 rounded-2xl p-5 text-center cursor-pointer hover:bg-red-50 hover:border-red-300 transition-all" onClick={() => videoInputRef.current?.click()}>
-                                    {isScanningVideo ? (
-                                        <span className="text-sm font-bold text-red-600 flex items-center justify-center gap-2 animate-pulse"><SparklesIcon className="animate-spin w-4 h-4"/> Scanning...</span>
-                                    ) : (
-                                        <span className="text-sm font-bold text-gray-600 flex items-center justify-center gap-2 group-hover:text-red-600 transition-colors"><VideoCameraIcon className="w-5 h-5 text-gray-400"/> Upload Video File</span>
-                                    )}
-                                    <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div>
-                        <InputField 
-                            label="3. Video Title" 
-                            value={videoTitle} 
-                            onChange={(e:any) => setVideoTitle(e.target.value)} 
-                            placeholder="e.g., I Tried iPhone 16..." 
-                        />
-                         {suggestedTitles.length > 0 && (
-                            <div className="mt-3 space-y-2">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase ml-1">AI Suggestions:</p>
-                                {suggestedTitles.slice(0, 3).map((t, i) => (
-                                    <button key={i} onClick={() => setVideoTitle(t)} className="block w-full text-left text-xs font-medium p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl truncate transition-colors border border-blue-100">
-                                        {t}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-2xl font-medium">{error}</div>}
-                    {isGenerating && <div className="text-xs text-center text-gray-400 font-mono animate-pulse">{statusMessage}</div>}
-                </div>
-            }
-        />
-    );
-};
-
-
-const Support: React.FC<{ auth: AuthProps; onClose: () => void }> = ({ auth, onClose }) => {
-    const [isListening, setIsListening] = useState(false);
-    const [status, setStatus] = useState("Connecting...");
-    const [session, setSession] = useState<any>(null);
-    
-    const inputAudioContextRef = useRef<AudioContext | null>(null);
-    const outputAudioContextRef = useRef<AudioContext | null>(null);
-    
     const startSession = async () => {
+        setStatus('connecting');
+        setError(null);
         try {
-            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-            const outputNode = outputAudioContextRef.current?.createGain();
-            if(outputNode && outputAudioContextRef.current) outputNode.connect(outputAudioContextRef.current.destination);
-
-            const sessionPromise = startLiveSession({
-                onopen: () => {
-                    setStatus("Listening...");
-                    setIsListening(true);
-                    
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                        if(!inputAudioContextRef.current) return;
-                        const source = inputAudioContextRef.current.createMediaStreamSource(stream);
-                        const processor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
-                        processor.onaudioprocess = (e) => {
-                             const inputData = e.inputBuffer.getChannelData(0);
-                             const l = inputData.length;
-                             const int16 = new Int16Array(l);
-                             for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-                             const pcmBlob: Blob = {
-                                 data: encode(new Uint8Array(int16.buffer)),
-                                 mimeType: 'audio/pcm;rate=16000',
-                             };
-                             sessionPromise.then(sess => sess.sendRealtimeInput({ media: pcmBlob }));
-                        };
-                        source.connect(processor);
-                        processor.connect(inputAudioContextRef.current.destination);
-                    });
-                },
+            sessionRef.current = await startLiveSession({
+                onopen: () => setStatus('connected'),
                 onmessage: async (msg: LiveServerMessage) => {
-                    if (msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data && outputAudioContextRef.current && outputNode) {
-                        const audioBuffer = await decodeAudioData(
-                            decode(msg.serverContent.modelTurn.parts[0].inlineData.data),
-                            outputAudioContextRef.current,
-                            24000,
-                            1
-                        );
-                        const source = outputAudioContextRef.current.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.connect(outputNode);
-                        source.start();
-                    }
+                    // Handle messages (simplified for overlay)
                 },
-                onerror: (e) => { console.error(e); setStatus("Error"); },
-                onclose: (e) => { setStatus("Disconnected"); setIsListening(false); }
+                onerror: (e) => {
+                   console.error(e);
+                   setError("Connection error.");
+                   setStatus('disconnected');
+                },
+                onclose: () => setStatus('disconnected'),
             });
-            
-            setSession(await sessionPromise);
-
-        } catch (e) {
-            console.error("Failed to start live session", e);
-            setStatus("Failed to connect.");
+        } catch (err) {
+            setError("Failed to start session.");
+            setStatus('disconnected');
         }
     };
 
     useEffect(() => {
-        startSession();
+        if (isOpen) startSession();
         return () => {
-            session?.close();
-            inputAudioContextRef.current?.close();
-            outputAudioContextRef.current?.close();
+             // Cleanup session
         }
-    }, []);
+    }, [isOpen]);
+
+    if (!isOpen) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-[#4D7CFF] p-4 text-white flex justify-between items-center">
-                <h3 className="font-bold flex items-center gap-2"><AudioWaveIcon className="w-5 h-5"/> Live Support</h3>
-                <button onClick={onClose}><XIcon className="w-5 h-5"/></button>
-            </div>
-            <div className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-colors ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-400'}`}>
-                    <MicrophoneIcon className="w-10 h-10" />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md h-[600px] rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
+                <button onClick={onClose} className="absolute top-4 right-4 z-10 bg-gray-100 p-2 rounded-full hover:bg-gray-200"><XIcon className="w-5 h-5"/></button>
+                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-blue-50 to-white">
+                    <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-8 transition-all duration-500 ${status === 'connected' ? 'bg-blue-100 animate-pulse shadow-[0_0_40px_rgba(59,130,246,0.3)]' : 'bg-gray-100'}`}>
+                        <AudioWaveIcon className={`w-12 h-12 ${status === 'connected' ? 'text-blue-600' : 'text-gray-400'}`} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{status === 'connected' ? 'Listening...' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}</h2>
+                    <p className="text-gray-500 text-center">Speak naturally to Pixa for help or guidance.</p>
                 </div>
-                <p className="font-semibold text-gray-800">{status}</p>
-                <p className="text-xs text-gray-500 mt-2">Speak to interact with Pixa AI.</p>
             </div>
         </div>
-    );
-};
+    )
+}
 
-const Profile: React.FC<{ auth: AuthProps; openEditProfileModal: () => void; }> = ({ auth, openEditProfileModal }) => (
-    <div className="p-6 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-[#1A1A1E]">My Profile</h2>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center gap-4 mb-6">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-[#4D7CFF]">
-                    {auth.user?.avatar}
-                </div>
-                <div>
-                    <h3 className="text-xl font-bold text-[#1A1A1E]">{auth.user?.name}</h3>
-                    <p className="text-gray-500">{auth.user?.email}</p>
-                </div>
-            </div>
-            <button onClick={openEditProfileModal} className="bg-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 text-[#1A1A1E]">Edit Profile</button>
-        </div>
-    </div>
-);
 
-const Creations: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View, sectionId?: string) => void; }> = ({ auth, navigateTo }) => {
-    const [creations, setCreations] = useState<Creation[]>([]);
+// --- Creations Grid ---
+const CreationsGrid: React.FC<{ user: User | null }> = ({ user }) => {
+    const [creations, setCreations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     useEffect(() => {
-        if (auth.user) {
-            setIsLoading(true);
-            getCreations(auth.user.uid)
-                .then((res) => setCreations(res as Creation[]))
-                .catch(console.error)
-                .finally(() => setIsLoading(false));
+        if (user) {
+            getCreations(user.uid).then(data => {
+                setCreations(data);
+                setIsLoading(false);
+            });
         }
-    }, [auth.user]);
+    }, [user]);
 
-    const groupCreationsByDate = (creations: Creation[]) => {
-        const groups: { [key: string]: Creation[] } = {};
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        creations.forEach(c => {
-            if (!c.createdAt) return;
-            const date = new Date(c.createdAt.seconds * 1000);
-            let key = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            
-            if (date.toDateString() === today.toDateString()) {
-                key = 'Today';
-            } else if (date.toDateString() === yesterday.toDateString()) {
-                key = 'Yesterday';
-            }
-            
-            if (!groups[key]) {
-                groups[key] = [];
-            }
-            groups[key].push(c);
-        });
-        return groups;
-    };
-
-    const groupedCreations = groupCreationsByDate(creations);
-    const sortedKeys = Object.keys(groupedCreations); // Since creations come sorted desc, groups created in order should correspond.
+    if (isLoading) return <div className="p-8 text-center">Loading creations...</div>;
+    if (creations.length === 0) return <div className="p-8 text-center text-gray-500">No creations yet. Start creating!</div>;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-[#1A1A1E]"><ProjectsIcon className="w-6 h-6"/> My Creations</h2>
-            {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4D7CFF]"></div>
-                </div>
-            ) : creations.length === 0 ? (
-                 <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-                    <div className="inline-block p-4 bg-white rounded-full shadow-sm mb-4">
-                        <PhotoStudioIcon className="w-8 h-8 text-gray-400"/>
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-600">No creations yet</h3>
-                    <p className="text-gray-400 mb-6">Start creating amazing visuals today!</p>
-                    <button onClick={() => navigateTo('dashboard', 'studio')} className="bg-[#F9D230] text-[#1A1A1E] px-6 py-2 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors">Start Creating</button>
-                 </div>
-            ) : (
-                <div className="space-y-10 animate-fadeIn">
-                    {sortedKeys.map(date => (
-                        <div key={date}>
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 pl-1 border-b border-gray-100 pb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-gray-300"></span> {date}
-                            </h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                {groupedCreations[date].map(c => (
-                                    <div key={c.id} className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer bg-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(c.imageUrl)}>
-                                        <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy"/>
-                                         {/* Always visible gradient overlay */}
-                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-4">
-                                             <div className="flex justify-between items-end w-full">
-                                                  <span className="text-white/90 text-[10px] font-bold uppercase tracking-wide line-clamp-1 max-w-[60%]">{c.feature}</span>
-                                                  <div className="flex gap-2">
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            downloadImage(c.imageUrl, `magicpixa-${c.id}.png`);
-                                                        }} 
-                                                        className="p-2 bg-white/10 hover:bg-white/30 text-white rounded-full backdrop-blur-md transition-colors"
-                                                        title="Download"
-                                                    >
-                                                        <DownloadIcon className="w-4 h-4"/>
-                                                    </button>
-                                                    <button 
-                                                        onClick={async (e) => {e.stopPropagation(); if(auth.user && confirm('Are you sure you want to delete this?')) { await deleteCreation(auth.user.uid, c); setCreations(creations.filter(x => x.id !== c.id)); }}} 
-                                                        className="p-2 bg-white/10 hover:bg-red-500/80 text-white rounded-full backdrop-blur-md transition-colors hover:text-white"
-                                                        title="Delete"
-                                                    >
-                                                        <TrashIcon className="w-4 h-4"/>
-                                                    </button>
-                                                  </div>
-                                             </div>
-                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+        <div className="p-8">
+            <h2 className="text-2xl font-bold mb-6">My Creations</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {creations.map(c => (
+                    <div key={c.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative">
+                        <img src={c.imageUrl} alt={c.feature} className="w-full aspect-square object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                             <button onClick={() => downloadImage(c.imageUrl, `creation-${c.id}.png`)} className="p-2 bg-white rounded-full hover:bg-gray-100"><DownloadIcon className="w-5 h-5" /></button>
                         </div>
-                    ))}
-                </div>
-            )}
-            {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
+                        <div className="p-3">
+                            <p className="text-xs font-bold text-gray-500 uppercase">{c.feature}</p>
+                            <p className="text-xs text-gray-400">{c.createdAt?.toDate().toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
 
-const MobileHomeDashboard: React.FC<{ user: User | null; setActiveView: (view: View) => void; }> = ({ user, setActiveView }) => (
-    <div className="p-4 pb-24">
-         <div className="flex items-center justify-between mb-6">
-             <div>
-                 <h1 className="text-2xl font-bold text-[#1A1A1E]">Hello, {user?.name.split(' ')[0] || 'Creator'} 👋</h1>
-                 <p className="text-sm text-gray-500">What will you create today?</p>
+// --- Dashboard Home ---
+const DashboardHome: React.FC<{ user: User | null; setActiveView: (view: View) => void }> = ({ user, setActiveView }) => (
+    <div className="p-8 max-w-5xl mx-auto">
+        <div className="mb-8">
+            <h1 className="text-3xl font-bold text-[#1A1A1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
+            <p className="text-[#5F6368]">What would you like to create today?</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div onClick={() => setActiveView('studio')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
+                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                     <PhotoStudioIcon className="w-6 h-6 text-blue-600" />
+                 </div>
+                 <h3 className="font-bold text-lg mb-2">Magic Studio</h3>
+                 <p className="text-sm text-gray-500">Create professional product shots and model images.</p>
              </div>
-             <div className="bg-[#6EFACC]/20 px-3 py-1 rounded-full text-[#1A1A1E] text-sm font-bold flex items-center gap-1 border border-[#6EFACC]/30">
-                 <SparklesIcon className="w-4 h-4"/> {user?.credits || 0}
+             <div onClick={() => setActiveView('thumbnail_studio')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
+                 <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                     <ThumbnailIcon className="w-6 h-6 text-red-600" />
+                 </div>
+                 <h3 className="font-bold text-lg mb-2">Thumbnail Studio</h3>
+                 <p className="text-sm text-gray-500">Generate click-worthy YouTube thumbnails.</p>
              </div>
-         </div>
-         <div className="grid grid-cols-2 gap-4">
-             {[
-                 { id: 'studio', label: 'Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-100 text-blue-600' },
-                 { id: 'thumbnail_studio', label: 'Thumbnails', icon: ThumbnailIcon, color: 'bg-red-100 text-red-600' },
-                 { id: 'interior', label: 'Interior', icon: HomeIcon, color: 'bg-orange-100 text-orange-600' },
-                 { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-100 text-pink-600' },
-             ].map(item => (
-                 <button key={item.id} onClick={() => setActiveView(item.id as View)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2">
-                     <div className={`p-3 rounded-full ${item.color}`}><item.icon className="w-6 h-6"/></div>
-                     <span className="font-semibold text-sm text-gray-700">{item.label}</span>
-                 </button>
-             ))}
-         </div>
+             <div onClick={() => setActiveView('interior')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
+                 <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                     <HomeIcon className="w-6 h-6 text-orange-600" />
+                 </div>
+                 <h3 className="font-bold text-lg mb-2">Magic Interior</h3>
+                 <p className="text-sm text-gray-500">Redesign rooms in any style instantly.</p>
+             </div>
+        </div>
     </div>
 );
 
-const Dashboard: React.FC<any> = ({ user, navigateTo, setActiveView, creations }) => {
-    const tools = [
-        { id: 'studio', label: 'Magic Photo Studio', desc: 'Pro product photography.', icon: PhotoStudioIcon, color: 'bg-blue-500', bg: 'bg-blue-50' },
-        { id: 'thumbnail_studio', label: 'Thumbnail Studio', desc: 'Viral YouTube thumbnails.', icon: ThumbnailIcon, color: 'bg-red-500', bg: 'bg-red-50' },
-        { id: 'product_studio', label: 'Product Studio', desc: 'Full product marketing packs.', icon: ProductStudioIcon, color: 'bg-indigo-500', bg: 'bg-indigo-50' },
-        { id: 'brand_stylist', label: 'Brand Stylist', desc: 'Style transfer for brands.', icon: LightbulbIcon, color: 'bg-yellow-500', bg: 'bg-yellow-50' },
-        { id: 'interior', label: 'Magic Interior', desc: 'Redesign any room instantly.', icon: HomeIcon, color: 'bg-orange-500', bg: 'bg-orange-50' },
-        { id: 'soul', label: 'Magic Soul', desc: 'Merge people into one photo.', icon: UsersIcon, color: 'bg-pink-500', bg: 'bg-pink-50' },
-        { id: 'apparel', label: 'Magic Apparel', desc: 'Virtual clothing try-on.', icon: UsersIcon, color: 'bg-teal-500', bg: 'bg-teal-50' },
-        { id: 'colour', label: 'Photo Colourize', desc: 'Restore vintage photos.', icon: PaletteIcon, color: 'bg-rose-500', bg: 'bg-rose-50' },
-        { id: 'caption', label: 'CaptionAI', desc: 'Social media captions.', icon: CaptionIcon, color: 'bg-amber-500', bg: 'bg-amber-50' },
-        { id: 'mockup', label: 'Magic Mockup', desc: 'Realistic product mockups.', icon: MockupIcon, color: 'bg-cyan-500', bg: 'bg-cyan-50' },
-    ];
+const DashboardPage: React.FC<DashboardPageProps> = ({ 
+    navigateTo, 
+    auth, 
+    activeView, 
+    setActiveView, 
+    openEditProfileModal,
+    isConversationOpen,
+    setIsConversationOpen,
+    appConfig,
+    setAppConfig 
+}) => {
+    
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const recentCreations = creations?.slice(0, 4) || [];
-
+    const renderContent = () => {
+         switch(activeView) {
+             case 'dashboard': return <DashboardHome user={auth.user} setActiveView={setActiveView} />;
+             case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+             case 'billing': return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
+             case 'creations': return <CreationsGrid user={auth.user} />;
+             case 'admin': return auth.user?.isAdmin ? <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={(cfg) => setAppConfig(cfg)} /> : <DashboardHome user={auth.user} setActiveView={setActiveView} />;
+             case 'thumbnail_studio': return <div className="p-10 text-center">Thumbnail Studio (Coming Soon)</div>; // Placeholder
+             case 'interior': return <div className="p-10 text-center">Magic Interior (Coming Soon)</div>; // Placeholder
+             default: return <div className="p-10 text-center text-gray-500">Feature Coming Soon</div>;
+         }
+    }
+    
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-12">
-            {/* Welcome Banner */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#1A1A1E] to-[#2d2d2d] rounded-3xl p-8 sm:p-12 text-white shadow-2xl">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
-                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <div>
-                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}! 👋</h1>
-                        <p className="text-gray-400 text-lg">Ready to create something amazing today?</p>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                        <div className="p-3 bg-[#6EFACC]/20 rounded-full">
-                            <SparklesIcon className="w-8 h-8 text-[#6EFACC]" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-400 font-medium">Available Credits</p>
-                            <p className="text-2xl font-bold">{user?.credits || 0}</p>
-                        </div>
-                        <button onClick={() => setActiveView('billing')} className="ml-4 px-4 py-2 bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] text-sm font-bold rounded-lg transition-colors">
-                            Top Up
-                        </button>
-                    </div>
-                 </div>
+        <div className="min-h-screen bg-[#F9FAFB]">
+            <Header navigateTo={navigateTo} auth={{ ...auth, isDashboard: true, setActiveView, openConversation: () => setIsConversationOpen(true) }} />
+            <div className="flex pt-0">
+                 <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
+                 <main className="flex-1 min-h-[calc(100vh-73px)]">
+                    {renderContent()}
+                 </main>
             </div>
-
-            {/* Recent Creations */}
-            {recentCreations.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-[#1A1A1E] flex items-center gap-2">
-                            <ProjectsIcon className="w-5 h-5 text-gray-500" /> Recent Projects
-                        </h2>
-                        <button onClick={() => setActiveView('creations')} className="text-yellow-600 text-sm font-semibold hover:underline">View All</button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {recentCreations.map((c: any) => (
-                            <div key={c.id} className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 cursor-pointer" onClick={() => setActiveView('creations')}>
-                                <img src={c.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                    <span className="text-white text-xs font-medium truncate">{c.feature}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Tools Grid */}
-            <div className="space-y-6">
-                <h2 className="text-xl font-bold text-[#1A1A1E]">All Creative Tools</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {tools.map(item => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => setActiveView(item.id as View)} 
-                            className="group bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-left flex flex-col h-full"
-                        >
-                            <div className="flex items-start justify-between w-full mb-4">
-                                <div className={`p-3.5 rounded-xl ${item.bg} ${item.color.replace('bg-', 'text-')} group-hover:scale-110 transition-transform duration-300`}>
-                                    <item.icon className="w-7 h-7"/>
-                                </div>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
-                                    <ArrowRightIcon className="w-5 h-5"/>
-                                </div>
-                            </div>
-                            <h3 className="font-bold text-[#1A1A1E] mb-1">{item.label}</h3>
-                            <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <ConversationOverlay isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
         </div>
-    );
-};
-
-const DashboardPage: React.FC<DashboardPageProps> = ({ navigateTo, auth, activeView, setActiveView, openEditProfileModal, isConversationOpen, setIsConversationOpen, appConfig, setAppConfig }) => {
-  const [creations, setCreations] = useState<Creation[]>([]);
-
-   useEffect(() => {
-    if (auth.user) {
-      getCreations(auth.user.uid).then((res) => setCreations(res as Creation[])).catch(console.error);
-    }
-  }, [auth.user]);
-
-  const renderContent = () => {
-    switch (activeView) {
-      case 'home_dashboard': return <MobileHomeDashboard user={auth.user} setActiveView={setActiveView} />;
-      case 'dashboard': return <Dashboard user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} creations={creations} />;
-      case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'interior': return <MagicInterior auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'colour': return <MagicPhotoColour auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'soul': return <MagicSoul auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'apparel': return <MagicApparel auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'mockup': return <MagicMockup auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'caption': return <CaptionAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'product_studio': return <ProductStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'brand_stylist': return <BrandStylistAI auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'thumbnail_studio': return <ThumbnailStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-      case 'creations': return <Creations auth={auth} navigateTo={navigateTo} />;
-      case 'billing': return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
-      case 'profile': return <Profile auth={auth} openEditProfileModal={openEditProfileModal} />;
-      case 'admin': return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
-      default: return <Dashboard user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} creations={creations} />;
-    }
-  };
-
-  const dashboardAuthProps = {
-      ...auth,
-      setActiveView,
-      openConversation: () => setIsConversationOpen(true),
-      isDashboard: true,
-      showBackButton: activeView !== 'dashboard' && activeView !== 'home_dashboard',
-      handleBack: () => setActiveView('dashboard'),
-  };
-
-  return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col">
-      <Header navigateTo={navigateTo} auth={dashboardAuthProps} />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
-        <main className="flex-1 overflow-y-auto">
-          {renderContent()}
-        </main>
-      </div>
-      {isConversationOpen && <Support auth={auth} onClose={() => setIsConversationOpen(false)} />}
-    </div>
-  );
-};
+    )
+}
 
 export default DashboardPage;
