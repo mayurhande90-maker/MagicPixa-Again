@@ -380,7 +380,7 @@ export const generateModelShot = async (
   ): Promise<string> => {
     const ai = getAiClient();
     try {
-      // Detailed Model Shot System Prompt with HYPER-REALISM
+      // Detailed Model Shot System Prompt with HYPER-REALISM and INTELLIGENT FRAMING
       let userSelectionPart = "";
       
       if (inputs.freeformPrompt) {
@@ -403,6 +403,18 @@ export const generateModelShot = async (
   - LIGHTING: Cinematic studio lighting with realistic falloff. 
   - PHYSICS: The product must have weight. Fingers must press against it slightly. Clothing must drape with gravity.
   - FILM GRAIN: Add subtle film grain to match high-end editorial photography.
+
+  *** INTELLIGENT PRODUCT ANALYSIS & FRAMING LOGIC ***
+  1. **DETECT PRODUCT TYPE**:
+     - IF 'FOOTWEAR/SHOES': Camera MUST be **LOW ANGLE** or focus on **LEGS/FEET**. Do NOT show full body if it makes the shoes tiny. The shoes are the HERO.
+     - IF 'TROUSERS/JEANS/PANTS': Camera MUST capture **WAIST-DOWN** or **FULL BODY**. Ensure the pants are fully visible and fitting well. Do NOT crop the pants.
+     - IF 'SMALL ITEM' (Jewelry, Jar, Bottle, Watch): Camera MUST be **MACRO / CLOSE-UP** or **PORTRAIT**. Focus on the Hand/Face interaction. Do NOT do a wide full-body shot where the product is invisible.
+     - IF 'APPAREL TOP': Focus on **TORSO/UPPER BODY**.
+  
+  *** PHYSICAL SCALE PROTOCOL ***
+  - **MANDATORY**: Estimate the real-world size of the uploaded object (e.g., a 5cm jar vs a 30cm bag).
+  - Scale the object perfectly relative to the human model's hands/body.
+  - A 50ml jar must fit in the palm. A tote bag must hang from the shoulder at the correct size.
   
   INPUTS:
   ${userSelectionPart}
@@ -438,7 +450,9 @@ export const generateModelShot = async (
   Keep all product text sharp and readable. Do not distort brand logo.
   
   FINAL AI PROMPT:
-  “Generate a photorealistic RAW photograph using the uploaded product. Create a model matching: ${inputs.freeformPrompt || `${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}`}. Place the product naturally with correct scale and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
+  “Generate a photorealistic RAW photograph using the uploaded product. Create a model matching: ${inputs.freeformPrompt || `${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}`}. 
+  STRICTLY FOLLOW FRAMING LOGIC based on product type (Shoes=Low Angle, Pants=Waist Down, Small=Close Up). 
+  Place the product naturally with correct PHYSICAL SCALE and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
