@@ -266,7 +266,7 @@ export const analyzeProductImage = async (
 export const analyzeProductForModelPrompts = async (
     base64ImageData: string,
     mimeType: string
-): Promise<string[]> => {
+): Promise<{ display: string; prompt: string }[]> => {
     const ai = getAiClient();
     try {
         const prompt = `Analyse the uploaded product in depth.
@@ -276,15 +276,11 @@ export const analyzeProductForModelPrompts = async (
         You MUST vary the **SHOT TYPE** (Close-up, Wide, Mid) and **COMPOSITION** (Single Model vs Group) in your suggestions. 
         Do NOT just give 4 generic "person holding product" prompts.
         
-        Format them as conversational descriptions including the shot type and composition.
+        Return a JSON array of objects with two keys:
+        1. "display": A short, catchy title for the user interface (max 5 words). e.g., "Urban Street Style", "Cozy Home Vibe".
+        2. "prompt": The detailed, descriptive prompt for the image generator. e.g., "Wide angle street style shot of a young woman..."
         
-        Examples of variety to emulate:
-        - "Wide group shot of friends laughing at a party holding this drink" (Group/Wide)
-        - "Tight macro close-up of a female hand applying this cream" (Single/Close)
-        - "Mid-shot of a professional man in a suit holding this device" (Single/Mid)
-        - "Lifestyle shot of a couple using this product together outdoors" (Group/Lifestyle)
-        
-        Return ONLY a JSON array of 4 string prompts.`;
+        Return ONLY the JSON array.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -298,25 +294,32 @@ export const analyzeProductForModelPrompts = async (
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.ARRAY,
-                    items: { type: Type.STRING }
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            display: { type: Type.STRING },
+                            prompt: { type: Type.STRING }
+                        },
+                        required: ["display", "prompt"]
+                    }
                 }
             }
         });
         const jsonText = response.text?.trim();
         if (!jsonText) return [
-            "Close-up of a model holding the product near their face",
-            "Wide lifestyle shot of a group of friends with the product",
-            "Mid-shot of a male model using the product in a studio",
-            "Tight detail shot of hands interacting with the product"
+            { display: "Close-Up Portrait", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
+            { display: "Lifestyle Group", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
+            { display: "Studio Professional", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
+            { display: "Macro Detail", prompt: "Tight detail macro shot of hands holding the product to show texture" }
         ];
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product for model prompts:", e);
         return [
-            "Close-up of a model holding the product near their face",
-            "Wide lifestyle shot of a group of friends with the product",
-            "Mid-shot of a male model using the product in a studio",
-            "Tight detail shot of hands interacting with the product"
+            { display: "Close-Up Portrait", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
+            { display: "Lifestyle Group", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
+            { display: "Studio Professional", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
+            { display: "Macro Detail", prompt: "Tight detail macro shot of hands holding the product to show texture" }
         ];
     }
 }

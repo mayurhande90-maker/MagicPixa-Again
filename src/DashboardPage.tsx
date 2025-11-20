@@ -59,7 +59,8 @@ import {
     CheckIcon,
     RetryIcon,
     PencilIcon,
-    ArrowLeftIcon
+    ArrowLeftIcon,
+    CreditCardIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -371,7 +372,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isAnalyzingModel, setIsAnalyzingModel] = useState(false);
     const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
-    const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<string[]>([]);
+    const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<{ display: string; prompt: string }[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
     // Mode Selection State
@@ -465,12 +466,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                  setSuggestedModelPrompts(prompts);
              } catch (e) {
                  console.error(e);
-                 // Fallback
+                 // Fallback structure
                  setSuggestedModelPrompts([
-                    "Young female model holding the product near her face",
-                    "Male model holding the product in a studio setting",
-                    "Lifestyle shot of the product on a table next to a person",
-                    "Close up of hands interacting with the product"
+                    { display: "Close-Up Portrait", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
+                    { display: "Lifestyle Group", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" }
                  ]);
              } finally {
                  setIsAnalyzingModel(false);
@@ -561,7 +560,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSelectedPrompt(null);
     };
 
-    const canGenerate = !!image && !isAnalyzing && !!isAnalyzingModel && !!studioMode && (
+    const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
             : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming))
@@ -754,21 +753,25 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((prompt, idx) => {
+                                                    {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
+                                                        const isModel = studioMode === 'model';
+                                                        const displayText = isModel ? (promptItem as any).display : promptItem;
+                                                        const promptValue = isModel ? (promptItem as any).prompt : promptItem;
+
                                                         return (
                                                             <button 
                                                                 key={idx} 
-                                                                onClick={() => handlePromptSelect(prompt)}
+                                                                onClick={() => handlePromptSelect(promptValue)}
                                                                 style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
                                                                 className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
-                                                                    selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
+                                                                    selectedPrompt === promptValue ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
                                                                 }`}
                                                             >
-                                                                <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                                <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
                                                                 
-                                                                <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
-                                                                    <span className={`text-xs font-medium italic text-left ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
-                                                                        "{prompt}"
+                                                                <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === promptValue ? 'bg-transparent' : 'bg-white'}`}>
+                                                                    <span className={`text-xs font-medium italic text-left ${selectedPrompt === promptValue ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                                        "{displayText}"
                                                                     </span>
                                                                 </div>
                                                             </button>
@@ -905,171 +908,109 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- Conversation Overlay Component ---
-const ConversationOverlay: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-    const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-    const [messages, setMessages] = useState<{ role: 'user' | 'model', text: string }[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const sessionRef = useRef<any>(null);
-
-    const startSession = async () => {
-        setStatus('connecting');
-        setError(null);
-        try {
-            sessionRef.current = await startLiveSession({
-                onopen: () => setStatus('connected'),
-                onmessage: async (msg: LiveServerMessage) => {
-                    // Handle messages (simplified for overlay)
-                },
-                onerror: (e) => {
-                   console.error(e);
-                   setError("Connection error.");
-                   setStatus('disconnected');
-                },
-                onclose: () => setStatus('disconnected'),
-            });
-        } catch (err) {
-            setError("Failed to start session.");
-            setStatus('disconnected');
-        }
-    };
-
-    useEffect(() => {
-        if (isOpen) startSession();
-        return () => {
-             // Cleanup session
-        }
-    }, [isOpen]);
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md h-[600px] rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
-                <button onClick={onClose} className="absolute top-4 right-4 z-10 bg-gray-100 p-2 rounded-full hover:bg-gray-200"><XIcon className="w-5 h-5"/></button>
-                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-blue-50 to-white">
-                    <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-8 transition-all duration-500 ${status === 'connected' ? 'bg-blue-100 animate-pulse shadow-[0_0_40px_rgba(59,130,246,0.3)]' : 'bg-gray-100'}`}>
-                        <AudioWaveIcon className={`w-12 h-12 ${status === 'connected' ? 'text-blue-600' : 'text-gray-400'}`} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{status === 'connected' ? 'Listening...' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}</h2>
-                    <p className="text-gray-500 text-center">Speak naturally to Pixa for help or guidance.</p>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-
-// --- Creations Grid ---
-const CreationsGrid: React.FC<{ user: User | null }> = ({ user }) => {
-    const [creations, setCreations] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        if (user) {
-            getCreations(user.uid).then(data => {
-                setCreations(data);
-                setIsLoading(false);
-            });
-        }
-    }, [user]);
-
-    if (isLoading) return <div className="p-8 text-center">Loading creations...</div>;
-    if (creations.length === 0) return <div className="p-8 text-center text-gray-500">No creations yet. Start creating!</div>;
-
-    return (
-        <div className="p-8">
-            <h2 className="text-2xl font-bold mb-6">My Creations</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {creations.map(c => (
-                    <div key={c.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative">
-                        <img src={c.imageUrl} alt={c.feature} className="w-full aspect-square object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                             <button onClick={() => downloadImage(c.imageUrl, `creation-${c.id}.png`)} className="p-2 bg-white rounded-full hover:bg-gray-100"><DownloadIcon className="w-5 h-5" /></button>
-                        </div>
-                        <div className="p-3">
-                            <p className="text-xs font-bold text-gray-500 uppercase">{c.feature}</p>
-                            <p className="text-xs text-gray-400">{c.createdAt?.toDate().toLocaleDateString()}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-// --- Dashboard Home ---
-const DashboardHome: React.FC<{ user: User | null; setActiveView: (view: View) => void }> = ({ user, setActiveView }) => (
-    <div className="p-8 max-w-5xl mx-auto">
-        <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#1A1A1E]">Welcome back, {user?.name.split(' ')[0]}!</h1>
-            <p className="text-[#5F6368]">What would you like to create today?</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             <div onClick={() => setActiveView('studio')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
-                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                     <PhotoStudioIcon className="w-6 h-6 text-blue-600" />
-                 </div>
-                 <h3 className="font-bold text-lg mb-2">Magic Studio</h3>
-                 <p className="text-sm text-gray-500">Create professional product shots and model images.</p>
-             </div>
-             <div onClick={() => setActiveView('thumbnail_studio')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
-                 <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                     <ThumbnailIcon className="w-6 h-6 text-red-600" />
-                 </div>
-                 <h3 className="font-bold text-lg mb-2">Thumbnail Studio</h3>
-                 <p className="text-sm text-gray-500">Generate click-worthy YouTube thumbnails.</p>
-             </div>
-             <div onClick={() => setActiveView('interior')} className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group">
-                 <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                     <HomeIcon className="w-6 h-6 text-orange-600" />
-                 </div>
-                 <h3 className="font-bold text-lg mb-2">Magic Interior</h3>
-                 <p className="text-sm text-gray-500">Redesign rooms in any style instantly.</p>
-             </div>
-        </div>
-    </div>
-);
-
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
     auth, 
     activeView, 
     setActiveView, 
     openEditProfileModal, 
-    isConversationOpen,
-    setIsConversationOpen,
-    appConfig,
+    isConversationOpen, 
+    setIsConversationOpen, 
+    appConfig, 
     setAppConfig 
 }) => {
     
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
     const renderContent = () => {
-         switch(activeView) {
-             case 'dashboard': return <DashboardHome user={auth.user} setActiveView={setActiveView} />;
-             case 'studio': return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
-             case 'billing': return <Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} />;
-             case 'creations': return <CreationsGrid user={auth.user} />;
-             case 'admin': return auth.user?.isAdmin ? <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={(cfg) => setAppConfig(cfg)} /> : <DashboardHome user={auth.user} setActiveView={setActiveView} />;
-             case 'thumbnail_studio': return <div className="p-10 text-center">Thumbnail Studio (Coming Soon)</div>; // Placeholder
-             case 'interior': return <div className="p-10 text-center">Magic Interior (Coming Soon)</div>; // Placeholder
-             default: return <div className="p-10 text-center text-gray-500">Feature Coming Soon</div>;
-         }
-    }
-    
+        switch (activeView) {
+            case 'studio':
+                return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+            case 'product_studio':
+                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+            case 'billing':
+                if (auth.user) {
+                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} />;
+                }
+                return null;
+            case 'admin':
+                return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
+            case 'dashboard':
+                return (
+                    <div className="p-8">
+                        <h1 className="text-3xl font-bold text-[#1A1A1E] mb-6">Welcome back, {auth.user?.name}!</h1>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <div 
+                                onClick={() => setActiveView('studio')}
+                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all"
+                             >
+                                 <PhotoStudioIcon className="w-10 h-10 mb-4"/>
+                                 <h3 className="text-xl font-bold">Magic Studio</h3>
+                                 <p className="text-blue-100 text-sm mt-2">Create professional product & model shots.</p>
+                             </div>
+                             <div 
+                                onClick={() => setActiveView('billing')}
+                                className="bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
+                             >
+                                 <CreditCardIcon className="w-10 h-10 mb-4 text-green-500"/>
+                                 <h3 className="text-xl font-bold text-gray-800">Credits: {auth.user?.credits}</h3>
+                                 <p className="text-gray-500 text-sm mt-2">Manage billing and top up.</p>
+                             </div>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <SparklesIcon className="w-8 h-8"/>
+                         </div>
+                         <h3 className="text-lg font-bold">Feature Coming Soon</h3>
+                         <p className="text-sm">We are working hard to bring you this feature.</p>
+                    </div>
+                );
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-[#F9FAFB]">
-            <Header navigateTo={navigateTo} auth={{ ...auth, isDashboard: true, setActiveView, openConversation: () => setIsConversationOpen(true) }} />
-            <div className="flex pt-0">
-                 <Sidebar user={auth.user} activeView={activeView} setActiveView={setActiveView} navigateTo={navigateTo} appConfig={appConfig} />
-                 <main className="flex-1 min-h-[calc(100vh-73px)]">
+        <div className="flex flex-col h-screen bg-white">
+             <Header 
+                navigateTo={navigateTo} 
+                auth={{
+                    ...auth, 
+                    isDashboard: true, 
+                    setActiveView, 
+                    openConversation: () => setIsConversationOpen(true)
+                }} 
+            />
+            <div className="flex flex-1 overflow-hidden">
+                <Sidebar 
+                    user={auth.user} 
+                    activeView={activeView} 
+                    setActiveView={setActiveView} 
+                    navigateTo={navigateTo}
+                    appConfig={appConfig}
+                />
+                <main className="flex-1 overflow-y-auto bg-[#F6F7FA] relative">
                     {renderContent()}
-                 </main>
+                </main>
             </div>
-            <ConversationOverlay isOpen={isConversationOpen} onClose={() => setIsConversationOpen(false)} />
+            {isConversationOpen && (
+                <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-2xl h-[600px] flex flex-col relative overflow-hidden">
+                         <button onClick={() => setIsConversationOpen(false)} className="absolute top-4 right-4 z-10 p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                         </button>
+                         <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                             </div>
+                             <h2 className="text-2xl font-bold mb-2">Magic Conversation</h2>
+                             <p className="text-gray-500">Voice mode is active. Speak to interact with the AI assistant.</p>
+                         </div>
+                    </div>
+                </div>
+            )}
         </div>
-    )
-}
+    );
+};
 
 export default DashboardPage;
