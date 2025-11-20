@@ -9,7 +9,8 @@ import {
     getCreations, 
     saveCreation, 
     deleteCreation, 
-    deductCredits 
+    deductCredits,
+    completeDailyMission
 } from './firebase';
 import { 
     generateInteriorDesign, 
@@ -30,6 +31,7 @@ import {
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { extractFramesFromVideo } from './utils/videoUtils';
+import { getDailyMission, isMissionCompletedToday, Mission, MissionConfig } from './utils/dailyMissions';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -170,6 +172,27 @@ const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ image
         </div>
     </div>
 );
+
+const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = ({ reward, onClose }) => (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+         <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
+             {/* Confetti CSS placeholder - would use a library in real app */}
+             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-6xl animate-pulse">🎉</div>
+             
+             <h2 className="text-2xl font-bold text-[#1A1A1E] mt-4 mb-2">Mission Accomplished!</h2>
+             <p className="text-gray-500 mb-6">You've unlocked your daily creative reward.</p>
+             
+             <div className="bg-green-50 text-green-600 font-bold text-3xl py-4 rounded-2xl mb-6 border border-green-100">
+                 +{reward} Credits
+             </div>
+             
+             <button onClick={onClose} className="w-full bg-[#F9D230] text-[#1A1A1E] font-bold py-3 rounded-xl hover:bg-[#dfbc2b] transition-colors">
+                 Awesome!
+             </button>
+         </div>
+    </div>
+);
+
 
 // --- Standardized Layout Component (Strict 2-Column) ---
 const FeatureLayout: React.FC<{
@@ -333,6 +356,287 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
     </div>
 );
 
+const StandardFeature: React.FC<{
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    cost: number;
+    auth: AuthProps;
+    onGenerate: (image: { base64: string; mimeType: string }, prompt?: string) => Promise<string>;
+}> = ({ title, description, icon, cost, auth, onGenerate }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleGenerateClick = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await onGenerate(image.base64, prompt);
+            const url = res.startsWith('data:') ? res : `data:image/png;base64,${res}`;
+            setResult(url);
+            const updated = await deductCredits(auth.user.uid, cost, title);
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+            saveCreation(auth.user.uid, url, title);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleNewSession = () => {
+        setImage(null);
+        setResult(null);
+        setPrompt('');
+    };
+
+    return (
+        <FeatureLayout
+            title={title}
+            description={description}
+            icon={icon}
+            creditCost={cost}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerateClick}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            onNewSession={handleNewSession}
+            leftContent={
+                image ? (
+                    <div className="relative h-[400px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
+                         <img src={image.url} className="max-w-full max-h-full object-contain" />
+                         <button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform"
+                         >
+                            <PencilIcon className="w-5 h-5 text-gray-600"/>
+                         </button>
+                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </div>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Image" onClick={() => fileInputRef.current?.click()} />
+                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </>
+                )
+            }
+            rightContent={
+                <div className="animate-fadeIn space-y-4">
+                    <TextAreaField 
+                        label="Prompt / Instructions (Optional)" 
+                        value={prompt} 
+                        onChange={(e: any) => setPrompt(e.target.value)} 
+                        placeholder="Describe your desired result or style..." 
+                    />
+                </div>
+            }
+        />
+    );
+};
+
+const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [results, setResults] = useState<{ caption: string; hashtags: string }[] | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResults(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
+            setResults(res);
+            const cost = appConfig?.featureCosts['CaptionAI'] || 1;
+            const updated = await deductCredits(auth.user.uid, cost, 'CaptionAI');
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <FeatureLayout
+            title="CaptionAI"
+            description="Instant social media captions and hashtags."
+            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+            creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={null} // Custom result display
+            onResetResult={() => setResults(null)}
+            onNewSession={() => { setImage(null); setResults(null); }}
+            leftContent={
+                 image ? (
+                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
+                         <img src={image.url} className="max-w-full max-h-full object-contain" />
+                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md"><PencilIcon className="w-5 h-5"/></button>
+                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </div>
+                ) : (
+                    <>
+                        <UploadPlaceholder label="Upload Photo" onClick={() => fileInputRef.current?.click()} />
+                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </>
+                )
+            }
+            rightContent={
+                results ? (
+                    <div className="space-y-4 animate-fadeIn h-full overflow-y-auto custom-scrollbar">
+                        <h3 className="font-bold text-gray-700">Generated Captions</h3>
+                        {results.map((item, idx) => (
+                            <div key={idx} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all group">
+                                <p className="text-gray-800 text-sm mb-2">{item.caption}</p>
+                                <p className="text-blue-500 text-xs font-medium">{item.hashtags}</p>
+                                <button 
+                                    onClick={() => navigator.clipboard.writeText(`${item.caption}\n\n${item.hashtags}`)}
+                                    className="mt-3 text-xs font-bold text-gray-400 hover:text-blue-600 flex items-center gap-1"
+                                >
+                                    <CopyIcon className="w-4 h-4" /> Copy
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
+                        Results will appear here...
+                    </div>
+                )
+            }
+        />
+    );
+};
+
+const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [productName, setProductName] = useState('');
+    const [description, setDescription] = useState('');
+    const [result, setResult] = useState<any>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+         if (!image || !auth.user) return;
+         setLoading(true);
+         try {
+             const res = await generateProductPackPlan(
+                 [image.base64.base64],
+                 productName,
+                 description,
+                 { colors: [], fonts: [] },
+                 "",
+                 []
+             );
+             setResult(res);
+             const cost = appConfig?.featureCosts['Product Studio'] || 5;
+             const updated = await deductCredits(auth.user.uid, cost, 'Product Studio');
+             auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+         } catch(e) {
+             console.error(e);
+             alert("Failed to generate plan");
+         } finally {
+             setLoading(false);
+         }
+    };
+
+    return (
+        <FeatureLayout
+            title="Product Studio"
+            description="Generate a full marketing pack."
+            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
+            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
+            isGenerating={loading}
+            canGenerate={!!image && !!productName}
+            onGenerate={handleGenerate}
+            resultImage={null}
+            onResetResult={() => setResult(null)}
+            onNewSession={() => { setImage(null); setResult(null); setProductName(''); setDescription(''); }}
+            leftContent={
+                result ? (
+                     <div className="h-[560px] overflow-y-auto p-4 bg-white rounded-3xl border border-gray-200 custom-scrollbar">
+                         <h3 className="text-xl font-bold text-gray-800 mb-4">Marketing Plan</h3>
+                         <div className="space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Image Prompts</h4>
+                                {Object.entries(result.imageGenerationPrompts).map(([key, val]: any) => (
+                                    <div key={key} className="mb-3 p-3 bg-gray-50 rounded-lg text-sm">
+                                        <span className="font-bold text-gray-700 capitalize block mb-1">{key.replace(/([A-Z])/g, ' $1')}</span>
+                                        <p className="text-gray-600">{val}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Text Assets</h4>
+                                <p className="font-bold text-gray-800 mb-2">{result.textAssets.seoTitle}</p>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {result.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">{k}</span>)}
+                                </div>
+                                <div className="space-y-2">
+                                    {result.textAssets.captions.map((c: any, i: number) => (
+                                        <p key={i} className="text-sm text-gray-600 italic">"{c.text}"</p>
+                                    ))}
+                                </div>
+                            </div>
+                         </div>
+                     </div>
+                ) : image ? (
+                    <div className="relative h-[560px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
+                         <img src={image.url} className="max-w-full max-h-full object-contain" />
+                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md"><PencilIcon className="w-5 h-5"/></button>
+                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </div>
+                ) : (
+                     <>
+                        <UploadPlaceholder label="Upload Product Photo" onClick={() => fileInputRef.current?.click()} />
+                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                    </>
+                )
+            }
+            rightContent={
+                 <div className="space-y-4 animate-fadeIn">
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. LuxFace Cream" />
+                    <TextAreaField label="Description (Optional)" value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="Key benefits, ingredients..." />
+                 </div>
+            }
+        />
+    );
+};
+
 
 // --- Feature Components ---
 
@@ -368,11 +672,18 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
     </div>
 );
 
-const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+const MagicPhotoStudio: React.FC<{ 
+    auth: AuthProps; 
+    navigateTo: any; 
+    appConfig: AppConfig | null;
+    activeMission?: Mission; 
+    onMissionComplete?: () => void;
+}> = ({ auth, appConfig, activeMission, onMissionComplete }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
+    const [showReward, setShowReward] = useState(false);
 
     // Refs for File Inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -401,6 +712,22 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     // New Model Controls
     const [modelComposition, setModelComposition] = useState('');
     const [modelFraming, setModelFraming] = useState('');
+
+    // Mission Tracking Ref (to prevent double submission in one session)
+    const hasCompletedMissionRef = useRef(false);
+
+    // Apply Mission Config on Load if active
+    useEffect(() => {
+        if (activeMission?.config && !studioMode) {
+            const conf = activeMission.config;
+            if (conf.studioMode) setStudioMode(conf.studioMode);
+            if (conf.selectedPrompt) setSelectedPrompt(conf.selectedPrompt);
+            if (conf.category) setCategory(conf.category);
+            if (conf.brandStyle) setBrandStyle(conf.brandStyle);
+            // ... map other fields as needed
+            hasCompletedMissionRef.current = false; // Reset for new mission attempt
+        }
+    }, [activeMission]);
 
     const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Automotive'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
@@ -436,13 +763,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             
             // Reset Session State But KEEP Image
             setResult(null);
-            setStudioMode(null);
+            // Only reset mode if NOT in active mission
+            if (!activeMission) {
+                setStudioMode(null);
+                setSelectedPrompt(null);
+            }
+            // Reset other granular settings to allow re-config
             setCategory(''); setBrandStyle(''); setVisualType('');
             setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
             setModelComposition(''); setModelFraming('');
             setSuggestedPrompts([]);
             setSuggestedModelPrompts([]);
-            setSelectedPrompt(null);
             
             // Set the new image
             setImage({ url: URL.createObjectURL(file), base64 });
@@ -548,9 +879,23 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
             const url = `data:image/png;base64,${res}`;
             setResult(url);
+            
+            // CHECK MISSION COMPLETION
+            if (activeMission && !hasCompletedMissionRef.current && auth.user) {
+                 const updatedUser = await completeDailyMission(auth.user.uid, activeMission.reward, activeMission.title);
+                 // Update local auth user to show new credits
+                 auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, lastDailyMissionCompleted: updatedUser.lastDailyMissionCompleted } : null);
+                 setShowReward(true);
+                 hasCompletedMissionRef.current = true;
+                 if (onMissionComplete) onMissionComplete();
+            } else {
+                // Standard flow
+                const updated = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+                auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+            }
+
             saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            const updated = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+
         } catch (e) {
             console.error(e);
             alert('Generation failed. Please try again.');
@@ -569,6 +914,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSuggestedPrompts([]);
         setSuggestedModelPrompts([]);
         setSelectedPrompt(null);
+        hasCompletedMissionRef.current = false;
     };
 
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && (
@@ -577,15 +923,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming))
     );
 
-    const currentCost = studioMode === 'model' 
-        ? (appConfig?.featureCosts['Model Shot'] || 3) 
-        : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
+    // If mission is active, cost is 0 (sponsored), else standard
+    const currentCost = activeMission && !hasCompletedMissionRef.current
+        ? 0 
+        : (studioMode === 'model' ? (appConfig?.featureCosts['Model Shot'] || 3) : (appConfig?.featureCosts['Magic Photo Studio'] || 2));
 
     return (
+        <>
         <FeatureLayout 
-            title="Magic Photo Studio"
-            description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
-            icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
+            title={activeMission ? `Daily Mission: ${activeMission.title}` : "Magic Photo Studio"}
+            description={activeMission ? activeMission.description : "Transform simple photos into professional, studio-quality product shots or lifelike model images."}
+            icon={activeMission ? <FlagIcon className="w-6 h-6 text-yellow-500"/> : <PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
             creditCost={currentCost}
             isGenerating={loading}
             canGenerate={canGenerate}
@@ -595,7 +943,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onNewSession={handleNewSession}
             resultHeightClass="h-[560px]"
             generateButtonStyle={{
-                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
+                className: activeMission ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg border-none" : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
             leftContent={
@@ -668,7 +1016,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             </div>
                             
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Product Photo</p>
+                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{activeMission ? 'Upload to Start Mission' : 'Upload Product Photo'}</p>
                                 <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
                                     <div className="bg-gray-50 rounded-full px-3 py-1">
                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
@@ -916,6 +1264,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 )
             }
         />
+        {showReward && activeMission && (
+            <MissionSuccessModal reward={activeMission.reward} onClose={() => setShowReward(false)} />
+        )}
+        </>
     );
 };
 
@@ -968,8 +1320,13 @@ const CreativeDNA: React.FC<{ creations: any[] }> = ({ creations }) => {
     );
 };
 
-const DailyQuest: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
+const DailyQuest: React.FC<{ 
+    user: User | null;
+    onStartMission: (mission: Mission) => void; 
+}> = ({ user, onStartMission }) => {
     const [timeLeft, setTimeLeft] = useState('');
+    const mission = getDailyMission();
+    const isCompleted = isMissionCompletedToday(user?.lastDailyMissionCompleted);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
@@ -991,30 +1348,37 @@ const DailyQuest: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
     }, []);
 
     return (
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-full -mr-8 -mt-8 blur-2xl group-hover:bg-yellow-200/50 transition-colors"></div>
+        <div className={`rounded-3xl p-6 shadow-sm border relative overflow-hidden group ${isCompleted ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
+            {!isCompleted && <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-full -mr-8 -mt-8 blur-2xl group-hover:bg-yellow-200/50 transition-colors"></div>}
             
             <div className="flex items-center justify-between mb-4 relative z-10">
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1">
-                    <FlagIcon className="w-3 h-3" /> Daily Mission
+                <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
+                    <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Completed' : 'Daily Mission'}
                 </span>
-                <span className="text-xs font-mono text-gray-400">{timeLeft} left</span>
+                {!isCompleted && <span className="text-xs font-mono text-gray-400">{timeLeft} left</span>}
             </div>
             
-            <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">Minimalist Skincare</h3>
-            <p className="text-sm text-gray-500 mb-6 relative z-10">Create a clean product shot on a marble background.</p>
+            <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">{mission.title}</h3>
+            <p className="text-sm text-gray-500 mb-6 relative z-10">{mission.description}</p>
             
             <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-gray-400 uppercase">Reward</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-600 text-xs font-bold rounded">+5 Credits</span>
+                    <span className={`px-2 py-0.5 text-xs font-bold rounded ${isCompleted ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-600'}`}>+{mission.reward} Credits</span>
                 </div>
-                <button 
-                    onClick={() => navigateTo('dashboard', 'studio')}
-                    className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
-                >
-                    Start Challenge
-                </button>
+                
+                {isCompleted ? (
+                    <button disabled className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 opacity-80 cursor-default">
+                        <CheckIcon className="w-4 h-4"/> Done
+                    </button>
+                ) : (
+                    <button 
+                        onClick={() => onStartMission(mission)}
+                        className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
+                    >
+                        Start Challenge
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -1101,7 +1465,12 @@ const QuickToolList: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
     );
 };
 
-const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
+const DashboardHome: React.FC<{ 
+    user: User | null, 
+    navigateTo: any, 
+    setActiveView: any,
+    onStartMission: (mission: Mission) => void 
+}> = ({ user, navigateTo, setActiveView, onStartMission }) => {
     const [recent, setRecent] = useState<Creation[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -1147,7 +1516,7 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                      <CreativeDNA creations={recent} />
 
                      {/* 3. Daily Quest (Replaces The Tray) */}
-                     <DailyQuest navigateTo={navigateTo} />
+                     <DailyQuest user={user} onStartMission={onStartMission} />
 
                      {/* 4. Quick Tools */}
                      <QuickToolList navigateTo={navigateTo} />
@@ -1293,268 +1662,6 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navig
     );
 };
 
-const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [productName, setProductName] = useState('');
-    const [productDesc, setProductDesc] = useState('');
-    const [result, setResult] = useState<any>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user || !productName) return;
-        setLoading(true);
-        try {
-            const cost = appConfig?.featureCosts['Product Studio'] || 5;
-            const res = await generateProductPackPlan(
-                [image.base64.base64], 
-                productName, 
-                productDesc, 
-                { colors: [], fonts: [] }, 
-                '', 
-                []
-            );
-            setResult(res);
-            await deductCredits(auth.user.uid, cost, 'Product Studio');
-            // Note: This feature returns text/strategy, we don't save an image to gallery yet.
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout 
-            title="Product Studio"
-            description="Generate a complete marketing pack: SEO titles, captions, and visual concepts."
-            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
-            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
-            isGenerating={loading}
-            canGenerate={!!image && !!productName}
-            onGenerate={handleGenerate}
-            resultImage={null}
-            onNewSession={() => { setImage(null); setResult(null); setProductName(''); setProductDesc(''); }}
-            leftContent={
-                result ? (
-                    <div className="w-full h-full bg-white p-6 rounded-3xl border border-gray-200 overflow-y-auto max-h-[600px]">
-                        <h3 className="text-xl font-bold mb-4 text-green-600">Marketing Pack Generated</h3>
-                        <div className="space-y-6">
-                            <div className="p-4 bg-gray-50 rounded-xl">
-                                <p className="text-xs font-bold text-gray-400 uppercase">SEO Title</p>
-                                <p className="font-bold text-lg">{result.textAssets.seoTitle}</p>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-xl">
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Captions</p>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    {result.textAssets.captions.map((c: any, i: number) => (
-                                        <li key={i} className="text-sm">{c.text}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-xl">
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Keywords</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {result.textAssets.keywords.map((k: string, i: number) => (
-                                        <span key={i} className="bg-white px-2 py-1 rounded border text-xs font-mono">{k}</span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Visual Concepts</p>
-                                <p className="text-sm italic text-gray-600">{result.imageGenerationPrompts.heroShot}</p>
-                            </div>
-                        </div>
-                    </div>
-                ) : image ? (
-                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
-                        <img src={image.url} className="max-w-full max-h-full object-contain" />
-                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <UploadPlaceholder label="Upload Product" onClick={() => fileInputRef.current?.click()} />
-                )
-            }
-            rightContent={
-                <div>
-                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Luxe Face Cream" />
-                    <TextAreaField label="Description / Key Benefits" value={productDesc} onChange={(e: any) => setProductDesc(e.target.value)} placeholder="Describe ingredients, target audience, etc." />
-                    <div className="hidden"><input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} /></div>
-                </div>
-            }
-        />
-    );
-};
-
-// Simplified Implementations for other features using FeatureLayout to prevent blank screens
-const StandardFeature: React.FC<{ 
-    title: string; 
-    description: string; 
-    icon: React.ReactNode; 
-    cost: number; 
-    onGenerate: (img: Base64File, prompt?: string) => Promise<string>;
-    auth: AuthProps;
-    promptLabel?: string;
-    placeholderLabel?: string;
-}> = ({ title, description, icon, cost, onGenerate, auth, promptLabel = "Description", placeholderLabel = "Upload Photo" }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-    const [prompt, setPrompt] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
-        }
-    };
-
-    const handleRun = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await onGenerate(image.base64, prompt);
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, title);
-            const updated = await deductCredits(auth.user.uid, cost, title);
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <>
-            <FeatureLayout 
-                title={title}
-                description={description}
-                icon={icon}
-                creditCost={cost}
-                isGenerating={loading}
-                canGenerate={!!image}
-                onGenerate={handleRun}
-                resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
-                leftContent={
-                    image ? (
-                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
-                            <img src={image.url} className="max-w-full max-h-full object-contain" />
-                            <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
-                        </div>
-                    ) : (
-                        <UploadPlaceholder label={placeholderLabel} onClick={() => fileInputRef.current?.click()} />
-                    )
-                }
-                rightContent={
-                    image ? (
-                        <div>
-                            <InputField label={promptLabel} value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe the desired outcome..." />
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-400 p-10">Upload an image to start.</div>
-                    )
-                }
-            />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-        </>
-    );
-};
-
-// Specific wrapper for CaptionAI as it returns text
-const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setCaptions([]);
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const cost = appConfig?.featureCosts['CaptionAI'] || 1;
-            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
-            setCaptions(res);
-            await deductCredits(auth.user.uid, cost, 'CaptionAI');
-             // Note: We don't save text creations to image gallery currently
-        } catch (e) {
-            console.error(e);
-            alert('Failed to generate captions.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <>
-            <FeatureLayout 
-                title="CaptionAI"
-                description="Generate engaging social media captions and hashtags instantly."
-                icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
-                creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
-                isGenerating={loading}
-                canGenerate={!!image}
-                onGenerate={handleGenerate}
-                resultImage={null} // Custom result view
-                onNewSession={() => { setImage(null); setCaptions([]); }}
-                leftContent={
-                    image ? (
-                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
-                            <img src={image.url} className="max-w-full max-h-full object-contain" />
-                        </div>
-                    ) : (
-                        <UploadPlaceholder label="Upload Photo for Captions" onClick={() => fileInputRef.current?.click()} />
-                    )
-                }
-                rightContent={
-                    captions.length > 0 ? (
-                        <div className="space-y-4 h-[500px] overflow-y-auto pr-2">
-                            {captions.map((c, i) => (
-                                <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                    <p className="text-sm text-gray-800 mb-2">{c.caption}</p>
-                                    <p className="text-xs text-blue-500 font-medium mb-3">{c.hashtags}</p>
-                                    <button onClick={() => navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
-                                        <CopyIcon className="w-3 h-3" /> Copy
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-400 p-10">Upload a photo to generate captions.</div>
-                    )
-                }
-            />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-        </>
-    );
-};
-
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
@@ -1567,16 +1674,28 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     appConfig, 
     setAppConfig 
 }) => {
+
+    // State for active daily mission
+    const [activeMission, setActiveMission] = useState<Mission | undefined>(undefined);
+
+    const handleStartMission = (mission: Mission) => {
+        setActiveMission(mission);
+        setActiveView(mission.toolId);
+    };
+
+    const handleMissionComplete = () => {
+        setActiveMission(undefined);
+    };
     
     const renderContent = () => {
         switch (activeView) {
             case 'home_dashboard':
             case 'dashboard':
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} onStartMission={handleStartMission} />;
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
-                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} activeMission={activeMission} onMissionComplete={handleMissionComplete} />;
             case 'product_studio':
                  return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
@@ -1604,7 +1723,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
             default:
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} onStartMission={handleStartMission} />;
         }
     };
 

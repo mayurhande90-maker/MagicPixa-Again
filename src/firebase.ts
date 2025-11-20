@@ -225,6 +225,41 @@ export const deductCredits = async (uid: string, amount: number, feature: string
   }
 };
 
+export const completeDailyMission = async (uid: string, reward: number, missionTitle: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+
+    const userRef = db.collection("users").doc(uid);
+    const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) throw new Error("User does not exist");
+
+            // Update credits and last mission date
+            transaction.update(userRef, {
+                credits: firebase.firestore.FieldValue.increment(reward),
+                totalCreditsAcquired: firebase.firestore.FieldValue.increment(reward),
+                lastDailyMissionCompleted: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            // Log transaction
+            transaction.set(newTransactionRef, {
+                feature: `Mission Complete: ${missionTitle}`,
+                creditChange: `+${reward}`,
+                cost: 0, // No cost, it's a grant
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+
+        // Fetch updated user
+        const updatedDoc = await userRef.get();
+        return updatedDoc.data();
+    } catch (error) {
+        console.error("Failed to complete daily mission:", error);
+        throw error;
+    }
+};
 
 /**
  * DEFINITIVE FIX: Atomically adds purchased credits using a corrected and robust transaction pattern.

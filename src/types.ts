@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -33,6 +34,7 @@ export interface User {
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
+  lastDailyMissionCompleted?: Timestamp; // Track when the last daily mission was finished
 }
 
 export interface AuthProps {
