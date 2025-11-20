@@ -1,3 +1,4 @@
+
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -396,7 +397,8 @@ export const getAppConfig = async (): Promise<AppConfig> => {
       const defaultConfig: AppConfig = {
         featureCosts: {
           'Magic Photo Studio': 2,
-          'Thumbnail Studio': 2, // Added default cost for Thumbnail Studio
+          'Model Shot': 3, // Added default cost for Model Shot
+          'Thumbnail Studio': 2,
           'Product Studio': 5,
           'Brand Stylist AI': 4,
           'Magic Soul': 3,
@@ -409,7 +411,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
         },
         featureToggles: {
           'studio': true,
-          'thumbnail_studio': true, // Enabled by default
+          'thumbnail_studio': true,
           'product_studio': true,
           'brand_stylist': true,
           'soul': true,

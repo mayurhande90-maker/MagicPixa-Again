@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Modality, LiveServerMessage, Type, FunctionDeclaration } from "@google/genai";
 import { Base64File } from "../utils/imageUtils";
 
@@ -262,6 +263,59 @@ export const analyzeProductImage = async (
     }
 }
 
+export const analyzeProductForModelPrompts = async (
+    base64ImageData: string,
+    mimeType: string
+): Promise<string[]> => {
+    const ai = getAiClient();
+    try {
+        const prompt = `Analyse the uploaded product. Determine if it's a beauty product, gadget, food, or fashion item.
+        Generate 4 distinct, culturally diverse, and highly specific model scenarios involving this product.
+        
+        Format them as conversational prompts a user might select.
+        Examples:
+        - "Young Indian woman applying this serum on her cheek"
+        - "Athletic man drinking from this bottle after a workout"
+        - "Senior woman smiling and holding this package"
+        - "Close up of a hand with rings holding this product"
+        
+        Return ONLY a JSON array of 4 string prompts.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { text: prompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
+        });
+        const jsonText = response.text?.trim();
+        if (!jsonText) return [
+            "Young female model holding the product near her face",
+            "Male model holding the product in a studio setting",
+            "Lifestyle shot of the product on a table next to a person",
+            "Close up of hands interacting with the product"
+        ];
+        return JSON.parse(jsonText);
+    } catch (e) {
+        console.error("Error analyzing product for model prompts:", e);
+        return [
+            "Young female model holding the product near her face",
+            "Male model holding the product in a studio setting",
+            "Lifestyle shot of the product on a table next to a person",
+            "Close up of hands interacting with the product"
+        ];
+    }
+}
+
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
@@ -318,43 +372,58 @@ export const generateModelShot = async (
     mimeType: string,
     inputs: {
         modelType: string;
-        region: string;
-        skinTone: string;
-        bodyType: string;
+        region?: string;
+        skinTone?: string;
+        bodyType?: string;
+        freeformPrompt?: string;
     }
   ): Promise<string> => {
     const ai = getAiClient();
     try {
-      // Detailed Model Shot System Prompt
+      // Detailed Model Shot System Prompt with HYPER-REALISM
+      let userSelectionPart = "";
+      
+      if (inputs.freeformPrompt) {
+          userSelectionPart = `USER PROMPT: "${inputs.freeformPrompt}". 
+          IGNORE specific dropdown selections if they conflict with this prompt. Follow this instruction for the model's appearance and interaction.`;
+      } else {
+          userSelectionPart = `
+          Model Type: ${inputs.modelType}
+          Region: ${inputs.region}
+          Skin Tone: ${inputs.skinTone}
+          Body Type: ${inputs.bodyType}`;
+      }
+
       let prompt = `System instruction for AI:
-  Create a photorealistic marketing image that places the user’s uploaded product naturally with a model. Use the model’s selected attributes to generate the correct face, body type, ethnicity, pose, skin tone, and overall appearance. The final image must look like a real photoshoot, with accurate lighting, natural interaction, and a believable environment based on the product category.
+  Create a HYPER-REALISTIC marketing image that places the user’s uploaded product naturally with a model. 
   
-  INPUTS (filled from UI selections):
-  Model Type: ${inputs.modelType}
-  Region: ${inputs.region}
-  Skin Tone: ${inputs.skinTone}
-  Body Type: ${inputs.bodyType}
+  *** HYPER-REALISM & QUALITY PROTOCOL ***
+  - OUTPUT STYLE: RAW Photography, 85mm Lens, f/1.8 Aperture.
+  - SKIN TEXTURE: Must show pores, micro-details, natural imperfections, and subsurface scattering. NO PLASTIC SMOOTH SKIN.
+  - LIGHTING: Cinematic studio lighting with realistic falloff. 
+  - PHYSICS: The product must have weight. Fingers must press against it slightly. Clothing must drape with gravity.
+  - FILM GRAIN: Add subtle film grain to match high-end editorial photography.
   
-  DETAILED GENERATION RULES (for AI):
+  INPUTS:
+  ${userSelectionPart}
+  
+  DETAILED GENERATION RULES:
   
   1. Analyze the product
   Understand the uploaded product: material, shape, label position, reflective surface, size, orientation.
-  Detect whether this product is naturally held, worn, displayed, or placed.
   Decide the best possible interaction pose for the model (e.g., Beauty -> near face; Food -> held).
   
-  2. Generate the model strictly based on user selections
-  The model’s appearance must match:
-  a. Model Type (${inputs.modelType}): Generate correct age, facial features, posture, and proportional body.
-  b. Region / Ethnicity (${inputs.region}): Generate photorealistic, culturally accurate features.
-  c. Skin Tone (${inputs.skinTone}): Use the exact tone.
-  d. Body Type (${inputs.bodyType}): Match body proportions correctly.
-  No mixing of attributes. No hallucination outside the chosen set.
+  2. Generate the model
+  - If 'Young': Age 18-25. Fresh skin, youthful features.
+  - If 'Adult': Age 30-45. Mature features, confident look.
+  - If 'Senior': Age 60+. Visible wrinkles, realistic aging details (CRITICAL for realism).
+  - If 'Kid': Age 6-10.
+  - Match the specified Ethnicity/Region accurately.
   
-  3. Place the product correctly with the model
+  3. Place the product correctly
   Position and scale product naturally relative to the model’s selected body type.
   Maintain realistic contact (Fingers wrap around correctly, Clothing bends around wearable items).
   Add correct occlusion (Fingers partially covering product, Hair or clothing overlapping).
-  No floating product. No awkward angles.
   
   4. Lighting, shadows, and realism
   Match product lighting to model lighting direction.
@@ -363,16 +432,13 @@ export const generateModelShot = async (
   
   5. Background & styling
   Choose a background that fits the product category (e.g., Beauty -> soft studio, Fitness -> gym).
-  Background must not overpower the product. Keep product as hero element.
+  Background must be slightly out of focus (Bokeh) to keep attention on the product/model.
   
   6. Label & detail preservation
   Keep all product text sharp and readable. Do not distort brand logo.
   
-  7. Photoreal finishing
-  Blend edges perfectly. Add subtle film-grade texture.
-  
   FINAL AI PROMPT:
-  “Generate a photorealistic marketing image using the uploaded product. Create a model that exactly matches the user-selected Model Type: ${inputs.modelType}, Region: ${inputs.region}, Skin Tone: ${inputs.skinTone}, and Body Type: ${inputs.bodyType}. Analyze the product to identify whether it should be handheld, worn, placed, or displayed. Place the product naturally with correct scale, perspective, and interaction. Add realistic occlusion such as fingers, hair, or clothing overlapping the product. Match lighting, shadows, reflections, and color temperature so the product and model look photographed in the same scene. Preserve all product labels and details. Choose a background and styling appropriate for the product category. Finish with clean, natural color grading. The result should look like a real advertisement shot.”`;
+  “Generate a photorealistic RAW photograph using the uploaded product. Create a model matching: ${inputs.freeformPrompt || `${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}`}. Place the product naturally with correct scale and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',

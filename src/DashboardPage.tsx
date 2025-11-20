@@ -25,7 +25,8 @@ import {
     startLiveSession,
     analyzeVideoFrames,
     analyzeProductImage,
-    generateModelShot
+    generateModelShot,
+    analyzeProductForModelPrompts
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { extractFramesFromVideo } from './utils/videoUtils';
@@ -327,7 +328,14 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
 // Helper for the new button-grid selectors
 const SelectionGrid: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
     <div className="mb-6 animate-fadeIn">
-        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">{label}</label>
+        <div className="flex items-center justify-between mb-3 ml-1">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+            {value && (
+                 <button onClick={() => onChange('')} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
+                     Clear
+                 </button>
+            )}
+        </div>
         <div className="flex flex-wrap gap-2">
             {options.map(opt => {
                 const isSelected = value === opt;
@@ -357,7 +365,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isAnalyzingModel, setIsAnalyzingModel] = useState(false);
     const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
+    const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<string[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
     // Mode Selection State
@@ -378,7 +388,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
 
-    const modelTypes = ['Female Model', 'Male Model', 'Kid Model', 'Senior Model'];
+    const modelTypes = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
     const modelRegions = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
     const skinTones = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
     const bodyTypes = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
@@ -408,16 +418,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             setImage({ url: URL.createObjectURL(file), base64 });
             
             // Reset ALL States on new upload
-            setStudioMode(null); // Reset mode to force selection
-            setCategory('');
-            setBrandStyle('');
-            setVisualType('');
-            setModelType('');
-            setModelRegion('');
-            setSkinTone('');
-            setBodyType('');
-            setSelectedPrompt(null);
-            setSuggestedPrompts([]);
+            handleNewSession();
             setResult(null);
 
             try {
@@ -427,12 +428,27 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 console.error(err);
                 setSuggestedPrompts([
                     "Put this on a clean white table with soft shadows",
-                    "Show this product on a luxury gold podium",
-                    "Place it in a nature setting with sunlight and leaves",
-                    "Make it look moody on a dark reflective surface"
+                    "Show this product on a luxury gold podium"
                 ]);
             } finally {
                 setIsAnalyzing(false);
+            }
+        }
+    };
+
+    const handleModeSelect = async (mode: 'product' | 'model') => {
+        setStudioMode(mode);
+        setSelectedPrompt(null); // Reset selected prompt when switching modes
+        
+        if (mode === 'model' && suggestedModelPrompts.length === 0 && image) {
+            setIsAnalyzingModel(true);
+            try {
+                const prompts = await analyzeProductForModelPrompts(image.base64.base64, image.base64.mimeType);
+                setSuggestedModelPrompts(prompts);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsAnalyzingModel(false);
             }
         }
     };
@@ -473,15 +489,22 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setLoading(true);
         try {
             let res;
+            let cost = 2;
+
             if (studioMode === 'model') {
+                 cost = appConfig?.featureCosts['Model Shot'] || 3;
                  // GENERATE MODEL SHOT
+                 // If user selected an AI prompt, use it as a freeform override.
+                 // Otherwise, use structured inputs.
                  res = await generateModelShot(image.base64.base64, image.base64.mimeType, {
                     modelType,
                     region: modelRegion,
                     skinTone,
-                    bodyType
+                    bodyType,
+                    freeformPrompt: selectedPrompt || undefined
                  });
             } else {
+                cost = appConfig?.featureCosts['Magic Photo Studio'] || 2;
                 // GENERATE PRODUCT SHOT
                 let generationDirection = "";
                 if (selectedPrompt) {
@@ -496,8 +519,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
             const url = `data:image/png;base64,${res}`;
             setResult(url);
-            saveCreation(auth.user.uid, url, 'Magic Photo Studio');
-            const updated = await deductCredits(auth.user.uid, appConfig?.featureCosts['Magic Photo Studio'] || 2, 'Magic Photo Studio');
+            saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+            const updated = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
             auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
         } catch (e) {
             console.error(e);
@@ -509,7 +532,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     // Helper to reset the session completely
     const handleNewSession = () => {
-        setImage(null);
+        // Don't clear image if calling internally, but if button clicked, clear it.
+        // This function is passed to FeatureLayout 'New Project', which implies new upload.
+        // But internal reset logic is different. Let's separate.
+        setImage(null); 
+        // Reset everything else
         setResult(null);
         setStudioMode(null);
         setCategory('');
@@ -520,6 +547,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSkinTone('');
         setBodyType('');
         setSuggestedPrompts([]);
+        setSuggestedModelPrompts([]);
         setSelectedPrompt(null);
     };
 
@@ -527,15 +555,20 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const canGenerate = !!image && !isAnalyzing && !!studioMode && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
-            : (!!modelType && !!modelRegion && !!skinTone && !!bodyType)
+            : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType))
     );
+
+    // Determine current cost to display
+    const currentCost = studioMode === 'model' 
+        ? (appConfig?.featureCosts['Model Shot'] || 3) 
+        : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
 
     return (
         <FeatureLayout 
             title="Magic Photo Studio"
-            description="Transform simple photos into professional, studio-quality product shots in one click. Perfect for e-commerce."
+            description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
             icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
-            creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
+            creditCost={currentCost}
             isGenerating={loading}
             canGenerate={canGenerate}
             onGenerate={handleGenerate}
@@ -562,7 +595,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         )}
 
                         {/* ANALYSIS SCANNER ANIMATION (Horizontal) */}
-                        {isAnalyzing && (
+                        {(isAnalyzing || isAnalyzingModel) && (
                             <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center">
                                 {/* Horizontal Scanner Beam */}
                                 <div className="absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30"></div>
@@ -572,7 +605,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 {/* Status Badge */}
                                 <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight">
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">Scanning Image...</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Analyzing Model Context...' : 'Scanning Image...'}</span>
                                 </div>
                             </div>
                         )}
@@ -583,7 +616,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         />
                         
                         {/* Top Right Re-Upload Button (Only when idle) */}
-                        {!loading && !isAnalyzing && (
+                        {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <button 
                                 onClick={() => document.getElementById('studio-upload-redo')?.click()} 
                                 className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
@@ -654,7 +687,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
                                 <button 
-                                    onClick={() => setStudioMode('product')}
+                                    onClick={() => handleModeSelect('product')}
                                     className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
                                 >
                                     <div className="flex items-center gap-4 mb-2">
@@ -667,7 +700,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 </button>
 
                                 <button 
-                                    onClick={() => setStudioMode('model')}
+                                    onClick={() => handleModeSelect('model')}
                                     className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
                                 >
                                     <div className="flex items-center gap-4 mb-2">
@@ -686,19 +719,29 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                             <div className="animate-fadeIn relative">
                                 {/* Back Button */}
                                 <div className="absolute -top-12 left-0">
-                                    <button onClick={() => setStudioMode(null)} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2">
+                                    <button 
+                                        onClick={() => {
+                                            setStudioMode(null);
+                                            setSelectedPrompt(null);
+                                            // Clear specific mode selections
+                                            setCategory(''); setBrandStyle(''); setVisualType('');
+                                            setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
+                                        }} 
+                                        className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2"
+                                    >
                                         <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
                                     </button>
                                 </div>
 
                                 {/* AI Suggestions (Common) */}
-                                {(!category && !modelType || isAnalyzing) && (
+                                {/* Logic: Show suggestions if NO manual selections made yet (category or modelType) OR currently analyzing */}
+                                {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
                                     <div className={`transition-all duration-300 mb-6`}>
-                                        {isAnalyzing ? (
+                                        {isAnalyzing || isAnalyzingModel ? (
                                             <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
                                             </div>
-                                        ) : suggestedPrompts.length > 0 ? (
+                                        ) : (
                                             <div>
                                                 <div className="flex items-center justify-between mb-3 ml-1">
                                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
@@ -711,7 +754,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    {suggestedPrompts.map((prompt, idx) => {
+                                                    {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((prompt, idx) => {
                                                         return (
                                                             <button 
                                                                 key={idx} 
@@ -735,12 +778,12 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                     })}
                                                 </div>
                                             </div>
-                                        ) : null}
+                                        )}
                                     </div>
                                 )}
 
                                 {/* Divider if AI suggestions available but not selected */}
-                                {!selectedPrompt && !isAnalyzing && (
+                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="relative mb-6">
                                         <div className="flex items-center gap-2 py-1">
                                             <div className="h-px flex-1 bg-gray-200"></div>
@@ -751,7 +794,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 )}
 
                                 {/* MODE SPECIFIC CONTROLS */}
-                                {!selectedPrompt && !isAnalyzing && (
+                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="space-y-6 animate-fadeIn">
                                         {studioMode === 'product' ? (
                                             // PRODUCT SHOT WORKFLOW
@@ -791,28 +834,48 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                         ) : (
                                             // MODEL SHOT WORKFLOW
                                             <>
-                                                <SelectionGrid label="1. Model Type" options={modelTypes} value={modelType} onChange={(val) => {
-                                                    setModelType(val);
-                                                    // Reset subsequent steps if going back
-                                                    setModelRegion(''); setSkinTone(''); setBodyType('');
-                                                }} />
+                                                <SelectionGrid 
+                                                    label="1. Model Type" 
+                                                    options={modelTypes} 
+                                                    value={modelType} 
+                                                    onChange={(val) => {
+                                                        setModelType(val);
+                                                        // Reset subsequent steps if changing top level
+                                                        setModelRegion(''); setSkinTone(''); setBodyType('');
+                                                    }} 
+                                                />
                                                 
                                                 {modelType && (
-                                                    <SelectionGrid label="2. Region" options={modelRegions} value={modelRegion} onChange={(val) => {
-                                                        setModelRegion(val);
-                                                        setSkinTone(''); setBodyType('');
-                                                    }} />
+                                                    <SelectionGrid 
+                                                        label="2. Region" 
+                                                        options={modelRegions} 
+                                                        value={modelRegion} 
+                                                        onChange={(val) => {
+                                                            setModelRegion(val);
+                                                            setSkinTone(''); setBodyType('');
+                                                        }} 
+                                                    />
                                                 )}
                                                 
                                                 {modelRegion && (
-                                                    <SelectionGrid label="3. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => {
-                                                        setSkinTone(val);
-                                                        setBodyType('');
-                                                    }} />
+                                                    <SelectionGrid 
+                                                        label="3. Skin Tone" 
+                                                        options={skinTones} 
+                                                        value={skinTone} 
+                                                        onChange={(val) => {
+                                                            setSkinTone(val);
+                                                            setBodyType('');
+                                                        }} 
+                                                    />
                                                 )}
 
                                                 {skinTone && (
-                                                    <SelectionGrid label="4. Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />
+                                                    <SelectionGrid 
+                                                        label="4. Body Type" 
+                                                        options={bodyTypes} 
+                                                        value={bodyType} 
+                                                        onChange={setBodyType} 
+                                                    />
                                                 )}
                                             </>
                                         )}
