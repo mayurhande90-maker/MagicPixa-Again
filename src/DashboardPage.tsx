@@ -916,217 +916,91 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- New Feature Carousel Component ---
-const FeatureCarousel: React.FC<{ onTryNow: (view: View) => void }> = ({ onTryNow }) => {
-    const features = [
-        { 
-            id: 'studio',
-            title: "Magic Photo Studio",
-            desc: "Turn boring product shots into sales magnets.",
-            before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop",
-            after: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop",
-            color: "from-blue-500 to-purple-600"
-        },
-        { 
-            id: 'interior',
-            title: "Magic Interior",
-            desc: "Redesign any room in seconds.",
-            before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800&auto=format&fit=crop",
-            after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=800&auto=format&fit=crop",
-            color: "from-orange-500 to-red-500"
-        },
-        { 
-            id: 'colour',
-            title: "Photo Colour",
-            desc: "Bring old memories back to life.",
-            before: "https://images.unsplash.com/photo-1517330357046-3ab5a5dd42a1?q=80&w=800&auto=format&fit=crop&sat=-100", // Forced grayscale via URL param sim
-            after: "https://images.unsplash.com/photo-1517330357046-3ab5a5dd42a1?q=80&w=800&auto=format&fit=crop",
-            color: "from-pink-500 to-rose-500"
-        }
-    ];
-
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setActiveIndex((prev) => (prev + 1) % features.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, []);
-
-    const activeFeature = features[activeIndex];
-
-    return (
-        <div className="relative h-[500px] w-full rounded-3xl overflow-hidden bg-black/20 border border-white/10 group">
-            {/* Dynamic Background Glow */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${activeFeature.color} opacity-20 blur-3xl transition-all duration-1000`}></div>
-            
-            <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 px-6 py-10">
-                {/* Text Content */}
-                <div className="text-center md:text-left max-w-md space-y-6">
-                    <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-white uppercase tracking-wider mb-2">
-                        Featured Tool
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight transition-all duration-500 key={activeFeature.title}">
-                        {activeFeature.title}
-                    </h2>
-                    <p className="text-lg text-gray-300">{activeFeature.desc}</p>
-                    
-                    <div className="flex gap-2 justify-center md:justify-start pt-4">
-                         {features.map((_, idx) => (
-                             <div key={idx} className={`h-1 rounded-full transition-all duration-500 ${idx === activeIndex ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}></div>
-                         ))}
-                    </div>
-
-                    <button 
-                        onClick={() => onTryNow(activeFeature.id as View)} 
-                        className={`mt-6 px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r ${activeFeature.color} hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2 mx-auto md:mx-0`}
-                    >
-                        <SparklesIcon className="w-5 h-5"/> Try Now
-                    </button>
-                </div>
-
-                {/* Card Visuals */}
-                <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[350px]">
-                    {/* Before Card */}
-                    <div className="absolute top-4 left-0 w-[220px] md:w-[260px] aspect-[3/4] bg-white p-2 rounded-xl shadow-2xl transform -rotate-6 hover:-rotate-3 transition-transform duration-500 z-10">
-                        <div className="relative w-full h-full overflow-hidden rounded-lg bg-gray-200">
-                            <img src={activeFeature.before} className="w-full h-full object-cover grayscale contrast-125" alt="Before" />
-                            <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">ORIGINAL</div>
-                        </div>
-                    </div>
-
-                    {/* After Card */}
-                    <div className="absolute top-0 right-0 w-[240px] md:w-[280px] aspect-[3/4] bg-white p-2 rounded-xl shadow-2xl transform rotate-6 hover:rotate-3 transition-transform duration-500 z-20 border-2 border-white/50">
-                         <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${activeFeature.color} blur-xl opacity-40`}></div>
-                         <div className="relative w-full h-full overflow-hidden rounded-lg">
-                            <img src={activeFeature.after} className="w-full h-full object-cover" alt="After" />
-                            <div className={`absolute top-2 right-2 bg-gradient-to-r ${activeFeature.color} text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg`}>MAGICPIXA</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
+// --- Restored Components ---
 
 const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
     const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
 
     useEffect(() => {
         if (user) {
-            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 3)));
+            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 4)));
         }
     }, [user]);
 
     const tools = [
-        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'from-blue-500 to-indigo-500', glow: 'shadow-blue-500/20' },
-        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'from-red-500 to-pink-500', glow: 'shadow-red-500/20' },
-        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'from-green-500 to-emerald-500', glow: 'shadow-green-500/20' },
-        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'from-yellow-400 to-amber-500', glow: 'shadow-yellow-500/20' },
-        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'from-pink-500 to-rose-500', glow: 'shadow-pink-500/20' },
-        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'from-rose-500 to-red-500', glow: 'shadow-rose-500/20' },
-        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'from-orange-500 to-amber-600', glow: 'shadow-orange-500/20' },
-        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'from-teal-400 to-cyan-500', glow: 'shadow-teal-500/20' },
-        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'from-indigo-500 to-purple-600', glow: 'shadow-indigo-500/20' },
-        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'from-amber-400 to-orange-500', glow: 'shadow-amber-500/20' },
-    ];
-
-    const intents = [
-        { label: "🛍️ Sell a Product", view: 'product_studio' },
-        { label: "🔥 Viral Social Post", view: 'thumbnail_studio' },
-        { label: "🎨 Create Brand Assets", view: 'brand_stylist' },
-        { label: "🏠 Redecorate Space", view: 'interior' },
-        { label: "✨ Enhance Photos", view: 'studio' },
+        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'bg-teal-500' },
+        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'bg-indigo-500' },
+        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'bg-amber-500' },
     ];
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-12 text-white">
-            {/* Top Bar: Energy & Profile */}
-            <div className="flex justify-between items-center">
-                 <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                        Hello, {user?.name?.split(' ')[0]}
-                    </h1>
-                    <p className="text-gray-400 text-sm">What will you create today?</p>
-                 </div>
-                 <div className="flex items-center gap-4">
-                    <div className="relative group cursor-pointer" onClick={() => setActiveView('billing')}>
-                        <div className="absolute inset-0 bg-[#6EFACC] rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                        <div className="relative bg-white/10 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-white/20 transition-colors">
-                            <SparklesIcon className="w-4 h-4 text-[#6EFACC]" />
-                            <span className="font-bold text-[#6EFACC]">{user?.credits} Energy</span>
-                        </div>
-                    </div>
-                 </div>
-            </div>
-
-            {/* Hero: Feature Carousel */}
-            <FeatureCarousel onTryNow={(view) => setActiveView(view)} />
-
-            {/* Intent Navigation */}
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Quick Start</h3>
-                <div className="flex flex-wrap gap-3">
-                    {intents.map((intent, idx) => (
-                        <button 
-                            key={idx}
-                            onClick={() => setActiveView(intent.view as View)}
-                            className="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl backdrop-blur-sm transition-all hover:scale-105 hover:border-[#4D7CFF]/50 flex items-center gap-2 font-medium"
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-10">
+            {/* Welcome Banner */}
+            <div className="bg-[#1A1A1E] text-white rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-xl">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-[100px] opacity-20"></div>
+                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                     <div>
+                         <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}!</h1>
+                         <p className="text-gray-400">Ready to create something amazing today?</p>
+                     </div>
+                     <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
+                         <div className="text-right">
+                             <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Balance</p>
+                             <p className="text-2xl font-bold text-[#6EFACC]">{user?.credits} Credits</p>
+                         </div>
+                         <button 
+                            onClick={() => setActiveView('billing')}
+                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-yellow-500/20"
                         >
-                            {intent.label}
-                        </button>
-                    ))}
-                </div>
+                             Top Up
+                         </button>
+                     </div>
+                 </div>
             </div>
 
-            {/* Living Project Deck */}
+            {/* Recent Creations Strip */}
             {recentCreations.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your Studio</h3>
-                         <button onClick={() => setActiveView('creations')} className="text-xs font-bold text-[#4D7CFF] hover:text-[#6EFACC]">View All Projects</button>
+                <div>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <h2 className="text-xl font-bold text-[#1A1A1E]">Recent Projects</h2>
+                        <button onClick={() => setActiveView('creations')} className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
+                            View All <ArrowRightIcon className="w-4 h-4"/>
+                        </button>
                     </div>
-                    <div className="flex justify-center md:justify-start h-48 perspective-1000">
-                        <div className="relative w-48 h-48 group">
-                             {recentCreations.map((creation, index) => (
-                                 <div 
-                                    key={creation.id}
-                                    className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/10 bg-gray-800 transition-all duration-500 ease-out origin-bottom-left"
-                                    style={{ 
-                                        transform: `rotate(${index * 5}deg) translate(${index * 10}px, -${index * 5}px)`,
-                                        zIndex: 10 - index
-                                    }}
-                                 >
-                                     <img src={creation.imageUrl} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
-                                     <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
-                                         <p className="text-[10px] font-bold text-white uppercase">{creation.feature}</p>
-                                     </div>
-                                 </div>
-                             ))}
-                             <div className="absolute -right-24 top-1/2 -translate-y-1/2 text-gray-400 text-xs w-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 Your recent work
-                             </div>
-                        </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {recentCreations.map(creation => (
+                            <div key={creation.id} className="aspect-square rounded-2xl overflow-hidden border border-gray-100 relative group cursor-pointer">
+                                <img src={creation.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                                    <span className="text-white text-xs font-bold">{creation.feature}</span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Holographic Tool Grid */}
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">All Tools</h3>
+            {/* Tools Grid */}
+            <div>
+                <h2 className="text-xl font-bold text-[#1A1A1E] mb-4 px-1">Creative Tools</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {tools.map(tool => (
                         <div 
                             key={tool.id}
                             onClick={() => setActiveView(tool.id as View)}
-                            className={`group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:bg-white/10 overflow-hidden`}
+                            className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-[#4D7CFF] shadow-sm hover:shadow-md cursor-pointer transition-all group flex flex-col items-center text-center gap-3 hover:-translate-y-1"
                         >
-                            <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center mb-4 shadow-lg ${tool.glow} group-hover:scale-110 transition-transform duration-300`}>
-                                <tool.icon className="w-6 h-6 text-white"/>
+                            <div className={`p-3 rounded-xl ${tool.color} text-white group-hover:scale-110 transition-transform`}>
+                                <tool.icon className="w-6 h-6"/>
                             </div>
-                            <span className="text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{tool.label}</span>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-[#1A1A1E]">{tool.label}</span>
                         </div>
                     ))}
                 </div>
@@ -1568,8 +1442,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
-    const isHome = activeView === 'home_dashboard' || activeView === 'dashboard';
-
     return (
         <div className="flex flex-col h-screen bg-white">
              <Header 
@@ -1589,18 +1461,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     navigateTo={navigateTo}
                     appConfig={appConfig}
                 />
-                <main className={`flex-1 overflow-y-auto relative ${isHome ? 'bg-[#0f172a]' : 'bg-[#F6F7FA]'}`}>
-                    {/* Aurora Background for Home */}
-                    {isHome && (
-                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                            <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] animate-blob"></div>
-                            <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse"></div>
-                         </div>
-                    )}
-                    <div className="relative z-10 h-full">
-                         {renderContent()}
-                    </div>
+                <main className="flex-1 overflow-y-auto bg-[#F6F7FA] relative">
+                    {renderContent()}
                 </main>
             </div>
             {isConversationOpen && (
