@@ -916,91 +916,169 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- Restored Components ---
+// --- New Magic Mirror Component ---
+const MagicMirror: React.FC<{ onTryNow: () => void }> = ({ onTryNow }) => {
+    const [sliderPos, setSliderPos] = useState(50);
+    return (
+      <div className="relative h-64 md:h-96 w-full rounded-3xl overflow-hidden shadow-2xl border border-white/10 group select-none">
+         {/* Before Image (Raw/Boring) */}
+         <div className="absolute inset-0">
+            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover grayscale contrast-75" alt="Before" />
+            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-md">ORIGINAL</div>
+         </div>
+         
+         {/* After Image (Magical) */}
+         <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
+             <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover" alt="After" />
+             <div className="absolute top-4 left-4 bg-[#4D7CFF]/80 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-md shadow-lg shadow-blue-500/20">MAGIC STUDIO</div>
+             
+             {/* Slider Handle Line */}
+             <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)]"></div>
+             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xl z-20 cursor-ew-resize hover:scale-110 transition-transform">
+                <svg className="w-6 h-6 text-[#4D7CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" transform="rotate(90 12 12)" /></svg>
+             </div>
+         </div>
+
+         {/* Interaction Layer */}
+         <input 
+            type="range" 
+            min="0" 
+            max="100" 
+            value={sliderPos} 
+            onChange={(e) => setSliderPos(Number(e.target.value))} 
+            className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" 
+         />
+
+         {/* CTA Overlay */}
+         <div className="absolute bottom-8 left-8 z-40 pointer-events-none">
+             <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">Turn Boring into Brilliant</h2>
+             <button onClick={onTryNow} className="pointer-events-auto bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-lg shadow-yellow-500/20 hover:bg-[#dfbc2b] flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5"/> Try Magic Studio
+             </button>
+         </div>
+      </div>
+    )
+};
+
 
 const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
     const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
 
     useEffect(() => {
         if (user) {
-            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 4)));
+            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 3)));
         }
     }, [user]);
 
     const tools = [
-        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
-        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
-        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'bg-yellow-500' },
-        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
-        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
-        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'bg-orange-500' },
-        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'bg-teal-500' },
-        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'bg-indigo-500' },
-        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'bg-amber-500' },
+        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'from-blue-500 to-indigo-500', glow: 'shadow-blue-500/20' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'from-red-500 to-pink-500', glow: 'shadow-red-500/20' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'from-green-500 to-emerald-500', glow: 'shadow-green-500/20' },
+        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'from-yellow-400 to-amber-500', glow: 'shadow-yellow-500/20' },
+        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'from-pink-500 to-rose-500', glow: 'shadow-pink-500/20' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'from-rose-500 to-red-500', glow: 'shadow-rose-500/20' },
+        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'from-orange-500 to-amber-600', glow: 'shadow-orange-500/20' },
+        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'from-teal-400 to-cyan-500', glow: 'shadow-teal-500/20' },
+        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'from-indigo-500 to-purple-600', glow: 'shadow-indigo-500/20' },
+        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'from-amber-400 to-orange-500', glow: 'shadow-amber-500/20' },
+    ];
+
+    const intents = [
+        { label: "🛍️ Sell a Product", view: 'product_studio' },
+        { label: "🔥 Viral Social Post", view: 'thumbnail_studio' },
+        { label: "🎨 Create Brand Assets", view: 'brand_stylist' },
+        { label: "🏠 Redecorate Space", view: 'interior' },
+        { label: "✨ Enhance Photos", view: 'studio' },
     ];
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-10">
-            {/* Welcome Banner */}
-            <div className="bg-[#1A1A1E] text-white rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-xl">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-[100px] opacity-20"></div>
-                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                     <div>
-                         <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-                         <p className="text-gray-400">Ready to create something amazing today?</p>
-                     </div>
-                     <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
-                         <div className="text-right">
-                             <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Balance</p>
-                             <p className="text-2xl font-bold text-[#6EFACC]">{user?.credits} Credits</p>
-                         </div>
-                         <button 
-                            onClick={() => setActiveView('billing')}
-                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-yellow-500/20"
-                        >
-                             Top Up
-                         </button>
-                     </div>
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-12 text-white">
+            {/* Top Bar: Energy & Profile */}
+            <div className="flex justify-between items-center">
+                 <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                        Hello, {user?.name?.split(' ')[0]}
+                    </h1>
+                    <p className="text-gray-400 text-sm">What will you create today?</p>
+                 </div>
+                 <div className="flex items-center gap-4">
+                    <div className="relative group cursor-pointer" onClick={() => setActiveView('billing')}>
+                        <div className="absolute inset-0 bg-[#6EFACC] rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <div className="relative bg-white/10 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-white/20 transition-colors">
+                            <SparklesIcon className="w-4 h-4 text-[#6EFACC]" />
+                            <span className="font-bold text-[#6EFACC]">{user?.credits} Energy</span>
+                        </div>
+                    </div>
                  </div>
             </div>
 
-            {/* Recent Creations Strip */}
-            {recentCreations.length > 0 && (
-                <div>
-                    <div className="flex items-center justify-between mb-4 px-1">
-                        <h2 className="text-xl font-bold text-[#1A1A1E]">Recent Projects</h2>
-                        <button onClick={() => setActiveView('creations')} className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
-                            View All <ArrowRightIcon className="w-4 h-4"/>
+            {/* Hero: Magic Mirror */}
+            <MagicMirror onTryNow={() => setActiveView('studio')} />
+
+            {/* Intent Navigation */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Quick Start</h3>
+                <div className="flex flex-wrap gap-3">
+                    {intents.map((intent, idx) => (
+                        <button 
+                            key={idx}
+                            onClick={() => setActiveView(intent.view as View)}
+                            className="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl backdrop-blur-sm transition-all hover:scale-105 hover:border-[#4D7CFF]/50 flex items-center gap-2 font-medium"
+                        >
+                            {intent.label}
                         </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Living Project Deck */}
+            {recentCreations.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your Studio</h3>
+                         <button onClick={() => setActiveView('creations')} className="text-xs font-bold text-[#4D7CFF] hover:text-[#6EFACC]">View All Projects</button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {recentCreations.map(creation => (
-                            <div key={creation.id} className="aspect-square rounded-2xl overflow-hidden border border-gray-100 relative group cursor-pointer">
-                                <img src={creation.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                                    <span className="text-white text-xs font-bold">{creation.feature}</span>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex justify-center md:justify-start h-48 perspective-1000">
+                        <div className="relative w-48 h-48 group">
+                             {recentCreations.map((creation, index) => (
+                                 <div 
+                                    key={creation.id}
+                                    className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/10 bg-gray-800 transition-all duration-500 ease-out origin-bottom-left"
+                                    style={{ 
+                                        transform: `rotate(${index * 5}deg) translate(${index * 10}px, -${index * 5}px)`,
+                                        zIndex: 10 - index
+                                    }}
+                                 >
+                                     <img src={creation.imageUrl} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                                     <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+                                         <p className="text-[10px] font-bold text-white uppercase">{creation.feature}</p>
+                                     </div>
+                                     {/* Hover Effect Scripted via CSS group-hover on parent would need complex selectors, simplistic approach here */}
+                                 </div>
+                             ))}
+                             <div className="absolute -right-24 top-1/2 -translate-y-1/2 text-gray-400 text-xs w-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 Your recent work
+                             </div>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Tools Grid */}
-            <div>
-                <h2 className="text-xl font-bold text-[#1A1A1E] mb-4 px-1">Creative Tools</h2>
+            {/* Holographic Tool Grid */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">All Tools</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {tools.map(tool => (
                         <div 
                             key={tool.id}
                             onClick={() => setActiveView(tool.id as View)}
-                            className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-[#4D7CFF] shadow-sm hover:shadow-md cursor-pointer transition-all group flex flex-col items-center text-center gap-3 hover:-translate-y-1"
+                            className={`group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:bg-white/10 overflow-hidden`}
                         >
-                            <div className={`p-3 rounded-xl ${tool.color} text-white group-hover:scale-110 transition-transform`}>
-                                <tool.icon className="w-6 h-6"/>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center mb-4 shadow-lg ${tool.glow} group-hover:scale-110 transition-transform duration-300`}>
+                                <tool.icon className="w-6 h-6 text-white"/>
                             </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-[#1A1A1E]">{tool.label}</span>
+                            <span className="text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{tool.label}</span>
                         </div>
                     ))}
                 </div>
@@ -1442,6 +1520,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
+    const isHome = activeView === 'home_dashboard' || activeView === 'dashboard';
+
     return (
         <div className="flex flex-col h-screen bg-white">
              <Header 
@@ -1461,8 +1541,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     navigateTo={navigateTo}
                     appConfig={appConfig}
                 />
-                <main className="flex-1 overflow-y-auto bg-[#F6F7FA] relative">
-                    {renderContent()}
+                <main className={`flex-1 overflow-y-auto relative ${isHome ? 'bg-[#0f172a]' : 'bg-[#F6F7FA]'}`}>
+                    {/* Aurora Background for Home */}
+                    {isHome && (
+                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] animate-blob"></div>
+                            <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse"></div>
+                         </div>
+                    )}
+                    <div className="relative z-10 h-full">
+                         {renderContent()}
+                    </div>
                 </main>
             </div>
             {isConversationOpen && (
