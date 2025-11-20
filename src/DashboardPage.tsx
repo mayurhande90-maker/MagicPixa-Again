@@ -1033,7 +1033,7 @@ const SpotlightHero: React.FC<{ lastCreation: any, navigateTo: any }> = ({ lastC
                         onClick={() => navigateTo('dashboard', 'studio')} // Ideal: Deep link to resume
                         className="bg-white text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
                     >
-                        <PencilIcon className="w-4 h-4" /> Resume
+                        <SparklesIcon className="w-4 h-4" /> Create Another
                     </button>
                     <button 
                          onClick={() => downloadImage(lastCreation.imageUrl, 'spotlight-image.png')}
