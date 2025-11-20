@@ -62,7 +62,8 @@ import {
     ArrowLeftIcon,
     CreditCardIcon,
     SunIcon,
-    ChartBarIcon
+    ChartBarIcon,
+    FlagIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -918,7 +919,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- Luminous Studio Dashboard Home Components ---
+// --- Creative Loft Dashboard Home Components ---
 
 const SunDial: React.FC<{ credits: number }> = ({ credits }) => (
     <div className="relative group cursor-pointer w-fit ml-auto">
@@ -967,29 +968,53 @@ const CreativeDNA: React.FC<{ creations: any[] }> = ({ creations }) => {
     );
 };
 
-const TheTray: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
+const DailyQuest: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
+    const [timeLeft, setTimeLeft] = useState('');
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        // For now, we just redirect to studio as a "Launcher"
-        navigateTo('dashboard', 'studio');
-    };
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            
+            const diff = tomorrow.getTime() - now.getTime();
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            
+            setTimeLeft(`${hours}h ${minutes}m`);
+        };
+        
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 60000);
+        return () => clearInterval(timer);
+    }, []);
 
     return (
-        <div 
-            className="group relative bg-white rounded-3xl p-6 shadow-sm border-2 border-dashed border-gray-200 hover:border-[#4D7CFF] transition-all cursor-pointer flex flex-col items-center justify-center gap-4 text-center min-h-[200px]"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => navigateTo('dashboard', 'studio')}
-        >
-            <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-50 rounded-3xl transition-opacity pointer-events-none"></div>
-            <div className="relative z-10 p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-[#4D7CFF]" />
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-full -mr-8 -mt-8 blur-2xl group-hover:bg-yellow-200/50 transition-colors"></div>
+            
+            <div className="flex items-center justify-between mb-4 relative z-10">
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1">
+                    <FlagIcon className="w-3 h-3" /> Daily Mission
+                </span>
+                <span className="text-xs font-mono text-gray-400">{timeLeft} left</span>
             </div>
-            <div className="relative z-10">
-                <p className="font-bold text-gray-600 group-hover:text-[#4D7CFF] transition-colors">The Tray</p>
-                <p className="text-xs text-gray-400 mt-1">Drag & Drop ideas here to start</p>
+            
+            <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">Minimalist Skincare</h3>
+            <p className="text-sm text-gray-500 mb-6 relative z-10">Create a clean product shot on a marble background.</p>
+            
+            <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Reward</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-600 text-xs font-bold rounded">+5 Credits</span>
+                </div>
+                <button 
+                    onClick={() => navigateTo('dashboard', 'studio')}
+                    className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
+                >
+                    Start Challenge
+                </button>
             </div>
         </div>
     );
@@ -1121,8 +1146,8 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                      {/* 2. Creative DNA */}
                      <CreativeDNA creations={recent} />
 
-                     {/* 3. The Tray (Drag & Drop) */}
-                     <TheTray navigateTo={navigateTo} />
+                     {/* 3. Daily Quest (Replaces The Tray) */}
+                     <DailyQuest navigateTo={navigateTo} />
 
                      {/* 4. Quick Tools */}
                      <QuickToolList navigateTo={navigateTo} />
