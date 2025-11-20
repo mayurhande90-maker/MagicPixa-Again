@@ -313,6 +313,87 @@ export const editImageWithPrompt = async (
   }
 };
 
+export const generateModelShot = async (
+    base64ImageData: string,
+    mimeType: string,
+    inputs: {
+        modelType: string;
+        region: string;
+        skinTone: string;
+        bodyType: string;
+    }
+  ): Promise<string> => {
+    const ai = getAiClient();
+    try {
+      // Detailed Model Shot System Prompt
+      let prompt = `System instruction for AI:
+  Create a photorealistic marketing image that places the user’s uploaded product naturally with a model. Use the model’s selected attributes to generate the correct face, body type, ethnicity, pose, skin tone, and overall appearance. The final image must look like a real photoshoot, with accurate lighting, natural interaction, and a believable environment based on the product category.
+  
+  INPUTS (filled from UI selections):
+  Model Type: ${inputs.modelType}
+  Region: ${inputs.region}
+  Skin Tone: ${inputs.skinTone}
+  Body Type: ${inputs.bodyType}
+  
+  DETAILED GENERATION RULES (for AI):
+  
+  1. Analyze the product
+  Understand the uploaded product: material, shape, label position, reflective surface, size, orientation.
+  Detect whether this product is naturally held, worn, displayed, or placed.
+  Decide the best possible interaction pose for the model (e.g., Beauty -> near face; Food -> held).
+  
+  2. Generate the model strictly based on user selections
+  The model’s appearance must match:
+  a. Model Type (${inputs.modelType}): Generate correct age, facial features, posture, and proportional body.
+  b. Region / Ethnicity (${inputs.region}): Generate photorealistic, culturally accurate features.
+  c. Skin Tone (${inputs.skinTone}): Use the exact tone.
+  d. Body Type (${inputs.bodyType}): Match body proportions correctly.
+  No mixing of attributes. No hallucination outside the chosen set.
+  
+  3. Place the product correctly with the model
+  Position and scale product naturally relative to the model’s selected body type.
+  Maintain realistic contact (Fingers wrap around correctly, Clothing bends around wearable items).
+  Add correct occlusion (Fingers partially covering product, Hair or clothing overlapping).
+  No floating product. No awkward angles.
+  
+  4. Lighting, shadows, and realism
+  Match product lighting to model lighting direction.
+  Create contact shadows under the product.
+  Ensure the model and product look like they were photographed together, not pasted.
+  
+  5. Background & styling
+  Choose a background that fits the product category (e.g., Beauty -> soft studio, Fitness -> gym).
+  Background must not overpower the product. Keep product as hero element.
+  
+  6. Label & detail preservation
+  Keep all product text sharp and readable. Do not distort brand logo.
+  
+  7. Photoreal finishing
+  Blend edges perfectly. Add subtle film-grade texture.
+  
+  FINAL AI PROMPT:
+  “Generate a photorealistic marketing image using the uploaded product. Create a model that exactly matches the user-selected Model Type: ${inputs.modelType}, Region: ${inputs.region}, Skin Tone: ${inputs.skinTone}, and Body Type: ${inputs.bodyType}. Analyze the product to identify whether it should be handheld, worn, placed, or displayed. Place the product naturally with correct scale, perspective, and interaction. Add realistic occlusion such as fingers, hair, or clothing overlapping the product. Match lighting, shadows, reflections, and color temperature so the product and model look photographed in the same scene. Preserve all product labels and details. Choose a background and styling appropriate for the product category. Finish with clean, natural color grading. The result should look like a real advertisement shot.”`;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [
+            { inlineData: { data: base64ImageData, mimeType: mimeType } },
+            { text: prompt },
+          ],
+        },
+        config: { responseModalities: [Modality.IMAGE] },
+      });
+  
+      const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+      if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+      throw new Error("No image generated.");
+    } catch (error) {
+      console.error("Error generating model shot:", error);
+      throw error;
+    }
+  };
+
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,

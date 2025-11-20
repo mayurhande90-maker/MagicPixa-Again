@@ -24,7 +24,8 @@ import {
     generateThumbnail,
     startLiveSession,
     analyzeVideoFrames,
-    analyzeProductImage
+    analyzeProductImage,
+    generateModelShot
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { extractFramesFromVideo } from './utils/videoUtils';
@@ -56,7 +57,8 @@ import {
     CopyIcon,
     CheckIcon,
     RetryIcon,
-    PencilIcon
+    PencilIcon,
+    ArrowLeftIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -358,20 +360,34 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
-    // Manual Refinement State
+    // Mode Selection State
+    const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
+
+    // Manual Refinement State (Product)
     const [category, setCategory] = useState('');
     const [brandStyle, setBrandStyle] = useState('');
     const [visualType, setVisualType] = useState('');
+
+    // Manual Refinement State (Model)
+    const [modelType, setModelType] = useState('');
+    const [modelRegion, setModelRegion] = useState('');
+    const [skinTone, setSkinTone] = useState('');
+    const [bodyType, setBodyType] = useState('');
 
     const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Automotive'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
 
+    const modelTypes = ['Female Model', 'Male Model', 'Kid Model', 'Senior Model'];
+    const modelRegions = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
+    const skinTones = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
+    const bodyTypes = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
+
     // Animation Timer for Loading Text
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Composition...", "Building Environment...", "Adjusting Lighting...", "Rendering Details...", "Polishing Pixels..."];
+            const steps = ["Analyzing Structure...", "Generating Model...", "Adjusting Lighting...", "Applying Physics...", "Polishing Pixels..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -391,10 +407,15 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
             
-            // Reset States on new upload
+            // Reset ALL States on new upload
+            setStudioMode(null); // Reset mode to force selection
             setCategory('');
             setBrandStyle('');
             setVisualType('');
+            setModelType('');
+            setModelRegion('');
+            setSkinTone('');
+            setBodyType('');
             setSelectedPrompt(null);
             setSuggestedPrompts([]);
             setResult(null);
@@ -419,51 +440,60 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     // Mutually Exclusive Selection Logic
     const handlePromptSelect = (prompt: string) => {
         if (selectedPrompt === prompt) {
-             setSelectedPrompt(null); // Deselect
+             setSelectedPrompt(null);
         } else {
              setSelectedPrompt(prompt);
-             setCategory(''); // Clear manual flow
-             setBrandStyle('');
-             setVisualType('');
+             if (studioMode === 'product') {
+                 setCategory(''); 
+                 setBrandStyle('');
+                 setVisualType('');
+             } else {
+                 setModelType('');
+                 setModelRegion('');
+                 setSkinTone('');
+                 setBodyType('');
+             }
         }
     };
 
     const handleCategorySelect = (val: string) => {
-        if (category === val) {
-             setCategory(''); // Deselect (Step back)
-             setBrandStyle('');
-             setVisualType('');
-        } else {
-             setCategory(val);
-             setSelectedPrompt(null); // Clear AI selection
-        }
+        setCategory(val);
+        setBrandStyle('');
+        setVisualType('');
     };
 
     const handleBrandStyleSelect = (val: string) => {
-        if (brandStyle === val) {
-            setBrandStyle('');
-            setVisualType('');
-        } else {
-            setBrandStyle(val);
-        }
+        setBrandStyle(val);
+        setVisualType('');
     };
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
-        setResult(null); // CLEAR PREVIOUS RESULT TO SHOW ANIMATION AGAIN
+        setResult(null); 
         setLoading(true);
         try {
-            // Determine the direction: Selected Suggestion OR Manual Combination
-            let generationDirection = "";
-            if (selectedPrompt) {
-                generationDirection = selectedPrompt;
-            } else if (category) {
-                generationDirection = `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.`;
+            let res;
+            if (studioMode === 'model') {
+                 // GENERATE MODEL SHOT
+                 res = await generateModelShot(image.base64.base64, image.base64.mimeType, {
+                    modelType,
+                    region: modelRegion,
+                    skinTone,
+                    bodyType
+                 });
             } else {
-                generationDirection = "Professional studio lighting";
+                // GENERATE PRODUCT SHOT
+                let generationDirection = "";
+                if (selectedPrompt) {
+                    generationDirection = selectedPrompt;
+                } else if (category) {
+                    generationDirection = `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.`;
+                } else {
+                    generationDirection = "Professional studio lighting";
+                }
+                res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
             }
 
-            const res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, 'Magic Photo Studio');
@@ -481,12 +511,24 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const handleNewSession = () => {
         setImage(null);
         setResult(null);
+        setStudioMode(null);
         setCategory('');
         setBrandStyle('');
         setVisualType('');
+        setModelType('');
+        setModelRegion('');
+        setSkinTone('');
+        setBodyType('');
         setSuggestedPrompts([]);
         setSelectedPrompt(null);
     };
+
+    // Determine canGenerate based on mode
+    const canGenerate = !!image && !isAnalyzing && !!studioMode && (
+        studioMode === 'product' 
+            ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
+            : (!!modelType && !!modelRegion && !!skinTone && !!bodyType)
+    );
 
     return (
         <FeatureLayout 
@@ -495,7 +537,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
             creditCost={appConfig?.featureCosts['Magic Photo Studio'] || 2}
             isGenerating={loading}
-            canGenerate={!!image && !isAnalyzing && (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))}
+            canGenerate={canGenerate}
             onGenerate={handleGenerate}
             resultImage={result}
             onResetResult={() => setResult(null)}
@@ -606,111 +648,175 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     </div>
                 ) : (
                     <div className="space-y-4 animate-fadeIn p-1">
-                        {/* AI Suggestions Section */}
-                        {(!category || isAnalyzing) && (
-                            <div className={`transition-all duration-300`}>
-                                {isAnalyzing ? (
-                                    <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
-                                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
-                                    </div>
-                                ) : suggestedPrompts.length > 0 ? (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3 ml-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
-                                            {selectedPrompt ? (
-                                                 <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
-                                                     Clear Selection
-                                                 </button>
-                                            ) : (
-                                                 <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
-                                            )}
+                        
+                        {/* STEP 1: Mode Selection (Product vs Model) */}
+                        {!studioMode && !isAnalyzing && (
+                            <div className="flex flex-col gap-4 h-full justify-center">
+                                <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
+                                <button 
+                                    onClick={() => setStudioMode('product')}
+                                    className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
+                                >
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                            <CubeIcon className="w-6 h-6"/>
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            {suggestedPrompts.map((prompt, idx) => {
-                                                return (
-                                                    <button 
-                                                        key={idx} 
-                                                        onClick={() => handlePromptSelect(prompt)}
-                                                        style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
-                                                        className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
-                                                            selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
-                                                        }`}
-                                                    >
-                                                        {/* Gradient Border Layer */}
-                                                        <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
-                                                        
-                                                        {/* Inner Content */}
-                                                        <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
-                                                            <span className={`text-xs font-medium italic text-left ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
-                                                                "{prompt}"
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
+                                        <span className="text-lg font-bold text-gray-800">Product Shot</span>
                                     </div>
-                                ) : null}
+                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Studio lighting, podiums, and nature settings.</p>
+                                </button>
+
+                                <button 
+                                    onClick={() => setStudioMode('model')}
+                                    className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
+                                >
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                            <UsersIcon className="w-6 h-6"/>
+                                        </div>
+                                        <span className="text-lg font-bold text-gray-800">Model Shot</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Realistic human models holding or wearing your product.</p>
+                                </button>
                             </div>
                         )}
 
-                        {/* Divider (Visible if both sections are technically available and NOT analyzing) */}
-                        {!selectedPrompt && !category && !isAnalyzing && (
-                            <div className="relative">
-                                <div className="flex items-center gap-2 py-1">
-                                    <div className="h-px flex-1 bg-gray-200"></div>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR REFINE MANUALLY</span>
-                                    <div className="h-px flex-1 bg-gray-200"></div>
+                        {/* STEP 2: Configuration (Visible if Mode Selected) */}
+                        {studioMode && (
+                            <div className="animate-fadeIn relative">
+                                {/* Back Button */}
+                                <div className="absolute -top-12 left-0">
+                                    <button onClick={() => setStudioMode(null)} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2">
+                                        <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
+                                    </button>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Manual Refinement Section (Visible when NOT analyzing) */}
-                        {!selectedPrompt && !isAnalyzing && (
-                            <div className="relative animate-fadeIn space-y-4">
-                                {/* Product Category with Clear Button and Hiding Logic */}
-                                <div>
-                                     <div className="flex items-center justify-between mb-3 ml-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Product Category</label>
-                                        {category && (
-                                             <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
-                                                 Clear
-                                             </button>
-                                        )}
-                                     </div>
-                                     <div className="flex flex-wrap gap-2">
-                                        {categories.map(opt => (
-                                            <button 
-                                                key={opt}
-                                                onClick={() => handleCategorySelect(opt)}
-                                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform ${
-                                                    category === opt 
-                                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm active:scale-95'
-                                                }`}
-                                            >
-                                                {opt}
-                                            </button>
-                                        ))}
-                                     </div>
-                                </div>
-                                
-                                {category && (
-                                    <SelectionGrid 
-                                        label="2. Brand Style" 
-                                        options={brandStyles} 
-                                        value={brandStyle} 
-                                        onChange={handleBrandStyleSelect} 
-                                    />
+                                {/* AI Suggestions (Common) */}
+                                {(!category && !modelType || isAnalyzing) && (
+                                    <div className={`transition-all duration-300 mb-6`}>
+                                        {isAnalyzing ? (
+                                            <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
+                                            </div>
+                                        ) : suggestedPrompts.length > 0 ? (
+                                            <div>
+                                                <div className="flex items-center justify-between mb-3 ml-1">
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
+                                                    {selectedPrompt ? (
+                                                        <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
+                                                            Clear Selection
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    {suggestedPrompts.map((prompt, idx) => {
+                                                        return (
+                                                            <button 
+                                                                key={idx} 
+                                                                onClick={() => handlePromptSelect(prompt)}
+                                                                style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
+                                                                className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
+                                                                    selectedPrompt === prompt ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
+                                                                }`}
+                                                            >
+                                                                {/* Gradient Border Layer */}
+                                                                <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === prompt ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                                
+                                                                {/* Inner Content */}
+                                                                <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === prompt ? 'bg-transparent' : 'bg-white'}`}>
+                                                                    <span className={`text-xs font-medium italic text-left ${selectedPrompt === prompt ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                                        "{prompt}"
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 )}
 
-                                {category && brandStyle && (
-                                    <SelectionGrid 
-                                        label="3. Visual Type" 
-                                        options={visualTypes} 
-                                        value={visualType} 
-                                        onChange={setVisualType} 
-                                    />
+                                {/* Divider if AI suggestions available but not selected */}
+                                {!selectedPrompt && !isAnalyzing && (
+                                    <div className="relative mb-6">
+                                        <div className="flex items-center gap-2 py-1">
+                                            <div className="h-px flex-1 bg-gray-200"></div>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR CUSTOMIZE</span>
+                                            <div className="h-px flex-1 bg-gray-200"></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* MODE SPECIFIC CONTROLS */}
+                                {!selectedPrompt && !isAnalyzing && (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        {studioMode === 'product' ? (
+                                            // PRODUCT SHOT WORKFLOW
+                                            <>
+                                                 <div>
+                                                     <div className="flex items-center justify-between mb-3 ml-1">
+                                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Product Category</label>
+                                                        {category && (
+                                                             <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
+                                                                 Clear
+                                                             </button>
+                                                        )}
+                                                     </div>
+                                                     <div className="flex flex-wrap gap-2">
+                                                        {categories.map(opt => (
+                                                            <button 
+                                                                key={opt}
+                                                                onClick={() => handleCategorySelect(opt)}
+                                                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform ${
+                                                                    category === opt 
+                                                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
+                                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm active:scale-95'
+                                                                }`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                     </div>
+                                                </div>
+                                                {category && (
+                                                    <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />
+                                                )}
+                                                {category && brandStyle && (
+                                                    <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={setVisualType} />
+                                                )}
+                                            </>
+                                        ) : (
+                                            // MODEL SHOT WORKFLOW
+                                            <>
+                                                <SelectionGrid label="1. Model Type" options={modelTypes} value={modelType} onChange={(val) => {
+                                                    setModelType(val);
+                                                    // Reset subsequent steps if going back
+                                                    setModelRegion(''); setSkinTone(''); setBodyType('');
+                                                }} />
+                                                
+                                                {modelType && (
+                                                    <SelectionGrid label="2. Region" options={modelRegions} value={modelRegion} onChange={(val) => {
+                                                        setModelRegion(val);
+                                                        setSkinTone(''); setBodyType('');
+                                                    }} />
+                                                )}
+                                                
+                                                {modelRegion && (
+                                                    <SelectionGrid label="3. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => {
+                                                        setSkinTone(val);
+                                                        setBodyType('');
+                                                    }} />
+                                                )}
+
+                                                {skinTone && (
+                                                    <SelectionGrid label="4. Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
