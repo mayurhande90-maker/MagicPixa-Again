@@ -1223,7 +1223,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
                 <div>
                     <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Luxe Face Cream" />
                     <TextAreaField label="Description / Key Benefits" value={productDesc} onChange={(e: any) => setProductDesc(e.target.value)} placeholder="Describe ingredients, target audience, etc." />
-                    <div className="hidden"><input ref={fileInputRef} type="file" onChange={handleUpload} /></div>
+                    <div className="hidden"><input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} /></div>
                 </div>
             }
         />
@@ -1275,42 +1275,45 @@ const StandardFeature: React.FC<{
     };
 
     return (
-        <FeatureLayout 
-            title={title}
-            description={description}
-            icon={icon}
-            creditCost={cost}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleRun}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
-            leftContent={
-                image ? (
-                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
-                        <img src={image.url} className="max-w-full max-h-full object-contain" />
-                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <UploadPlaceholder label={placeholderLabel} onClick={() => fileInputRef.current?.click()} />
-                )
-            }
-            rightContent={
-                image ? (
-                    <div>
-                         <InputField label={promptLabel} value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe the desired outcome..." />
-                    </div>
-                ) : (
-                    <div className="text-center text-gray-400 p-10">Upload an image to start.</div>
-                )
-            }
-        />
+        <>
+            <FeatureLayout 
+                title={title}
+                description={description}
+                icon={icon}
+                creditCost={cost}
+                isGenerating={loading}
+                canGenerate={!!image}
+                onGenerate={handleRun}
+                resultImage={result}
+                onResetResult={() => setResult(null)}
+                onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
+                leftContent={
+                    image ? (
+                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                            <img src={image.url} className="max-w-full max-h-full object-contain" />
+                            <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
+                        </div>
+                    ) : (
+                        <UploadPlaceholder label={placeholderLabel} onClick={() => fileInputRef.current?.click()} />
+                    )
+                }
+                rightContent={
+                    image ? (
+                        <div>
+                            <InputField label={promptLabel} value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe the desired outcome..." />
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-400 p-10">Upload an image to start.</div>
+                    )
+                }
+            />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        </>
     );
 };
 
 // Specific wrapper for CaptionAI as it returns text
-const CaptionAI: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
     const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[]>([]);
@@ -1329,9 +1332,10 @@ const CaptionAI: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         if (!image || !auth.user) return;
         setLoading(true);
         try {
+            const cost = appConfig?.featureCosts['CaptionAI'] || 1;
             const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
             setCaptions(res);
-            await deductCredits(auth.user.uid, 1, 'CaptionAI');
+            await deductCredits(auth.user.uid, cost, 'CaptionAI');
              // Note: We don't save text creations to image gallery currently
         } catch (e) {
             console.error(e);
@@ -1342,43 +1346,46 @@ const CaptionAI: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <FeatureLayout 
-            title="CaptionAI"
-            description="Generate engaging social media captions and hashtags instantly."
-            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
-            creditCost={1}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={null} // Custom result view
-            onNewSession={() => { setImage(null); setCaptions([]); }}
-            leftContent={
-                image ? (
-                     <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
-                        <img src={image.url} className="max-w-full max-h-full object-contain" />
-                    </div>
-                ) : (
-                    <UploadPlaceholder label="Upload Photo for Captions" onClick={() => fileInputRef.current?.click()} />
-                )
-            }
-            rightContent={
-                captions.length > 0 ? (
-                    <div className="space-y-4 h-[500px] overflow-y-auto pr-2">
-                        {captions.map((c, i) => (
-                            <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                <p className="text-sm text-gray-800 mb-2">{c.caption}</p>
-                                <p className="text-xs text-blue-500 font-medium mb-3">{c.hashtags}</p>
-                                <button onClick={() => navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
-                                    <CopyIcon className="w-3 h-3" /> Copy
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center text-gray-400 p-10">Upload a photo to generate captions.</div>
-                )
-            }
-        />
+        <>
+            <FeatureLayout 
+                title="CaptionAI"
+                description="Generate engaging social media captions and hashtags instantly."
+                icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+                creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
+                isGenerating={loading}
+                canGenerate={!!image}
+                onGenerate={handleGenerate}
+                resultImage={null} // Custom result view
+                onNewSession={() => { setImage(null); setCaptions([]); }}
+                leftContent={
+                    image ? (
+                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                            <img src={image.url} className="max-w-full max-h-full object-contain" />
+                        </div>
+                    ) : (
+                        <UploadPlaceholder label="Upload Photo for Captions" onClick={() => fileInputRef.current?.click()} />
+                    )
+                }
+                rightContent={
+                    captions.length > 0 ? (
+                        <div className="space-y-4 h-[500px] overflow-y-auto pr-2">
+                            {captions.map((c, i) => (
+                                <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                    <p className="text-sm text-gray-800 mb-2">{c.caption}</p>
+                                    <p className="text-xs text-blue-500 font-medium mb-3">{c.hashtags}</p>
+                                    <button onClick={() => navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
+                                        <CopyIcon className="w-3 h-3" /> Copy
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-400 p-10">Upload a photo to generate captions.</div>
+                    )
+                }
+            />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        </>
     );
 };
 
@@ -1408,21 +1415,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
                  // Placeholder using standard layout if specialized component not available in this context snippet
-                 return <StandardFeature title="Thumbnail Studio" description="Create viral thumbnails." icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateThumbnail({ category: 'General', title: p || 'Video', referenceImage: img.base64, subjectA: img.base64 })} />;
+                 return <StandardFeature title="Thumbnail Studio" description="Create viral thumbnails." icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>} cost={appConfig?.featureCosts['Thumbnail Studio'] || 2} auth={auth} onGenerate={async (img, p) => await generateThumbnail({ category: 'General', title: p || 'Video', referenceImage: img.base64, subjectA: img.base64 })} />;
             case 'brand_stylist':
-                 return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
+                 return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={appConfig?.featureCosts['Brand Stylist AI'] || 4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
             case 'soul':
-                 return <StandardFeature title="Magic Soul" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
+                 return <StandardFeature title="Magic Soul" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
             case 'colour':
-                 return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
+                 return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
             case 'interior':
-                 return <StandardFeature title="Magic Interior" description="Redesign your space." icon={<HomeIcon className="w-6 h-6 text-orange-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateInteriorDesign(img.base64, img.mimeType, p || 'Modern', 'home', 'Living Room')} />;
+                 return <StandardFeature title="Magic Interior" description="Redesign your space." icon={<HomeIcon className="w-6 h-6 text-orange-500"/>} cost={appConfig?.featureCosts['Magic Interior'] || 2} auth={auth} onGenerate={async (img, p) => await generateInteriorDesign(img.base64, img.mimeType, p || 'Modern', 'home', 'Living Room')} />;
             case 'apparel':
-                 return <StandardFeature title="Magic Apparel" description="Virtual Try-On." icon={<UsersIcon className="w-6 h-6 text-teal-500"/>} cost={3} auth={auth} onGenerate={async (img) => await generateApparelTryOn(img.base64, img.mimeType, [])} />;
+                 return <StandardFeature title="Magic Apparel" description="Virtual Try-On." icon={<UsersIcon className="w-6 h-6 text-teal-500"/>} cost={appConfig?.featureCosts['Magic Apparel'] || 3} auth={auth} onGenerate={async (img) => await generateApparelTryOn(img.base64, img.mimeType, [])} />;
             case 'mockup':
-                 return <StandardFeature title="Magic Mockup" description="Product Mockups." icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateMockup(img.base64, img.mimeType, p || 'T-Shirt')} />;
+                 return <StandardFeature title="Magic Mockup" description="Product Mockups." icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>} cost={appConfig?.featureCosts['Magic Mockup'] || 2} auth={auth} onGenerate={async (img, p) => await generateMockup(img.base64, img.mimeType, p || 'T-Shirt')} />;
             case 'caption':
-                 return <CaptionAI auth={auth} />;
+                 return <CaptionAI auth={auth} appConfig={appConfig} />;
             case 'billing':
                 if (auth.user) {
                     return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} />;
