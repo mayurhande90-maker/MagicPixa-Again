@@ -102,6 +102,13 @@ const InputField: React.FC<any> = ({ label, id, ...props }) => (
     </div>
 );
 
+const TextAreaField: React.FC<any> = ({ label, id, ...props }) => (
+    <div className="mb-6">
+        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
+        <textarea id={id} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E] placeholder-gray-400 resize-none" rows={4} {...props} />
+    </div>
+);
+
 // Visual Selector for Prompt-Less UI - Premium Card Style
 const VisualSelector: React.FC<{ 
     label: string; 
@@ -1120,6 +1127,109 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navig
     );
 };
 
+const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [productName, setProductName] = useState('');
+    const [productDesc, setProductDesc] = useState('');
+    const [result, setResult] = useState<any>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user || !productName) return;
+        setLoading(true);
+        try {
+            const cost = appConfig?.featureCosts['Product Studio'] || 5;
+            const res = await generateProductPackPlan(
+                [image.base64.base64], 
+                productName, 
+                productDesc, 
+                { colors: [], fonts: [] }, 
+                '', 
+                []
+            );
+            setResult(res);
+            await deductCredits(auth.user.uid, cost, 'Product Studio');
+            // Note: This feature returns text/strategy, we don't save an image to gallery yet.
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <FeatureLayout 
+            title="Product Studio"
+            description="Generate a complete marketing pack: SEO titles, captions, and visual concepts."
+            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
+            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
+            isGenerating={loading}
+            canGenerate={!!image && !!productName}
+            onGenerate={handleGenerate}
+            resultImage={null}
+            onNewSession={() => { setImage(null); setResult(null); setProductName(''); setProductDesc(''); }}
+            leftContent={
+                result ? (
+                    <div className="w-full h-full bg-white p-6 rounded-3xl border border-gray-200 overflow-y-auto max-h-[600px]">
+                        <h3 className="text-xl font-bold mb-4 text-green-600">Marketing Pack Generated</h3>
+                        <div className="space-y-6">
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase">SEO Title</p>
+                                <p className="font-bold text-lg">{result.textAssets.seoTitle}</p>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Captions</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {result.textAssets.captions.map((c: any, i: number) => (
+                                        <li key={i} className="text-sm">{c.text}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Keywords</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {result.textAssets.keywords.map((k: string, i: number) => (
+                                        <span key={i} className="bg-white px-2 py-1 rounded border text-xs font-mono">{k}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Visual Concepts</p>
+                                <p className="text-sm italic text-gray-600">{result.imageGenerationPrompts.heroShot}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : image ? (
+                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                        <img src={image.url} className="max-w-full max-h-full object-contain" />
+                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <UploadPlaceholder label="Upload Product" onClick={() => fileInputRef.current?.click()} />
+                )
+            }
+            rightContent={
+                <div>
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Luxe Face Cream" />
+                    <TextAreaField label="Description / Key Benefits" value={productDesc} onChange={(e: any) => setProductDesc(e.target.value)} placeholder="Describe ingredients, target audience, etc." />
+                    <div className="hidden"><input ref={fileInputRef} type="file" onChange={handleUpload} /></div>
+                </div>
+            }
+        />
+    );
+};
+
 // Simplified Implementations for other features using FeatureLayout to prevent blank screens
 const StandardFeature: React.FC<{ 
     title: string; 
@@ -1293,8 +1403,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
-            case 'product_studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+            case 'product_studio':
+                 return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
                  // Placeholder using standard layout if specialized component not available in this context snippet
                  return <StandardFeature title="Thumbnail Studio" description="Create viral thumbnails." icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateThumbnail({ category: 'General', title: p || 'Video', referenceImage: img.base64, subjectA: img.base64 })} />;
