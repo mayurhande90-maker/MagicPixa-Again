@@ -213,22 +213,22 @@ const FeatureLayout: React.FC<{
                              />
                              
                              {/* Result Actions */}
-                             <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-20 pointer-events-none">
-                                <div className="pointer-events-auto flex gap-4">
+                             <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
+                                <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
                                     {onNewSession && (
-                                         <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
-                                            <TrashIcon className="w-5 h-5"/>
+                                         <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                            <TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
                                             <span className="hidden sm:inline">New Project</span>
                                         </button>
                                     )}
                                     {onResetResult && (
-                                        <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all border border-white/10 shadow-lg font-medium flex items-center gap-2 group">
-                                            <RetryIcon className="w-5 h-5"/>
+                                        <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                            <RetryIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
                                             <span className="hidden sm:inline">Regenerate</span>
                                         </button>
                                     )}
-                                    <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-8 py-3 rounded-xl transition-all shadow-lg shadow-yellow-500/30 font-bold flex items-center gap-2 transform hover:scale-105">
-                                        <DownloadIcon className="w-5 h-5"/> Download
+                                    <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-yellow-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
+                                        <DownloadIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Download</span>
                                     </button>
                                 </div>
                              </div>
@@ -369,7 +369,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     // Animation Timer for Loading Text
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (loading) {
             const steps = ["Analyzing Composition...", "Building Environment...", "Adjusting Lighting...", "Rendering Details...", "Polishing Pixels..."];
             let step = 0;
