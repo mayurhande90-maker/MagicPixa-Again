@@ -60,7 +60,8 @@ import {
     RetryIcon,
     PencilIcon,
     ArrowLeftIcon,
-    CreditCardIcon
+    CreditCardIcon,
+    SunIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -916,95 +917,201 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- Restored Components ---
+// --- Luminous Studio Dashboard Home Components ---
 
-const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
-    const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
+const InspirationTicker = () => (
+    <div className="w-full bg-white/50 backdrop-blur-sm border-b border-gray-100 py-2 overflow-hidden flex items-center">
+        <div className="flex animate-marquee whitespace-nowrap gap-12 text-xs font-medium text-gray-400">
+            <span>✨ Try: "Neon Cyberpunk Sneakers"</span>
+            <span>🌿 Try: "Minimalist Skincare on Marble"</span>
+            <span>👗 Try: "Summer Dress Beach Lifestyle"</span>
+            <span>🎨 Try: "Vintage Film Portrait"</span>
+            <span>🏠 Try: "Scandinavian Living Room Redesign"</span>
+            <span>✨ Try: "Neon Cyberpunk Sneakers"</span>
+            <span>🌿 Try: "Minimalist Skincare on Marble"</span>
+            <span>👗 Try: "Summer Dress Beach Lifestyle"</span>
+            <span>🎨 Try: "Vintage Film Portrait"</span>
+            <span>🏠 Try: "Scandinavian Living Room Redesign"</span>
+        </div>
+    </div>
+);
 
+const OmniBar = () => (
+    <div className="relative w-full max-w-2xl mx-auto group z-20">
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
+        <div className="relative bg-white rounded-full shadow-xl flex items-center px-6 py-4 cursor-text transition-transform duration-300 hover:scale-[1.01]">
+            <SparklesIcon className="w-6 h-6 text-[#4D7CFF] mr-4 animate-pulse" />
+            <span className="text-gray-400 text-lg font-medium select-none">What do you want to create today?</span>
+            <div className="ml-auto flex items-center gap-2">
+                <kbd className="hidden sm:inline-block px-2 py-1 bg-gray-100 text-gray-400 text-xs rounded font-mono">⌘ K</kbd>
+            </div>
+        </div>
+    </div>
+);
+
+const SunDial: React.FC<{ credits: number }> = ({ credits }) => (
+    <div className="relative group cursor-pointer">
+        <div className="absolute inset-0 bg-yellow-400 rounded-full blur-lg opacity-20 group-hover:opacity-40 transition-opacity animate-pulse"></div>
+        <div className="relative bg-white p-2 rounded-full shadow-lg border border-yellow-100 flex items-center gap-2 pr-4 transition-all duration-300 group-hover:scale-105">
+            <SunIcon className={`w-8 h-8 text-yellow-400 ${credits > 0 ? 'animate-[spin_10s_linear_infinite]' : ''}`} />
+            <div className="flex flex-col items-start">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none">Energy</span>
+                <span className="text-lg font-bold text-[#1A1A1E] leading-none">{credits}</span>
+            </div>
+        </div>
+    </div>
+);
+
+const BentoGrid: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-6xl mx-auto px-4">
+        {/* Hero Card - Product Studio */}
+        <div onClick={() => navigateTo('dashboard', 'product_studio')} className="md:col-span-2 md:row-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8 relative overflow-hidden cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-green-100/50 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-green-200/50"></div>
+            <div className="relative z-10 h-full flex flex-col justify-between">
+                <div>
+                    <div className="p-3 bg-green-100 w-fit rounded-2xl mb-4 text-green-600"><ProductStudioIcon className="w-8 h-8"/></div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Product Studio</h3>
+                    <p className="text-gray-500 max-w-xs">Generate a complete marketing pack from a single photo.</p>
+                </div>
+                <div className="mt-8 flex gap-4">
+                     <div className="h-32 w-32 bg-gray-100 rounded-xl rotate-[-6deg] shadow-sm border border-gray-200 group-hover:rotate-[-12deg] transition-transform duration-500"></div>
+                     <div className="h-32 w-32 bg-gray-200 rounded-xl rotate-[3deg] shadow-md border border-gray-300 z-10 group-hover:rotate-[6deg] transition-transform duration-500 group-hover:scale-110"></div>
+                </div>
+            </div>
+        </div>
+
+        {/* Tall Card - Magic Model */}
+        <div onClick={() => navigateTo('dashboard', 'studio')} className="md:col-span-1 md:row-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 relative overflow-hidden cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-purple-50 to-transparent"></div>
+            <div className="relative z-10 h-full flex flex-col items-center text-center">
+                <div className="p-3 bg-purple-100 w-fit rounded-2xl mb-4 text-purple-600"><UsersIcon className="w-6 h-6"/></div>
+                <h3 className="text-xl font-bold text-gray-800 mb-1">Magic Model</h3>
+                <p className="text-xs text-gray-500 mb-6">Turn products into lifestyle shots.</p>
+                <div className="flex-1 w-full bg-gray-100 rounded-xl relative overflow-hidden group-hover:shadow-inner">
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xs">Model Preview</div>
+                </div>
+            </div>
+        </div>
+
+        {/* Widget - Quick Caption */}
+        <div onClick={() => navigateTo('dashboard', 'caption')} className="md:col-span-1 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+                <div className="p-3 bg-amber-100 w-fit rounded-2xl text-amber-600"><CaptionIcon className="w-6 h-6"/></div>
+                <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">FAST</span>
+            </div>
+            <div>
+                <h3 className="text-lg font-bold text-gray-800">Caption AI</h3>
+                <p className="text-xs text-gray-500">Instant social text.</p>
+            </div>
+        </div>
+
+        {/* Small Tool - Thumbnail */}
+        <div onClick={() => navigateTo('dashboard', 'thumbnail_studio')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
+             <div className="p-3 bg-red-100 w-fit rounded-2xl mb-3 text-red-600"><ThumbnailIcon className="w-6 h-6"/></div>
+             <h3 className="text-lg font-bold text-gray-800">Thumbnails</h3>
+        </div>
+
+         {/* Small Tool - Brand Stylist */}
+         <div onClick={() => navigateTo('dashboard', 'brand_stylist')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
+             <div className="p-3 bg-yellow-100 w-fit rounded-2xl mb-3 text-yellow-600"><LightbulbIcon className="w-6 h-6"/></div>
+             <h3 className="text-lg font-bold text-gray-800">Brand Stylist</h3>
+        </div>
+        
+         {/* Small Tool - Interior */}
+         <div onClick={() => navigateTo('dashboard', 'interior')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
+             <div className="p-3 bg-orange-100 w-fit rounded-2xl mb-3 text-orange-600"><HomeIcon className="w-6 h-6"/></div>
+             <h3 className="text-lg font-bold text-gray-800">Interior AI</h3>
+        </div>
+    </div>
+);
+
+const FilmStrip: React.FC<{ user: User | null, navigateTo: any }> = ({ user, navigateTo }) => {
+    const [recent, setRecent] = useState<Creation[]>([]);
+    
     useEffect(() => {
-        if (user) {
-            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 4)));
-        }
+        if (user) getCreations(user.uid).then(data => setRecent(data.slice(0, 5)));
     }, [user]);
 
-    const tools = [
-        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
-        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
-        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'bg-yellow-500' },
-        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
-        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
-        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'bg-orange-500' },
-        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'bg-teal-500' },
-        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'bg-indigo-500' },
-        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'bg-amber-500' },
-    ];
+    if (recent.length === 0) return null;
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-10">
-            {/* Welcome Banner */}
-            <div className="bg-[#1A1A1E] text-white rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-xl">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-[100px] opacity-20"></div>
-                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                     <div>
-                         <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-                         <p className="text-gray-400">Ready to create something amazing today?</p>
-                     </div>
-                     <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
-                         <div className="text-right">
-                             <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Balance</p>
-                             <p className="text-2xl font-bold text-[#6EFACC]">{user?.credits} Credits</p>
-                         </div>
-                         <button 
-                            onClick={() => setActiveView('billing')}
-                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-yellow-500/20"
-                        >
-                             Top Up
-                         </button>
-                     </div>
-                 </div>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 hidden md:flex">
+            <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-2 rounded-[2rem] shadow-2xl flex items-center gap-4 px-6">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mr-2">Recent</span>
+                {recent.map(item => (
+                    <div key={item.id} className="w-12 h-12 rounded-xl overflow-hidden border border-white/50 shadow-sm cursor-pointer hover:scale-150 transition-transform duration-300 origin-bottom relative group">
+                        <img src={item.imageUrl} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                    </div>
+                ))}
+                <button onClick={() => navigateTo('dashboard', 'creations')} className="ml-2 w-10 h-10 rounded-full bg-white/50 flex items-center justify-center hover:bg-white transition-colors">
+                    <ArrowRightIcon className="w-4 h-4 text-gray-600"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
+    return (
+        <div className="min-h-full pb-32 relative overflow-hidden">
+            {/* Background Blobs for Luminous Theme */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+                <div className="absolute top-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-blue-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-[-20%] left-[20%] w-[40rem] h-[40rem] bg-yellow-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
             </div>
 
-            {/* Recent Creations Strip */}
-            {recentCreations.length > 0 && (
-                <div>
-                    <div className="flex items-center justify-between mb-4 px-1">
-                        <h2 className="text-xl font-bold text-[#1A1A1E]">Recent Projects</h2>
-                        <button onClick={() => setActiveView('creations')} className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
-                            View All <ArrowRightIcon className="w-4 h-4"/>
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {recentCreations.map(creation => (
-                            <div key={creation.id} className="aspect-square rounded-2xl overflow-hidden border border-gray-100 relative group cursor-pointer">
-                                <img src={creation.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                                    <span className="text-white text-xs font-bold">{creation.feature}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Tools Grid */}
-            <div>
-                <h2 className="text-xl font-bold text-[#1A1A1E] mb-4 px-1">Creative Tools</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {tools.map(tool => (
-                        <div 
-                            key={tool.id}
-                            onClick={() => setActiveView(tool.id as View)}
-                            className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-[#4D7CFF] shadow-sm hover:shadow-md cursor-pointer transition-all group flex flex-col items-center text-center gap-3 hover:-translate-y-1"
-                        >
-                            <div className={`p-3 rounded-xl ${tool.color} text-white group-hover:scale-110 transition-transform`}>
-                                <tool.icon className="w-6 h-6"/>
-                            </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-[#1A1A1E]">{tool.label}</span>
+            <div className="relative z-10">
+                <InspirationTicker />
+                
+                <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-12">
+                    {/* Hero Area */}
+                    <div className="flex flex-col items-center gap-8 pt-8">
+                        <div className="w-full flex justify-end px-4">
+                            {user && <SunDial credits={user.credits} />}
                         </div>
-                    ))}
+                        
+                        <div className="text-center space-y-2">
+                            <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1E]">
+                                Good {new Date().getHours() < 12 ? 'Morning' : 'Evening'}, {user?.name?.split(' ')[0]}.
+                            </h1>
+                            <p className="text-gray-500 text-lg">Your studio is ready.</p>
+                        </div>
+
+                        <OmniBar />
+                    </div>
+
+                    {/* Main Navigation */}
+                    <BentoGrid navigateTo={navigateTo} />
                 </div>
+
+                <FilmStrip user={user} navigateTo={navigateTo} />
             </div>
+             <style>{`
+                @keyframes blob {
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
+                }
+                .animate-blob {
+                    animation: blob 7s infinite;
+                }
+                .animation-delay-2000 {
+                    animation-delay: 2s;
+                }
+                .animation-delay-4000 {
+                    animation-delay: 4s;
+                }
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee {
+                    animation: marquee 30s linear infinite;
+                }
+            `}</style>
         </div>
     );
 };
