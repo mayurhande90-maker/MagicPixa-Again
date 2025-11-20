@@ -61,10 +61,10 @@ export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className })
 );
 
 // Newly Added Icons
-export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
+export const MagicPixaLogo: React.FC<{ className?: string; textClass?: string }> = ({ className = '', textClass = 'text-[#1A1A1E]' }) => (
     <div className={`flex items-center ${className}`}>
         <span className="text-2xl font-bold">
-            <span className="!text-black dark:text-gray-200">Magic</span>
+            <span className={`${textClass} dark:text-gray-200`}>Magic</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Pixa</span>
         </span>
     </div>

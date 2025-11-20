@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
@@ -15,10 +16,12 @@ interface DashboardAuthProps extends AuthProps {
 interface HeaderProps {
     navigateTo: (page: Page, view?: View, sectionId?: string) => void;
     auth: DashboardAuthProps;
+    theme?: 'light' | 'dark';
 }
 
-const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
+const Header: React.FC<HeaderProps> = ({ navigateTo, auth, theme = 'light' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isDark = theme === 'dark';
 
   const handleMobileLinkClick = (page: Page, view?: View, sectionId?: string) => {
     navigateTo(page, view, sectionId);
@@ -57,38 +60,38 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#FFFFFF]/80 backdrop-blur-lg border-b border-gray-200/80">
+      <header className={`sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 backdrop-blur-lg border-b transition-colors ${isDark ? 'bg-[#0f172a]/80 border-white/10' : 'bg-[#FFFFFF]/80 border-gray-200/80'}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 lg:gap-10">
               {auth.isDashboard && (
                 <div className="lg:hidden">
                     {auth.showBackButton && (
-                        <button onClick={auth.handleBack} className="p-2 -ml-2 text-[#1A1A1E]" aria-label="Go back">
+                        <button onClick={auth.handleBack} className={`p-2 -ml-2 ${isDark ? 'text-white' : 'text-[#1A1A1E]'}`} aria-label="Go back">
                             <ArrowLeftIcon className="w-6 h-6" />
                         </button>
                     )}
                 </div>
               )}
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigateTo('home', undefined, 'home')}>
-                  <MagicPixaLogo />
+                  <MagicPixaLogo textClass={isDark ? 'text-white' : 'text-[#1A1A1E]'} />
               </div>
               <nav className="hidden md:flex items-center gap-6">
                    {auth.isAuthenticated ? (
-                      <button onClick={() => navigateTo('dashboard', 'dashboard')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Dashboard</button>
+                      <button onClick={() => navigateTo('dashboard', 'dashboard')} className={`text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:text-white' : 'text-[#5F6368] hover:text-[#1A1A1E]'}`}>Dashboard</button>
                    ) : (
-                      <button onClick={() => navigateTo('home', undefined, 'home')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Home</button>
+                      <button onClick={() => navigateTo('home', undefined, 'home')} className={`text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:text-white' : 'text-[#5F6368] hover:text-[#1A1A1E]'}`}>Home</button>
                    )}
-                   <button onClick={() => navigateTo('home', undefined, 'features')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Features</button>
-                   <button onClick={() => navigateTo('home', undefined, 'pricing')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Pricing</button>
-                   <button onClick={() => navigateTo('about', undefined, undefined)} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">About Us</button>
+                   <button onClick={() => navigateTo('home', undefined, 'features')} className={`text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:text-white' : 'text-[#5F6368] hover:text-[#1A1A1E]'}`}>Features</button>
+                   <button onClick={() => navigateTo('home', undefined, 'pricing')} className={`text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:text-white' : 'text-[#5F6368] hover:text-[#1A1A1E]'}`}>Pricing</button>
+                   <button onClick={() => navigateTo('about', undefined, undefined)} className={`text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:text-white' : 'text-[#5F6368] hover:text-[#1A1A1E]'}`}>About Us</button>
               </nav>
           </div>
           <div className="flex items-center gap-4">
               {auth.isAuthenticated && auth.user ? (
                 <>
                   {/* Mobile view: Show credits instead of user circle */}
-                  <div className="sm:hidden flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
-                    <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
+                  <div className={`sm:hidden flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm border ${isDark ? 'bg-[#6EFACC]/20 border-[#6EFACC]/30 text-white' : 'bg-[#6EFACC]/20 border-[#6EFACC]/30 text-[#1A1A1E]'}`}>
+                    <SparklesIcon className="w-4 h-4" />
                     <span>{auth.user.credits} Credits</span>
                   </div>
 
@@ -98,13 +101,13 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                       <>
                         <button 
                             onClick={auth.openConversation}
-                            className="flex items-center gap-2 bg-white text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-[#F9D230] hover:bg-yellow-50 transition-all"
+                            className={`flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm border-2 transition-all ${isDark ? 'bg-white/10 text-white border-white/20 hover:bg-white/20' : 'bg-white text-[#1A1A1E] border-[#F9D230] hover:bg-yellow-50'}`}
                         >
                             <AudioWaveIcon className="w-4 h-4" />
                             <span>Magic Conversation</span>
                         </button>
-                        <div className="flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
-                            <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
+                        <div className={`flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm border ${isDark ? 'bg-[#6EFACC]/20 border-[#6EFACC]/30 text-white' : 'bg-[#6EFACC]/20 border-[#6EFACC]/30 text-[#1A1A1E]'}`}>
+                            <SparklesIcon className="w-4 h-4" />
                             <span>{auth.user.credits} Credits</span>
                         </div>
                         <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
@@ -119,7 +122,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                   <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl border-2 border-[#F9D230] hover:bg-[#dfbc2b] transition-colors">
                     Sign In
                   </button>
-                  <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#1A1A1E] md:hidden" aria-label="Open navigation menu">
+                  <button onClick={() => setIsMobileMenuOpen(true)} className={`p-2 md:hidden ${isDark ? 'text-white' : 'text-[#1A1A1E]'}`} aria-label="Open navigation menu">
                     <MenuIcon className="w-6 h-6" />
                   </button>
                 </>
