@@ -274,10 +274,13 @@ export const analyzeProductForModelPrompts = async (
         
         **CRITICAL INSTRUCTION:** 
         You MUST vary the **SHOT TYPE** (Close-up, Wide, Mid) and **COMPOSITION** (Single Model vs Group) in your suggestions. 
-        Do NOT just give 4 generic "person holding product" prompts.
         
         Return a JSON array of objects with two keys:
-        1. "display": A short, catchy title for the user interface (max 5 words). e.g., "Urban Street Style", "Cozy Home Vibe".
+        1. "display": A natural, conversational question requesting this specific shot. It must sound like a human asking an editor. 
+           Examples: 
+           - "Can you create a wide group shot of friends wearing this?"
+           - "Show me a close-up of a model holding this near their face."
+           - "Generate a professional studio shot of a man using this product."
         2. "prompt": The detailed, descriptive prompt for the image generator. e.g., "Wide angle street style shot of a young woman..."
         
         Return ONLY the JSON array.`;
@@ -307,19 +310,19 @@ export const analyzeProductForModelPrompts = async (
         });
         const jsonText = response.text?.trim();
         if (!jsonText) return [
-            { display: "Close-Up Portrait", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
-            { display: "Lifestyle Group", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
-            { display: "Studio Professional", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
-            { display: "Macro Detail", prompt: "Tight detail macro shot of hands holding the product to show texture" }
+            { display: "Can you create a close-up of a model holding this?", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
+            { display: "Show me a wide shot of friends using this product outdoors.", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
+            { display: "Generate a professional studio shot of a model.", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
+            { display: "Can you show a tight detail shot in hand?", prompt: "Tight detail macro shot of hands holding the product to show texture" }
         ];
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product for model prompts:", e);
         return [
-            { display: "Close-Up Portrait", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
-            { display: "Lifestyle Group", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
-            { display: "Studio Professional", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
-            { display: "Macro Detail", prompt: "Tight detail macro shot of hands holding the product to show texture" }
+            { display: "Can you create a close-up of a model holding this?", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
+            { display: "Show me a wide shot of friends using this product outdoors.", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
+            { display: "Generate a professional studio shot of a model.", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
+            { display: "Can you show a tight detail shot in hand?", prompt: "Tight detail macro shot of hands holding the product to show texture" }
         ];
     }
 }

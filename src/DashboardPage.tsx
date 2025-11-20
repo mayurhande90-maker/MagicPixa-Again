@@ -440,6 +440,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     };
 
     const handleModeSelect = async (mode: 'product' | 'model') => {
+        setResult(null); // Clear any existing result to start scanning afresh on the original image
         setStudioMode(mode);
         setSelectedPrompt(null);
         
