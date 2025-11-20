@@ -458,18 +458,22 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                 setIsAnalyzing(false);
             }
         } else if (mode === 'model') {
-             // For Model Mode: Unlock controls IMMEDIATELY (isAnalyzing stays false)
-             // Run suggestions in background
-             if (suggestedModelPrompts.length === 0 && image) {
-                 setIsAnalyzingModel(true); // Only for the small badge, doesn't block UI
-                 try {
-                     const prompts = await analyzeProductForModelPrompts(image.base64.base64, image.base64.mimeType);
-                     setSuggestedModelPrompts(prompts);
-                 } catch (e) {
-                     console.error(e);
-                 } finally {
-                     setIsAnalyzingModel(false);
-                 }
+             // Trigger scanning/analysis logic for Model Mode
+             setIsAnalyzingModel(true); 
+             try {
+                 const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType);
+                 setSuggestedModelPrompts(prompts);
+             } catch (e) {
+                 console.error(e);
+                 // Fallback
+                 setSuggestedModelPrompts([
+                    "Young female model holding the product near her face",
+                    "Male model holding the product in a studio setting",
+                    "Lifestyle shot of the product on a table next to a person",
+                    "Close up of hands interacting with the product"
+                 ]);
+             } finally {
+                 setIsAnalyzingModel(false);
              }
         }
     };
@@ -557,7 +561,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSelectedPrompt(null);
     };
 
-    const canGenerate = !!image && !isAnalyzing && !!studioMode && (
+    const canGenerate = !!image && !isAnalyzing && !!isAnalyzingModel && !!studioMode && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
             : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming))
@@ -598,7 +602,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
                         {(isAnalyzing || isAnalyzingModel) && (
                             <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center">
-                                {isAnalyzing && (
+                                {(isAnalyzing || isAnalyzingModel) && (
                                     <>
                                         <div className="absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30"></div>
                                         <div className="absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20"></div>
@@ -681,7 +685,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     <div className="space-y-4 animate-fadeIn p-1">
                         
                         {/* STEP 1: Mode Selection (Product vs Model) */}
-                        {!studioMode && !isAnalyzing && (
+                        {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
                                 <button 
@@ -731,11 +735,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </button>
                                 </div>
 
-                                {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing) && (
+                                {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
                                     <div className={`transition-all duration-300 mb-6`}>
-                                        {isAnalyzing ? (
+                                        {(isAnalyzing || isAnalyzingModel) ? (
                                             <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Analyzing...</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Generating Suggestions...</p>
                                             </div>
                                         ) : (
                                             <div>
@@ -776,7 +780,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </div>
                                 )}
 
-                                {!selectedPrompt && !isAnalyzing && (
+                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="relative mb-6">
                                         <div className="flex items-center gap-2 py-1">
                                             <div className="h-px flex-1 bg-gray-200"></div>
@@ -786,7 +790,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </div>
                                 )}
 
-                                {!selectedPrompt && !isAnalyzing && (
+                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
                                     <div className="space-y-6 animate-fadeIn">
                                         {studioMode === 'product' ? (
                                             <>
@@ -824,6 +828,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                             </>
                                         ) : (
                                             <>
+                                                {/* Composition & Shot Types only appear AFTER AI suggestions are ready (which is handled by parent check) */}
                                                 <SelectionGrid 
                                                     label="1. Composition" 
                                                     options={compositionTypes} 

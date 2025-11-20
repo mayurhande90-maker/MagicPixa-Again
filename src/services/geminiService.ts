@@ -269,15 +269,20 @@ export const analyzeProductForModelPrompts = async (
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
-        const prompt = `Analyse the uploaded product. Determine if it's a beauty product, gadget, food, or fashion item.
-        Generate 4 distinct, culturally diverse, and highly specific model scenarios involving this product.
+        const prompt = `Analyse the uploaded product in depth.
+        Generate 4 distinct, creative, and highly specific model scenarios.
         
-        Format them as conversational prompts a user might select.
-        Examples:
-        - "Young Indian woman applying this serum on her cheek"
-        - "Athletic man drinking from this bottle after a workout"
-        - "Senior woman smiling and holding this package"
-        - "Close up of a hand with rings holding this product"
+        **CRITICAL INSTRUCTION:** 
+        You MUST vary the **SHOT TYPE** (Close-up, Wide, Mid) and **COMPOSITION** (Single Model vs Group) in your suggestions. 
+        Do NOT just give 4 generic "person holding product" prompts.
+        
+        Format them as conversational descriptions including the shot type and composition.
+        
+        Examples of variety to emulate:
+        - "Wide group shot of friends laughing at a party holding this drink" (Group/Wide)
+        - "Tight macro close-up of a female hand applying this cream" (Single/Close)
+        - "Mid-shot of a professional man in a suit holding this device" (Single/Mid)
+        - "Lifestyle shot of a couple using this product together outdoors" (Group/Lifestyle)
         
         Return ONLY a JSON array of 4 string prompts.`;
 
@@ -299,19 +304,19 @@ export const analyzeProductForModelPrompts = async (
         });
         const jsonText = response.text?.trim();
         if (!jsonText) return [
-            "Young female model holding the product near her face",
-            "Male model holding the product in a studio setting",
-            "Lifestyle shot of the product on a table next to a person",
-            "Close up of hands interacting with the product"
+            "Close-up of a model holding the product near their face",
+            "Wide lifestyle shot of a group of friends with the product",
+            "Mid-shot of a male model using the product in a studio",
+            "Tight detail shot of hands interacting with the product"
         ];
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product for model prompts:", e);
         return [
-            "Young female model holding the product near her face",
-            "Male model holding the product in a studio setting",
-            "Lifestyle shot of the product on a table next to a person",
-            "Close up of hands interacting with the product"
+            "Close-up of a model holding the product near their face",
+            "Wide lifestyle shot of a group of friends with the product",
+            "Mid-shot of a male model using the product in a studio",
+            "Tight detail shot of hands interacting with the product"
         ];
     }
 }
