@@ -375,6 +375,8 @@ export const generateModelShot = async (
         region?: string;
         skinTone?: string;
         bodyType?: string;
+        composition?: string; // 'Single Model' or 'Group Shot'
+        framing?: string; // 'Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'
         freeformPrompt?: string;
     }
   ): Promise<string> => {
@@ -388,10 +390,12 @@ export const generateModelShot = async (
           IGNORE specific dropdown selections if they conflict with this prompt. Follow this instruction for the model's appearance and interaction.`;
       } else {
           userSelectionPart = `
+          Composition: ${inputs.composition || 'Single Model'}
           Model Type: ${inputs.modelType}
           Region: ${inputs.region}
           Skin Tone: ${inputs.skinTone}
-          Body Type: ${inputs.bodyType}`;
+          Body Type: ${inputs.bodyType}
+          Shot Framing: ${inputs.framing || 'Mid Shot'}`;
       }
 
       let prompt = `System instruction for AI:
@@ -404,7 +408,15 @@ export const generateModelShot = async (
   - PHYSICS: The product must have weight. Fingers must press against it slightly. Clothing must drape with gravity.
   - FILM GRAIN: Add subtle film grain to match high-end editorial photography.
 
-  *** INTELLIGENT PRODUCT ANALYSIS & FRAMING LOGIC ***
+  *** STRICT USER FRAMING PRIORITY ***
+  The user has explicitly selected a Framing Preference: "${inputs.framing}".
+  YOU MUST FOLLOW THIS ABOVE ALL ELSE.
+  - IF 'Tight Close Shot': MACRO view. Only Hands, Product, and maybe Lips/Chin. Product is HUGE in frame.
+  - IF 'Close-Up Shot': Head and Shoulders portrait. Product near face or held high.
+  - IF 'Mid Shot': Waist up. Standard catalog pose.
+  - IF 'Wide Shot': Full body in environment. Product might be smaller relative to scene.
+  
+  *** FALLBACK PRODUCT ANALYSIS & FRAMING LOGIC (ONLY use if User Framing is NOT specified) ***
   1. **DETECT PRODUCT TYPE**:
      - IF 'FOOTWEAR/SHOES': Camera MUST be **LOW ANGLE** or focus on **LEGS/FEET**. Do NOT show full body if it makes the shoes tiny. The shoes are the HERO.
      - IF 'TROUSERS/JEANS/PANTS': Camera MUST capture **WAIST-DOWN** or **FULL BODY**. Ensure the pants are fully visible and fitting well. Do NOT crop the pants.
@@ -415,6 +427,10 @@ export const generateModelShot = async (
   - **MANDATORY**: Estimate the real-world size of the uploaded object (e.g., a 5cm jar vs a 30cm bag).
   - Scale the object perfectly relative to the human model's hands/body.
   - A 50ml jar must fit in the palm. A tote bag must hang from the shoulder at the correct size.
+
+  *** COMPOSITION LOGIC ***
+  - Composition Mode: ${inputs.composition}
+  - If 'Group Shot': Generate 2-3 models interacting socially with the product or in the background. Main model holds product.
   
   INPUTS:
   ${userSelectionPart}
@@ -451,7 +467,8 @@ export const generateModelShot = async (
   
   FINAL AI PROMPT:
   “Generate a photorealistic RAW photograph using the uploaded product. Create a model matching: ${inputs.freeformPrompt || `${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}`}. 
-  STRICTLY FOLLOW FRAMING LOGIC based on product type (Shoes=Low Angle, Pants=Waist Down, Small=Close Up). 
+  STRICTLY FOLLOW USER FRAMING: ${inputs.framing}. If unspecified, use logic based on product type (Shoes=Low Angle, Pants=Waist Down, Small=Close Up). 
+  COMPOSITION: ${inputs.composition}.
   Place the product naturally with correct PHYSICAL SCALE and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
       
       const response = await ai.models.generateContent({
