@@ -363,6 +363,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
 
+    // Refs for File Inputs
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const redoFileInputRef = useRef<HTMLInputElement>(null);
+
     // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isAnalyzingModel, setIsAnalyzingModel] = useState(false);
@@ -618,14 +622,14 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Top Right Re-Upload Button (Only when idle) */}
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <button 
-                                onClick={() => document.getElementById('studio-upload-redo')?.click()} 
+                                onClick={() => redoFileInputRef.current?.click()} 
                                 className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
                                 title="Change Photo"
                             >
                                 <UploadIcon className="w-5 h-5"/>
                             </button>
                         )}
-                        <input id="studio-upload-redo" type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                        <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                         
                         <style>{`
                             @keyframes progress {
@@ -648,7 +652,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         {/* Custom Inline Upload Placeholder for Magic Photo Studio */}
                         {/* w-full for equal sizing */}
                         <div 
-                            onClick={() => document.getElementById('studio-upload')?.click()}
+                            onClick={() => fileInputRef.current?.click()}
                             className="h-[560px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
@@ -666,7 +670,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                 </div>
                             </div>
                         </div>
-                         <input id="studio-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                     </div>
                 )
             }
