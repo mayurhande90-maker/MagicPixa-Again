@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a default import as DashboardPage is exported as default.
 import DashboardPage from './DashboardPage';
+import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig } from './firebase'; 
@@ -257,6 +258,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
+      {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
       {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} appConfig={appConfig} setAppConfig={setAppConfig} />}
       {authModalOpen && (
         <AuthModal 

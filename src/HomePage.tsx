@@ -7,7 +7,7 @@ import {
 } from './components/icons';
 
 interface HomePageProps {
-  navigateTo: (page: Page, view?: View) => void;
+  navigateTo: (page: Page, view?: View, sectionId?: string) => void;
   auth: AuthProps;
   appConfig: AppConfig | null;
 }
@@ -301,21 +301,11 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     </div>
                 </div>
             </section>
-
-            {/* About Us Section */}
-            <section id="about" className="py-20 px-4 bg-white">
-            <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Our Mission</h2>
-                <p className="text-lg text-[#5F6368]">
-                At MagicPixa, we believe that creativity should be accessible to everyone. Our mission is to empower individuals and businesses with powerful, intuitive AI tools that make professional-quality visual content creation as simple as a single click. We're dedicated to pushing the boundaries of what's possible, so you can focus on what matters most: bringing your ideas to life.
-                </p>
-            </div>
-            </section>
         </div>
       </main>
       <HomeMobileNav navigateTo={navigateTo} auth={auth} />
       <div className="hidden lg:block">
-        <Footer />
+        <Footer navigateTo={navigateTo} />
       </div>
     </>
   );

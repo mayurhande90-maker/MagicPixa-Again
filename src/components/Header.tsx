@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
             )}
             <button onClick={() => handleMobileLinkClick('home', undefined, 'features')} className="text-lg font-semibold text-[#1A1A1E]">Features</button>
             <button onClick={() => handleMobileLinkClick('home', undefined, 'pricing')} className="text-lg font-semibold text-[#1A1A1E]">Pricing</button>
-            <button onClick={() => handleMobileLinkClick('home', undefined, 'about')} className="text-lg font-semibold text-[#1A1A1E]">About Us</button>
+            <button onClick={() => handleMobileLinkClick('about', undefined, undefined)} className="text-lg font-semibold text-[#1A1A1E]">About Us</button>
         </nav>
         {!auth.isAuthenticated && (
             <div className="mt-auto">
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                    )}
                    <button onClick={() => navigateTo('home', undefined, 'features')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Features</button>
                    <button onClick={() => navigateTo('home', undefined, 'pricing')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">Pricing</button>
-                   <button onClick={() => navigateTo('home', undefined, 'about')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">About Us</button>
+                   <button onClick={() => navigateTo('about', undefined, undefined)} className="text-sm font-semibold text-[#5F6368] hover:text-[#1A1A1E] transition-colors">About Us</button>
               </nav>
           </div>
           <div className="flex items-center gap-4">
