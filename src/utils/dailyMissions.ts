@@ -30,7 +30,7 @@ const MISSIONS: Mission[] = [
         id: 'neon_cyberpunk',
         toolId: 'studio',
         title: 'Neon Cyberpunk',
-        description: 'Create a high-contrast product shot with neon blue and pink lighting.',
+        description: 'Upload ANY product photo. Our AI will transform it into a futuristic neon city scene.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -41,7 +41,7 @@ const MISSIONS: Mission[] = [
         id: 'minimal_marble',
         toolId: 'studio',
         title: 'Minimalist Luxury',
-        description: 'Generate a clean, white marble podium shot with soft shadows.',
+        description: 'Upload your product. We will place it on a clean white marble podium with soft lighting.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -52,7 +52,7 @@ const MISSIONS: Mission[] = [
         id: 'nature_zen',
         toolId: 'studio',
         title: 'Zen Nature',
-        description: 'Place a product in a lush green forest setting with sunlight.',
+        description: 'Upload any item. AI will generate a lush green forest background with sunlight.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -63,7 +63,7 @@ const MISSIONS: Mission[] = [
         id: 'golden_hour',
         toolId: 'studio',
         title: 'Golden Hour',
-        description: 'Capture the warm, magical glow of a sunset product shoot.',
+        description: 'Upload a product photo. We will re-light it with a magical warm sunset glow.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -74,7 +74,7 @@ const MISSIONS: Mission[] = [
         id: 'floating_water',
         toolId: 'studio',
         title: 'Fresh Splash',
-        description: 'Create a dynamic shot with water splashes and floating elements.',
+        description: 'Upload a product. AI will make it float in mid-air with fresh water splashes.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -85,7 +85,7 @@ const MISSIONS: Mission[] = [
         id: 'dark_moody',
         toolId: 'studio',
         title: 'Dark & Moody',
-        description: 'Generate an elegant, low-key shot on black glass.',
+        description: 'Upload your product. We will create an elegant, low-key shot on black glass.',
         reward: 5,
         config: {
             studioMode: 'product',
@@ -96,7 +96,7 @@ const MISSIONS: Mission[] = [
          id: 'lifestyle_cafe',
          toolId: 'studio',
          title: 'Coffee Shop Vibe',
-         description: 'Place the product on a cafe table for a lifestyle feel.',
+         description: 'Upload a product. AI will place it on a cozy cafe table for a lifestyle look.',
          reward: 5,
          config: {
              studioMode: 'product',

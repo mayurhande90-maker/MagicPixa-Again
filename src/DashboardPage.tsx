@@ -211,6 +211,7 @@ const FeatureLayout: React.FC<{
     generateButtonStyle?: {
         className?: string;
         hideIcon?: boolean;
+        label?: string;
     };
     resultHeightClass?: string;
 }> = ({ 
@@ -315,15 +316,22 @@ const FeatureLayout: React.FC<{
                                         ) : (
                                             <>
                                                 {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
-                                                Generate
+                                                {generateButtonStyle?.label || "Generate"}
                                             </>
                                         )}
                                     </button>
                                     <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                                        <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
-                                            <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
-                                            Cost: {creditCost} Credits
-                                        </div>
+                                        {creditCost === 0 ? (
+                                             <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-200">
+                                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                 Sponsored by Daily Mission
+                                             </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                                <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                                                Cost: {creditCost} Credits
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -339,304 +347,29 @@ const FeatureLayout: React.FC<{
     );
 };
 
-// --- Enhanced Upload Placeholder Component ---
-const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
-    <div 
-        onClick={onClick}
-        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md aspect-video max-h-[450px]"
-    >
-        <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-            {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#4D7CFF] transition-colors duration-300" />}
-        </div>
-        
-        <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-            <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{label}</p>
-            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#4D7CFF] transition-colors delay-75 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
+const UploadPlaceholder: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
+    <div className="w-full flex justify-center">
+        <div 
+            onClick={onClick}
+            className="h-[500px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
+        >
+            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
+            </div>
+            
+            <div className="relative z-10 mt-6 text-center space-y-2 px-6">
+                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{label}</p>
+                <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
+                    <div className="bg-gray-50 rounded-full px-3 py-1">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
+                            Click to Browse
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 );
-
-const StandardFeature: React.FC<{
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-    cost: number;
-    auth: AuthProps;
-    onGenerate: (image: { base64: string; mimeType: string }, prompt?: string) => Promise<string>;
-}> = ({ title, description, icon, cost, auth, onGenerate }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-    const [prompt, setPrompt] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
-        }
-    };
-
-    const handleGenerateClick = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await onGenerate(image.base64, prompt);
-            const url = res.startsWith('data:') ? res : `data:image/png;base64,${res}`;
-            setResult(url);
-            const updated = await deductCredits(auth.user.uid, cost, title);
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-            saveCreation(auth.user.uid, url, title);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleNewSession = () => {
-        setImage(null);
-        setResult(null);
-        setPrompt('');
-    };
-
-    return (
-        <FeatureLayout
-            title={title}
-            description={description}
-            icon={icon}
-            creditCost={cost}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerateClick}
-            resultImage={result}
-            onResetResult={() => setResult(null)}
-            onNewSession={handleNewSession}
-            leftContent={
-                image ? (
-                    <div className="relative h-[400px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
-                         <img src={image.url} className="max-w-full max-h-full object-contain" />
-                         <button 
-                            onClick={() => fileInputRef.current?.click()} 
-                            className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform"
-                         >
-                            <PencilIcon className="w-5 h-5 text-gray-600"/>
-                         </button>
-                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </div>
-                ) : (
-                    <>
-                        <UploadPlaceholder label="Upload Image" onClick={() => fileInputRef.current?.click()} />
-                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </>
-                )
-            }
-            rightContent={
-                <div className="animate-fadeIn space-y-4">
-                    <TextAreaField 
-                        label="Prompt / Instructions (Optional)" 
-                        value={prompt} 
-                        onChange={(e: any) => setPrompt(e.target.value)} 
-                        placeholder="Describe your desired result or style..." 
-                    />
-                </div>
-            }
-        />
-    );
-};
-
-const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [results, setResults] = useState<{ caption: string; hashtags: string }[] | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResults(null);
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        setLoading(true);
-        try {
-            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
-            setResults(res);
-            const cost = appConfig?.featureCosts['CaptionAI'] || 1;
-            const updated = await deductCredits(auth.user.uid, cost, 'CaptionAI');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-        } catch (e) {
-            console.error(e);
-            alert('Generation failed.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <FeatureLayout
-            title="CaptionAI"
-            description="Instant social media captions and hashtags."
-            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
-            creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
-            isGenerating={loading}
-            canGenerate={!!image}
-            onGenerate={handleGenerate}
-            resultImage={null} // Custom result display
-            onResetResult={() => setResults(null)}
-            onNewSession={() => { setImage(null); setResults(null); }}
-            leftContent={
-                 image ? (
-                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
-                         <img src={image.url} className="max-w-full max-h-full object-contain" />
-                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md"><PencilIcon className="w-5 h-5"/></button>
-                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </div>
-                ) : (
-                    <>
-                        <UploadPlaceholder label="Upload Photo" onClick={() => fileInputRef.current?.click()} />
-                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </>
-                )
-            }
-            rightContent={
-                results ? (
-                    <div className="space-y-4 animate-fadeIn h-full overflow-y-auto custom-scrollbar">
-                        <h3 className="font-bold text-gray-700">Generated Captions</h3>
-                        {results.map((item, idx) => (
-                            <div key={idx} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all group">
-                                <p className="text-gray-800 text-sm mb-2">{item.caption}</p>
-                                <p className="text-blue-500 text-xs font-medium">{item.hashtags}</p>
-                                <button 
-                                    onClick={() => navigator.clipboard.writeText(`${item.caption}\n\n${item.hashtags}`)}
-                                    className="mt-3 text-xs font-bold text-gray-400 hover:text-blue-600 flex items-center gap-1"
-                                >
-                                    <CopyIcon className="w-4 h-4" /> Copy
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
-                        Results will appear here...
-                    </div>
-                )
-            }
-        />
-    );
-};
-
-const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [productName, setProductName] = useState('');
-    const [description, setDescription] = useState('');
-    const [result, setResult] = useState<any>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
-        }
-    };
-
-    const handleGenerate = async () => {
-         if (!image || !auth.user) return;
-         setLoading(true);
-         try {
-             const res = await generateProductPackPlan(
-                 [image.base64.base64],
-                 productName,
-                 description,
-                 { colors: [], fonts: [] },
-                 "",
-                 []
-             );
-             setResult(res);
-             const cost = appConfig?.featureCosts['Product Studio'] || 5;
-             const updated = await deductCredits(auth.user.uid, cost, 'Product Studio');
-             auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
-         } catch(e) {
-             console.error(e);
-             alert("Failed to generate plan");
-         } finally {
-             setLoading(false);
-         }
-    };
-
-    return (
-        <FeatureLayout
-            title="Product Studio"
-            description="Generate a full marketing pack."
-            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
-            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
-            isGenerating={loading}
-            canGenerate={!!image && !!productName}
-            onGenerate={handleGenerate}
-            resultImage={null}
-            onResetResult={() => setResult(null)}
-            onNewSession={() => { setImage(null); setResult(null); setProductName(''); setDescription(''); }}
-            leftContent={
-                result ? (
-                     <div className="h-[560px] overflow-y-auto p-4 bg-white rounded-3xl border border-gray-200 custom-scrollbar">
-                         <h3 className="text-xl font-bold text-gray-800 mb-4">Marketing Plan</h3>
-                         <div className="space-y-6">
-                            <div>
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Image Prompts</h4>
-                                {Object.entries(result.imageGenerationPrompts).map(([key, val]: any) => (
-                                    <div key={key} className="mb-3 p-3 bg-gray-50 rounded-lg text-sm">
-                                        <span className="font-bold text-gray-700 capitalize block mb-1">{key.replace(/([A-Z])/g, ' $1')}</span>
-                                        <p className="text-gray-600">{val}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Text Assets</h4>
-                                <p className="font-bold text-gray-800 mb-2">{result.textAssets.seoTitle}</p>
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                    {result.textAssets.keywords.map((k: string) => <span key={k} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">{k}</span>)}
-                                </div>
-                                <div className="space-y-2">
-                                    {result.textAssets.captions.map((c: any, i: number) => (
-                                        <p key={i} className="text-sm text-gray-600 italic">"{c.text}"</p>
-                                    ))}
-                                </div>
-                            </div>
-                         </div>
-                     </div>
-                ) : image ? (
-                    <div className="relative h-[560px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-gray-200 overflow-hidden">
-                         <img src={image.url} className="max-w-full max-h-full object-contain" />
-                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md"><PencilIcon className="w-5 h-5"/></button>
-                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </div>
-                ) : (
-                     <>
-                        <UploadPlaceholder label="Upload Product Photo" onClick={() => fileInputRef.current?.click()} />
-                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </>
-                )
-            }
-            rightContent={
-                 <div className="space-y-4 animate-fadeIn">
-                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. LuxFace Cream" />
-                    <TextAreaField label="Description (Optional)" value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="Key benefits, ingredients..." />
-                 </div>
-            }
-        />
-    );
-};
-
 
 // --- Feature Components ---
 
@@ -944,7 +677,8 @@ const MagicPhotoStudio: React.FC<{
             resultHeightClass="h-[560px]"
             generateButtonStyle={{
                 className: activeMission ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg border-none" : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
-                hideIcon: true
+                hideIcon: true,
+                label: activeMission ? "Generate Mission Image" : "Generate"
             }}
             leftContent={
                 image ? (
@@ -1006,28 +740,7 @@ const MagicPhotoStudio: React.FC<{
                         `}</style>
                     </div>
                 ) : (
-                    <div className="w-full flex justify-center">
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="h-[560px] w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
-                        >
-                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
-                            </div>
-                            
-                            <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{activeMission ? 'Upload to Start Mission' : 'Upload Product Photo'}</p>
-                                <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
-                                    <div className="bg-gray-50 rounded-full px-3 py-1">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
-                                            Click to Browse
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                    </div>
+                    <UploadPlaceholder label={activeMission ? 'Upload to Start Mission' : 'Upload Product Photo'} onClick={() => fileInputRef.current?.click()} />
                 )
             }
             rightContent={
@@ -1040,225 +753,146 @@ const MagicPhotoStudio: React.FC<{
                         <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4 animate-fadeIn p-1">
+                    <div className="space-y-4 animate-fadeIn p-1 h-full flex flex-col">
                         
-                        {/* STEP 1: Mode Selection (Product vs Model) */}
-                        {!studioMode && !isAnalyzing && !isAnalyzingModel && (
-                            <div className="flex flex-col gap-4 h-full justify-center">
-                                <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
-                                <button 
-                                    onClick={() => handleModeSelect('product')}
-                                    className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
-                                >
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                            <CubeIcon className="w-6 h-6"/>
-                                        </div>
-                                        <span className="text-lg font-bold text-gray-800">Product Shot</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Studio lighting, podiums, and nature settings.</p>
-                                </button>
-
-                                <button 
-                                    onClick={() => handleModeSelect('model')}
-                                    className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1"
-                                >
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                                            <UsersIcon className="w-6 h-6"/>
-                                        </div>
-                                        <span className="text-lg font-bold text-gray-800">Model Shot</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Realistic human models holding or wearing your product.</p>
-                                </button>
-                            </div>
-                        )}
-
-                        {/* STEP 2: Configuration (Visible if Mode Selected) */}
-                        {studioMode && (
-                            <div className="animate-fadeIn relative">
-                                {/* Back Button - FIXED LAYOUT */}
-                                <div className="flex items-center mb-4 -ml-2"> 
-                                    <button 
-                                        onClick={() => {
-                                            setStudioMode(null);
-                                            setSelectedPrompt(null);
-                                            setCategory(''); setBrandStyle(''); setVisualType('');
-                                            setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
-                                            setModelComposition(''); setModelFraming('');
-                                        }} 
-                                        className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-lg hover:bg-gray-100"
-                                    >
-                                        <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
-                                    </button>
+                        {activeMission ? (
+                            <div className="flex flex-col h-full justify-center items-center text-center p-6">
+                                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 animate-bounce-slight">
+                                    <FlagIcon className="w-8 h-8 text-yellow-600"/>
                                 </div>
-
-                                {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
-                                    <div className={`transition-all duration-300 mb-6`}>
-                                        {(isAnalyzing || isAnalyzingModel) ? (
-                                            <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Generating Suggestions...</p>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <div className="flex items-center justify-between mb-3 ml-1">
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
-                                                    {selectedPrompt ? (
-                                                        <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
-                                                            Clear Selection
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-col gap-2">
-                                                    {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
-                                                        const isModel = studioMode === 'model';
-                                                        const displayText = isModel ? (promptItem as any).display : promptItem;
-                                                        const promptValue = isModel ? (promptItem as any).prompt : promptItem;
-
-                                                        return (
-                                                            <button 
-                                                                key={idx} 
-                                                                onClick={() => handlePromptSelect(promptValue)}
-                                                                style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
-                                                                className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
-                                                                    selectedPrompt === promptValue ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
-                                                                }`}
-                                                            >
-                                                                <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
-                                                                
-                                                                <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === promptValue ? 'bg-transparent' : 'bg-white'}`}>
-                                                                    <span className={`text-xs font-medium italic text-left ${selectedPrompt === promptValue ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
-                                                                        "{displayText}"
-                                                                    </span>
-                                                                </div>
-                                                            </button>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
-                                    <div className="relative mb-6">
-                                        <div className="flex items-center gap-2 py-1">
-                                            <div className="h-px flex-1 bg-gray-200"></div>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR CUSTOMIZE</span>
-                                            <div className="h-px flex-1 bg-gray-200"></div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
-                                    <div className="space-y-6 animate-fadeIn">
-                                        {studioMode === 'product' ? (
-                                            <>
-                                                 <div>
-                                                     <div className="flex items-center justify-between mb-3 ml-1">
-                                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Product Category</label>
-                                                        {category && (
-                                                             <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
-                                                                 Clear
-                                                             </button>
-                                                        )}
-                                                     </div>
-                                                     <div className="flex flex-wrap gap-2">
-                                                        {categories.map(opt => (
-                                                            <button 
-                                                                key={opt}
-                                                                onClick={() => handleCategorySelect(opt)}
-                                                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform ${
-                                                                    category === opt 
-                                                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
-                                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm active:scale-95'
-                                                                }`}
-                                                            >
-                                                                {opt}
-                                                            </button>
-                                                        ))}
-                                                     </div>
-                                                </div>
-                                                {category && (
-                                                    <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />
-                                                )}
-                                                {category && brandStyle && (
-                                                    <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={setVisualType} />
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                {/* Composition & Shot Types only appear AFTER AI suggestions are ready (which is handled by parent check) */}
-                                                <SelectionGrid 
-                                                    label="1. Composition" 
-                                                    options={compositionTypes} 
-                                                    value={modelComposition} 
-                                                    onChange={setModelComposition} 
-                                                />
-
-                                                {modelComposition && (
-                                                    <SelectionGrid 
-                                                        label="2. Model Type" 
-                                                        options={modelTypes} 
-                                                        value={modelType} 
-                                                        onChange={(val) => {
-                                                            setModelType(val);
-                                                            setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming('');
-                                                        }} 
-                                                    />
-                                                )}
-                                                
-                                                {modelType && (
-                                                    <SelectionGrid 
-                                                        label="3. Region" 
-                                                        options={modelRegions} 
-                                                        value={modelRegion} 
-                                                        onChange={(val) => {
-                                                            setModelRegion(val);
-                                                            setSkinTone(''); setBodyType('');
-                                                        }} 
-                                                    />
-                                                )}
-                                                
-                                                {modelRegion && (
-                                                    <SelectionGrid 
-                                                        label="4. Skin Tone" 
-                                                        options={skinTones} 
-                                                        value={skinTone} 
-                                                        onChange={(val) => {
-                                                            setSkinTone(val);
-                                                            setBodyType('');
-                                                        }} 
-                                                    />
-                                                )}
-
-                                                {skinTone && (
-                                                    <SelectionGrid 
-                                                        label="5. Body Type" 
-                                                        options={bodyTypes} 
-                                                        value={bodyType} 
-                                                        onChange={(val) => {
-                                                            setBodyType(val);
-                                                            setModelFraming('');
-                                                        }}
-                                                    />
-                                                )}
-
-                                                {bodyType && (
-                                                    <SelectionGrid 
-                                                        label="6. Shot Type" 
-                                                        options={shotTypes} 
-                                                        value={modelFraming} 
-                                                        onChange={setModelFraming} 
-                                                    />
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">Mission Active: {activeMission.title}</h3>
+                                <p className="text-gray-500 mb-6 max-w-xs text-sm">{activeMission.description}</p>
+                                <div className="bg-green-50 text-green-700 px-4 py-2 rounded-lg text-xs font-bold border border-green-200">
+                                    AI Settings Pre-Loaded
+                                </div>
                             </div>
+                        ) : (
+                            /* STANDARD CONTROLS (Non-Mission) */
+                            <>
+                                {/* STEP 1: Mode Selection */}
+                                {!studioMode && !isAnalyzing && !isAnalyzingModel && (
+                                    <div className="flex flex-col gap-4 h-full justify-center">
+                                        <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
+                                        <button onClick={() => handleModeSelect('product')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
+                                            <div className="flex items-center gap-4 mb-2">
+                                                <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors"><CubeIcon className="w-6 h-6"/></div>
+                                                <span className="text-lg font-bold text-gray-800">Product Shot</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 pl-[4.5rem]">Studio lighting, podiums, and nature settings.</p>
+                                        </button>
+                                        <button onClick={() => handleModeSelect('model')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
+                                            <div className="flex items-center gap-4 mb-2">
+                                                <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors"><UsersIcon className="w-6 h-6"/></div>
+                                                <span className="text-lg font-bold text-gray-800">Model Shot</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 pl-[4.5rem]">Realistic human models holding or wearing your product.</p>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* STEP 2: Configuration */}
+                                {studioMode && (
+                                    <div className="animate-fadeIn relative">
+                                        <div className="flex items-center mb-4 -ml-2"> 
+                                            <button onClick={() => {
+                                                    setStudioMode(null);
+                                                    setSelectedPrompt(null);
+                                                    setCategory(''); setBrandStyle(''); setVisualType('');
+                                                    setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
+                                                    setModelComposition(''); setModelFraming('');
+                                                }} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                            >
+                                                <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
+                                            </button>
+                                        </div>
+
+                                        {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
+                                            <div className={`transition-all duration-300 mb-6`}>
+                                                {(isAnalyzing || isAnalyzingModel) ? (
+                                                    <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Generating Suggestions...</p>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-3 ml-1">
+                                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
+                                                            {selectedPrompt ? (
+                                                                <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear Selection</button>
+                                                            ) : (
+                                                                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
+                                                                const isModel = studioMode === 'model';
+                                                                const displayText = isModel ? (promptItem as any).display : promptItem;
+                                                                const promptValue = isModel ? (promptItem as any).prompt : promptItem;
+
+                                                                return (
+                                                                    <button 
+                                                                        key={idx} 
+                                                                        onClick={() => handlePromptSelect(promptValue)}
+                                                                        style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}}
+                                                                        className={`group relative w-auto inline-flex rounded-full p-[2px] transition-all duration-300 transform active:scale-95 ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${
+                                                                            selectedPrompt === promptValue ? 'scale-[1.02] shadow-md' : 'hover:scale-[1.01]'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'} transition-opacity duration-300`}></div>
+                                                                        <div className={`relative h-full w-full rounded-full flex items-center justify-center px-4 py-2 transition-colors duration-300 ${selectedPrompt === promptValue ? 'bg-transparent' : 'bg-white'}`}>
+                                                                            <span className={`text-xs font-medium italic text-left ${selectedPrompt === promptValue ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>"{displayText}"</span>
+                                                                        </div>
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
+                                            <div className="relative mb-6">
+                                                <div className="flex items-center gap-2 py-1">
+                                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR CUSTOMIZE</span>
+                                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
+                                            <div className="space-y-6 animate-fadeIn">
+                                                {studioMode === 'product' ? (
+                                                    <>
+                                                         <div>
+                                                             <div className="flex items-center justify-between mb-3 ml-1">
+                                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Product Category</label>
+                                                                {category && <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>}
+                                                             </div>
+                                                             <div className="flex flex-wrap gap-2">
+                                                                {categories.map(opt => (
+                                                                    <button key={opt} onClick={() => handleCategorySelect(opt)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform ${category === opt ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm active:scale-95'}`}>{opt}</button>
+                                                                ))}
+                                                             </div>
+                                                        </div>
+                                                        {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />}
+                                                        {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />
+                                                        {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); }} />}
+                                                        {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); }} />}
+                                                        {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); }} />}
+                                                        {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); }} />}
+                                                        {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )
@@ -1338,12 +972,13 @@ const DailyQuest: React.FC<{
             const diff = tomorrow.getTime() - now.getTime();
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
             
-            setTimeLeft(`${hours}h ${minutes}m`);
+            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
         };
         
         calculateTimeLeft();
-        const timer = setInterval(calculateTimeLeft, 60000);
+        const timer = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(timer);
     }, []);
 
@@ -1353,31 +988,32 @@ const DailyQuest: React.FC<{
             
             <div className="flex items-center justify-between mb-4 relative z-10">
                 <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
-                    <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Completed' : 'Daily Mission'}
+                    <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Daily Mission'}
                 </span>
-                {!isCompleted && <span className="text-xs font-mono text-gray-400">{timeLeft} left</span>}
             </div>
             
             <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">{mission.title}</h3>
             <p className="text-sm text-gray-500 mb-6 relative z-10">{mission.description}</p>
             
             <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-gray-400 uppercase">Reward</span>
-                    <span className={`px-2 py-0.5 text-xs font-bold rounded ${isCompleted ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-600'}`}>+{mission.reward} Credits</span>
-                </div>
-                
-                {isCompleted ? (
-                    <button disabled className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 opacity-80 cursor-default">
-                        <CheckIcon className="w-4 h-4"/> Done
-                    </button>
+                {!isCompleted ? (
+                    <>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-gray-400 uppercase">Reward</span>
+                            <span className="px-2 py-0.5 bg-green-100 text-green-600 text-xs font-bold rounded">+{mission.reward} Credits</span>
+                        </div>
+                        <button 
+                            onClick={() => onStartMission(mission)}
+                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
+                        >
+                            Start Challenge
+                        </button>
+                    </>
                 ) : (
-                    <button 
-                        onClick={() => onStartMission(mission)}
-                        className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
-                    >
-                        Start Challenge
-                    </button>
+                    <div className="w-full flex justify-between items-center">
+                         <span className="text-xs font-bold text-green-700">Reward Claimed!</span>
+                         <span className="text-xs font-mono text-green-600 bg-green-100 px-2 py-1 rounded">Next: {timeLeft}</span>
+                    </div>
                 )}
             </div>
         </div>
@@ -1662,6 +1298,268 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navig
     );
 };
 
+const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [productName, setProductName] = useState('');
+    const [productDesc, setProductDesc] = useState('');
+    const [result, setResult] = useState<any>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user || !productName) return;
+        setLoading(true);
+        try {
+            const cost = appConfig?.featureCosts['Product Studio'] || 5;
+            const res = await generateProductPackPlan(
+                [image.base64.base64], 
+                productName, 
+                productDesc, 
+                { colors: [], fonts: [] }, 
+                '', 
+                []
+            );
+            setResult(res);
+            await deductCredits(auth.user.uid, cost, 'Product Studio');
+            // Note: This feature returns text/strategy, we don't save an image to gallery yet.
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <FeatureLayout 
+            title="Product Studio"
+            description="Generate a complete marketing pack: SEO titles, captions, and visual concepts."
+            icon={<ProductStudioIcon className="w-6 h-6 text-green-500"/>}
+            creditCost={appConfig?.featureCosts['Product Studio'] || 5}
+            isGenerating={loading}
+            canGenerate={!!image && !!productName}
+            onGenerate={handleGenerate}
+            resultImage={null}
+            onNewSession={() => { setImage(null); setResult(null); setProductName(''); setProductDesc(''); }}
+            leftContent={
+                result ? (
+                    <div className="w-full h-full bg-white p-6 rounded-3xl border border-gray-200 overflow-y-auto max-h-[600px]">
+                        <h3 className="text-xl font-bold mb-4 text-green-600">Marketing Pack Generated</h3>
+                        <div className="space-y-6">
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase">SEO Title</p>
+                                <p className="font-bold text-lg">{result.textAssets.seoTitle}</p>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Captions</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {result.textAssets.captions.map((c: any, i: number) => (
+                                        <li key={i} className="text-sm">{c.text}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Keywords</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {result.textAssets.keywords.map((k: string, i: number) => (
+                                        <span key={i} className="bg-white px-2 py-1 rounded border text-xs font-mono">{k}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Visual Concepts</p>
+                                <p className="text-sm italic text-gray-600">{result.imageGenerationPrompts.heroShot}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : image ? (
+                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                        <img src={image.url} className="max-w-full max-h-full object-contain" />
+                        <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <UploadPlaceholder label="Upload Product" onClick={() => fileInputRef.current?.click()} />
+                )
+            }
+            rightContent={
+                <div>
+                    <InputField label="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} placeholder="e.g. Luxe Face Cream" />
+                    <TextAreaField label="Description / Key Benefits" value={productDesc} onChange={(e: any) => setProductDesc(e.target.value)} placeholder="Describe ingredients, target audience, etc." />
+                    <div className="hidden"><input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} /></div>
+                </div>
+            }
+        />
+    );
+};
+
+// Simplified Implementations for other features using FeatureLayout to prevent blank screens
+const StandardFeature: React.FC<{ 
+    title: string; 
+    description: string; 
+    icon: React.ReactNode; 
+    cost: number; 
+    onGenerate: (img: Base64File, prompt?: string) => Promise<string>;
+    auth: AuthProps;
+    promptLabel?: string;
+    placeholderLabel?: string;
+}> = ({ title, description, icon, cost, onGenerate, auth, promptLabel = "Description", placeholderLabel = "Upload Photo" }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleRun = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await onGenerate(image.base64, prompt);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, title);
+            const updated = await deductCredits(auth.user.uid, cost, title);
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <FeatureLayout 
+                title={title}
+                description={description}
+                icon={icon}
+                creditCost={cost}
+                isGenerating={loading}
+                canGenerate={!!image}
+                onGenerate={handleRun}
+                resultImage={result}
+                onResetResult={() => setResult(null)}
+                onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
+                leftContent={
+                    image ? (
+                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                            <img src={image.url} className="max-w-full max-h-full object-contain" />
+                            <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
+                        </div>
+                    ) : (
+                        <UploadPlaceholder label={placeholderLabel} onClick={() => fileInputRef.current?.click()} />
+                    )
+                }
+                rightContent={
+                    image ? (
+                        <div>
+                            <InputField label={promptLabel} value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe the desired outcome..." />
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-400 p-10">Upload an image to start.</div>
+                    )
+                }
+            />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        </>
+    );
+};
+
+// Specific wrapper for CaptionAI as it returns text
+const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setCaptions([]);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const cost = appConfig?.featureCosts['CaptionAI'] || 1;
+            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
+            setCaptions(res);
+            await deductCredits(auth.user.uid, cost, 'CaptionAI');
+             // Note: We don't save text creations to image gallery currently
+        } catch (e) {
+            console.error(e);
+            alert('Failed to generate captions.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <FeatureLayout 
+                title="CaptionAI"
+                description="Generate engaging social media captions and hashtags instantly."
+                icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+                creditCost={appConfig?.featureCosts['CaptionAI'] || 1}
+                isGenerating={loading}
+                canGenerate={!!image}
+                onGenerate={handleGenerate}
+                resultImage={null} // Custom result view
+                onNewSession={() => { setImage(null); setCaptions([]); }}
+                leftContent={
+                    image ? (
+                        <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                            <img src={image.url} className="max-w-full max-h-full object-contain" />
+                        </div>
+                    ) : (
+                        <UploadPlaceholder label="Upload Photo for Captions" onClick={() => fileInputRef.current?.click()} />
+                    )
+                }
+                rightContent={
+                    captions.length > 0 ? (
+                        <div className="space-y-4 h-[500px] overflow-y-auto pr-2">
+                            {captions.map((c, i) => (
+                                <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                    <p className="text-sm text-gray-800 mb-2">{c.caption}</p>
+                                    <p className="text-xs text-blue-500 font-medium mb-3">{c.hashtags}</p>
+                                    <button onClick={() => navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
+                                        <CopyIcon className="w-3 h-3" /> Copy
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-400 p-10">Upload a photo to generate captions.</div>
+                    )
+                }
+            />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        </>
+    );
+};
+
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
@@ -1674,8 +1572,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     appConfig, 
     setAppConfig 
 }) => {
-
-    // State for active daily mission
+    
     const [activeMission, setActiveMission] = useState<Mission | undefined>(undefined);
 
     const handleStartMission = (mission: Mission) => {
@@ -1683,10 +1580,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         setActiveView(mission.toolId);
     };
 
-    const handleMissionComplete = () => {
-        setActiveMission(undefined);
-    };
-    
     const renderContent = () => {
         switch (activeView) {
             case 'home_dashboard':
@@ -1695,7 +1588,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
-                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} activeMission={activeMission} onMissionComplete={handleMissionComplete} />;
+                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} activeMission={activeMission} onMissionComplete={() => {/* Handled inside component for now */}} />;
             case 'product_studio':
                  return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
