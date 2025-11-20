@@ -916,50 +916,99 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
-// --- New Magic Mirror Component ---
-const MagicMirror: React.FC<{ onTryNow: () => void }> = ({ onTryNow }) => {
-    const [sliderPos, setSliderPos] = useState(50);
+// --- New Feature Carousel Component ---
+const FeatureCarousel: React.FC<{ onTryNow: (view: View) => void }> = ({ onTryNow }) => {
+    const features = [
+        { 
+            id: 'studio',
+            title: "Magic Photo Studio",
+            desc: "Turn boring product shots into sales magnets.",
+            before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop",
+            after: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop",
+            color: "from-blue-500 to-purple-600"
+        },
+        { 
+            id: 'interior',
+            title: "Magic Interior",
+            desc: "Redesign any room in seconds.",
+            before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800&auto=format&fit=crop",
+            after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=800&auto=format&fit=crop",
+            color: "from-orange-500 to-red-500"
+        },
+        { 
+            id: 'colour',
+            title: "Photo Colour",
+            desc: "Bring old memories back to life.",
+            before: "https://images.unsplash.com/photo-1517330357046-3ab5a5dd42a1?q=80&w=800&auto=format&fit=crop&sat=-100", // Forced grayscale via URL param sim
+            after: "https://images.unsplash.com/photo-1517330357046-3ab5a5dd42a1?q=80&w=800&auto=format&fit=crop",
+            color: "from-pink-500 to-rose-500"
+        }
+    ];
+
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % features.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const activeFeature = features[activeIndex];
+
     return (
-      <div className="relative h-64 md:h-96 w-full rounded-3xl overflow-hidden shadow-2xl border border-white/10 group select-none">
-         {/* Before Image (Raw/Boring) */}
-         <div className="absolute inset-0">
-            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover grayscale contrast-75" alt="Before" />
-            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-md">ORIGINAL</div>
-         </div>
-         
-         {/* After Image (Magical) */}
-         <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-             <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover" alt="After" />
-             <div className="absolute top-4 left-4 bg-[#4D7CFF]/80 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-md shadow-lg shadow-blue-500/20">MAGIC STUDIO</div>
-             
-             {/* Slider Handle Line */}
-             <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)]"></div>
-             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xl z-20 cursor-ew-resize hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-[#4D7CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" transform="rotate(90 12 12)" /></svg>
-             </div>
-         </div>
+        <div className="relative h-[500px] w-full rounded-3xl overflow-hidden bg-black/20 border border-white/10 group">
+            {/* Dynamic Background Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${activeFeature.color} opacity-20 blur-3xl transition-all duration-1000`}></div>
+            
+            <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 px-6 py-10">
+                {/* Text Content */}
+                <div className="text-center md:text-left max-w-md space-y-6">
+                    <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-white uppercase tracking-wider mb-2">
+                        Featured Tool
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight transition-all duration-500 key={activeFeature.title}">
+                        {activeFeature.title}
+                    </h2>
+                    <p className="text-lg text-gray-300">{activeFeature.desc}</p>
+                    
+                    <div className="flex gap-2 justify-center md:justify-start pt-4">
+                         {features.map((_, idx) => (
+                             <div key={idx} className={`h-1 rounded-full transition-all duration-500 ${idx === activeIndex ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}></div>
+                         ))}
+                    </div>
 
-         {/* Interaction Layer */}
-         <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            value={sliderPos} 
-            onChange={(e) => setSliderPos(Number(e.target.value))} 
-            className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" 
-         />
+                    <button 
+                        onClick={() => onTryNow(activeFeature.id as View)} 
+                        className={`mt-6 px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r ${activeFeature.color} hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2 mx-auto md:mx-0`}
+                    >
+                        <SparklesIcon className="w-5 h-5"/> Try Now
+                    </button>
+                </div>
 
-         {/* CTA Overlay */}
-         <div className="absolute bottom-8 left-8 z-40 pointer-events-none">
-             <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">Turn Boring into Brilliant</h2>
-             <button onClick={onTryNow} className="pointer-events-auto bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-lg shadow-yellow-500/20 hover:bg-[#dfbc2b] flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5"/> Try Magic Studio
-             </button>
-         </div>
-      </div>
-    )
+                {/* Card Visuals */}
+                <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[350px]">
+                    {/* Before Card */}
+                    <div className="absolute top-4 left-0 w-[220px] md:w-[260px] aspect-[3/4] bg-white p-2 rounded-xl shadow-2xl transform -rotate-6 hover:-rotate-3 transition-transform duration-500 z-10">
+                        <div className="relative w-full h-full overflow-hidden rounded-lg bg-gray-200">
+                            <img src={activeFeature.before} className="w-full h-full object-cover grayscale contrast-125" alt="Before" />
+                            <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">ORIGINAL</div>
+                        </div>
+                    </div>
+
+                    {/* After Card */}
+                    <div className="absolute top-0 right-0 w-[240px] md:w-[280px] aspect-[3/4] bg-white p-2 rounded-xl shadow-2xl transform rotate-6 hover:rotate-3 transition-transform duration-500 z-20 border-2 border-white/50">
+                         <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${activeFeature.color} blur-xl opacity-40`}></div>
+                         <div className="relative w-full h-full overflow-hidden rounded-lg">
+                            <img src={activeFeature.after} className="w-full h-full object-cover" alt="After" />
+                            <div className={`absolute top-2 right-2 bg-gradient-to-r ${activeFeature.color} text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg`}>MAGICPIXA</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
-
 
 const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
     const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
@@ -1012,8 +1061,8 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                  </div>
             </div>
 
-            {/* Hero: Magic Mirror */}
-            <MagicMirror onTryNow={() => setActiveView('studio')} />
+            {/* Hero: Feature Carousel */}
+            <FeatureCarousel onTryNow={(view) => setActiveView(view)} />
 
             {/* Intent Navigation */}
             <div className="space-y-4">
@@ -1053,7 +1102,6 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
                                          <p className="text-[10px] font-bold text-white uppercase">{creation.feature}</p>
                                      </div>
-                                     {/* Hover Effect Scripted via CSS group-hover on parent would need complex selectors, simplistic approach here */}
                                  </div>
                              ))}
                              <div className="absolute -right-24 top-1/2 -translate-y-1/2 text-gray-400 text-xs w-20 opacity-0 group-hover:opacity-100 transition-opacity">
