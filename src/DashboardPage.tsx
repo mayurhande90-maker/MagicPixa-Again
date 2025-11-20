@@ -61,7 +61,8 @@ import {
     PencilIcon,
     ArrowLeftIcon,
     CreditCardIcon,
-    SunIcon
+    SunIcon,
+    ChartBarIcon
 } from './components/icons';
 import { LiveServerMessage, Blob } from '@google/genai';
 import { encode, decode, decodeAudioData } from './utils/audioUtils';
@@ -919,62 +920,10 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
 // --- Luminous Studio Dashboard Home Components ---
 
-const InspirationTicker = () => (
-    <div className="w-full bg-white/50 backdrop-blur-sm border-b border-gray-100 py-2 overflow-hidden flex items-center">
-        <div className="flex animate-marquee whitespace-nowrap gap-12 text-xs font-medium text-gray-400">
-            <span>✨ Try: "Neon Cyberpunk Sneakers"</span>
-            <span>🌿 Try: "Minimalist Skincare on Marble"</span>
-            <span>👗 Try: "Summer Dress Beach Lifestyle"</span>
-            <span>🎨 Try: "Vintage Film Portrait"</span>
-            <span>🏠 Try: "Scandinavian Living Room Redesign"</span>
-            <span>✨ Try: "Neon Cyberpunk Sneakers"</span>
-            <span>🌿 Try: "Minimalist Skincare on Marble"</span>
-            <span>👗 Try: "Summer Dress Beach Lifestyle"</span>
-            <span>🎨 Try: "Vintage Film Portrait"</span>
-            <span>🏠 Try: "Scandinavian Living Room Redesign"</span>
-        </div>
-    </div>
-);
-
-const OmniBar: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
-    <div className="relative w-full max-w-3xl mx-auto group z-20">
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
-        
-        <div className="relative bg-white rounded-full shadow-xl flex items-center justify-between px-4 py-3 transition-transform duration-300 hover:scale-[1.01]">
-            
-            <div className="flex items-center gap-2 px-4 border-r border-gray-100 pr-6">
-                <SparklesIcon className="w-5 h-5 text-[#F9D230]" />
-                <span className="font-bold text-[#1A1A1E] text-sm uppercase tracking-wider">Quick Start</span>
-            </div>
-
-            <div className="flex-1 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar px-2">
-                 <button onClick={() => navigateTo('dashboard', 'studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-blue-50 transition-colors group/btn whitespace-nowrap">
-                    <span className="text-lg">🛍️</span>
-                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-blue-600">Product Shot</span>
-                 </button>
-                 <button onClick={() => navigateTo('dashboard', 'studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-purple-50 transition-colors group/btn whitespace-nowrap">
-                    <span className="text-lg">👥</span>
-                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-purple-600">Model Shot</span>
-                 </button>
-                 <button onClick={() => navigateTo('dashboard', 'thumbnail_studio')} className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-red-50 transition-colors group/btn whitespace-nowrap">
-                    <span className="text-lg">▶️</span>
-                    <span className="text-sm font-medium text-gray-600 group-hover/btn:text-red-600">Thumbnail</span>
-                 </button>
-            </div>
-
-            <div className="pl-4 border-l border-gray-100">
-                 <button onClick={() => navigateTo('dashboard', 'studio')} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-[#4D7CFF] hover:bg-blue-50 transition-colors" title="Upload Any Image">
-                    <UploadIcon className="w-5 h-5" />
-                 </button>
-            </div>
-        </div>
-    </div>
-);
-
 const SunDial: React.FC<{ credits: number }> = ({ credits }) => (
-    <div className="relative group cursor-pointer">
+    <div className="relative group cursor-pointer w-fit ml-auto">
         <div className="absolute inset-0 bg-yellow-400 rounded-full blur-lg opacity-20 group-hover:opacity-40 transition-opacity animate-pulse"></div>
-        <div className="relative bg-white p-2 rounded-full shadow-lg border border-yellow-100 flex items-center gap-2 pr-4 transition-all duration-300 group-hover:scale-105">
+        <div className="relative bg-white p-3 rounded-full shadow-lg border border-yellow-100 flex items-center gap-3 pr-5 transition-all duration-300 group-hover:scale-105">
             <SunIcon className={`w-8 h-8 text-yellow-400 ${credits > 0 ? 'animate-[spin_10s_linear_infinite]' : ''}`} />
             <div className="flex flex-col items-start">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none">Energy</span>
@@ -984,153 +933,200 @@ const SunDial: React.FC<{ credits: number }> = ({ credits }) => (
     </div>
 );
 
-const BentoGrid: React.FC<{ navigateTo: any }> = ({ navigateTo }) => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-6xl mx-auto px-4">
-        {/* Hero Card - Product Studio */}
-        <div onClick={() => navigateTo('dashboard', 'product_studio')} className="md:col-span-2 md:row-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8 relative overflow-hidden cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-green-100/50 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-green-200/50"></div>
-            <div className="relative z-10 h-full flex flex-col justify-between">
-                <div>
-                    <div className="p-3 bg-green-100 w-fit rounded-2xl mb-4 text-green-600"><ProductStudioIcon className="w-8 h-8"/></div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Product Studio</h3>
-                    <p className="text-gray-500 max-w-xs">Generate a complete marketing pack from a single photo.</p>
-                </div>
-                
-                <div className="mt-8 flex gap-4 justify-center lg:justify-start">
-                     {/* "Before" Representation */}
-                     <div className="h-32 w-32 bg-white rounded-xl rotate-[-6deg] shadow-md border border-gray-100 group-hover:rotate-[-12deg] transition-transform duration-500 flex flex-col items-center justify-center p-2 relative overflow-hidden">
-                         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.2)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-no-repeat opacity-10"></div>
-                         <CubeIcon className="w-12 h-12 text-gray-300 mb-2" />
-                         <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Original</span>
-                     </div>
-                     
-                     {/* "After" Representation */}
-                     <div className="h-32 w-32 bg-gradient-to-br from-[#4D7CFF] to-purple-600 rounded-xl rotate-[3deg] shadow-xl shadow-blue-500/20 border border-white/20 z-10 group-hover:rotate-[6deg] transition-transform duration-500 group-hover:scale-110 flex flex-col items-center justify-center p-2 relative">
-                         <SparklesIcon className="w-12 h-12 text-white mb-2 animate-pulse" />
-                         <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Magic Result</span>
-                     </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Tall Card - Magic Model */}
-        <div onClick={() => navigateTo('dashboard', 'studio')} className="md:col-span-1 md:row-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 relative overflow-hidden cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
-            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-purple-50 to-transparent"></div>
-            <div className="relative z-10 h-full flex flex-col items-center text-center">
-                <div className="p-3 bg-purple-100 w-fit rounded-2xl mb-4 text-purple-600"><UsersIcon className="w-6 h-6"/></div>
-                <h3 className="text-xl font-bold text-gray-800 mb-1">Magic Model</h3>
-                <p className="text-xs text-gray-500 mb-6">Turn products into lifestyle shots.</p>
-                
-                <div className="flex-1 w-full bg-gray-50 rounded-xl relative overflow-hidden group-hover:shadow-inner mt-4 border border-gray-100">
-                    <div className="absolute inset-0 flex">
-                        <div className="w-1/2 h-full bg-white flex items-center justify-center border-r border-gray-100">
-                             <UsersIcon className="w-8 h-8 text-gray-300" />
-                        </div>
-                        <div className="w-1/2 h-full bg-purple-50 flex items-center justify-center">
-                             <UsersIcon className="w-8 h-8 text-purple-500" />
-                        </div>
-                    </div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-400 text-xs border border-gray-100 z-10">
-                        <div className="w-1 h-full bg-gray-200"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Widget - Quick Caption */}
-        <div onClick={() => navigateTo('dashboard', 'caption')} className="md:col-span-1 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-                <div className="p-3 bg-amber-100 w-fit rounded-2xl text-amber-600"><CaptionIcon className="w-6 h-6"/></div>
-                <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">FAST</span>
-            </div>
-            <div>
-                <h3 className="text-lg font-bold text-gray-800">Caption AI</h3>
-                <p className="text-xs text-gray-500">Instant social text.</p>
-            </div>
-        </div>
-
-        {/* Small Tool - Thumbnail */}
-        <div onClick={() => navigateTo('dashboard', 'thumbnail_studio')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
-             <div className="p-3 bg-red-100 w-fit rounded-2xl mb-3 text-red-600"><ThumbnailIcon className="w-6 h-6"/></div>
-             <h3 className="text-lg font-bold text-gray-800">Thumbnails</h3>
-        </div>
-
-         {/* Small Tool - Brand Stylist */}
-         <div onClick={() => navigateTo('dashboard', 'brand_stylist')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
-             <div className="p-3 bg-yellow-100 w-fit rounded-2xl mb-3 text-yellow-600"><LightbulbIcon className="w-6 h-6"/></div>
-             <h3 className="text-lg font-bold text-gray-800">Brand Stylist</h3>
-        </div>
-        
-         {/* Small Tool - Interior */}
-         <div onClick={() => navigateTo('dashboard', 'interior')} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-6 cursor-pointer group transition-all hover:shadow-xl hover:-translate-y-1">
-             <div className="p-3 bg-orange-100 w-fit rounded-2xl mb-3 text-orange-600"><HomeIcon className="w-6 h-6"/></div>
-             <h3 className="text-lg font-bold text-gray-800">Interior AI</h3>
-        </div>
-    </div>
-);
-
-const FilmStrip: React.FC<{ user: User | null, navigateTo: any }> = ({ user, navigateTo }) => {
-    const [recent, setRecent] = useState<Creation[]>([]);
-    
-    useEffect(() => {
-        if (user) getCreations(user.uid).then(data => setRecent(data.slice(0, 5)));
-    }, [user]);
-
-    if (recent.length === 0) return null;
+const CreativeDNA: React.FC<{ creations: any[] }> = ({ creations }) => {
+    // Calculate Top Tool
+    const toolCounts: Record<string, number> = {};
+    creations.forEach(c => {
+        toolCounts[c.feature] = (toolCounts[c.feature] || 0) + 1;
+    });
+    let topTool = 'None yet';
+    let maxCount = 0;
+    Object.entries(toolCounts).forEach(([tool, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            topTool = tool;
+        }
+    });
 
     return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 hidden md:flex">
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-2 rounded-[2rem] shadow-2xl flex items-center gap-4 px-6">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mr-2">Recent</span>
-                {recent.map(item => (
-                    <div key={item.id} className="w-12 h-12 rounded-xl overflow-hidden border border-white/50 shadow-sm cursor-pointer hover:scale-150 transition-transform duration-300 origin-bottom relative group">
-                        <img src={item.imageUrl} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                    </div>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                <ChartBarIcon className="w-4 h-4" /> Creative DNA
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-2xl">
+                    <p className="text-3xl font-bold text-[#1A1A1E]">{creations.length}</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Total Creations</p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-2xl">
+                    <p className="text-sm font-bold text-blue-600 truncate" title={topTool}>{topTool.split(' ')[0]}</p>
+                    <p className="text-xs text-blue-400 font-medium mt-1">Favorite Tool</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const TheTray: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        // For now, we just redirect to studio as a "Launcher"
+        navigateTo('dashboard', 'studio');
+    };
+
+    return (
+        <div 
+            className="group relative bg-white rounded-3xl p-6 shadow-sm border-2 border-dashed border-gray-200 hover:border-[#4D7CFF] transition-all cursor-pointer flex flex-col items-center justify-center gap-4 text-center min-h-[200px]"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => navigateTo('dashboard', 'studio')}
+        >
+            <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-50 rounded-3xl transition-opacity pointer-events-none"></div>
+            <div className="relative z-10 p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                <UploadIcon className="w-8 h-8 text-gray-400 group-hover:text-[#4D7CFF]" />
+            </div>
+            <div className="relative z-10">
+                <p className="font-bold text-gray-600 group-hover:text-[#4D7CFF] transition-colors">The Tray</p>
+                <p className="text-xs text-gray-400 mt-1">Drag & Drop ideas here to start</p>
+            </div>
+        </div>
+    );
+};
+
+const SpotlightHero: React.FC<{ lastCreation: any, navigateTo: any }> = ({ lastCreation, navigateTo }) => {
+    if (!lastCreation) {
+        return (
+            <div className="h-[500px] w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-[2.5rem] border border-gray-200 flex flex-col items-center justify-center text-center p-8 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.5)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-no-repeat group-hover:animate-[shine_2s_infinite]"></div>
+                <div className="relative z-10 max-w-md">
+                    <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1E] mb-4">Your Canvas is Empty</h2>
+                    <p className="text-gray-500 mb-8">Start your first masterpiece today. The studio is ready for you.</p>
+                    <button 
+                        onClick={() => navigateTo('dashboard', 'studio')}
+                        className="bg-[#1A1A1E] text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:bg-black hover:scale-105 transition-all flex items-center gap-3 mx-auto"
+                    >
+                        <SparklesIcon className="w-5 h-5 text-[#F9D230]" /> Start Creating
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-[600px] w-full rounded-[2.5rem] relative overflow-hidden group shadow-2xl">
+            <img src={lastCreation.imageUrl} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+            
+            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+                <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full mb-4 border border-white/20 uppercase tracking-wider">
+                    Last Worked On
+                </span>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">{lastCreation.feature}</h2>
+                <p className="text-gray-300 text-sm mb-8">
+                    Created on {lastCreation.createdAt?.toDate ? lastCreation.createdAt.toDate().toLocaleDateString() : 'Recently'}
+                </p>
+                
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => navigateTo('dashboard', 'studio')} // Ideal: Deep link to resume
+                        className="bg-white text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                    >
+                        <PencilIcon className="w-4 h-4" /> Resume
+                    </button>
+                    <button 
+                         onClick={() => downloadImage(lastCreation.imageUrl, 'spotlight-image.png')}
+                         className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-6 py-3 rounded-xl font-bold hover:bg-white/20 transition-colors flex items-center gap-2"
+                    >
+                        <DownloadIcon className="w-4 h-4" /> Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const QuickToolList: React.FC<{ navigateTo: any }> = ({ navigateTo }) => {
+    const tools = [
+        { id: 'product_studio', label: 'Product Studio', icon: CubeIcon, color: 'text-green-500', bg: 'bg-green-50' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'text-red-500', bg: 'bg-red-50' },
+        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
+    ];
+
+    return (
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Recommended</h3>
+            <div className="space-y-2">
+                {tools.map(tool => (
+                    <button 
+                        key={tool.id}
+                        onClick={() => navigateTo('dashboard', tool.id)}
+                        className="w-full flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-50 transition-colors group text-left"
+                    >
+                        <div className={`p-2.5 rounded-xl ${tool.bg} ${tool.color} group-hover:scale-110 transition-transform`}>
+                            <tool.icon className="w-5 h-5" />
+                        </div>
+                        <span className="font-bold text-gray-700 text-sm group-hover:text-[#1A1A1E]">{tool.label}</span>
+                        <ArrowRightIcon className="w-4 h-4 text-gray-300 ml-auto group-hover:text-gray-500" />
+                    </button>
                 ))}
-                <button onClick={() => navigateTo('dashboard', 'creations')} className="ml-2 w-10 h-10 rounded-full bg-white/50 flex items-center justify-center hover:bg-white transition-colors">
-                    <ArrowRightIcon className="w-4 h-4 text-gray-600"/>
-                </button>
             </div>
         </div>
     );
 };
 
 const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
+    const [recent, setRecent] = useState<Creation[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            getCreations(user.uid).then(data => {
+                setRecent(data);
+                setLoading(false);
+            });
+        }
+    }, [user]);
+
     return (
-        <div className="min-h-full pb-32 relative overflow-hidden">
-            {/* Background Blobs for Luminous Theme */}
+        <div className="min-h-full p-4 sm:p-8 max-w-[1600px] mx-auto relative">
+            {/* Animated Background Blobs */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-                <div className="absolute top-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-blue-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-                <div className="absolute bottom-[-20%] left-[20%] w-[40rem] h-[40rem] bg-yellow-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-purple-200/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+                <div className="absolute top-[20%] right-[-10%] w-[40rem] h-[40rem] bg-blue-200/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
             </div>
 
-            <div className="relative z-10">
-                <InspirationTicker />
-                
-                <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-12">
-                    {/* Hero Area */}
-                    <div className="flex flex-col items-center gap-8 pt-8">
-                        <div className="w-full flex justify-end px-4">
-                            {user && <SunDial credits={user.credits} />}
-                        </div>
-                        
-                        <div className="text-center space-y-2">
-                            <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1E]">
-                                Good {new Date().getHours() < 12 ? 'Morning' : 'Evening'}, {user?.name?.split(' ')[0]}.
-                            </h1>
-                            <p className="text-gray-500 text-lg">Your studio is ready.</p>
-                        </div>
-
-                        <OmniBar navigateTo={navigateTo} />
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column (The Easel) - 65% width on large screens */}
+                <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
+                    <div className="flex flex-col gap-2">
+                         <h1 className="text-3xl md:text-4xl font-bold text-[#1A1A1E]">
+                            Welcome back, {user?.name?.split(' ')[0]}.
+                        </h1>
+                        <p className="text-gray-500">Your studio is ready.</p>
                     </div>
-
-                    {/* Main Navigation */}
-                    <BentoGrid navigateTo={navigateTo} />
+                    
+                    {/* Spotlight Hero - Takes most of the space */}
+                    <SpotlightHero lastCreation={recent[0]} navigateTo={navigateTo} />
                 </div>
 
-                <FilmStrip user={user} navigateTo={navigateTo} />
+                {/* Right Column (The Desk) - 35% width */}
+                <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
+                     {/* 1. Sun Dial (Energy) */}
+                     <div className="flex justify-end">
+                        {user && <SunDial credits={user.credits} />}
+                     </div>
+
+                     {/* 2. Creative DNA */}
+                     <CreativeDNA creations={recent} />
+
+                     {/* 3. The Tray (Drag & Drop) */}
+                     <TheTray navigateTo={navigateTo} />
+
+                     {/* 4. Quick Tools */}
+                     <QuickToolList navigateTo={navigateTo} />
+                </div>
             </div>
              <style>{`
                 @keyframes blob {
@@ -1145,22 +1141,9 @@ const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveVie
                 .animation-delay-2000 {
                     animation-delay: 2s;
                 }
-                .animation-delay-4000 {
-                    animation-delay: 4s;
-                }
-                @keyframes marquee {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-                .animate-marquee {
-                    animation: marquee 30s linear infinite;
-                }
-                .no-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .no-scrollbar {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
+                 @keyframes shine {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
                 }
             `}</style>
         </div>
