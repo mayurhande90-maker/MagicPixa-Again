@@ -909,6 +909,370 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     );
 };
 
+// --- Restored Components ---
+
+const DashboardHome: React.FC<{ user: User | null, navigateTo: any, setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
+    const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
+
+    useEffect(() => {
+        if (user) {
+            getCreations(user.uid).then(data => setRecentCreations(data.slice(0, 4)));
+        }
+    }, [user]);
+
+    const tools = [
+        { id: 'studio', label: 'Magic Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'interior', label: 'Interior AI', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'apparel', label: 'Apparel Try-On', icon: UsersIcon, color: 'bg-teal-500' },
+        { id: 'mockup', label: 'Mockup Gen', icon: MockupIcon, color: 'bg-indigo-500' },
+        { id: 'caption', label: 'Caption AI', icon: CaptionIcon, color: 'bg-amber-500' },
+    ];
+
+    return (
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-10">
+            {/* Welcome Banner */}
+            <div className="bg-[#1A1A1E] text-white rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-xl">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-[100px] opacity-20"></div>
+                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                     <div>
+                         <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}!</h1>
+                         <p className="text-gray-400">Ready to create something amazing today?</p>
+                     </div>
+                     <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
+                         <div className="text-right">
+                             <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Balance</p>
+                             <p className="text-2xl font-bold text-[#6EFACC]">{user?.credits} Credits</p>
+                         </div>
+                         <button 
+                            onClick={() => setActiveView('billing')}
+                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-yellow-500/20"
+                        >
+                             Top Up
+                         </button>
+                     </div>
+                 </div>
+            </div>
+
+            {/* Recent Creations Strip */}
+            {recentCreations.length > 0 && (
+                <div>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <h2 className="text-xl font-bold text-[#1A1A1E]">Recent Projects</h2>
+                        <button onClick={() => setActiveView('creations')} className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
+                            View All <ArrowRightIcon className="w-4 h-4"/>
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {recentCreations.map(creation => (
+                            <div key={creation.id} className="aspect-square rounded-2xl overflow-hidden border border-gray-100 relative group cursor-pointer">
+                                <img src={creation.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                                    <span className="text-white text-xs font-bold">{creation.feature}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Tools Grid */}
+            <div>
+                <h2 className="text-xl font-bold text-[#1A1A1E] mb-4 px-1">Creative Tools</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {tools.map(tool => (
+                        <div 
+                            key={tool.id}
+                            onClick={() => setActiveView(tool.id as View)}
+                            className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-[#4D7CFF] shadow-sm hover:shadow-md cursor-pointer transition-all group flex flex-col items-center text-center gap-3 hover:-translate-y-1"
+                        >
+                            <div className={`p-3 rounded-xl ${tool.color} text-white group-hover:scale-110 transition-transform`}>
+                                <tool.icon className="w-6 h-6"/>
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-[#1A1A1E]">{tool.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navigateTo }) => {
+    const [creations, setCreations] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (auth.user) {
+            getCreations(auth.user.uid).then(setCreations).finally(() => setLoading(false));
+        }
+    }, [auth.user]);
+
+    const handleDelete = async (id: string, path: string) => {
+        if (!auth.user) return;
+        if (confirm('Are you sure you want to delete this creation? This cannot be undone.')) {
+            await deleteCreation(auth.user.uid, { id, storagePath: path });
+            setCreations(prev => prev.filter(c => c.id !== id));
+        }
+    };
+
+    const groupCreationsByDate = (list: any[]) => {
+        const groups: { [key: string]: any[] } = {};
+        const today = new Date().toDateString();
+        const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toDateString();
+
+        list.forEach(item => {
+            const date = item.createdAt?.toDate ? item.createdAt.toDate().toDateString() : new Date().toDateString();
+            let label = date;
+            if (date === today) label = 'Today';
+            else if (date === yesterday) label = 'Yesterday';
+            
+            if (!groups[label]) groups[label] = [];
+            groups[label].push(item);
+        });
+        return groups;
+    };
+
+    const grouped = groupCreationsByDate(creations);
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+         if (a === 'Today') return -1;
+         if (b === 'Today') return 1;
+         if (a === 'Yesterday') return -1;
+         if (b === 'Yesterday') return 1;
+         return new Date(b).getTime() - new Date(a).getTime();
+    });
+
+    return (
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto min-h-full">
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-3xl font-bold text-[#1A1A1E]">My Creations</h1>
+                <button onClick={() => navigateTo('dashboard', 'dashboard')} className="bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#dfbc2b]">
+                    Go to Dashboard
+                </button>
+            </div>
+
+            {loading ? (
+                 <div className="text-center py-20 text-gray-400">Loading your masterpiece gallery...</div>
+            ) : creations.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <SparklesIcon className="w-8 h-8 text-gray-400"/>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">No creations yet</h3>
+                    <p className="text-gray-500 mb-6">Start creating amazing visuals with our AI tools.</p>
+                    <button onClick={() => navigateTo('dashboard', 'studio')} className="bg-[#4D7CFF] text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">
+                        Start Creating
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-10">
+                    {sortedKeys.map(date => (
+                        <div key={date}>
+                            <h3 className="text-lg font-bold text-gray-500 mb-4 uppercase tracking-wider text-xs">{date}</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {grouped[date].map((creation: any) => (
+                                    <div key={creation.id} className="group relative aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
+                                        <img 
+                                            src={creation.imageUrl} 
+                                            className="w-full h-full object-cover"
+                                            onClick={() => setSelectedImage(creation.imageUrl)}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                                            <span className="text-white text-xs font-bold mb-2">{creation.feature}</span>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => downloadImage(creation.imageUrl, `magicpixa-${creation.id}.png`)}
+                                                    className="bg-white/20 hover:bg-white text-white hover:text-black p-2 rounded-lg backdrop-blur-md transition-all flex-1 flex justify-center"
+                                                    title="Download"
+                                                >
+                                                    <DownloadIcon className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(creation.id, creation.storagePath)}
+                                                    className="bg-white/20 hover:bg-red-500 text-white p-2 rounded-lg backdrop-blur-md transition-all flex-1 flex justify-center"
+                                                    title="Delete"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* Mobile/Always Visible Actions overlay for better UX */}
+                                        <div className="lg:hidden absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-3 pointer-events-none">
+                                             <div className="flex gap-2 pointer-events-auto">
+                                                <button onClick={() => downloadImage(creation.imageUrl, `magicpixa-${creation.id}.png`)} className="bg-white/90 p-1.5 rounded text-black shadow"><DownloadIcon className="w-4 h-4"/></button>
+                                                <button onClick={() => handleDelete(creation.id, creation.storagePath)} className="bg-white/90 p-1.5 rounded text-red-500 shadow"><TrashIcon className="w-4 h-4"/></button>
+                                             </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {selectedImage && <ImageModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />}
+        </div>
+    );
+};
+
+// Simplified Implementations for other features using FeatureLayout to prevent blank screens
+const StandardFeature: React.FC<{ 
+    title: string; 
+    description: string; 
+    icon: React.ReactNode; 
+    cost: number; 
+    onGenerate: (img: Base64File, prompt?: string) => Promise<string>;
+    auth: AuthProps;
+    promptLabel?: string;
+    placeholderLabel?: string;
+}> = ({ title, description, icon, cost, onGenerate, auth, promptLabel = "Description", placeholderLabel = "Upload Photo" }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setResult(null);
+        }
+    };
+
+    const handleRun = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await onGenerate(image.base64, prompt);
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            saveCreation(auth.user.uid, url, title);
+            const updated = await deductCredits(auth.user.uid, cost, title);
+            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+        } catch (e) {
+            console.error(e);
+            alert('Generation failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <FeatureLayout 
+            title={title}
+            description={description}
+            icon={icon}
+            creditCost={cost}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleRun}
+            resultImage={result}
+            onResetResult={() => setResult(null)}
+            onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
+            leftContent={
+                image ? (
+                    <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                        <img src={image.url} className="max-w-full max-h-full object-contain" />
+                         <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"><UploadIcon className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <UploadPlaceholder label={placeholderLabel} onClick={() => fileInputRef.current?.click()} />
+                )
+            }
+            rightContent={
+                image ? (
+                    <div>
+                         <InputField label={promptLabel} value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe the desired outcome..." />
+                    </div>
+                ) : (
+                    <div className="text-center text-gray-400 p-10">Upload an image to start.</div>
+                )
+            }
+        />
+    );
+};
+
+// Specific wrapper for CaptionAI as it returns text
+const CaptionAI: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [captions, setCaptions] = useState<{ caption: string; hashtags: string }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setImage({ url: URL.createObjectURL(file), base64 });
+            setCaptions([]);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!image || !auth.user) return;
+        setLoading(true);
+        try {
+            const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
+            setCaptions(res);
+            await deductCredits(auth.user.uid, 1, 'CaptionAI');
+             // Note: We don't save text creations to image gallery currently
+        } catch (e) {
+            console.error(e);
+            alert('Failed to generate captions.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <FeatureLayout 
+            title="CaptionAI"
+            description="Generate engaging social media captions and hashtags instantly."
+            icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+            creditCost={1}
+            isGenerating={loading}
+            canGenerate={!!image}
+            onGenerate={handleGenerate}
+            resultImage={null} // Custom result view
+            onNewSession={() => { setImage(null); setCaptions([]); }}
+            leftContent={
+                image ? (
+                     <div className="relative h-[500px] w-full flex items-center justify-center bg-gray-100 rounded-3xl overflow-hidden">
+                        <img src={image.url} className="max-w-full max-h-full object-contain" />
+                    </div>
+                ) : (
+                    <UploadPlaceholder label="Upload Photo for Captions" onClick={() => fileInputRef.current?.click()} />
+                )
+            }
+            rightContent={
+                captions.length > 0 ? (
+                    <div className="space-y-4 h-[500px] overflow-y-auto pr-2">
+                        {captions.map((c, i) => (
+                            <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <p className="text-sm text-gray-800 mb-2">{c.caption}</p>
+                                <p className="text-xs text-blue-500 font-medium mb-3">{c.hashtags}</p>
+                                <button onClick={() => navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
+                                    <CopyIcon className="w-3 h-3" /> Copy
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center text-gray-400 p-10">Upload a photo to generate captions.</div>
+                )
+            }
+        />
+    );
+};
+
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
     auth, 
@@ -923,10 +1287,31 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     
     const renderContent = () => {
         switch (activeView) {
+            case 'home_dashboard':
+            case 'dashboard':
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+            case 'creations':
+                return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
-                return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'product_studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+            case 'thumbnail_studio':
+                 // Placeholder using standard layout if specialized component not available in this context snippet
+                 return <StandardFeature title="Thumbnail Studio" description="Create viral thumbnails." icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateThumbnail({ category: 'General', title: p || 'Video', referenceImage: img.base64, subjectA: img.base64 })} />;
+            case 'brand_stylist':
+                 return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
+            case 'soul':
+                 return <StandardFeature title="Magic Soul" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
+            case 'colour':
+                 return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
+            case 'interior':
+                 return <StandardFeature title="Magic Interior" description="Redesign your space." icon={<HomeIcon className="w-6 h-6 text-orange-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateInteriorDesign(img.base64, img.mimeType, p || 'Modern', 'home', 'Living Room')} />;
+            case 'apparel':
+                 return <StandardFeature title="Magic Apparel" description="Virtual Try-On." icon={<UsersIcon className="w-6 h-6 text-teal-500"/>} cost={3} auth={auth} onGenerate={async (img) => await generateApparelTryOn(img.base64, img.mimeType, [])} />;
+            case 'mockup':
+                 return <StandardFeature title="Magic Mockup" description="Product Mockups." icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>} cost={2} auth={auth} onGenerate={async (img, p) => await generateMockup(img.base64, img.mimeType, p || 'T-Shirt')} />;
+            case 'caption':
+                 return <CaptionAI auth={auth} />;
             case 'billing':
                 if (auth.user) {
                     return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} />;
@@ -934,40 +1319,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 return null;
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
-            case 'dashboard':
-                return (
-                    <div className="p-8">
-                        <h1 className="text-3xl font-bold text-[#1A1A1E] mb-6">Welcome back, {auth.user?.name}!</h1>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                             <div 
-                                onClick={() => setActiveView('studio')}
-                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all"
-                             >
-                                 <PhotoStudioIcon className="w-10 h-10 mb-4"/>
-                                 <h3 className="text-xl font-bold">Magic Studio</h3>
-                                 <p className="text-blue-100 text-sm mt-2">Create professional product & model shots.</p>
-                             </div>
-                             <div 
-                                onClick={() => setActiveView('billing')}
-                                className="bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
-                             >
-                                 <CreditCardIcon className="w-10 h-10 mb-4 text-green-500"/>
-                                 <h3 className="text-xl font-bold text-gray-800">Credits: {auth.user?.credits}</h3>
-                                 <p className="text-gray-500 text-sm mt-2">Manage billing and top up.</p>
-                             </div>
-                        </div>
-                    </div>
-                );
             default:
-                return (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <SparklesIcon className="w-8 h-8"/>
-                         </div>
-                         <h3 className="text-lg font-bold">Feature Coming Soon</h3>
-                         <p className="text-sm">We are working hard to bring you this feature.</p>
-                    </div>
-                );
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
         }
     };
 
@@ -1010,6 +1363,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     </div>
                 </div>
             )}
+            <div className="hidden">
+                <input ref={useRef(null)} type="file" />
+            </div>
         </div>
     );
 };
