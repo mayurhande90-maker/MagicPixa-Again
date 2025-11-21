@@ -47,10 +47,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       
       // User: Create/Delete/Read own profile
-      allow create, delete, read: if request.auth.uid == userId;
+      allow create, delete: if request.auth.uid == userId;
       
-      // User: Allow reading OTHER users (Required to lookup Referral Codes)
-      allow list: if request.auth != null;
+      // User: Allow reading OTHER users (Required to lookup Referral Codes & Check Caps)
+      allow read: if request.auth != null;
 
       // User: Update Access
       // 1. Allow user to update their own profile
