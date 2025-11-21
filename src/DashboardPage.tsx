@@ -30,6 +30,7 @@ import {
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { getDailyMission, isMissionLocked } from './utils/dailyMissions';
+import { getBadgeInfo } from './utils/badgeUtils';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
