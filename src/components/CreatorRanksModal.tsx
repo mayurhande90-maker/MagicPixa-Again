@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { XIcon, CheckIcon, BadgeNoviceIcon, BadgeCopperIcon, BadgeSilverIcon, BadgeGoldIcon } from './icons';
 
 interface CreatorRanksModalProps {
@@ -14,7 +15,7 @@ export const CreatorRanksModal: React.FC<CreatorRanksModalProps> = ({ onClose, c
         { name: 'Gold Visionary', min: 100, icon: BadgeGoldIcon, color: 'text-yellow-600', bg: 'bg-yellow-100' },
     ];
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
              <div className="relative bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
                  <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><XIcon className="w-6 h-6" /></button>
@@ -50,6 +51,7 @@ export const CreatorRanksModal: React.FC<CreatorRanksModalProps> = ({ onClose, c
                      })}
                  </div>
              </div>
-        </div>
+        </div>,
+        document.body
     );
 };
