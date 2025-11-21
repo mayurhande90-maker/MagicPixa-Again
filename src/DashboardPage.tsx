@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
@@ -664,7 +663,7 @@ const DashboardHome: React.FC<{
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
                 
                 {/* Left: Hero Banner (60% -> 3/5) */}
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[280px]">
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[450px]">
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
                     ) : latestCreation ? (
