@@ -441,38 +441,47 @@ const DailyQuest: React.FC<{
     }, []);
 
     return (
-        <div className={`rounded-3xl p-6 shadow-sm border relative overflow-hidden group h-full flex flex-col justify-between ${isCompleted ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
-            {!isCompleted && <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-full -mr-8 -mt-8 blur-2xl group-hover:bg-yellow-200/50 transition-colors"></div>}
+        <div className={`rounded-3xl p-6 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
+            isCompleted 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
+        }`}>
+            {!isCompleted && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
             
             <div>
                 <div className="flex items-center justify-between mb-4 relative z-10">
-                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
+                        isCompleted 
+                        ? 'bg-green-200 text-green-800' 
+                        : 'bg-white/10 text-[#F9D230] border border-white/10'
+                    }`}>
                         <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Daily Mission'}
                     </span>
+                    {!isCompleted && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
                 </div>
                 
-                <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">{mission.title}</h3>
-                <p className="text-sm text-gray-500 mb-6 relative z-10">{mission.description}</p>
+                <h3 className={`text-xl font-bold mb-2 relative z-10 ${isCompleted ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
+                <p className={`text-sm mb-6 relative z-10 leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
             </div>
             
             <div className="flex items-center justify-between relative z-10 mt-auto">
                 {!isCompleted ? (
                     <>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-gray-400 uppercase">Reward</span>
-                            <span className="px-2 py-0.5 bg-green-100 text-green-600 text-xs font-bold rounded">+{mission.reward} Credits</span>
+                        <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                            <span className="text-xs font-bold text-gray-300 uppercase">Reward</span>
+                            <span className="text-[#6EFACC] text-xs font-bold">+{mission.reward} Cr</span>
                         </div>
                         <button 
                             onClick={() => navigateTo('dashboard', 'daily_mission')}
-                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
+                            className="bg-[#F9D230] text-[#1A1A1E] px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-[#dfbc2b] hover:scale-105 transition-all shadow-lg shadow-yellow-500/20"
                         >
-                            Start Challenge
+                            Start Mission
                         </button>
                     </>
                 ) : (
-                    <div className="w-full flex justify-between items-center">
-                         <span className="text-xs font-bold text-green-700">Reward Claimed!</span>
-                         <span className="text-xs font-mono text-green-600 bg-green-100 px-2 py-1 rounded">Next: {timeLeft}</span>
+                    <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
+                         <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Claimed</span>
+                         <span className="text-xs font-mono text-green-600">Next: {timeLeft}</span>
                     </div>
                 )}
             </div>
@@ -561,20 +570,13 @@ const DashboardHome: React.FC<{
                     <h1 className="text-3xl font-bold text-[#1A1A1E]">{getGreeting()}, {user?.name}!</h1>
                     <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
-                <button 
-                    onClick={() => setActiveView('billing')}
-                    className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all text-sm font-bold text-gray-700"
-                >
-                    <SparklesIcon className="w-4 h-4 text-blue-500" />
-                    <span>{user?.credits} Credits Available</span>
-                </button>
             </div>
 
             {/* Hero Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12 items-stretch">
                 
                 {/* Left: Hero Banner (60% -> 3/5) */}
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[340px]">
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col min-h-[340px] h-full">
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
                     ) : latestCreation ? (
@@ -624,21 +626,21 @@ const DashboardHome: React.FC<{
                 </div>
 
                 {/* Right: Boxy Layout (40% -> 2/5) */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
+                <div className="lg:col-span-2 flex flex-col gap-6 h-full">
                     {/* Row 1: Stats */}
-                    <div className="grid grid-cols-2 gap-6">
-                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
-                             <div className="p-3 bg-blue-50 rounded-full mb-3">
+                    <div className="grid grid-cols-2 gap-6 shrink-0">
+                         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
+                             <div className="p-3 bg-blue-50 rounded-full mb-2">
                                  <ProjectsIcon className="w-6 h-6 text-blue-500" />
                              </div>
                              <span className="text-3xl font-bold text-[#1A1A1E]">{totalGenerations}</span>
                              <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Total Creations</span>
                          </div>
-                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
-                             <div className="p-3 bg-purple-50 rounded-full mb-3">
+                         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
+                             <div className="p-3 bg-purple-50 rounded-full mb-2">
                                  <SparklesIcon className="w-6 h-6 text-purple-500" />
                              </div>
-                             <span className="text-lg font-bold text-[#1A1A1E] line-clamp-1 px-2 w-full overflow-hidden text-ellipsis" title={mostUsedFeature}>
+                             <span className="text-sm font-bold text-[#1A1A1E] line-clamp-2 w-full break-words px-2" title={mostUsedFeature}>
                                 {mostUsedFeature.replace('Magic ', '')}
                              </span>
                              <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Favorite Tool</span>
@@ -646,7 +648,7 @@ const DashboardHome: React.FC<{
                     </div>
 
                     {/* Row 2: Daily Mission (Tray) */}
-                    <div className="flex-1 min-h-[200px]">
+                    <div className="flex-1">
                          <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
                     </div>
                 </div>
