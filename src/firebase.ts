@@ -124,8 +124,11 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
         let needsUpdate = false;
         const updatePayload: any = {};
 
+        // REPAIR LOGIC: If existing user has no credits field (legacy bug), give them the welcome bonus now.
         if (userData.credits === undefined) {
-            updatePayload.credits = 0;
+            console.warn("Repairing user profile: Missing credits field. Assigning welcome bonus.");
+            updatePayload.credits = 10; 
+            updatePayload.totalCreditsAcquired = 10;
             needsUpdate = true;
         }
 
@@ -205,8 +208,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
          });
     }
 
-    // Return the profile data
-    return { ...newUserProfile, credits: initialCredits, plan: 'Free', totalCreditsAcquired: initialCredits, totalSpent: 0 };
+    // Return the profile data with explicit credit values to ensure UI updates immediately
+    return { ...newUserProfile, credits: initialCredits, totalCreditsAcquired: initialCredits };
   }
 };
 
