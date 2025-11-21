@@ -124,6 +124,11 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
         let needsUpdate = false;
         const updatePayload: any = {};
 
+        if (userData.credits === undefined) {
+            updatePayload.credits = 0;
+            needsUpdate = true;
+        }
+
         if (!userData.dailyMission) {
             updatePayload.dailyMission = {
                 completedAt: new Date(0).toISOString(),
@@ -357,11 +362,8 @@ export const deductCredits = async (uid: string, amount: number, feature: string
         throw new Error("User profile data is missing.");
       }
 
-      const currentCredits = userProfile.credits;
-      if (typeof currentCredits !== 'number' || isNaN(currentCredits)) {
-        throw new Error("A data error occurred. Could not process your request.");
-      }
-
+      const currentCredits = userProfile.credits || 0;
+      
       if (currentCredits < amount) {
         throw new Error("Insufficient credits.");
       }
@@ -604,12 +606,19 @@ export const getCreditHistory = async (uid: string): Promise<any[]> => {
     // DEFINITIVE FIX: Switched to 'compat' API for collection query.
     const transactionsRef = db.collection("users").doc(uid).collection("transactions");
     const q = transactionsRef.orderBy("date", "desc").limit(50);
-    const querySnapshot = await q.get();
-    const history: any[] = [];
-    querySnapshot.forEach((doc) => {
-        history.push({ id: doc.id, ...doc.data() });
-    });
-    return history;
+    
+    try {
+        const querySnapshot = await q.get();
+        const history: any[] = [];
+        querySnapshot.forEach((doc) => {
+            history.push({ id: doc.id, ...doc.data() });
+        });
+        return history;
+    } catch (error) {
+        console.error("Error fetching credit history:", error);
+        // Return empty array instead of crashing
+        return [];
+    }
 };
 
 // Helper to convert base64 to blob for uploading

@@ -406,12 +406,11 @@ const StandardFeature: React.FC<{
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         
-        // Start Credit Check
+        // FIX: Strict credit check with fallback for undefined
         if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
-        // End Credit Check
 
         setLoading(true);
         try {
@@ -884,6 +883,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
         if (!image || !auth.user) return;
         
         const cost = appConfig?.featureCosts['Product Studio'] || 5;
+        // FIX: Strict credit check with fallback for undefined
         if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
@@ -954,6 +954,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({
         if (!image || !auth.user) return;
         
         const cost = appConfig?.featureCosts['CaptionAI'] || 1;
+        // FIX: Strict credit check with fallback for undefined
         if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
@@ -1473,6 +1474,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             ? (appConfig?.featureCosts['Model Shot'] || 3) 
             : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
 
+        // FIX: Strict credit check with fallback for undefined
         if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
