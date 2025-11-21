@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Transaction, AppConfig } from '../types';
+import { User, Transaction, AppConfig, CreditPack } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
@@ -50,7 +50,18 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState<{ totalCredits: number } | null>(null);
 
-  const creditPacks = appConfig?.creditPacks || [];
+  // Default credit packs if appConfig fails to load or is empty
+  const defaultCreditPacks: CreditPack[] = [
+    { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
+    { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: 'For creators & influencers — extra credits included!', popular: true, value: 1.51 },
+    { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
+    { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
+  ];
+
+  const creditPacks = appConfig?.creditPacks && appConfig.creditPacks.length > 0 
+    ? appConfig.creditPacks 
+    : defaultCreditPacks;
+
   const creditCosts = appConfig?.featureCosts ? Object.entries(appConfig.featureCosts).map(([feature, cost]) => ({ feature, cost: `${cost} Credits` })) : [];
 
   const getIconForFeature = (feature: string): React.ReactNode => {
