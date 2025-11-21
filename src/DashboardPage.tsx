@@ -256,14 +256,14 @@ const FeatureLayout: React.FC<{
                 {/* RIGHT COLUMN: Control Deck */}
                 {/* h-full to force equal height with left column */}
                 <div className="flex flex-col h-full">
-                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex flex-col h-full border border-gray-100 overflow-hidden">
+                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex-col h-full border border-gray-100 overflow-hidden flex">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
                         {/* Scrollable Content containing inputs AND button */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
                             <div className="flex flex-col min-h-full">
                                 {/* Changed justify-center to justify-start to align content to top */}
                                 <div className="space-y-2 mb-6 flex-1 flex flex-col justify-start">
@@ -423,11 +423,20 @@ const DailyQuest: React.FC<{
     useEffect(() => {
         const calculateTimeLeft = () => {
             const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(0, 0, 0, 0);
+            // Calculate countdown to next 12-hour block (Noon or Midnight)
+            const nextReset = new Date(now);
+            const currentHour = now.getHours();
             
-            const diff = tomorrow.getTime() - now.getTime();
+            if (currentHour < 12) {
+                // Next reset is at 12:00 PM today
+                nextReset.setHours(12, 0, 0, 0);
+            } else {
+                // Next reset is at 12:00 AM tomorrow
+                nextReset.setDate(nextReset.getDate() + 1);
+                nextReset.setHours(0, 0, 0, 0);
+            }
+            
+            const diff = nextReset.getTime() - now.getTime();
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
             const seconds = Math.floor((diff / 1000) % 60);

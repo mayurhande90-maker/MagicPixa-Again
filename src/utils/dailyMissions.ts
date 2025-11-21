@@ -26,30 +26,29 @@ export interface Mission {
 
 const MISSIONS: Mission[] = [
     {
-        id: 'zen_garden',
-        title: 'Zen Garden Product',
-        description: 'Upload ANY product photo. Our AI will place it on a mossy stone in a peaceful zen garden with dappled sunlight.',
+        id: 'pro_studio_white',
+        title: 'Professional E-Commerce',
+        description: 'Upload a product. Our AI will place it on a pristine white seamless background with soft, professional studio lighting. Perfect for online listings.',
         reward: 5,
         config: {
             toolType: 'studio',
-            prompt: 'Product placed on a mossy stone in a zen garden, dappled sunlight through leaves, peaceful nature atmosphere'
+            prompt: 'Product on a seamless pure white background, soft professional studio lighting, commercial photography style, high resolution, 85mm lens'
         }
     },
     {
-        id: 'japandi_living',
-        title: 'Japandi Living Room',
-        description: 'Upload a photo of a room. AI will redesign it into a stylish "Japandi" (Japanese-Scandi) minimalist space.',
+        id: 'luxury_marble',
+        title: 'Luxury Aesthetics',
+        description: 'Create a high-end social media post. We will place your product on a polished marble surface with elegant daylight shadows.',
         reward: 5,
         config: {
-            toolType: 'interior',
-            interiorStyle: 'Japanese',
-            interiorRoomType: 'Living Room'
+            toolType: 'studio',
+            prompt: 'Product placed on a white carrera marble table, hard window shadows, luxury aesthetic, bright natural daylight, high-end minimalist'
         }
     },
     {
         id: 'vintage_restore',
-        title: 'Restore History',
-        description: 'Upload an old black & white photo. AI will colourize it and remove scratches to bring it back to life.',
+        title: 'Restore & Archive',
+        description: 'Preserve your history. Upload an old, damaged, or black & white photo to instantly colorize and restore it.',
         reward: 5,
         config: {
             toolType: 'colour',
@@ -57,69 +56,83 @@ const MISSIONS: Mission[] = [
         }
     },
     {
-        id: 'neon_cyberpunk',
-        title: 'Neon Cyberpunk',
-        description: 'Upload a product. We will transform the background into a futuristic neon city street at night.',
+        id: 'modern_office',
+        title: 'Corporate Professional',
+        description: 'Contextualize your product. We will place it on a sleek, modern office desk with blurred tech accessories in the background.',
         reward: 5,
         config: {
             toolType: 'studio',
-            prompt: 'Cyberpunk neon city product shot with glowing blue and pink rim lights, wet street reflection, futuristic vibe'
+            prompt: 'Product on a modern wooden office desk, next to a laptop and coffee cup, bokeh office background, professional workspace environment'
         }
     },
     {
-        id: 'industrial_office',
-        title: 'Industrial Office',
-        description: 'Upload a room photo. Transform it into a raw, trendy Industrial office with exposed brick and metal accents.',
+        id: 'kitchen_lifestyle',
+        title: 'Kitchen Lifestyle',
+        description: 'Great for food or home goods. Place your item on a clean kitchen counter with fresh ingredients or decor in the background.',
+        reward: 5,
+        config: {
+            toolType: 'studio',
+            prompt: 'Product on a granite kitchen counter, morning sunlight, blurred background of a clean modern kitchen, home lifestyle photography'
+        }
+    },
+    {
+        id: 'minimalist_podium',
+        title: 'Minimalist Marketing',
+        description: 'Create a trendy ad creative. Your product will appear on a geometric pastel podium with soft, artistic lighting.',
+        reward: 5,
+        config: {
+            toolType: 'studio',
+            prompt: 'Product standing on a geometric pastel colored podium, soft studio lighting, minimalist art direction, 3d render style'
+        }
+    },
+    {
+        id: 'modern_living',
+        title: 'Modern Living Space',
+        description: 'Redesign a room photo into a clean, Modern style living space. Perfect for visualizing real estate or interior ideas.',
         reward: 5,
         config: {
             toolType: 'interior',
-            interiorStyle: 'Industrial',
-            interiorRoomType: 'Office'
-        }
-    },
-    {
-        id: 'golden_hour',
-        title: 'Golden Hour Glow',
-        description: 'Upload a product. We will re-light it with a magical warm sunset glow on a wooden deck.',
-        reward: 5,
-        config: {
-            toolType: 'studio',
-            prompt: 'Warm golden hour sunset lighting, product on a wooden deck, lens flare, summer vibe'
-        }
-    },
-    {
-        id: 'luxury_podium',
-        title: 'Dark Luxury',
-        description: 'Upload a product. Place it on a sleek black marble podium with dramatic spotlighting.',
-        reward: 5,
-        config: {
-            toolType: 'studio',
-            prompt: 'Elegant product on black reflective marble podium, dramatic spotlight, dark luxury atmosphere'
+            interiorStyle: 'Modern',
+            interiorRoomType: 'Living Room'
         }
     }
 ];
 
 export const getDailyMission = (): Mission => {
     const today = new Date();
-    // Calculate day of the year (0-365)
+    // Calculate 12-hour blocks since the start of the year
     const start = new Date(today.getFullYear(), 0, 0);
     const diff = (today.getTime() - start.getTime()) + ((start.getTimezoneOffset() - today.getTimezoneOffset()) * 60 * 1000);
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
+    const oneHour = 1000 * 60 * 60;
+    const hoursPassed = Math.floor(diff / oneHour);
     
-    // Use modulo to cycle through missions
-    return MISSIONS[dayOfYear % MISSIONS.length];
+    // Change mission every 12 hours
+    const blockIndex = Math.floor(hoursPassed / 12);
+    
+    return MISSIONS[blockIndex % MISSIONS.length];
 };
 
 export const isMissionCompletedToday = (lastCompletedDate?: any): boolean => {
     if (!lastCompletedDate) return false;
     
     const lastDate = lastCompletedDate.toDate ? lastCompletedDate.toDate() : new Date(lastCompletedDate);
-    const today = new Date();
+    const now = new Date();
     
-    return (
-        lastDate.getDate() === today.getDate() &&
-        lastDate.getMonth() === today.getMonth() &&
-        lastDate.getFullYear() === today.getFullYear()
+    // Check if completed in the same 12-hour block (AM vs PM) on the same day
+    const isSameDay = (
+        lastDate.getDate() === now.getDate() &&
+        lastDate.getMonth() === now.getMonth() &&
+        lastDate.getFullYear() === now.getFullYear()
     );
+
+    if (!isSameDay) return false;
+
+    const lastHour = lastDate.getHours();
+    const currentHour = now.getHours();
+
+    // Check if both are in AM (0-11) or both are in PM (12-23)
+    const wasAM = lastHour < 12;
+    const isAM = currentHour < 12;
+
+    return wasAM === isAM;
 };
