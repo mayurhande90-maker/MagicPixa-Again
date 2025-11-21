@@ -149,7 +149,6 @@ const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ image
 const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = ({ reward, onClose }) => (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
          <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
-             {/* Confetti CSS placeholder */}
              <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-6xl animate-pulse">🎉</div>
              
              <h2 className="text-2xl font-bold text-[#1A1A1E] mt-4 mb-2">Mission Accomplished!</h2>
@@ -194,6 +193,9 @@ const FeatureLayout: React.FC<{
     generateButtonStyle, resultHeightClass, hideGenerateButton
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
+    
+    // Default height if not specified. Used to enforce alignment.
+    const contentHeightClass = resultHeightClass || 'h-[560px]';
 
     return (
         <div className="flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
@@ -213,9 +215,9 @@ const FeatureLayout: React.FC<{
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                <div className="h-full flex flex-col justify-start">
+                <div className={`w-full flex flex-col justify-start ${contentHeightClass}`}>
                     {resultImage ? (
-                        <div className={`w-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner ${resultHeightClass || 'h-full min-h-[400px]'}`}>
+                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
                              <img 
                                 src={resultImage} 
@@ -247,7 +249,7 @@ const FeatureLayout: React.FC<{
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-start">
-                            <div className="w-full relative flex flex-col items-center">
+                            <div className="w-full h-full relative flex flex-col items-center">
                                 {leftContent}
                             </div>
                         </div>
@@ -255,8 +257,7 @@ const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                {/* h-full to force equal height with left column */}
-                <div className="flex flex-col h-full">
+                <div className={`flex flex-col ${contentHeightClass}`}>
                     <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex-col h-full border border-gray-100 overflow-hidden flex">
                         <div className="flex items-center justify-between mb-4 flex-shrink-0">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
@@ -327,7 +328,7 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md aspect-video max-h-[450px]"
+        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md aspect-video max-h-[560px]"
     >
         <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
             {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#4D7CFF] transition-colors duration-300" />}
@@ -394,9 +395,10 @@ const StandardFeature: React.FC<{
                 resultImage={result}
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
+                resultHeightClass="h-[400px]"
                 leftContent={
                     image ? (
-                        <div className="relative h-[400px] w-full flex items-center justify-center">
+                        <div className="relative h-full w-full flex items-center justify-center">
                             <img src={image.url} className="max-h-full max-w-full rounded-lg" alt="Source" />
                              <button onClick={() => fileInputRef.current?.click()} className="absolute top-2 right-2 bg-white p-2 rounded-full shadow"><PencilIcon className="w-4 h-4"/></button>
                         </div>
@@ -790,9 +792,10 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
             canGenerate={!!image && !!productName}
             onGenerate={handleGenerate}
             resultImage={null} // Result is text/JSON
+            resultHeightClass="h-[400px]"
             leftContent={
                 image ? (
-                    <div className="relative h-[400px] w-full flex items-center justify-center">
+                    <div className="relative h-full w-full flex items-center justify-center">
                         <img src={image.url} className="max-h-full max-w-full rounded-lg" alt="Product Source" />
                     </div>
                 ) : <UploadPlaceholder label="Upload Product" onClick={() => fileInputRef.current?.click()} />
@@ -851,9 +854,10 @@ const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({
             canGenerate={!!image}
             onGenerate={handleGenerate}
             resultImage={null}
+            resultHeightClass="h-[400px]"
             leftContent={
                 image ? (
-                    <div className="relative h-[400px] w-full flex items-center justify-center">
+                    <div className="relative h-full w-full flex items-center justify-center">
                         <img src={image.url} className="max-h-full max-w-full rounded-lg" alt="Caption Source" />
                     </div>
                 ) : <UploadPlaceholder label="Upload Image" onClick={() => fileInputRef.current?.click()} />
@@ -990,11 +994,13 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             const url = `data:image/png;base64,${res}`;
             setResult(url);
 
+            // Only trigger credit grant if not already done in this session and not already completed on backend
             if (!hasCompletedRef.current && auth.user && !isCompleted) {
                 const updatedUser = await completeDailyMission(auth.user.uid, activeMission.reward, activeMission.title);
-                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, lastDailyMissionCompleted: updatedUser.lastDailyMissionCompleted } : null);
+                // Update user state, but set a flag to show reward modal
                 setShowReward(true);
                 hasCompletedRef.current = true;
+                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, lastDailyMissionCompleted: updatedUser.lastDailyMissionCompleted } : null);
             }
             
             saveCreation(auth.user.uid, url, `Daily Mission: ${activeMission.title}`);
@@ -1017,9 +1023,10 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
     }
 
     // STRICT: If the mission is completed, force the success screen.
-    if (isCompleted) {
+    // ONLY if we are not currently showing the reward modal for a just-completed mission.
+    if (isCompleted && !showReward) {
          return (
-             <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto">
+             <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto animate-fadeIn">
                  <div className="bg-white p-12 rounded-3xl shadow-xl border border-green-100 text-center relative overflow-hidden w-full">
                      <div className="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
                      <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1056,11 +1063,11 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 resultImage={result}
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); }}
-                resultHeightClass="h-[560px]"
+                resultHeightClass="h-full min-h-[560px]" // Ensure height matches
                 hideGenerateButton={true} // Hiding default button to use custom one in right panel
                 leftContent={
                     image ? (
-                        <div className="relative h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        <div className="relative h-full min-h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
@@ -1087,7 +1094,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 }
                 rightContent={
                      // New Marketing-Focused Right Panel
-                    <div className="h-full flex flex-col">
+                    <div className="h-full flex flex-col min-h-[560px]">
                         {/* Reward Banner */}
                         <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-6 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
                              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
@@ -1152,7 +1159,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-            {showReward && <MissionSuccessModal reward={activeMission.reward} onClose={() => { setShowReward(false); navigateTo('dashboard', 'home_dashboard'); }} />}
+            {showReward && <MissionSuccessModal reward={activeMission.reward} onClose={() => { setShowReward(false); }} />}
         </>
     );
 };

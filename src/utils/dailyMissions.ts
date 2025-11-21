@@ -115,7 +115,22 @@ export const getDailyMission = (): Mission => {
 export const isMissionCompletedToday = (lastCompletedDate?: any): boolean => {
     if (!lastCompletedDate) return false;
     
-    const lastDate = lastCompletedDate.toDate ? lastCompletedDate.toDate() : new Date(lastCompletedDate);
+    let lastDate: Date;
+    
+    // Handle Firebase Timestamp object (has seconds/nanoseconds)
+    if (lastCompletedDate && typeof lastCompletedDate.toDate === 'function') {
+        lastDate = lastCompletedDate.toDate();
+    } 
+    // Handle standard Date object or timestamp number/string
+    else if (lastCompletedDate instanceof Date) {
+        lastDate = lastCompletedDate;
+    } else {
+        lastDate = new Date(lastCompletedDate);
+    }
+    
+    // Check for invalid date
+    if (isNaN(lastDate.getTime())) return false;
+
     const now = new Date();
     
     // Check if completed in the same 12-hour block (AM vs PM) on the same day
