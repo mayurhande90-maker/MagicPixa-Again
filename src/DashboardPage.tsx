@@ -498,7 +498,7 @@ const DailyQuest: React.FC<{
     }, [user]);
 
     return (
-        <div className={`rounded-3xl p-6 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
+        <div className={`rounded-3xl p-4 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
             isLocked 
             ? 'bg-green-50 border-green-200' 
             : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
@@ -506,7 +506,7 @@ const DailyQuest: React.FC<{
             {!isLocked && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
             
             <div>
-                <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center justify-between mb-2 relative z-10">
                     <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
                         isLocked 
                         ? 'bg-green-200 text-green-800' 
@@ -518,21 +518,21 @@ const DailyQuest: React.FC<{
                 </div>
                 
                 <h3 className={`text-xl font-bold mb-2 relative z-10 ${isLocked ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
-                <p className={`text-sm mb-6 relative z-10 leading-relaxed ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
+                <p className={`text-xs mb-3 relative z-10 leading-relaxed line-clamp-3 ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
             </div>
             
             <div className="relative z-10 mt-auto">
                 {!isLocked ? (
-                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
                         <div>
                             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Complete to Unlock</p>
-                            <p className="text-2xl font-black text-[#1A1A1E] flex items-center gap-1 leading-none">
-                               +5 <span className="text-sm font-bold text-amber-700">CREDITS</span>
+                            <p className="text-xl font-black text-[#1A1A1E] flex items-center gap-1 leading-none">
+                               +5 <span className="text-xs font-bold text-amber-700">CREDITS</span>
                             </p>
                         </div>
                         <button 
                             onClick={() => navigateTo('dashboard', 'daily_mission')}
-                            className="bg-[#1A1A1E] text-white px-5 py-3 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg whitespace-nowrap"
+                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg whitespace-nowrap"
                         >
                             Start Mission
                         </button>
@@ -661,10 +661,10 @@ const DashboardHome: React.FC<{
             </div>
 
             {/* Hero Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
                 
                 {/* Left: Hero Banner (60% -> 3/5) */}
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col min-h-[340px] h-full">
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[280px]">
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
                     ) : latestCreation ? (
@@ -714,21 +714,21 @@ const DashboardHome: React.FC<{
                 </div>
 
                 {/* Right: Boxy Layout (40% -> 2/5) */}
-                <div className="lg:col-span-2 flex flex-col gap-6 h-full">
+                <div className="lg:col-span-2 flex flex-col gap-4 h-full">
                     {/* Row 1: Loyalty Bonus (Full Width Box) */}
-                    <div className="shrink-0 h-40 bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                    <div className="shrink-0 h-32 bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
                         {/* Decorative BG */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
                         
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Loyalty Bonus</p>
-                                <h3 className="text-2xl font-black text-[#1A1A1E]">
-                                    {lifetimeGens} <span className="text-base font-medium text-gray-400">Generations</span>
+                                <h3 className="text-xl font-black text-[#1A1A1E]">
+                                    {lifetimeGens} <span className="text-sm font-medium text-gray-400">Generations</span>
                                 </h3>
                             </div>
                             <div className="text-right">
-                                <p className="text-2xl font-black text-indigo-600">
+                                <p className="text-xl font-black text-indigo-600">
                                     {nextMilestone}
                                 </p>
                                 <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">Target</p>
@@ -740,7 +740,7 @@ const DashboardHome: React.FC<{
                                 <span className="text-indigo-600">Progress</span>
                                 <span className="text-gray-500">Next: +{nextReward} Credits</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                                 <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative" style={{ width: `${progressPercent}%` }}>
                                      <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
                                 </div>
@@ -749,7 +749,7 @@ const DashboardHome: React.FC<{
                     </div>
 
                     {/* Row 2: Daily Mission (Tray) */}
-                    <div className="flex-1 min-h-[160px]">
+                    <div className="flex-1 min-h-[140px]">
                          <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
                     </div>
                 </div>
