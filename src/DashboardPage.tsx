@@ -489,6 +489,7 @@ const DashboardHome: React.FC<{
     
     const [creations, setCreations] = useState<Creation[]>([]);
     const [loadingCreations, setLoadingCreations] = useState(true);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     useEffect(() => {
         if (user) {
@@ -573,24 +574,33 @@ const DashboardHome: React.FC<{
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12">
                 
                 {/* Left: Hero Banner (60% -> 3/5) */}
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col">
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[340px]">
                     {loadingCreations ? (
-                         <div className="h-96 flex items-center justify-center text-gray-400">Loading activity...</div>
+                         <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
                     ) : latestCreation ? (
-                        <div className="relative h-full min-h-[400px] group">
-                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover" alt="Latest creation" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end">
+                        <div 
+                            className="relative h-full group cursor-zoom-in"
+                            onClick={() => setZoomedImage(latestCreation.imageUrl)}
+                        >
+                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
                                 <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 pointer-events-auto">
                                     <button 
-                                        onClick={() => downloadImage(latestCreation.imageUrl, 'latest-creation.png')}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            downloadImage(latestCreation.imageUrl, 'latest-creation.png');
+                                        }}
                                         className="bg-white text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
                                     >
                                         <DownloadIcon className="w-4 h-4" /> Download
                                     </button>
                                     <button 
-                                        onClick={() => setActiveView(getFeatureViewId(latestCreation.feature))}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveView(getFeatureViewId(latestCreation.feature));
+                                        }}
                                         className="bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#dfbc2b] transition-colors flex items-center gap-2"
                                     >
                                         <SparklesIcon className="w-4 h-4" /> Generate Another
@@ -599,7 +609,7 @@ const DashboardHome: React.FC<{
                             </div>
                         </div>
                     ) : (
-                        <div className="h-full min-h-[400px] bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col justify-center items-start text-white relative overflow-hidden">
+                        <div className="h-full bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col justify-center items-start text-white relative overflow-hidden">
                              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
                              <h2 className="text-3xl font-bold mb-4 relative z-10">Start your creative journey</h2>
                              <p className="text-gray-400 mb-8 max-w-md relative z-10">You haven't generated anything yet. Try our Magic Photo Studio to transform your first image.</p>
@@ -669,6 +679,9 @@ const DashboardHome: React.FC<{
                     })}
                 </div>
             </div>
+            
+            {/* Image Modal for Zoom */}
+            {zoomedImage && <ImageModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />}
         </div>
     );
 };
