@@ -1,6 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Page, View } from '../types';
 import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon, ShieldCheckIcon } from './icons';
+import { getBadgeInfo } from '../utils/badgeUtils';
 
 interface UserMenuProps {
   user: User;
@@ -12,6 +14,7 @@ interface UserMenuProps {
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const badge = getBadgeInfo(user.lifetimeGenerations);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,12 +49,27 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 w-64 bg-white border border-gray-200/80 rounded-xl shadow-lg z-20"
+          className="absolute right-0 mt-2 w-72 bg-white border border-gray-200/80 rounded-xl shadow-lg z-20"
           role="menu"
         >
-          <div className="p-4 border-b border-gray-200/80">
+          <div className="p-4 border-b border-gray-200/80 bg-gray-50/50 rounded-t-xl">
             <p className="font-semibold text-[#1E1E1E] truncate" title={user.name}>{user.name}</p>
-            <p className="text-sm text-[#5F6368] truncate" title={user.email}>{user.email}</p>
+            <p className="text-sm text-[#5F6368] truncate mb-3" title={user.email}>{user.email}</p>
+            
+            {/* Badge Display */}
+            <div className={`flex items-center gap-3 p-2 rounded-lg border ${badge.bgColor} ${badge.borderColor}`}>
+                <div className={`p-1.5 rounded-full bg-white shadow-sm ${badge.iconColor}`}>
+                    <badge.Icon className="w-5 h-5" />
+                </div>
+                <div>
+                    <p className={`text-xs font-bold uppercase tracking-wider ${badge.color}`}>{badge.rank}</p>
+                    {badge.nextMilestone > 0 ? (
+                        <p className="text-[10px] text-gray-500">{user.lifetimeGenerations || 0} / {badge.nextMilestone} Gens</p>
+                    ) : (
+                        <p className="text-[10px] text-gray-500">Max Level Reached!</p>
+                    )}
+                </div>
+            </div>
           </div>
           <div className="py-2">
             {user.isAdmin && (
@@ -81,4 +99,3 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
 };
 
 export default UserMenu;
-// Minor change for commit.

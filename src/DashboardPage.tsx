@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
@@ -28,6 +29,7 @@ import {
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { getDailyMission, isMissionLocked } from './utils/dailyMissions';
+import { getBadgeInfo } from './utils/badgeUtils';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -575,6 +577,8 @@ const DashboardHome: React.FC<{
         return "Good Evening";
     };
 
+    const badge = user ? getBadgeInfo(user.lifetimeGenerations) : null;
+
     // Stats Logic
     const totalGenerations = creations.length;
     const featureCounts: Record<string, number> = {};
@@ -654,7 +658,9 @@ const DashboardHome: React.FC<{
             {/* Header with Greeting */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#1A1A1E]">{getGreeting()}, {user?.name}!</h1>
+                    <h1 className="text-3xl font-bold text-[#1A1A1E]">
+                        {getGreeting()}, {badge ? <span className={badge.color}>{badge.rank}</span> : ''} {user?.name}!
+                    </h1>
                     <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
             </div>

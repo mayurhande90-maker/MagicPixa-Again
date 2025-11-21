@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
 import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon } from './icons';
+import { getBadgeInfo } from '../utils/badgeUtils';
 
 // Add `setActiveView` to AuthProps for the dashboard context
 interface DashboardAuthProps extends AuthProps {
@@ -24,6 +26,8 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
     navigateTo(page, view, sectionId);
     setIsMobileMenuOpen(false);
   }
+
+  const badge = auth.user ? getBadgeInfo(auth.user.lifetimeGenerations) : null;
 
   const MobileNavMenu: React.FC = () => (
     <div className="fixed inset-0 bg-white z-[100] p-4 flex flex-col">
@@ -103,6 +107,14 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                             <AudioWaveIcon className="w-4 h-4" />
                             <span>Magic Conversation</span>
                         </button>
+                        
+                        {/* User Rank Badge - Desktop */}
+                        {badge && (
+                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${badge.bgColor} ${badge.borderColor}`} title={badge.rank}>
+                                 <badge.Icon className={`w-4 h-4 ${badge.iconColor}`} />
+                             </div>
+                        )}
+
                         <div className="flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
                             <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
                             <span>{auth.user.credits} Credits</span>
