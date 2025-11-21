@@ -441,19 +441,21 @@ const DailyQuest: React.FC<{
     }, []);
 
     return (
-        <div className={`rounded-3xl p-6 shadow-sm border relative overflow-hidden group ${isCompleted ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
+        <div className={`rounded-3xl p-6 shadow-sm border relative overflow-hidden group h-full flex flex-col justify-between ${isCompleted ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
             {!isCompleted && <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-full -mr-8 -mt-8 blur-2xl group-hover:bg-yellow-200/50 transition-colors"></div>}
             
-            <div className="flex items-center justify-between mb-4 relative z-10">
-                <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
-                    <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Daily Mission'}
-                </span>
+            <div>
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Daily Mission'}
+                    </span>
+                </div>
+                
+                <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">{mission.title}</h3>
+                <p className="text-sm text-gray-500 mb-6 relative z-10">{mission.description}</p>
             </div>
             
-            <h3 className="text-lg font-bold text-[#1A1A1E] mb-1 relative z-10">{mission.title}</h3>
-            <p className="text-sm text-gray-500 mb-6 relative z-10">{mission.description}</p>
-            
-            <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center justify-between relative z-10 mt-auto">
                 {!isCompleted ? (
                     <>
                         <div className="flex items-center gap-1.5">
@@ -485,6 +487,58 @@ const DashboardHome: React.FC<{
     appConfig: AppConfig | null;
 }> = ({ user, navigateTo, setActiveView, appConfig }) => {
     
+    const [creations, setCreations] = useState<Creation[]>([]);
+    const [loadingCreations, setLoadingCreations] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            getCreations(user.uid).then(data => {
+                setCreations(data as Creation[]);
+                setLoadingCreations(false);
+            });
+        }
+    }, [user]);
+
+    // Greeting Logic
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    };
+
+    // Stats Logic
+    const totalGenerations = creations.length;
+    const featureCounts: Record<string, number> = {};
+    creations.forEach(c => {
+        featureCounts[c.feature] = (featureCounts[c.feature] || 0) + 1;
+    });
+    const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
+    const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
+
+    // Helper to map feature name to view ID for "Generate Another"
+    const getFeatureViewId = (featureName: string): View => {
+        const map: Record<string, View> = {
+            'Magic Photo Studio': 'studio',
+            'Model Shot': 'studio',
+            'Product Studio': 'product_studio',
+            'Brand Stylist AI': 'brand_stylist',
+            'Thumbnail Studio': 'thumbnail_studio',
+            'Magic Soul': 'soul',
+            'Magic Photo Colour': 'colour',
+            'CaptionAI': 'caption',
+            'Magic Interior': 'interior',
+            'Magic Apparel': 'apparel',
+            'Magic Mockup': 'mockup'
+        };
+        // Try exact match first, then check if it contains the feature name
+        if (map[featureName]) return map[featureName];
+        const key = Object.keys(map).find(k => featureName.includes(k));
+        return key ? map[key] : 'studio';
+    };
+
+    const latestCreation = creations.length > 0 ? creations[0] : null;
+
     const tools = [
         { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
         { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
@@ -499,10 +553,11 @@ const DashboardHome: React.FC<{
     ];
 
     return (
-        <div className="p-6 lg:p-10 max-w-7xl mx-auto animate-fadeIn">
+        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto animate-fadeIn">
+            {/* Header with Greeting */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#1A1A1E]">Welcome back, {user?.name}!</h1>
+                    <h1 className="text-3xl font-bold text-[#1A1A1E]">{getGreeting()}, {user?.name}!</h1>
                     <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
                 <button 
@@ -514,33 +569,75 @@ const DashboardHome: React.FC<{
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Daily Mission Section - The 'Tray' */}
-                <div className="lg:col-span-2">
-                     <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Today's Mission</h2>
-                     <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
-                </div>
+            {/* Hero Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12">
                 
-                {/* Quick Actions / Promo */}
-                <div className="flex flex-col">
-                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Get Started</h2>
-                    <div 
-                        onClick={() => setActiveView('studio')}
-                        className="flex-1 bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] rounded-3xl p-6 text-white shadow-xl cursor-pointer group relative overflow-hidden border border-gray-800"
-                    >
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors"></div>
-                        <div className="relative z-10 h-full flex flex-col justify-between">
-                            <div>
-                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/10">
-                                    <PhotoStudioIcon className="w-6 h-6 text-white" />
+                {/* Left: Hero Banner (60% -> 3/5) */}
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col">
+                    {loadingCreations ? (
+                         <div className="h-96 flex items-center justify-center text-gray-400">Loading activity...</div>
+                    ) : latestCreation ? (
+                        <div className="relative h-full min-h-[400px] group">
+                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover" alt="Latest creation" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end">
+                                <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
+                                <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => downloadImage(latestCreation.imageUrl, 'latest-creation.png')}
+                                        className="bg-white text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                    >
+                                        <DownloadIcon className="w-4 h-4" /> Download
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveView(getFeatureViewId(latestCreation.feature))}
+                                        className="bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#dfbc2b] transition-colors flex items-center gap-2"
+                                    >
+                                        <SparklesIcon className="w-4 h-4" /> Generate Another
+                                    </button>
                                 </div>
-                                <h3 className="text-xl font-bold mb-2">Create a Studio Shot</h3>
-                                <p className="text-gray-400 text-sm">Turn any photo into a professional product image instantly.</p>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm font-bold mt-4 text-blue-400 group-hover:text-blue-300 transition-colors">
-                                Launch Studio <ArrowRightIcon className="w-4 h-4" />
                             </div>
                         </div>
+                    ) : (
+                        <div className="h-full min-h-[400px] bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col justify-center items-start text-white relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                             <h2 className="text-3xl font-bold mb-4 relative z-10">Start your creative journey</h2>
+                             <p className="text-gray-400 mb-8 max-w-md relative z-10">You haven't generated anything yet. Try our Magic Photo Studio to transform your first image.</p>
+                             <button 
+                                onClick={() => setActiveView('studio')}
+                                className="bg-[#F9D230] text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors relative z-10"
+                             >
+                                Create Now
+                             </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Boxy Layout (40% -> 2/5) */}
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* Row 1: Stats */}
+                    <div className="grid grid-cols-2 gap-6">
+                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
+                             <div className="p-3 bg-blue-50 rounded-full mb-3">
+                                 <ProjectsIcon className="w-6 h-6 text-blue-500" />
+                             </div>
+                             <span className="text-3xl font-bold text-[#1A1A1E]">{totalGenerations}</span>
+                             <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Total Creations</span>
+                         </div>
+                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
+                             <div className="p-3 bg-purple-50 rounded-full mb-3">
+                                 <SparklesIcon className="w-6 h-6 text-purple-500" />
+                             </div>
+                             <span className="text-lg font-bold text-[#1A1A1E] line-clamp-1 px-2 w-full overflow-hidden text-ellipsis" title={mostUsedFeature}>
+                                {mostUsedFeature.replace('Magic ', '')}
+                             </span>
+                             <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Favorite Tool</span>
+                         </div>
+                    </div>
+
+                    {/* Row 2: Daily Mission (Tray) */}
+                    <div className="flex-1 min-h-[200px]">
+                         <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
                     </div>
                 </div>
             </div>
