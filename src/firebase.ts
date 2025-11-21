@@ -294,7 +294,8 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
     const userRef = db.collection("users").doc(uid);
     const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
 
-    // Transaction ensures atomic read-check-write to prevent race conditions
+    let updatedUserData: User | null = null;
+
     await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists) {
@@ -304,20 +305,17 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
         const userData = userDoc.data() as User;
         const now = new Date();
         
-        // SERVER-SIDE CHECK (Simulated in Transaction): Check if mission is currently locked
-        if (userData.dailyMission?.nextUnlock) {
-            const nextUnlock = new Date(userData.dailyMission.nextUnlock);
-            // If strictly greater than now, it's locked.
-            if (nextUnlock > now) {
-                console.log(`[Mission] Locked. Now: ${now.toISOString()}, Unlock: ${nextUnlock.toISOString()}`);
-                throw new Error("Mission locked"); // This will abort the transaction
+        // STRICT LOCK CHECK: Check against stored nextUnlock time
+        const currentNextUnlockStr = userData.dailyMission?.nextUnlock;
+        if (currentNextUnlockStr) {
+            const nextUnlockDate = new Date(currentNextUnlockStr);
+            if (nextUnlockDate > now) {
+                throw new Error("Mission locked");
             }
         }
 
-        // Calculate next unlock time: Now + 12 hours
+        // Set new lock time: Now + 12 hours
         const nextUnlockTime = new Date(now.getTime() + 12 * 60 * 60 * 1000);
-
-        console.log(`[Mission] Completing. Next unlock set to: ${nextUnlockTime.toISOString()}`);
 
         transaction.update(userRef, {
             credits: firebase.firestore.FieldValue.increment(reward),

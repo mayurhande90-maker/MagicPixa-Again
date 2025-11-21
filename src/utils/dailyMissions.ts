@@ -114,7 +114,7 @@ export const getDailyMission = (): Mission => {
 
 /**
  * Checks if the daily mission is currently locked based on the user's persistent data.
- * Relies on the `nextUnlock` timestamp stored on the user record.
+ * Relies strictly on the `nextUnlock` timestamp stored on the user record compared to current time.
  */
 export const isMissionLocked = (user: User | null): boolean => {
     if (!user || !user.dailyMission || !user.dailyMission.nextUnlock) return false;

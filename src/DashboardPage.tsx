@@ -968,6 +968,13 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+        
+        // Strict local check before even trying
+        if (isMissionLocked(auth.user)) {
+            alert("This mission is currently locked.");
+            return;
+        }
+
         setLoading(true);
         
         try {
@@ -989,13 +996,14 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             setResult(url);
 
             // Only trigger credit grant if not already done in this session and not already locked
-            // Double check lock status to be safe
-            if (!hasCompletedRef.current && auth.user && !isMissionLocked(auth.user)) {
+            if (!hasCompletedRef.current) {
                 const updatedUser = await completeDailyMission(auth.user.uid, activeMission.reward, activeMission.title);
-                // Update user state, but set a flag to show reward modal
+                
+                // FORCE UPDATE LOCAL STATE to reflect new lock time immediately
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+
                 setShowReward(true);
                 hasCompletedRef.current = true;
-                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, dailyMission: updatedUser.dailyMission } : null);
             }
             
             saveCreation(auth.user.uid, url, `Daily Mission: ${activeMission.title}`);
@@ -1004,6 +1012,8 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             console.error(e);
             if (e.message === "Mission locked") {
                 alert("This mission is currently locked.");
+                // Refresh user state to sync with server
+                // (In a real app, you'd re-fetch the user profile here)
             } else {
                 alert('Mission generation failed. Please try again.');
             }
@@ -1021,7 +1031,8 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
         );
     }
 
-    // STRICT PERSISTENCE: If completed and NOT currently showing the reward flow, show the Success/Locked screen.
+    // STRICT PERSISTENCE: If locked and NOT showing reward modal, show Locked Screen.
+    // This ensures that even after refresh, if nextUnlock > now, user sees this screen.
     if (isLocked && !showReward) {
          return (
              <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto animate-fadeIn">
