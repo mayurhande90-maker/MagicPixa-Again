@@ -208,10 +208,12 @@ const FeatureLayout: React.FC<{
     };
     resultHeightClass?: string;
     hideGenerateButton?: boolean; // New prop to hide the default generate button if custom UI handles it
+    disableScroll?: boolean;
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
-    generateButtonStyle, resultHeightClass, hideGenerateButton
+    generateButtonStyle, resultHeightClass, hideGenerateButton,
+    disableScroll
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     
@@ -286,7 +288,7 @@ const FeatureLayout: React.FC<{
                         </div>
                         
                         {/* Scrollable Content containing inputs AND button */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
+                        <div className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col`}>
                             <div className="flex flex-col min-h-full">
                                 {/* Changed justify-center to justify-start to align content to top */}
                                 <div className="space-y-2 mb-6 flex-1 flex flex-col justify-start">
@@ -1135,6 +1137,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 onNewSession={() => { setImage(null); setResult(null); }}
                 resultHeightClass="h-[600px]" // Fixed strict height for alignment
                 hideGenerateButton={true} // Hiding default button to use custom one in right panel
+                disableScroll={true}
                 leftContent={
                     image ? (
                         <div className="relative h-[600px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -1164,7 +1167,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 }
                 rightContent={
                      // New Marketing-Focused Right Panel
-                    <div className="h-full flex flex-col min-h-[560px]">
+                    <div className="h-full flex flex-col">
                         {/* Reward Banner */}
                         <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-6 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
                              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
