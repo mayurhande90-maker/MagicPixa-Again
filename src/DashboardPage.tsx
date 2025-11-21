@@ -579,8 +579,6 @@ const DashboardHome: React.FC<{
         return "Good Evening";
     };
 
-    const badge = user ? getBadgeInfo(user.lifetimeGenerations) : null;
-
     // Stats Logic
     const totalGenerations = creations.length;
     const featureCounts: Record<string, number> = {};
@@ -661,7 +659,7 @@ const DashboardHome: React.FC<{
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[#1A1A1E]">
-                        {getGreeting()}, {badge ? <span className={badge.color}>{badge.rank}</span> : ''} {user?.name}!
+                        {getGreeting()}, {user?.name}!
                     </h1>
                     <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
