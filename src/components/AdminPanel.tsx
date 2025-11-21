@@ -23,63 +23,74 @@ const PermissionsGuide: React.FC<{ auth: AuthProps }> = ({ auth }) => (
                 <h3 className="text-lg font-bold text-red-800">Action Required: Update Security Rules</h3>
                 <div className="mt-2 text-sm text-red-700 space-y-4">
                     <p>
-                        The enhanced Admin Panel needs updated permissions to access all necessary data (like users, purchases, and app settings). This is a security measure to protect your app.
-                    </p>
-                    <p>
-                        Please follow this one-time step to grant your admin account (<strong className="font-mono">{auth.user?.email}</strong>) the required access:
+                        To enable the <strong>Referral System</strong> (where User A credits User B), you must update your Firestore Security Rules to allow specific cross-user updates.
                     </p>
                     <ol className="list-decimal list-inside space-y-2">
                         <li>Go to your Firebase project &gt; Firestore Database &gt; <strong>Rules</strong> tab.</li>
-                        <li>Delete all the existing text in the editor.</li>
-                        <li>Copy the entire code block below and paste it into the editor.</li>
+                        <li><strong>Delete existing rules</strong> and paste the code below.</li>
+                        <li>Click <strong>Publish</strong>.</li>
                     </ol>
-                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto">
+                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto mt-4 select-all">
                         <code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper to check admin status
     function isAdmin() {
-      // This securely identifies you as the admin by your email.
       return request.auth.token.email == '${auth.user?.email}';
     }
 
-    // --- User Rules ---
+    // --- USERS COLLECTION ---
     match /users/{userId} {
-      // Admins can list all users, and read/update any user profile.
-      allow list, read, update: if isAdmin();
+      // Admin: Full Access
+      allow read, write: if isAdmin();
       
-      // Users can read/write their own data and create their own profile.
-      allow read, write, create: if request.auth.uid == userId;
+      // User: Create/Delete/Read own profile
+      allow create, delete, read: if request.auth.uid == userId;
+      
+      // User: Allow reading OTHER users (Required to lookup Referral Codes)
+      allow list: if request.auth != null;
+
+      // User: Update Access
+      // 1. Allow user to update their own profile
+      // 2. [CRITICAL FOR REFERRALS] Allow updating OTHER users ONLY if adding credits/referrals
+      allow update: if request.auth.uid == userId 
+                    || (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy']));
     }
 
-    match /users/{userId}/{allPaths=**} {
-      // Admins and the user can access subcollections (transactions, creations).
+    // --- TRANSACTIONS SUBCOLLECTION ---
+    match /users/{userId}/transactions/{transactionId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      
+      // [CRITICAL FOR REFERRALS] Allow creating a transaction if:
+      // 1. It's your own account
+      // 2. It's an admin
+      // 3. It's a Referral Bonus being credited to someone else
+      allow create: if request.auth.uid == userId || isAdmin()
+                    || (request.auth != null && request.resource.data.feature == 'Referral Bonus (Referrer)');
+    }
+
+    // --- CREATIONS SUBCOLLECTION ---
+    match /users/{userId}/creations/{creationId} {
       allow read, write: if request.auth.uid == userId || isAdmin();
     }
     
-    // --- Config Rules ---
+    // --- CONFIGURATION ---
     match /config/main {
-        // Admins can change app settings.
         allow write: if isAdmin();
-        // Any authenticated user can read the app configuration.
         allow read: if request.auth != null;
     }
     
-    // --- Purchases Rules ---
+    // --- PURCHASES ---
     match /purchases/{purchaseId} {
-        // Admins can read the list of all purchases for the dashboard.
         allow list, read: if isAdmin();
-        // Users can create their own purchase record upon payment.
         allow create: if request.auth.uid == request.resource.data.userId;
     }
   }
 }`}
                         </code>
                     </pre>
-                    <p>
-                        4. Click <strong>Publish</strong>. Then, come back here and refresh the page. The Admin Panel should now load correctly.
-                    </p>
                 </div>
             </div>
         </div>
@@ -287,7 +298,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
             setRecentSignups(signups);
             setRecentPurchases(purchases as Purchase[]);
         } catch (err) {
-            if (err instanceof Error && (err.message.includes('permission-denied') || err.message.includes('insufficient permissions'))) {
+            if (err instanceof Error && (err.message.includes('permission-denied') || err.message.includes('insufficient permissions') || err.message.includes('Missing or insufficient permissions'))) {
                 setError('permission-denied');
             } else {
                 setError(err instanceof Error ? err.message : "Failed to load admin data.");

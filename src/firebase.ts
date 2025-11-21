@@ -1,4 +1,3 @@
-
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -215,69 +214,79 @@ export const claimReferralCode = async (uid: string, code: string) => {
     
     const normalizedCode = code.trim().toUpperCase();
     
-    // 1. Find referrer
-    const referrerQuery = await db.collection('users').where('referralCode', '==', normalizedCode).limit(1).get();
-    
-    if (referrerQuery.empty) {
-        throw new Error("Invalid referral code.");
-    }
-    
-    const referrerDoc = referrerQuery.docs[0];
-    const referrerId = referrerDoc.id;
-    
-    if (referrerId === uid) {
-        throw new Error("You cannot use your own referral code.");
-    }
-    
-    // 2. Run Transaction
-    const userRef = db.collection('users').doc(uid);
-    const referrerRef = db.collection('users').doc(referrerId);
-    
-    await db.runTransaction(async (t) => {
-        const userDoc = await t.get(userRef);
-        if (!userDoc.exists) throw new Error("User profile not found.");
+    try {
+        // 1. Find referrer
+        const referrerQuery = await db.collection('users').where('referralCode', '==', normalizedCode).limit(1).get();
         
-        const userData = userDoc.data();
-        if (userData?.referredBy) {
-            throw new Error("You have already claimed a referral bonus.");
+        if (referrerQuery.empty) {
+            throw new Error("Invalid referral code.");
         }
         
-        // Update Current User (Referee)
-        t.update(userRef, {
-            credits: firebase.firestore.FieldValue.increment(10),
-            referredBy: referrerId,
-            totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+        const referrerDoc = referrerQuery.docs[0];
+        const referrerId = referrerDoc.id;
+        
+        if (referrerId === uid) {
+            throw new Error("You cannot use your own referral code.");
+        }
+        
+        // 2. Run Transaction
+        const userRef = db.collection('users').doc(uid);
+        const referrerRef = db.collection('users').doc(referrerId);
+        
+        await db.runTransaction(async (t) => {
+            const userDoc = await t.get(userRef);
+            if (!userDoc.exists) throw new Error("User profile not found.");
+            
+            const userData = userDoc.data();
+            if (userData?.referredBy) {
+                throw new Error("You have already claimed a referral bonus.");
+            }
+            
+            // Update Current User (Referee)
+            t.update(userRef, {
+                credits: firebase.firestore.FieldValue.increment(10),
+                referredBy: referrerId,
+                totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+            });
+            
+            const userTxRef = userRef.collection('transactions').doc();
+            t.set(userTxRef, {
+                feature: "Referral Bonus (Referee)",
+                creditChange: "+10",
+                reason: `Used code ${normalizedCode}`,
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                cost: 0
+            });
+            
+            // Update Referrer
+            t.update(referrerRef, {
+                credits: firebase.firestore.FieldValue.increment(10),
+                referralCount: firebase.firestore.FieldValue.increment(1),
+                totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+            });
+            
+            const referrerTxRef = referrerRef.collection('transactions').doc();
+            // Note: The 'feature' name here MUST match the Firestore rule condition.
+            t.set(referrerTxRef, {
+                feature: "Referral Bonus (Referrer)",
+                creditChange: "+10",
+                reason: `User ${userData?.name || 'Unknown'} used your code`,
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                cost: 0
+            });
         });
         
-        const userTxRef = userRef.collection('transactions').doc();
-        t.set(userTxRef, {
-            feature: "Referral Bonus (Referee)",
-            creditChange: "+10",
-            reason: `Used code ${normalizedCode}`,
-            date: firebase.firestore.FieldValue.serverTimestamp(),
-            cost: 0
-        });
-        
-        // Update Referrer
-        t.update(referrerRef, {
-            credits: firebase.firestore.FieldValue.increment(10),
-            referralCount: firebase.firestore.FieldValue.increment(1),
-            totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
-        });
-        
-        const referrerTxRef = referrerRef.collection('transactions').doc();
-        t.set(referrerTxRef, {
-            feature: "Referral Bonus (Referrer)",
-            creditChange: "+10",
-            reason: `User ${userData?.name || 'Unknown'} used your code`,
-            date: firebase.firestore.FieldValue.serverTimestamp(),
-            cost: 0
-        });
-    });
-    
-    // Return updated user data
-    const finalDoc = await userRef.get();
-    return finalDoc.data();
+        // Return updated user data
+        const finalDoc = await userRef.get();
+        return finalDoc.data();
+    } catch (error: any) {
+        // Detect permission error specifically to give helpful feedback
+        if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+            console.error("Referral permission error. Admin needs to update Firestore rules.", error);
+            throw new Error("System Permission Error: The admin must update the 'Firestore Security Rules' in the Admin Panel to allow referral claims.");
+        }
+        throw error;
+    }
 };
 
 /**
