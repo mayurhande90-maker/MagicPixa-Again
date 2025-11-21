@@ -282,6 +282,36 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
     return updatedDoc.data();
 };
 
+export const completeDailyMission = async (uid: string, reward: number, missionTitle: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+
+    const userRef = db.collection("users").doc(uid);
+    const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+
+    await db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists) {
+            throw new Error("User does not exist.");
+        }
+
+        transaction.update(userRef, {
+            credits: firebase.firestore.FieldValue.increment(reward),
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(reward),
+            lastDailyMissionCompleted: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        transaction.set(newTransactionRef, {
+            feature: "Daily Mission Reward",
+            creditChange: `+${reward}`,
+            reason: `Completed: ${missionTitle}`,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            cost: 0
+        });
+    });
+
+    const updatedDoc = await userRef.get();
+    return updatedDoc.data() as User;
+};
 
 export const getCreditHistory = async (uid: string): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");

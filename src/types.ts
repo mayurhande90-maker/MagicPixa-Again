@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -19,7 +20,7 @@ declare global {
 }
 
 export type Page = 'home' | 'dashboard' | 'about';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'product_studio' | 'brand_stylist' | 'admin' | 'thumbnail_studio';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'product_studio' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission';
 
 export interface User {
   uid: string;
@@ -33,6 +34,7 @@ export interface User {
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
+  lastDailyMissionCompleted?: Timestamp; // For daily mission tracking
 }
 
 export interface AuthProps {
