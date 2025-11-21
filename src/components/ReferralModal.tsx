@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, CopyIcon, GiftIcon, CheckIcon, ArrowRightIcon } from './icons';
+import { XIcon, CopyIcon, GiftIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from './icons';
 import { User } from '../types';
 import { claimReferralCode } from '../firebase';
 
@@ -88,13 +87,16 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ user, onClose, onC
                      <div className="border-t border-gray-100 pt-6">
                          <p className="text-sm font-bold text-gray-700 mb-3 text-center">Have a referral code?</p>
                          <form onSubmit={handleClaim} className="relative">
-                             <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-2 mb-4">
                                  <input 
                                     type="text" 
                                     placeholder="ENTER CODE"
-                                    className="flex-1 bg-gray-50 border-2 border-gray-200 focus:border-purple-500 rounded-xl px-4 py-3 outline-none font-bold text-gray-700 placeholder-gray-400 text-center uppercase tracking-widest transition-colors"
+                                    className={`flex-1 bg-gray-50 border-2 focus:border-purple-500 rounded-xl px-4 py-3 outline-none font-bold text-gray-700 placeholder-gray-400 text-center uppercase tracking-widest transition-colors ${error ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
                                     value={inputCode}
-                                    onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                                    onChange={(e) => {
+                                        setInputCode(e.target.value.toUpperCase());
+                                        setError(null); // Clear error on type
+                                    }}
                                     maxLength={10}
                                  />
                                  <button 
@@ -109,8 +111,20 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ user, onClose, onC
                                      {claiming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Claim"}
                                  </button>
                              </div>
-                             {error && <p className="text-red-500 text-xs font-bold mt-2 text-center bg-red-50 py-1 rounded-lg">{error}</p>}
-                             {successMessage && <p className="text-green-600 text-xs font-bold mt-2 text-center bg-green-50 py-1 rounded-lg">{successMessage}</p>}
+                             
+                             {error && (
+                                 <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-3 animate-fadeIn text-left">
+                                     <InformationCircleIcon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                     <p className="text-xs font-medium text-red-600 leading-relaxed">{error}</p>
+                                 </div>
+                             )}
+                             
+                             {successMessage && (
+                                 <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-center gap-2 animate-fadeIn">
+                                     <CheckIcon className="w-5 h-5 text-green-600" />
+                                     <p className="text-xs font-bold text-green-700">{successMessage}</p>
+                                 </div>
+                             )}
                          </form>
                      </div>
                  ) : (
