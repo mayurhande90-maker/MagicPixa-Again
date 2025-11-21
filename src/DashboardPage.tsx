@@ -1010,10 +1010,24 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
 
         } catch (e: any) {
             console.error(e);
-            if (e.message === "Mission locked") {
-                alert("This mission is currently locked.");
-                // Refresh user state to sync with server
-                // (In a real app, you'd re-fetch the user profile here)
+            if (e.message === "Mission locked" || e.message.includes("locked")) {
+                 // If the server says it's locked, it implies the user has completed the mission (perhaps in another tab or previously).
+                 // We should treat this as a "Success" state for the UI, so they see the "Mission Accomplished" screen instead of an error.
+                 
+                 // Calculate a future date to force the locked state locally
+                 const futureUnlock = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+                 
+                 if (auth.user) {
+                     auth.setUser({
+                         ...auth.user,
+                         dailyMission: {
+                             ...(auth.user.dailyMission || { completedAt: new Date().toISOString(), lastMissionId: activeMission.id }),
+                             nextUnlock: futureUnlock
+                         }
+                     });
+                 }
+                 setShowReward(true);
+                 hasCompletedRef.current = true;
             } else {
                 alert('Mission generation failed. Please try again.');
             }

@@ -111,7 +111,22 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 
   if (docSnap.exists) {
     // Profile exists, just return the data.
-    return docSnap.data();
+    const userData = docSnap.data();
+    
+    // Fix for legacy users who might be missing the dailyMission field
+    if (userData && !userData.dailyMission) {
+         const defaultMission = {
+            completedAt: new Date(0).toISOString(),
+            nextUnlock: new Date(0).toISOString(),
+            lastMissionId: null
+        };
+        // Self-heal the record asynchronously
+        userRef.set({ dailyMission: defaultMission }, { merge: true }).catch(e => console.error("Failed to patch legacy user", e));
+        
+        return { ...userData, dailyMission: defaultMission };
+    }
+
+    return userData;
   } else {
     // Profile does not exist, create it with a 10 credit sign-up bonus.
     console.log(`Creating new user profile for UID: ${uid}`);
