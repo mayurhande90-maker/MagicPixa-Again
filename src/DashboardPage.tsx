@@ -1135,12 +1135,12 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 resultImage={result}
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); }}
-                resultHeightClass="h-[600px]" // Fixed strict height for alignment
+                resultHeightClass="h-[650px]" // Increased strict height to allow content to fit comfortably
                 hideGenerateButton={true} // Hiding default button to use custom one in right panel
-                disableScroll={true}
+                // Removed disableScroll to allow scrolling if content overflows, preventing button from hiding
                 leftContent={
                     image ? (
-                        <div className="relative h-[600px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
@@ -1169,47 +1169,47 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                      // New Marketing-Focused Right Panel
                     <div className="h-full flex flex-col">
                         {/* Reward Banner */}
-                        <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-6 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
+                        <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-5 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
                              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
-                             <h3 className="font-black text-2xl mb-1 flex items-center gap-2">GET {activeMission.reward} CREDITS</h3>
-                             <p className="font-bold text-sm opacity-80 mb-4">upon successful completion</p>
+                             <h3 className="font-black text-xl mb-1 flex items-center gap-2">GET {activeMission.reward} CREDITS</h3>
+                             <p className="font-bold text-xs opacity-80 mb-3">upon successful completion</p>
                              
-                             <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10 text-xs font-bold">
-                                 <div className="flex items-center gap-2 mb-2">
-                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">1</span>
+                             <div className="bg-white/20 rounded-xl p-2 backdrop-blur-sm border border-white/10 text-[10px] font-bold">
+                                 <div className="flex items-center gap-2 mb-1.5">
+                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">1</span>
                                      <span>Upload Photo</span>
                                  </div>
-                                 <div className="flex items-center gap-2 mb-2">
-                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span>
+                                 <div className="flex items-center gap-2 mb-1.5">
+                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">2</span>
                                      <span>AI Transforms It</span>
                                  </div>
                                  <div className="flex items-center gap-2">
-                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">3</span>
+                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">3</span>
                                      <span>Receive Reward</span>
                                  </div>
                              </div>
                         </div>
 
                         {/* Active Task Info */}
-                        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col">
-                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Mission Briefing</h4>
-                             <h3 className="text-xl font-bold text-[#1A1A1E] mb-3">{activeMission.title}</h3>
-                             <p className="text-gray-500 text-sm leading-relaxed mb-6">{activeMission.description}</p>
+                        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col">
+                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Mission Briefing</h4>
+                             <h3 className="text-lg font-bold text-[#1A1A1E] mb-2">{activeMission.title}</h3>
+                             <p className="text-gray-500 text-xs leading-relaxed mb-4">{activeMission.description}</p>
                              
-                             <div className="mt-auto pt-4 border-t border-gray-100">
-                                 <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-xl">
-                                     <CheckIcon className="w-4 h-4"/>
+                             <div className="mt-auto pt-3 border-t border-gray-100">
+                                 <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 p-2.5 rounded-xl">
+                                     <CheckIcon className="w-3.5 h-3.5"/>
                                      AI Settings Pre-Configured
                                  </div>
                              </div>
                         </div>
                         
                         {/* Action Button */}
-                        <div className="mt-6">
+                        <div className="mt-5">
                             <button 
                                 onClick={handleGenerate} 
                                 disabled={!image || loading}
-                                className={`w-full py-4 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
+                                className={`w-full py-3 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
                                     !image 
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                                     : 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-[1.02] shadow-black/20'
