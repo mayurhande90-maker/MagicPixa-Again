@@ -96,34 +96,22 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                     <span>{auth.user.credits} Credits</span>
                   </div>
 
-                  {/* Desktop view: Unchanged */}
+                  {/* Desktop view: Unified for all pages */}
                   <div className="hidden sm:flex items-center gap-4">
-                    {auth.isDashboard ? (
-                      <>
-                        <button 
-                            onClick={auth.openConversation}
-                            className="flex items-center gap-2 bg-white text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border-2 border-[#F9D230] hover:bg-yellow-50 transition-all"
-                        >
-                            <AudioWaveIcon className="w-4 h-4" />
-                            <span>Magic Conversation</span>
-                        </button>
-                        
-                        {/* User Rank Badge - Desktop */}
+                        {/* User Rank Badge */}
                         {badge && (
                              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${badge.bgColor} ${badge.borderColor}`} title={badge.rank}>
                                  <badge.Icon className={`w-4 h-4 ${badge.iconColor}`} />
                              </div>
                         )}
 
+                        {/* Available Credits */}
                         <div className="flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
                             <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
                             <span>{auth.user.credits} Credits</span>
                         </div>
+                        
                         <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
-                      </>
-                    ) : (
-                       <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
-                    )}
                   </div>
                 </>
               ) : (
