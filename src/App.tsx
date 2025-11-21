@@ -81,6 +81,8 @@ const App: React.FC = () => {
             plan: userProfile.plan,
             isAdmin: isAdmin,
             totalSpent: userProfile.totalSpent || 0,
+            // CRITICAL FIX: Ensure dailyMission data is mapped from database to local state
+            dailyMission: userProfile.dailyMission, 
           };
           setUser(userToSet);
           setIsAuthenticated(true);

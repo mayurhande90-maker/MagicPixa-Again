@@ -122,5 +122,7 @@ export const isMissionLocked = (user: User | null): boolean => {
     const now = new Date();
     const unlockTime = new Date(user.dailyMission.nextUnlock);
     
+    if (isNaN(unlockTime.getTime())) return false;
+
     return unlockTime.getTime() > now.getTime();
 };
