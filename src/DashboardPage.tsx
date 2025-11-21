@@ -476,9 +476,14 @@ const DailyQuest: React.FC<{
             <div className="flex items-center justify-between relative z-10 mt-auto">
                 {!isCompleted ? (
                     <>
-                        <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
-                            <span className="text-xs font-bold text-gray-300 uppercase">Reward</span>
-                            <span className="text-[#6EFACC] text-xs font-bold">+{mission.reward} Cr</span>
+                        <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl border border-white/10 backdrop-blur-sm">
+                            <div className="bg-[#F9D230] rounded-full p-1 shadow-lg shadow-yellow-500/20">
+                                <SparklesIcon className="w-3 h-3 text-[#1A1A1E]"/>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-0.5">Reward</span>
+                                <span className="text-white text-xs font-bold leading-none">Get {mission.reward} Credits</span>
+                            </div>
                         </div>
                         <button 
                             onClick={() => navigateTo('dashboard', 'daily_mission')}
@@ -973,7 +978,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
         <>
             <FeatureLayout 
                 title={`Daily Mission: ${activeMission.title}`}
-                description={activeMission.description}
+                description={`${activeMission.description} Complete this mission to earn ${activeMission.reward} credits!`}
                 icon={<FlagIcon className="w-6 h-6 text-yellow-500"/>}
                 creditCost={0} // Always free/sponsored
                 isGenerating={loading}
