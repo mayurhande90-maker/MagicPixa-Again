@@ -783,7 +783,7 @@ const DashboardHome: React.FC<{
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Loyalty Bonus</p>
-                                    <button onClick={() => setShowRanksModal(true)} className="text-gray-300 hover:text-[#4D7CFF] transition-colors">
+                                    <button onClick={() => setShowRanksModal(true)} className="text-gray-500 hover:text-[#4D7CFF] transition-colors">
                                          <InformationCircleIcon className="w-4 h-4" />
                                     </button>
                                 </div>
