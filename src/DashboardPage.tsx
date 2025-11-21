@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
@@ -408,7 +407,7 @@ const StandardFeature: React.FC<{
         if (!image || !auth.user) return;
         
         // Start Credit Check
-        if (auth.user.credits < cost) {
+        if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
@@ -885,7 +884,7 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
         if (!image || !auth.user) return;
         
         const cost = appConfig?.featureCosts['Product Studio'] || 5;
-        if (auth.user.credits < cost) {
+        if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
@@ -955,7 +954,7 @@ const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({
         if (!image || !auth.user) return;
         
         const cost = appConfig?.featureCosts['CaptionAI'] || 1;
-        if (auth.user.credits < cost) {
+        if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
@@ -1474,7 +1473,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             ? (appConfig?.featureCosts['Model Shot'] || 3) 
             : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
 
-        if (auth.user.credits < cost) {
+        if ((auth.user.credits || 0) < cost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
