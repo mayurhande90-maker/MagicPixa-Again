@@ -165,11 +165,22 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     // Check for incoming referral
     let initialCredits = 10; // Standard start
     let referredBy = null;
-    const storedRefCode = window.sessionStorage.getItem('referralCode');
+    
+    // FIX: Check sessionStorage AND fallback to URL params directly to prevent race conditions
+    // where useEffect in App.tsx hasn't run yet.
+    let storedRefCode = window.sessionStorage.getItem('referralCode');
+    if (!storedRefCode) {
+        const params = new URLSearchParams(window.location.search);
+        storedRefCode = params.get('ref');
+    }
     
     if (storedRefCode) {
         try {
-            const referrerQuery = await db.collection('users').where('referralCode', '==', storedRefCode).limit(1).get();
+            // Normalize the referral code to handle case sensitivity (e.g. user typed lowercase)
+            const normalizedRefCode = storedRefCode.trim().toUpperCase();
+            console.log(`Processing referral code: ${normalizedRefCode}`);
+
+            const referrerQuery = await db.collection('users').where('referralCode', '==', normalizedRefCode).limit(1).get();
             if (!referrerQuery.empty) {
                 const referrerDoc = referrerQuery.docs[0];
                 
@@ -178,14 +189,14 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
                     referredBy = referrerDoc.id;
                     initialCredits = 20; // 10 Standard + 10 Bonus
                     
+                    console.log(`Referral successful! Referred by: ${referredBy}`);
+
                     // Reward Referrer
                     const referrerRef = db.collection('users').doc(referrerDoc.id);
                     const referrerTxRef = referrerRef.collection('transactions').doc();
                     
-                    // Run referrer update in a transaction/batch independently
-                    // Note: We do this fire-and-forget style to not block new user creation if it fails,
-                    // but ideally this should be robust.
-                    db.runTransaction(async (t) => {
+                    // Run referrer update transaction and await it to ensure consistency
+                    await db.runTransaction(async (t) => {
                         t.update(referrerRef, {
                             credits: firebase.firestore.FieldValue.increment(10),
                             referralCount: firebase.firestore.FieldValue.increment(1)
@@ -198,7 +209,11 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
                             date: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     }).catch(e => console.error("Failed to reward referrer", e));
+                } else {
+                    console.warn("Self-referral detected and prevented.");
                 }
+            } else {
+                console.warn(`Referral code ${normalizedRefCode} not found in database.`);
             }
         } catch (e) {
             console.error("Error processing referral code", e);
