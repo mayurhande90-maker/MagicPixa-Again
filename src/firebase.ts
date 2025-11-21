@@ -167,7 +167,7 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     const myReferralCode = generateReferralCode(name || 'User');
     
     // Initial Credits
-    let initialCredits = 10; // Standard start
+    const initialCredits = 10; // Standard start
 
     const newUserProfile = {
       uid,
