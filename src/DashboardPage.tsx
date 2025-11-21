@@ -165,7 +165,7 @@ const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = (
     </div>
 );
 
-const MilestoneSuccessModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number }> = ({ onClose, bonus }) => (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
          <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white" onClick={e => e.stopPropagation()}>
              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
@@ -173,10 +173,10 @@ const MilestoneSuccessModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
              </div>
              
              <h2 className="text-2xl font-bold mt-4 mb-2">Milestone Reached!</h2>
-             <p className="text-indigo-100 mb-6">You've created 10 amazing designs. Here is a reward for your creativity.</p>
+             <p className="text-indigo-100 mb-6">You've hit a new creation record. Here is a reward for your creativity.</p>
              
              <div className="bg-white/20 backdrop-blur-md text-white font-bold text-3xl py-4 rounded-2xl mb-6 border border-white/30">
-                 +5 Credits
+                 +{bonus || 5} Credits
              </div>
              
              <button onClick={onClose} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
@@ -364,6 +364,18 @@ const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: R
     </div>
 );
 
+// Helper to check milestone status (10, 30, 50...)
+const checkMilestone = (gens: number): number | false => {
+    if (gens > 0) {
+        if (gens === 10) return 5;
+        if (gens > 10 && (gens - 10) % 20 === 0) {
+            const multiplier = (gens - 10) / 20;
+            return 5 + (multiplier * 5);
+        }
+    }
+    return false;
+};
+
 const StandardFeature: React.FC<{
     title: string;
     description: string;
@@ -376,7 +388,7 @@ const StandardFeature: React.FC<{
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [showMilestone, setShowMilestone] = useState(false);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,8 +411,11 @@ const StandardFeature: React.FC<{
             const updatedUser = await deductCredits(auth.user.uid, cost, title);
             
             // Check for milestone bonus in updated user object
-            if (updatedUser.lifetimeGenerations && updatedUser.lifetimeGenerations > 0 && updatedUser.lifetimeGenerations % 10 === 0) {
-                setShowMilestone(true);
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) {
+                    setMilestoneBonus(bonus);
+                }
             }
 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -443,7 +458,7 @@ const StandardFeature: React.FC<{
                 }
             />
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*" />
-            {showMilestone && <MilestoneSuccessModal onClose={() => setShowMilestone(false)} />}
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
     );
 }
@@ -570,10 +585,34 @@ const DashboardHome: React.FC<{
     const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
     const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
 
-    // Progress Logic for Loyalty Bonus
+    // Progress Logic for Loyalty Bonus (Non-linear: 10, 30, 50...)
     const lifetimeGens = user?.lifetimeGenerations || 0;
-    const progressToBonus = lifetimeGens % 10;
-    const progressPercent = (progressToBonus / 10) * 100;
+    let nextMilestone = 10;
+    let prevMilestone = 0;
+    let nextReward = 5;
+
+    if (lifetimeGens >= 10) {
+        // Formula logic matching firebase.ts:
+        // 10 -> 5
+        // 30 -> 10 (Gap 20)
+        // 50 -> 15 (Gap 20)
+        // Blocks passed = floor((gens - 10) / 20)
+        const blocksPassed = Math.floor((lifetimeGens - 10) / 20) + 1;
+        nextMilestone = 10 + (blocksPassed * 20);
+        prevMilestone = nextMilestone - 20;
+        nextReward = 5 + (blocksPassed * 5);
+    }
+    
+    // Calculate percent within the current gap
+    let progressPercent = 0;
+    if (lifetimeGens < 10) {
+        progressPercent = (lifetimeGens / 10) * 100;
+    } else {
+        progressPercent = ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+    }
+    // Clamp
+    progressPercent = Math.min(100, Math.max(0, progressPercent));
+
 
     // Helper to map feature name to view ID for "Generate Another"
     const getFeatureViewId = (featureName: string): View => {
@@ -676,35 +715,37 @@ const DashboardHome: React.FC<{
 
                 {/* Right: Boxy Layout (40% -> 2/5) */}
                 <div className="lg:col-span-2 flex flex-col gap-6 h-full">
-                    {/* Row 1: Stats with Loyalty Progress */}
-                    <div className="grid grid-cols-2 gap-6 shrink-0 h-40">
-                         <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center h-full relative overflow-hidden">
-                             {/* Visual Progress Bar Background */}
-                             <div className="absolute bottom-0 left-0 h-1.5 bg-gray-100 w-full">
-                                 <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
-                             </div>
-                             
-                             <div className="p-2 bg-indigo-50 rounded-full">
-                                 <SparklesIcon className="w-5 h-5 text-indigo-600" />
-                             </div>
-                             <div className="mt-1">
-                                 <span className="text-2xl font-bold text-[#1A1A1E]">{progressToBonus} / 10</span>
-                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Loyalty Bonus</p>
-                             </div>
-                             <div className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">
-                                 Next: +5 Credits
-                             </div>
-                         </div>
+                    {/* Row 1: Loyalty Bonus (Full Width Box) */}
+                    <div className="shrink-0 h-40 bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                        {/* Decorative BG */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
+                        
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Loyalty Bonus</p>
+                                <h3 className="text-2xl font-black text-[#1A1A1E]">
+                                    {lifetimeGens} <span className="text-base font-medium text-gray-400">Generations</span>
+                                </h3>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-2xl font-black text-indigo-600">
+                                    {nextMilestone}
+                                </p>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">Target</p>
+                            </div>
+                        </div>
 
-                         <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-full">
-                             <div className="p-2 bg-purple-50 rounded-full mb-2">
-                                 <ProjectsIcon className="w-5 h-5 text-purple-500" />
-                             </div>
-                             <span className="text-sm font-bold text-[#1A1A1E] line-clamp-2 w-full break-words px-1" title={mostUsedFeature}>
-                                {mostUsedFeature.replace('Magic ', '')}
-                             </span>
-                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mt-1">Favorite Tool</span>
-                         </div>
+                        <div className="relative z-10">
+                            <div className="flex justify-between text-xs font-bold mb-1.5">
+                                <span className="text-indigo-600">Progress</span>
+                                <span className="text-gray-500">Next: +{nextReward} Credits</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative" style={{ width: `${progressPercent}%` }}>
+                                     <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Row 2: Daily Mission (Tray) */}
@@ -1250,7 +1291,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
-    const [showMilestone, setShowMilestone] = useState(false);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
 
     // Refs for File Inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1418,8 +1459,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             const updatedUser = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
             
              // Check for milestone bonus in updated user object
-             if (updatedUser.lifetimeGenerations && updatedUser.lifetimeGenerations > 0 && updatedUser.lifetimeGenerations % 10 === 0) {
-                setShowMilestone(true);
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) {
+                    setMilestoneBonus(bonus);
+                }
             }
 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -1694,7 +1738,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }
         />
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-        {showMilestone && <MilestoneSuccessModal onClose={() => setShowMilestone(false)} />}
+        {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
     );
 };

@@ -185,7 +185,7 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
 
 /**
  * DEFINITIVE FIX: Atomically deducts credits using a more robust transaction pattern.
- * Also handles the "Loyalty Loop" (every 10th generation = +5 credits).
+ * Also handles the "Loyalty Loop" with non-linear milestones (10, 30, 50...).
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
  * @param feature The name of the feature used.
@@ -225,14 +225,26 @@ export const deductCredits = async (uid: string, amount: number, feature: string
       const currentGens = userProfile.lifetimeGenerations || 0;
       const newGens = currentGens + 1;
       
-      // Check for Milestone (Every 10th generation)
-      const isMilestone = newGens > 0 && newGens % 10 === 0;
+      // Check for Milestone: 10, 30, 50, 70...
+      // Logic: First at 10, then every 20.
+      let isMilestone = false;
+      let bonusCredits = 0;
+
+      if (newGens === 10) {
+          isMilestone = true;
+          bonusCredits = 5;
+      } else if (newGens > 10 && (newGens - 10) % 20 === 0) {
+          isMilestone = true;
+          // Multiplier determines reward tier.
+          // 30 -> (20)/20 = 1 -> 5 + 5 = 10
+          // 50 -> (40)/20 = 2 -> 5 + 10 = 15
+          // 70 -> (60)/20 = 3 -> 5 + 15 = 20
+          const multiplier = (newGens - 10) / 20;
+          bonusCredits = 5 + (multiplier * 5);
+      }
       
       // Calculate net credit change
-      // If milestone, we deduct cost but add 5 bonus. 
-      // E.g., Cost 2, Bonus 5 => Net +3.
-      // We will log them separately but update atomically.
-      const netChange = isMilestone ? (-amount + 5) : -amount;
+      const netChange = isMilestone ? (-amount + bonusCredits) : -amount;
 
       // Perform writes
       transaction.update(userRef, {
@@ -251,8 +263,8 @@ export const deductCredits = async (uid: string, amount: number, feature: string
       if (isMilestone) {
           transaction.set(bonusTransactionRef, {
             feature: "Loyalty Bonus",
-            creditChange: "+5",
-            reason: "10th Generation Milestone",
+            creditChange: `+${bonusCredits}`,
+            reason: `${newGens}th Generation Milestone`,
             cost: 0,
             date: firebase.firestore.FieldValue.serverTimestamp(),
           });
