@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -47,14 +47,14 @@ import {
     CaptionIcon,
     ProductStudioIcon,
     XIcon,
-    ArrowRightIcon,
-    CopyIcon,
+    ArrowLeftIcon,
+    CreditCardIcon,
+    FlagIcon,
     CheckIcon,
     RetryIcon,
     PencilIcon,
-    ArrowLeftIcon,
-    CreditCardIcon,
-    FlagIcon
+    CopyIcon,
+    CurrencyDollarIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -187,10 +187,11 @@ const FeatureLayout: React.FC<{
         label?: string;
     };
     resultHeightClass?: string;
+    hideGenerateButton?: boolean; // New prop to hide the default generate button if custom UI handles it
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
-    generateButtonStyle, resultHeightClass
+    generateButtonStyle, resultHeightClass, hideGenerateButton
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
 
@@ -271,42 +272,44 @@ const FeatureLayout: React.FC<{
                                 </div>
 
                                 {/* Generate Button moved to bottom */}
-                                <div className="mt-auto pt-4 border-t border-gray-200 bg-[#F6F7FA]">
-                                    <button 
-                                        onClick={onGenerate} 
-                                        disabled={isGenerating || !canGenerate}
-                                        className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
-                                            generateButtonStyle?.className 
-                                            ? generateButtonStyle.className 
-                                            : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
-                                        }`}
-                                    >
-                                        {isGenerating ? (
-                                            <>
-                                                <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                                <span className="animate-pulse">Generating...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
-                                                {generateButtonStyle?.label || "Generate"}
-                                            </>
-                                        )}
-                                    </button>
-                                    <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                                        {creditCost === 0 ? (
-                                             <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-200">
-                                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                                 Sponsored by Daily Mission
-                                             </div>
-                                        ) : (
-                                            <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
-                                                <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
-                                                Cost: {creditCost} Credits
-                                            </div>
-                                        )}
+                                {!hideGenerateButton && (
+                                    <div className="mt-auto pt-4 border-t border-gray-200 bg-[#F6F7FA]">
+                                        <button 
+                                            onClick={onGenerate} 
+                                            disabled={isGenerating || !canGenerate}
+                                            className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
+                                                generateButtonStyle?.className 
+                                                ? generateButtonStyle.className 
+                                                : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
+                                            }`}
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
+                                                    <span className="animate-pulse">Generating...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
+                                                    {generateButtonStyle?.label || "Generate"}
+                                                </>
+                                            )}
+                                        </button>
+                                        <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                            {creditCost === 0 ? (
+                                                 <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-200">
+                                                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                     Sponsored by Daily Mission
+                                                 </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                                    <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                                                    Cost: {creditCost} Credits
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -418,7 +421,7 @@ const DailyQuest: React.FC<{
 }> = ({ user, navigateTo }) => {
     const [timeLeft, setTimeLeft] = useState('');
     const mission = getDailyMission();
-    const isCompleted = isMissionCompletedToday(user?.lastDailyMissionCompleted);
+    const isCompleted = useMemo(() => user ? isMissionCompletedToday(user.lastDailyMissionCompleted) : false, [user]);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
@@ -462,9 +465,9 @@ const DailyQuest: React.FC<{
                     <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
                         isCompleted 
                         ? 'bg-green-200 text-green-800' 
-                        : 'bg-white/10 text-[#F9D230] border border-white/10'
+                        : 'bg-red-500 text-white border border-white/10 animate-pulse'
                     }`}>
-                        <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Daily Mission'}
+                        <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Limited Time'}
                     </span>
                     {!isCompleted && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
                 </div>
@@ -473,25 +476,22 @@ const DailyQuest: React.FC<{
                 <p className={`text-sm mb-6 relative z-10 leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
             </div>
             
-            <div className="flex items-center justify-between relative z-10 mt-auto">
+            <div className="relative z-10 mt-auto">
                 {!isCompleted ? (
-                    <>
-                        <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl border border-white/10 backdrop-blur-sm">
-                            <div className="bg-[#F9D230] rounded-full p-1 shadow-lg shadow-yellow-500/20">
-                                <SparklesIcon className="w-3 h-3 text-[#1A1A1E]"/>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-0.5">Reward</span>
-                                <span className="text-white text-xs font-bold leading-none">Get {mission.reward} Credits</span>
-                            </div>
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-inner">
+                        <div>
+                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Reward</p>
+                            <p className="text-xl font-black text-amber-600 flex items-center gap-1 leading-none">
+                               +5 <span className="text-sm font-bold text-amber-700">Credits</span>
+                            </p>
                         </div>
                         <button 
                             onClick={() => navigateTo('dashboard', 'daily_mission')}
-                            className="bg-[#F9D230] text-[#1A1A1E] px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-[#dfbc2b] hover:scale-105 transition-all shadow-lg shadow-yellow-500/20"
+                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
                         >
                             Start Mission
                         </button>
-                    </>
+                    </div>
                 ) : (
                     <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
                          <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Claimed</span>
@@ -916,6 +916,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
     const [showReward, setShowReward] = useState(false);
+    const [timeLeft, setTimeLeft] = useState('');
     
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -923,6 +924,38 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
 
     const activeMission = getDailyMission();
     const hasCompletedRef = useRef(false);
+
+    // STRICT COMPLETION CHECK - Re-evaluates whenever user updates
+    const isCompleted = useMemo(() => {
+        return auth.user ? isMissionCompletedToday(auth.user.lastDailyMissionCompleted) : false;
+    }, [auth.user]);
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            const now = new Date();
+            const nextReset = new Date(now);
+            const currentHour = now.getHours();
+            
+            if (currentHour < 12) {
+                nextReset.setHours(12, 0, 0, 0);
+            } else {
+                nextReset.setDate(nextReset.getDate() + 1);
+                nextReset.setHours(0, 0, 0, 0);
+            }
+            
+            const diff = nextReset.getTime() - now.getTime();
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            
+            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        };
+        
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -957,7 +990,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             const url = `data:image/png;base64,${res}`;
             setResult(url);
 
-            if (!hasCompletedRef.current && auth.user) {
+            if (!hasCompletedRef.current && auth.user && !isCompleted) {
                 const updatedUser = await completeDailyMission(auth.user.uid, activeMission.reward, activeMission.title);
                 auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, lastDailyMissionCompleted: updatedUser.lastDailyMissionCompleted } : null);
                 setShowReward(true);
@@ -974,11 +1007,47 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
         }
     };
 
+    // Render loading state while auth initializes to prevent flashing "Upload" screen
+    if (!auth.user) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-2 border-[#4D7CFF] border-t-transparent rounded-full"></div>
+            </div>
+        );
+    }
+
+    // STRICT: If the mission is completed, force the success screen.
+    if (isCompleted) {
+         return (
+             <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto">
+                 <div className="bg-white p-12 rounded-3xl shadow-xl border border-green-100 text-center relative overflow-hidden w-full">
+                     <div className="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
+                     <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                         <CheckIcon className="w-12 h-12 text-green-600" />
+                     </div>
+                     <h2 className="text-3xl font-bold text-[#1A1A1E] mb-2">Mission Accomplished!</h2>
+                     <p className="text-gray-500 mb-8 text-lg">You've claimed your +{activeMission.reward} credits for this period.</p>
+                     
+                     <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 inline-block min-w-[300px]">
+                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Next Mission In</p>
+                         <p className="text-4xl font-mono font-bold text-[#1A1A1E]">{timeLeft}</p>
+                     </div>
+                     
+                     <div className="mt-8">
+                         <button onClick={() => navigateTo('dashboard', 'home_dashboard')} className="text-[#4D7CFF] font-bold hover:underline">
+                             Return to Dashboard
+                         </button>
+                     </div>
+                 </div>
+             </div>
+         );
+    }
+
     return (
         <>
             <FeatureLayout 
                 title={`Daily Mission: ${activeMission.title}`}
-                description={`${activeMission.description} Complete this mission to earn ${activeMission.reward} credits!`}
+                description={activeMission.description}
                 icon={<FlagIcon className="w-6 h-6 text-yellow-500"/>}
                 creditCost={0} // Always free/sponsored
                 isGenerating={loading}
@@ -988,11 +1057,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); }}
                 resultHeightClass="h-[560px]"
-                generateButtonStyle={{
-                    className: "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg border-none hover:scale-[1.02]",
-                    hideIcon: true,
-                    label: "Generate Mission Image"
-                }}
+                hideGenerateButton={true} // Hiding default button to use custom one in right panel
                 leftContent={
                     image ? (
                         <div className="relative h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -1017,28 +1082,73 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                             <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
-                        <UploadPlaceholder label="Upload Photo to Start" onClick={() => fileInputRef.current?.click()} />
+                        <UploadPlaceholder label="Upload Photo to Start Mission" onClick={() => fileInputRef.current?.click()} />
                     )
                 }
                 rightContent={
-                    !image ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100"><ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/></div>
-                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                            <p className="text-sm text-gray-400">Upload a photo to unlock.</p>
+                     // New Marketing-Focused Right Panel
+                    <div className="h-full flex flex-col">
+                        {/* Reward Banner */}
+                        <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-6 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
+                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+                             <h3 className="font-black text-2xl mb-1 flex items-center gap-2"><CurrencyDollarIcon className="w-6 h-6"/> GET {activeMission.reward} CREDITS</h3>
+                             <p className="font-bold text-sm opacity-80 mb-4">upon successful completion</p>
+                             
+                             <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10 text-xs font-bold">
+                                 <div className="flex items-center gap-2 mb-2">
+                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">1</span>
+                                     <span>Upload Photo</span>
+                                 </div>
+                                 <div className="flex items-center gap-2 mb-2">
+                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span>
+                                     <span>AI Transforms It</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">3</span>
+                                     <span>Receive Reward</span>
+                                 </div>
+                             </div>
                         </div>
-                    ) : (
-                        <div className="flex flex-col h-full justify-center items-center text-center p-6 space-y-4">
-                            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 animate-bounce-slight">
-                                <FlagIcon className="w-8 h-8 text-yellow-600"/>
-                            </div>
-                            <h3 className="text-xl font-bold text-[#1A1A1E]">{activeMission.title}</h3>
-                            <p className="text-gray-500 text-sm max-w-xs">{activeMission.description}</p>
-                            <div className="bg-green-50 text-green-700 px-4 py-2 rounded-lg text-xs font-bold border border-green-200 flex items-center gap-2">
-                                <CheckIcon className="w-4 h-4"/> AI Settings Pre-Loaded
-                            </div>
+
+                        {/* Active Task Info */}
+                        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col">
+                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Mission Briefing</h4>
+                             <h3 className="text-xl font-bold text-[#1A1A1E] mb-3">{activeMission.title}</h3>
+                             <p className="text-gray-500 text-sm leading-relaxed mb-6">{activeMission.description}</p>
+                             
+                             <div className="mt-auto pt-4 border-t border-gray-100">
+                                 <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-xl">
+                                     <CheckIcon className="w-4 h-4"/>
+                                     AI Settings Pre-Configured
+                                 </div>
+                             </div>
                         </div>
-                    )
+                        
+                        {/* Action Button */}
+                        <div className="mt-6">
+                            <button 
+                                onClick={handleGenerate} 
+                                disabled={!image || loading}
+                                className={`w-full py-4 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
+                                    !image 
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-[1.02] shadow-black/20'
+                                }`}
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <SparklesIcon className="w-5 h-5 text-[#F9D230]"/>
+                                        Complete Mission
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
