@@ -165,7 +165,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
         console.log("Razorpay Response:", response);
         
         try {
-// FIX: Removed the extra `user.name` and `user.email` arguments to match the function signature in firebase.ts.
             const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setConfirmedPurchase({ totalCredits: pkg.totalCredits });
@@ -208,100 +207,111 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
     }
   };
   
-  // FIX: Simplified the logic for determining the progress bar's maximum value.
-  // It now prioritizes `totalCreditsAcquired` and uses a more predictable fallback.
   const getTotalAcquired = (currentUser: User) => {
+    const current = currentUser.credits || 0;
     // If the field exists and is valid (not less than current credits), use it.
-    if (currentUser.totalCreditsAcquired && currentUser.totalCreditsAcquired >= currentUser.credits) {
+    if (currentUser.totalCreditsAcquired && currentUser.totalCreditsAcquired >= current) {
         return currentUser.totalCreditsAcquired;
     }
     // Otherwise, create a sensible fallback ceiling.
-    // Round up to the nearest 50, with a minimum of 10 (for new users).
-    return Math.max(10, Math.ceil(currentUser.credits / 50) * 50);
+    return Math.max(10, Math.ceil(current / 50) * 50);
   };
 
+  const currentCredits = user.credits || 0;
   const maxCreditsForMeter = getTotalAcquired(user);
-  const creditPercentage = maxCreditsForMeter > 0 ? Math.min((user.credits / maxCreditsForMeter) * 100, 100) : 0;
+  const creditPercentage = maxCreditsForMeter > 0 ? Math.min((currentCredits / maxCreditsForMeter) * 100, 100) : 0;
   const groupedTransactions = groupTransactionsByDate(transactions);
 
-  // FEAT: Sort transaction group keys chronologically to ensure correct display order.
   const sortedGroupKeys = Object.keys(groupedTransactions).sort((a, b) => {
     if (a === 'Today') return -1;
     if (b === 'Today') return 1;
     if (a === 'Yesterday') return -1;
     if (b === 'Yesterday') return 1;
-
-    // Both are date strings, parse and compare
     const dateA = new Date(a);
     const dateB = new Date(b);
-
-    // Sort descending
     return dateB.getTime() - dateA.getTime();
   });
 
-
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-8 pb-16 h-full flex flex-col">
-        <div className='mb-8 text-center lg:text-left'>
+      <div className="p-4 sm:p-6 lg:p-8 pb-20 w-full max-w-7xl mx-auto">
+        <div className='mb-10 text-center sm:text-left'>
           <h2 className="text-3xl font-bold text-[#1A1A1E]">Billing & Credits</h2>
-          <p className="text-[#5F6368] mt-1">Top up your credits or review your usage history.</p>
+          <p className="text-[#5F6368] mt-2">Manage your subscription and credit usage.</p>
         </div>
 
-        <div className="bg-gradient-to-br from-[#4D7CFF] to-indigo-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden mb-8">
-            <div className="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full opacity-50"></div>
-            <div className="absolute bottom-[-50px] left-[-20px] w-48 h-48 bg-white/10 rounded-full opacity-50"></div>
+        {/* Restored Rectangular Design - Increased padding to fix clipping */}
+        <div className="bg-gradient-to-br from-[#4D7CFF] to-indigo-600 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden mb-12">
+            <div className="absolute -top-4 -right-4 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            
             <div className="relative z-10">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-lg">Credit Overview</h3>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-xl">Credit Overview</h3>
                     <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{user.plan || 'Free'} Plan</span>
                 </div>
                 <div>
-                    <p className="text-5xl font-bold">{user.credits}</p>
-                    <p className="text-indigo-200">Available Credits</p>
+                    <p className="text-7xl font-black">{currentCredits}</p>
+                    <p className="text-indigo-200 font-medium mt-1">Available Credits</p>
                 </div>
-                <div className="mt-4">
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                        <div className="bg-[#6EFACC] h-2 rounded-full" style={{ width: `${creditPercentage}%` }}></div>
+                <div className="mt-8">
+                    <div className="flex justify-between text-xs font-bold text-indigo-100 mb-2 uppercase tracking-wide">
+                         <span>Usage</span>
+                         <span>{currentCredits} / {maxCreditsForMeter}</span>
                     </div>
-                     <p className="text-xs text-indigo-200 mt-1 text-right">
-                        {user.credits} / {maxCreditsForMeter}
-                    </p>
+                    <div className="w-full bg-black/20 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-white/10">
+                        <div className="bg-[#6EFACC] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_#6EFACC]" style={{ width: `${creditPercentage}%` }}></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div className="mb-12">
-            <div className="text-center mb-8">
+        <div className="mb-16">
+            <div className="text-center mb-10">
                 <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2">Recharge Your Creative Energy</h3>
                 <p className="text-lg text-[#5F6368]">Choose a credit pack that fits your needs. No subscriptions.</p>
             </div>
           
-            <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+            <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 lg:grid-cols-4">
                 {creditPacks.map((pack, index) => (
-                    <div key={index} className={`relative bg-white p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${pack.popular ? 'border-[#F9D230] shadow-lg shadow-blue-500/10' : 'border-gray-200/80 hover:border-blue-300'}`}>
-                        {pack.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase">Best Value</div>}
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg text-gray-800">{pack.name}</h3>
-                            <p className="text-2xl font-bold text-[#4D7CFF] my-1">{pack.totalCredits} <span className="text-base font-medium text-gray-500">Credits</span></p>
-                            {pack.bonus > 0 && <p className="text-xs font-semibold text-[#6EFACC] text-emerald-600">{pack.credits} + {pack.bonus} Bonus!</p>}
-                            <p className="text-xs text-gray-500 mt-2">₹{(pack.price / pack.totalCredits).toFixed(2)} per credit</p>
+                    <div key={index} className={`relative bg-white p-6 rounded-2xl border-2 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:shadow-lg ${pack.popular ? 'border-[#F9D230] shadow-md shadow-yellow-500/10' : 'border-gray-100 hover:border-blue-200'}`}>
+                        {pack.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F9D230] text-[#1A1A1E] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Best Value</div>}
+                        
+                        <div className="flex-1 text-center">
+                            <h3 className="font-bold text-lg text-gray-800 mb-1">{pack.name}</h3>
+                            <p className="text-xs text-gray-400 mb-4 line-clamp-1">{pack.tagline}</p>
+                            
+                            <div className="mb-2">
+                                <span className="text-4xl font-black text-[#1A1A1E]">{pack.totalCredits}</span>
+                                <span className="text-sm font-bold text-gray-400 ml-1">CR</span>
+                            </div>
+                            
+                            <div className="h-6 mb-4">
+                                {pack.bonus > 0 ? (
+                                    <span className="inline-block bg-green-50 text-green-600 text-xs font-bold px-2 py-1 rounded-md border border-green-100">
+                                        +{pack.bonus} Bonus Credits
+                                    </span>
+                                ) : (
+                                    <span className="inline-block py-1">&nbsp;</span>
+                                )}
+                            </div>
                         </div>
-                        <div className="text-right flex flex-col items-end">
-                            <p className="text-2xl font-bold text-gray-800 mb-2">₹{pack.price}</p>
-                            <button
+
+                        <div className="mt-auto pt-4 border-t border-gray-100 text-center">
+                             <p className="text-2xl font-bold text-[#1A1A1E] mb-3">₹{pack.price}</p>
+                             <button
                                 onClick={() => handlePurchase(pack, index)}
                                 disabled={loadingPackage !== null}
-                                className={`w-24 font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm ${
+                                className={`w-full font-bold py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm ${
                                 pack.popular
-                                    ? 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b]'
+                                    ? 'bg-[#1A1A1E] text-white hover:bg-black hover:shadow-lg'
                                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                 }`}
                             >
                                 {loadingPackage === index ? (
-                                <svg className="animate-spin h-5 w-5 mx-auto text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <svg className="animate-spin h-5 w-5 mx-auto text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 ) : (
-                                'Buy'
+                                'Buy Now'
                                 )}
                             </button>
                         </div>
@@ -311,35 +321,39 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
         </div>
 
         <div>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-[#1A1A1E]">Credit Usage History</h3>
-                <button onClick={() => setIsInfoModalOpen(true)} className="text-gray-400 hover:text-[#4D7CFF]">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-[#1A1A1E]">Transaction History</h3>
+                <button onClick={() => setIsInfoModalOpen(true)} className="text-gray-400 hover:text-[#4D7CFF] transition-colors p-2 hover:bg-gray-100 rounded-full">
                     <InformationCircleIcon className="w-6 h-6"/>
                 </button>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80">
+            <div className="bg-white p-2 rounded-2xl border border-gray-200/80 shadow-sm">
                 {isLoadingHistory ? (
-                    <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
+                    <div className="flex justify-center py-12">
+                        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                    </div>
                 ) : sortedGroupKeys.length > 0 ? (
                     <div className="relative">
-                        <div className="max-h-96 overflow-y-auto">
+                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar px-2">
                             {sortedGroupKeys.map((date) => (
-                                <div key={date}>
-                                    <h4 className="text-sm font-semibold text-gray-500 my-3 px-2">{date}</h4>
+                                <div key={date} className="mb-6 last:mb-0">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 mt-4 ml-2 sticky top-0 bg-white z-10 py-2">{date}</h4>
                                     <div className="space-y-1">
                                         {groupedTransactions[date].map((tx) => (
-                                             <div key={tx.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-gray-50">
-                                                <div className="flex items-center gap-3">
-                                                    {getIconForFeature(tx.feature)}
+                                             <div key={tx.id} className="flex justify-between items-center text-sm p-3 rounded-xl hover:bg-gray-50 transition-colors group border border-transparent hover:border-gray-100">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="group-hover:scale-110 transition-transform duration-300">
+                                                        {getIconForFeature(tx.feature)}
+                                                    </div>
                                                     <div>
                                                          <p className="font-bold text-gray-800">{tx.feature}</p>
-                                                         <p className="text-xs text-gray-500">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                         <p className="text-[10px] font-medium text-gray-400 mt-0.5">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                     </div>
                                                 </div>
                                                  {tx.creditChange ? (
-                                                     <span className="font-bold text-green-500 text-base">{tx.creditChange}</span>
+                                                     <span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs border border-green-100">{tx.creditChange}</span>
                                                  ) : (
-                                                     <span className="font-bold text-red-500 text-base">-{tx.cost} cr</span>
+                                                     <span className="font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded-md text-xs">-{tx.cost}</span>
                                                  )}
                                              </div>
                                         ))}
@@ -347,10 +361,15 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
                                 </div>
                             ))}
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white pointer-events-none"></div>
                     </div>
                 ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No recent transactions.</p>
+                    <div className="text-center py-16">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <TicketIcon className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <p className="text-gray-400 text-sm">No transactions yet.</p>
+                    </div>
                 )}
             </div>
         </div>
@@ -362,33 +381,33 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
             onClick={() => setIsInfoModalOpen(false)}
           >
               <div 
-                className="relative bg-white w-full max-w-md m-4 p-6 rounded-2xl shadow-xl border border-gray-200/80"
+                className="relative bg-white w-full max-w-md m-4 p-8 rounded-3xl shadow-2xl border border-gray-100"
                 onClick={e => e.stopPropagation()}
               >
                   <button 
                     onClick={() => setIsInfoModalOpen(false)} 
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-all"
                     aria-label="Close"
                   >
-                      <XIcon className="w-6 h-6"/>
+                      <XIcon className="w-5 h-5"/>
                   </button>
-                  <h3 className="text-lg font-bold text-[#1A1A1E] mb-4">How Credits Work</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                      Each feature in MagicPixa uses a certain amount of credits. Here is a quick breakdown of the costs per generation:
+                  <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">Credit Costs</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                      Cost per generation for each AI tool.
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                       {creditCosts.map(item => (
-                          <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg text-sm">
-                              <span className="text-gray-700">{item.feature}</span>
-                              <span className="font-bold text-[#1A1A1E]">{item.cost}</span>
+                          <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-sm border border-gray-100">
+                              <span className="text-gray-600 font-medium">{item.feature}</span>
+                              <span className="font-bold text-[#1A1A1E] bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">{item.cost}</span>
                           </div>
                       ))}
                   </div>
                   <button 
                     onClick={() => setIsInfoModalOpen(false)}
-                    className="w-full mt-6 bg-[#F9D230] text-[#1A1A1E] font-semibold py-2.5 rounded-lg"
+                    className="w-full mt-8 bg-[#1A1A1E] text-white font-bold py-3 rounded-xl hover:bg-black transition-colors"
                   >
-                      Got it
+                      Understood
                   </button>
               </div>
           </div>
