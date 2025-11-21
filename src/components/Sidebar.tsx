@@ -6,6 +6,7 @@ import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   activeView: View;
   setActiveView: (view: View) => void;
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -40,7 +41,7 @@ const NavButton: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo, appConfig }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveView, navigateTo, appConfig }) => {
   const [isClaiming, setIsClaiming] = useState(false);
 
   const allNavItems = [
@@ -89,19 +90,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     if (!user || hasClaimedToday()) return;
     setIsClaiming(true);
     try {
-        // We rely on the parent to update user state via Auth listener, but for immediate feedback we might need a callback
-        // Ideally `Sidebar` should receive `setUser` or `onUserUpdate` prop, but for now we rely on firebase transaction success.
-        // The main App `onAuthStateChanged` listener usually picks up changes on refresh/token refresh, 
-        // but purely for UX speed we can trigger a page reload or just wait. 
-        // However, since `claimDailyAttendance` returns the new user data, we should probably emit it up.
-        // IMPORTANT: Since Sidebar props don't include setUser, we'll just trigger the action. 
-        // The `App.tsx` listens to `auth.onAuthStateChanged` which fires on user changes. 
-        // Wait, Firestore updates don't auto-trigger `onAuthStateChanged`. 
-        // We should ideally pass `setUser` down. For now, we'll reload the page or just let the user know.
-        // Actually, `App.tsx` listens to `onAuthStateChanged` which handles *Auth* state, not *Firestore* document changes.
-        // To fix this properly without refactoring the whole app to real-time listeners:
-        await claimDailyAttendance(user.uid);
-        window.location.reload(); // Simple way to refresh state for now as requested "minimal changes"
+        const updatedUser = await claimDailyAttendance(user.uid);
+        // Update local user state immediately to reflect changes without reload
+        setUser(prev => prev ? { ...prev, ...updatedUser } as User : null);
     } catch (e) {
         console.error("Claim failed", e);
         alert("Failed to claim credit. Try again.");

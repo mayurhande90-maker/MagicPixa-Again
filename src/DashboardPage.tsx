@@ -956,7 +956,9 @@ const SelectionGrid: React.FC<{ label: string; options: string[]; value: string;
     </div>
 );
 
-// --- Daily Mission Studio Component ---
+// --- DailyMissionStudio Component is above in the file but needs no changes except for receiving correct user props ---
+// It receives auth from DashboardPage, which receives it from App. App.tsx fix ensures auth.user has the correct fields.
+
 const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ auth, navigateTo }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -1761,6 +1763,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar 
                     user={auth.user} 
+                    setUser={auth.setUser} 
                     activeView={activeView} 
                     setActiveView={setActiveView} 
                     navigateTo={navigateTo}
