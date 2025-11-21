@@ -715,7 +715,7 @@ const DashboardHome: React.FC<{
                 {/* Right: Boxy Layout (40% -> 2/5) */}
                 <div className="lg:col-span-2 flex flex-col gap-4 h-full">
                     {/* Row 1: Loyalty Bonus (Full Width Box) */}
-                    <div className="shrink-0 h-32 bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                    <div className="shrink-0 h-[155px] bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
                         {/* Decorative BG */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
                         
