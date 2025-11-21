@@ -94,6 +94,13 @@ export const signInWithGoogle = async () => {
     }
 };
 
+const generateReferralCode = (name: string) => {
+    // Simple sanitization
+    const prefix = (name || 'USER').replace(/[^a-zA-Z]/g, '').toUpperCase().substring(0, 4).padEnd(3, 'X');
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}${suffix}`;
+};
+
 
 /**
  * Gets a user's profile from Firestore. If it doesn't exist, it creates one on-the-fly.
@@ -134,6 +141,12 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             updatePayload.lastAttendanceClaim = null;
             needsUpdate = true;
         }
+        // Backward compatibility for Referral Code
+        if (!userData.referralCode) {
+            updatePayload.referralCode = generateReferralCode(userData.name || 'User');
+            updatePayload.referralCount = 0;
+            needsUpdate = true;
+        }
 
         if (needsUpdate) {
              userRef.set(updatePayload, { merge: true }).catch(e => console.error("Failed to patch legacy user", e));
@@ -143,30 +156,94 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 
     return userData;
   } else {
-    // Profile does not exist, create it with a 10 credit sign-up bonus.
+    // Profile does not exist, create it.
     console.log(`Creating new user profile for UID: ${uid}`);
+    
+    // Generate Referral Code for new user
+    const myReferralCode = generateReferralCode(name || 'User');
+    
+    // Check for incoming referral
+    let initialCredits = 10; // Standard start
+    let referredBy = null;
+    const storedRefCode = window.sessionStorage.getItem('referralCode');
+    
+    if (storedRefCode) {
+        try {
+            const referrerQuery = await db.collection('users').where('referralCode', '==', storedRefCode).limit(1).get();
+            if (!referrerQuery.empty) {
+                const referrerDoc = referrerQuery.docs[0];
+                
+                // Prevent self-referral loop
+                if (referrerDoc.id !== uid) {
+                    referredBy = referrerDoc.id;
+                    initialCredits = 20; // 10 Standard + 10 Bonus
+                    
+                    // Reward Referrer
+                    const referrerRef = db.collection('users').doc(referrerDoc.id);
+                    const referrerTxRef = referrerRef.collection('transactions').doc();
+                    
+                    // Run referrer update in a transaction/batch independently
+                    // Note: We do this fire-and-forget style to not block new user creation if it fails,
+                    // but ideally this should be robust.
+                    db.runTransaction(async (t) => {
+                        t.update(referrerRef, {
+                            credits: firebase.firestore.FieldValue.increment(10),
+                            referralCount: firebase.firestore.FieldValue.increment(1)
+                        });
+                         t.set(referrerTxRef, {
+                            feature: "Referral Bonus",
+                            creditChange: "+10",
+                            reason: `Referred ${name || 'New User'}`,
+                            cost: 0,
+                            date: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }).catch(e => console.error("Failed to reward referrer", e));
+                }
+            }
+        } catch (e) {
+            console.error("Error processing referral code", e);
+        }
+    }
+
     const newUserProfile = {
       uid,
       name: name || 'New User',
       email: email || 'No Email',
-      credits: 10, // New user sign-up bonus
-      totalCreditsAcquired: 10, // Track total credits for progress bar
-      plan: 'Free', // All users are on a pay-as-you-go model now
+      credits: initialCredits,
+      totalCreditsAcquired: initialCredits,
+      plan: 'Free',
       signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
       totalSpent: 0,
-      lifetimeGenerations: 0, // Init generation count
-      lastAttendanceClaim: null, // Init attendance
-      // Initialize daily mission structure
+      lifetimeGenerations: 0,
+      lastAttendanceClaim: null,
+      referralCode: myReferralCode,
+      referralCount: 0,
+      referredBy: referredBy,
       dailyMission: {
-          completedAt: new Date(0).toISOString(), // Epoch start
+          completedAt: new Date(0).toISOString(),
           nextUnlock: new Date(0).toISOString(),
           lastMissionId: null
       }
     };
+    
     // DEFINITIVE FIX: Used 'compat' set method.
     await userRef.set(newUserProfile);
+    
+    // Log the signup transaction for the new user
+    if (initialCredits > 0) {
+         const initialTxRef = userRef.collection('transactions').doc();
+         const reason = referredBy ? "Welcome Bonus + Referral Bonus" : "Welcome Bonus";
+         await initialTxRef.set({
+             feature: "Signup",
+             creditChange: `+${initialCredits}`,
+             reason: reason,
+             cost: 0,
+             date: firebase.firestore.FieldValue.serverTimestamp()
+         });
+    }
+
     // Return the profile data
-    return { ...newUserProfile, credits: 10, plan: 'Free', totalCreditsAcquired: 10, totalSpent: 0 };
+    return { ...newUserProfile, credits: initialCredits, plan: 'Free', totalCreditsAcquired: initialCredits, totalSpent: 0 };
   }
 };
 

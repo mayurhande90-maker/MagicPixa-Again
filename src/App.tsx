@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
 // FIX: Changed to a default import as DashboardPage is exported as default.
@@ -53,6 +54,16 @@ const App: React.FC = () => {
     fetchConfig();
   }, []);
 
+  // Capture referral code from URL
+  useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      if (refCode) {
+          window.sessionStorage.setItem('referralCode', refCode);
+          console.log("Captured referral code:", refCode);
+      }
+  }, []);
+
   useEffect(() => {
     if (!auth) {
       setIsLoadingAuth(false);
@@ -85,6 +96,10 @@ const App: React.FC = () => {
             dailyMission: userProfile.dailyMission, 
             lifetimeGenerations: userProfile.lifetimeGenerations || 0,
             lastAttendanceClaim: userProfile.lastAttendanceClaim || null,
+            // Referral Data
+            referralCode: userProfile.referralCode,
+            referralCount: userProfile.referralCount,
+            referredBy: userProfile.referredBy
           };
           setUser(userToSet);
           setIsAuthenticated(true);

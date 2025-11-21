@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Billing from './components/Billing';
 import { AdminPanel } from './components/AdminPanel';
 import { CreatorRanksModal } from './components/CreatorRanksModal';
+import { ReferralModal } from './components/ReferralModal';
 import { 
     getCreations, 
     saveCreation, 
@@ -57,7 +58,8 @@ import {
     PencilIcon,
     CopyIcon,
     CurrencyDollarIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    GiftIcon
 } from './components/icons';
 
 interface DashboardPageProps {
@@ -555,7 +557,8 @@ const DashboardHome: React.FC<{
     navigateTo: (page: Page, view?: View, sectionId?: string) => void; 
     setActiveView: (view: View) => void;
     appConfig: AppConfig | null;
-}> = ({ user, navigateTo, setActiveView, appConfig }) => {
+    openReferralModal: () => void;
+}> = ({ user, navigateTo, setActiveView, appConfig, openReferralModal }) => {
     
     const [creations, setCreations] = useState<Creation[]>([]);
     const [loadingCreations, setLoadingCreations] = useState(true);
@@ -663,6 +666,13 @@ const DashboardHome: React.FC<{
                     </h1>
                     <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
+                
+                <button 
+                    onClick={openReferralModal}
+                    className="md:hidden bg-purple-100 text-purple-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 border border-purple-200"
+                >
+                    <GiftIcon className="w-4 h-4" /> Refer & Earn
+                </button>
             </div>
 
             {/* Hero Grid */}
@@ -1767,12 +1777,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     appConfig, 
     setAppConfig 
 }) => {
-    
+    const [showReferralModal, setShowReferralModal] = useState(false);
+
     const renderContent = () => {
         switch (activeView) {
             case 'home_dashboard':
             case 'dashboard':
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} appConfig={appConfig} />;
+                return <DashboardHome 
+                        user={auth.user} 
+                        navigateTo={navigateTo} 
+                        setActiveView={setActiveView} 
+                        appConfig={appConfig} 
+                        openReferralModal={() => setShowReferralModal(true)}
+                        />;
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
@@ -1805,7 +1822,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
             default:
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} appConfig={appConfig} />;
+                return <DashboardHome 
+                        user={auth.user} 
+                        navigateTo={navigateTo} 
+                        setActiveView={setActiveView} 
+                        appConfig={appConfig} 
+                        openReferralModal={() => setShowReferralModal(true)}
+                       />;
         }
     };
 
@@ -1816,42 +1839,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 auth={{
                     ...auth, 
                     isDashboard: true, 
-                    setActiveView, 
-                    openConversation: () => setIsConversationOpen(true)
+                    setActiveView,
                 }} 
             />
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar 
-                    user={auth.user} 
-                    setUser={auth.setUser} 
-                    activeView={activeView} 
-                    setActiveView={setActiveView} 
+                    user={auth.user}
+                    setUser={auth.setUser}
+                    activeView={activeView}
+                    setActiveView={setActiveView}
                     navigateTo={navigateTo}
                     appConfig={appConfig}
+                    openReferralModal={() => setShowReferralModal(true)}
                 />
-                <main className="flex-1 overflow-y-auto bg-[#F6F7FA] relative">
+                <main className="flex-1 overflow-y-auto bg-white custom-scrollbar relative">
                     {renderContent()}
                 </main>
             </div>
-            {isConversationOpen && (
-                <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl h-[600px] flex flex-col relative overflow-hidden">
-                         <button onClick={() => setIsConversationOpen(false)} className="absolute top-4 right-4 z-10 p-2 bg-gray-100 rounded-full hover:bg-gray-200">
-                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                         </button>
-                         <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                             </div>
-                             <h2 className="text-2xl font-bold mb-2">Magic Conversation</h2>
-                             <p className="text-gray-500">Voice mode is active. Speak to interact with the AI assistant.</p>
-                         </div>
-                    </div>
-                </div>
+            
+            {showReferralModal && auth.user && (
+                <ReferralModal user={auth.user} onClose={() => setShowReferralModal(false)} />
             )}
-            <div className="hidden">
-                <input ref={useRef(null)} type="file" />
-            </div>
         </div>
     );
 };

@@ -239,6 +239,12 @@ export const ThumbnailIcon: React.FC<{ className?: string }> = ({ className }) =
     </svg>
 );
 
+export const GiftIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M3 11.25h18M3 11.25l2.25-6h13.5l2.25 6m-18 0h18m-9-3v12m-6-9h12" />
+  </svg>
+);
+
 // --- GAMIFICATION BADGES ---
 
 export const BadgeNoviceIcon: React.FC<{ className?: string }> = ({ className }) => (

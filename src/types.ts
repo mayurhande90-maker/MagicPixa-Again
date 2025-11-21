@@ -45,6 +45,11 @@ export interface User {
       nextUnlock: string;  // ISO string
       lastMissionId?: string;
   };
+
+  // Referral System
+  referralCode?: string;
+  referredBy?: string;
+  referralCount?: number;
 }
 
 export interface AuthProps {
