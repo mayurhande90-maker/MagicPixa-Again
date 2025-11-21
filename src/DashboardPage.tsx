@@ -480,23 +480,23 @@ const DailyQuest: React.FC<{
             
             <div className="relative z-10 mt-auto">
                 {!isCompleted ? (
-                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-inner">
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
                         <div>
-                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Reward</p>
-                            <p className="text-xl font-black text-amber-600 flex items-center gap-1 leading-none">
-                               +5 <span className="text-sm font-bold text-amber-700">Credits</span>
+                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Complete to Unlock</p>
+                            <p className="text-2xl font-black text-[#1A1A1E] flex items-center gap-1 leading-none">
+                               +5 <span className="text-sm font-bold text-amber-700">CREDITS</span>
                             </p>
                         </div>
                         <button 
                             onClick={() => navigateTo('dashboard', 'daily_mission')}
-                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg"
+                            className="bg-[#1A1A1E] text-white px-5 py-3 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg whitespace-nowrap"
                         >
                             Start Mission
                         </button>
                     </div>
                 ) : (
                     <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
-                         <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Claimed</span>
+                         <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Reward Claimed</span>
                          <span className="text-xs font-mono text-green-600">Next: {timeLeft}</span>
                     </div>
                 )}
@@ -940,6 +940,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             const nextReset = new Date(now);
             const currentHour = now.getHours();
             
+            // Strict 12-hour block logic (12:00 PM or 12:00 AM)
             if (currentHour < 12) {
                 nextReset.setHours(12, 0, 0, 0);
             } else {
@@ -1022,8 +1023,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
         );
     }
 
-    // STRICT: If the mission is completed, force the success screen.
-    // ONLY if we are not currently showing the reward modal for a just-completed mission.
+    // STRICT PERSISTENCE: If completed and NOT currently showing the reward flow, show the Success/Locked screen.
     if (isCompleted && !showReward) {
          return (
              <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto animate-fadeIn">

@@ -27,7 +27,7 @@ export interface Mission {
 const MISSIONS: Mission[] = [
     {
         id: 'pro_studio_white',
-        title: 'Professional E-Commerce',
+        title: 'Clean Studio Shot',
         description: 'Upload a product. Our AI will place it on a pristine white seamless background with soft, professional studio lighting. Perfect for online listings.',
         reward: 5,
         config: {
@@ -57,7 +57,7 @@ const MISSIONS: Mission[] = [
     },
     {
         id: 'modern_office',
-        title: 'Corporate Professional',
+        title: 'Corporate Context',
         description: 'Contextualize your product. We will place it on a sleek, modern office desk with blurred tech accessories in the background.',
         reward: 5,
         config: {
@@ -77,7 +77,7 @@ const MISSIONS: Mission[] = [
     },
     {
         id: 'minimalist_podium',
-        title: 'Minimalist Marketing',
+        title: 'Minimalist Podium',
         description: 'Create a trendy ad creative. Your product will appear on a geometric pastel podium with soft, artistic lighting.',
         reward: 5,
         config: {
@@ -133,21 +133,18 @@ export const isMissionCompletedToday = (lastCompletedDate?: any): boolean => {
 
     const now = new Date();
     
-    // Check if completed in the same 12-hour block (AM vs PM) on the same day
-    const isSameDay = (
-        lastDate.getDate() === now.getDate() &&
-        lastDate.getMonth() === now.getMonth() &&
-        lastDate.getFullYear() === now.getFullYear()
-    );
+    // STRICT CHECK: Must be same calendar day
+    const isSameDate = lastDate.getDate() === now.getDate() &&
+                       lastDate.getMonth() === now.getMonth() &&
+                       lastDate.getFullYear() === now.getFullYear();
+    
+    if (!isSameDate) return false;
 
-    if (!isSameDay) return false;
+    // STRICT CHECK: Must be in the same 12-hour block (AM vs PM)
+    // 00:00 - 11:59 is AM block
+    // 12:00 - 23:59 is PM block
+    const lastBlock = lastDate.getHours() < 12 ? 'AM' : 'PM';
+    const currentBlock = now.getHours() < 12 ? 'AM' : 'PM';
 
-    const lastHour = lastDate.getHours();
-    const currentHour = now.getHours();
-
-    // Check if both are in AM (0-11) or both are in PM (12-23)
-    const wasAM = lastHour < 12;
-    const isAM = currentHour < 12;
-
-    return wasAM === isAM;
+    return lastBlock === currentBlock;
 };
