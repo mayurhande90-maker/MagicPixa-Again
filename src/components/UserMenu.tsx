@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, Page, View } from '../types';
 import { LogoutIcon, DashboardIcon, ProjectsIcon, CreditCardIcon, ShieldCheckIcon } from './icons';
 import { getBadgeInfo } from '../utils/badgeUtils';
+import { CreatorRanksModal } from './CreatorRanksModal';
 
 interface UserMenuProps {
   user: User;
@@ -13,6 +14,7 @@ interface UserMenuProps {
 
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActiveView }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showRanksModal, setShowRanksModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const badge = getBadgeInfo(user.lifetimeGenerations);
 
@@ -56,8 +58,14 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <p className="font-semibold text-[#1E1E1E] truncate" title={user.name}>{user.name}</p>
             <p className="text-sm text-[#5F6368] truncate mb-3" title={user.email}>{user.email}</p>
             
-            {/* Badge Display */}
-            <div className={`flex items-center gap-3 p-2 rounded-lg border ${badge.bgColor} ${badge.borderColor}`}>
+            {/* Badge Display with Click Trigger */}
+            <button 
+                onClick={() => {
+                    setIsOpen(false);
+                    setShowRanksModal(true);
+                }}
+                className={`w-full flex items-center gap-3 p-2 rounded-lg border text-left transition-colors cursor-pointer hover:brightness-95 ${badge.bgColor} ${badge.borderColor}`}
+            >
                 <div className={`p-1.5 rounded-full bg-white shadow-sm ${badge.iconColor}`}>
                     <badge.Icon className="w-5 h-5" />
                 </div>
@@ -69,7 +77,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
                         <p className="text-[10px] text-gray-500">Max Level Reached!</p>
                     )}
                 </div>
-            </div>
+            </button>
           </div>
           <div className="py-2">
             {user.isAdmin && (
@@ -94,6 +102,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
           </div>
         </div>
       )}
+      
+      {showRanksModal && <CreatorRanksModal currentGens={user.lifetimeGenerations || 0} onClose={() => setShowRanksModal(false)} />}
     </div>
   );
 };
