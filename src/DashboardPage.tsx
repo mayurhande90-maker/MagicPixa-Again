@@ -406,6 +406,14 @@ const StandardFeature: React.FC<{
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+        
+        // Start Credit Check
+        if (auth.user.credits < cost) {
+            alert("Insufficient credits. Please purchase a pack to continue.");
+            return;
+        }
+        // End Credit Check
+
         setLoading(true);
         try {
             const res = await onGenerate(image.base64, prompt);
@@ -875,11 +883,18 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+        
+        const cost = appConfig?.featureCosts['Product Studio'] || 5;
+        if (auth.user.credits < cost) {
+            alert("Insufficient credits. Please purchase a pack to continue.");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await generateProductPackPlan([image.base64.base64], productName, "A great product", { colors: [], fonts: []}, "", []);
             setResult(res);
-            const updatedUser = await deductCredits(auth.user.uid, appConfig?.featureCosts['Product Studio'] || 5, 'Product Studio');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Product Studio');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
@@ -938,11 +953,18 @@ const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+        
+        const cost = appConfig?.featureCosts['CaptionAI'] || 1;
+        if (auth.user.credits < cost) {
+            alert("Insufficient credits. Please purchase a pack to continue.");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
             setCaptions(res);
-            const updatedUser = await deductCredits(auth.user.uid, appConfig?.featureCosts['CaptionAI'] || 1, 'CaptionAI');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'CaptionAI');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
@@ -1446,14 +1468,23 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
+
+        // Calculate cost first
+        const cost = studioMode === 'model' 
+            ? (appConfig?.featureCosts['Model Shot'] || 3) 
+            : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
+
+        if (auth.user.credits < cost) {
+            alert("Insufficient credits. Please purchase a pack to continue.");
+            return;
+        }
+
         setResult(null); 
         setLoading(true);
         try {
             let res;
-            let cost = 2;
 
             if (studioMode === 'model') {
-                 cost = appConfig?.featureCosts['Model Shot'] || 3;
                  res = await generateModelShot(image.base64.base64, image.base64.mimeType, {
                     modelType,
                     region: modelRegion,
@@ -1464,7 +1495,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     freeformPrompt: selectedPrompt || undefined
                  });
             } else {
-                cost = appConfig?.featureCosts['Magic Photo Studio'] || 2;
                 let generationDirection = "";
                 if (selectedPrompt) {
                     generationDirection = selectedPrompt;
