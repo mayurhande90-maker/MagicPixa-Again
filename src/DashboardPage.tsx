@@ -23,15 +23,12 @@ import {
     editImageWithPrompt,
     generateBrandStylistImage,
     generateThumbnail,
-    startLiveSession,
-    analyzeVideoFrames,
     analyzeProductImage,
     generateModelShot,
     analyzeProductForModelPrompts
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { extractFramesFromVideo } from './utils/videoUtils';
-import { getDailyMission, isMissionCompletedToday, Mission, MissionConfig } from './utils/dailyMissions';
+import { getDailyMission, isMissionCompletedToday } from './utils/dailyMissions';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -39,10 +36,8 @@ import {
     DownloadIcon, 
     TrashIcon, 
     ProjectsIcon,
-    MicrophoneIcon, 
     CubeIcon,
     UsersIcon,
-    VideoCameraIcon,
     LightbulbIcon,
     ArrowUpCircleIcon,
     ThumbnailIcon,
@@ -51,24 +46,16 @@ import {
     MockupIcon,
     CaptionIcon,
     ProductStudioIcon,
-    DashboardIcon,
     XIcon,
-    AudioWaveIcon,
     ArrowRightIcon,
-    GarmentTopIcon,
-    GarmentTrousersIcon,
     CopyIcon,
     CheckIcon,
     RetryIcon,
     PencilIcon,
     ArrowLeftIcon,
     CreditCardIcon,
-    SunIcon,
-    ChartBarIcon,
     FlagIcon
 } from './components/icons';
-import { LiveServerMessage, Blob } from '@google/genai';
-import { encode, decode, decodeAudioData } from './utils/audioUtils';
 
 interface DashboardPageProps {
     navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -147,20 +134,6 @@ const VisualSelector: React.FC<{
                 )
             })}
         </div>
-    </div>
-);
-
-const SelectField: React.FC<any> = ({ label, children, ...props }) => (
-    <div className="mb-6">
-         {label && <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
-         <div className="relative">
-            <select className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl appearance-none outline-none transition-all font-medium text-[#1A1A1E] cursor-pointer" {...props}>
-                {children}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-         </div>
     </div>
 );
 
@@ -505,31 +478,98 @@ const DailyQuest: React.FC<{
     );
 };
 
-const DashboardHome: React.FC<{ user: User | null; navigateTo: any; setActiveView: any }> = ({ user, navigateTo, setActiveView }) => {
+const DashboardHome: React.FC<{ 
+    user: User | null; 
+    navigateTo: (page: Page, view?: View, sectionId?: string) => void; 
+    setActiveView: (view: View) => void;
+    appConfig: AppConfig | null;
+}> = ({ user, navigateTo, setActiveView, appConfig }) => {
+    
+    const tools = [
+        { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
+        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
+        { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'apparel', label: 'Magic Apparel', icon: UsersIcon, color: 'bg-teal-500' },
+        { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
+    ];
+
     return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1A1A1E]">Welcome back, {user?.name}!</h1>
-                <p className="text-gray-500">Ready to create something magic today?</p>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                    <h2 className="text-xl font-bold mb-4">Daily Challenge</h2>
-                    <DailyQuest user={user} navigateTo={navigateTo} />
-                </div>
+        <div className="p-6 lg:p-10 max-w-7xl mx-auto animate-fadeIn">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                     <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-6 text-white shadow-lg">
-                        <div className="flex justify-between items-start mb-8">
+                    <h1 className="text-3xl font-bold text-[#1A1A1E]">Welcome back, {user?.name}!</h1>
+                    <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
+                </div>
+                <button 
+                    onClick={() => setActiveView('billing')}
+                    className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all text-sm font-bold text-gray-700"
+                >
+                    <SparklesIcon className="w-4 h-4 text-blue-500" />
+                    <span>{user?.credits} Credits Available</span>
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                {/* Daily Mission Section - The 'Tray' */}
+                <div className="lg:col-span-2">
+                     <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Today's Mission</h2>
+                     <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
+                </div>
+                
+                {/* Quick Actions / Promo */}
+                <div className="flex flex-col">
+                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Get Started</h2>
+                    <div 
+                        onClick={() => setActiveView('studio')}
+                        className="flex-1 bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] rounded-3xl p-6 text-white shadow-xl cursor-pointer group relative overflow-hidden border border-gray-800"
+                    >
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors"></div>
+                        <div className="relative z-10 h-full flex flex-col justify-between">
                             <div>
-                                <p className="text-blue-100 text-sm font-medium uppercase tracking-wider">Balance</p>
-                                <p className="text-4xl font-bold mt-1">{user?.credits}</p>
+                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/10">
+                                    <PhotoStudioIcon className="w-6 h-6 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">Create a Studio Shot</h3>
+                                <p className="text-gray-400 text-sm">Turn any photo into a professional product image instantly.</p>
                             </div>
-                            <div className="bg-white/20 p-2 rounded-full"><SparklesIcon className="w-6 h-6"/></div>
+                            <div className="flex items-center gap-2 text-sm font-bold mt-4 text-blue-400 group-hover:text-blue-300 transition-colors">
+                                Launch Studio <ArrowRightIcon className="w-4 h-4" />
+                            </div>
                         </div>
-                        <button onClick={() => setActiveView('billing')} className="w-full bg-white text-blue-600 font-bold py-3 rounded-xl hover:bg-blue-50 transition-colors">
-                            Get More Credits
-                        </button>
                     </div>
+                </div>
+            </div>
+
+            {/* All Tools Grid */}
+            <div>
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">All Creative Tools</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {tools.map(tool => {
+                        const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
+                        return (
+                            <button
+                                key={tool.id}
+                                onClick={() => setActiveView(tool.id as View)}
+                                disabled={isDisabled}
+                                className={`flex flex-col items-center text-center p-5 rounded-2xl transition-all duration-300 border group ${
+                                    isDisabled 
+                                    ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1'
+                                }`}
+                            >
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
+                                    <tool.icon className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-black">{tool.label}</span>
+                                {isDisabled && <span className="mt-2 text-[10px] font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>}
+                            </button>
+                        )
+                    })}
                 </div>
             </div>
         </div>
@@ -1343,7 +1383,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         switch (activeView) {
             case 'home_dashboard':
             case 'dashboard':
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} appConfig={appConfig} />;
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'studio':
@@ -1376,7 +1416,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
             default:
-                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} />;
+                return <DashboardHome user={auth.user} navigateTo={navigateTo} setActiveView={setActiveView} appConfig={appConfig} />;
         }
     };
 
