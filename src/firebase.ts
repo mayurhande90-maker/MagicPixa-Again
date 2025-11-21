@@ -225,6 +225,7 @@ export const claimReferralCode = async (uid: string, code: string) => {
         const referrerDoc = referrerQuery.docs[0];
         const referrerId = referrerDoc.id;
         
+        // Rule 2: Self-Referral Prevention
         if (referrerId === uid) {
             throw new Error("You cannot use your own referral code.");
         }
@@ -235,11 +236,29 @@ export const claimReferralCode = async (uid: string, code: string) => {
         
         await db.runTransaction(async (t) => {
             const userDoc = await t.get(userRef);
+            // Also read referrer doc to check cap (Rule 7)
+            const referrerDocTx = await t.get(referrerRef);
+
             if (!userDoc.exists) throw new Error("User profile not found.");
             
             const userData = userDoc.data();
+            // Rule 1: One-time referral
             if (userData?.referredBy) {
                 throw new Error("You have already claimed a referral bonus.");
+            }
+
+            // Rule 3: Account Age Check (48 Hours)
+            if (userData?.signUpDate) {
+                const signUpTime = userData.signUpDate.toMillis ? userData.signUpDate.toMillis() : (userData.signUpDate.seconds * 1000);
+                const hoursSinceSignUp = (Date.now() - signUpTime) / (1000 * 60 * 60);
+                if (hoursSinceSignUp > 48) {
+                    throw new Error("Referral codes can only be claimed within 48 hours of sign-up.");
+                }
+            }
+
+            // Rule 4: Minimum Engagement Check (Anti-Bot)
+            if ((userData?.lifetimeGenerations || 0) < 1) {
+                throw new Error("To prevent spam, please use at least one AI feature (generate 1 image) before claiming a referral code.");
             }
             
             // Update Current User (Referee)
@@ -258,22 +277,29 @@ export const claimReferralCode = async (uid: string, code: string) => {
                 cost: 0
             });
             
-            // Update Referrer
-            t.update(referrerRef, {
-                credits: firebase.firestore.FieldValue.increment(10),
-                referralCount: firebase.firestore.FieldValue.increment(1),
-                totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
-            });
-            
-            const referrerTxRef = referrerRef.collection('transactions').doc();
-            // Note: The 'feature' name here MUST match the Firestore rule condition.
-            t.set(referrerTxRef, {
-                feature: "Referral Bonus (Referrer)",
-                creditChange: "+10",
-                reason: `User ${userData?.name || 'Unknown'} used your code`,
-                date: firebase.firestore.FieldValue.serverTimestamp(),
-                cost: 0
-            });
+            // Rule 7: Update Referrer only if cap < 50
+            if (referrerDocTx.exists) {
+                const referrerData = referrerDocTx.data();
+                const currentReferrals = referrerData?.referralCount || 0;
+
+                if (currentReferrals < 50) {
+                    t.update(referrerRef, {
+                        credits: firebase.firestore.FieldValue.increment(10),
+                        referralCount: firebase.firestore.FieldValue.increment(1),
+                        totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+                    });
+                    
+                    const referrerTxRef = referrerRef.collection('transactions').doc();
+                    // Note: The 'feature' name here MUST match the Firestore rule condition.
+                    t.set(referrerTxRef, {
+                        feature: "Referral Bonus (Referrer)",
+                        creditChange: "+10",
+                        reason: `User ${userData?.name || 'Unknown'} used your code`,
+                        date: firebase.firestore.FieldValue.serverTimestamp(),
+                        cost: 0
+                    });
+                }
+            }
         });
         
         // Return updated user data
