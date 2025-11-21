@@ -328,7 +328,7 @@ const FeatureLayout: React.FC<{
 const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
         onClick={onClick}
-        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md aspect-video max-h-[560px]"
+        className="w-full h-full border-2 border-dashed border-gray-300 hover:border-[#4D7CFF] bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-md"
     >
         <div className="relative z-10 p-6 bg-gray-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
             {icon || <UploadIcon className="w-12 h-12 text-gray-400 group-hover:text-[#4D7CFF] transition-colors duration-300" />}
@@ -466,7 +466,7 @@ const DailyQuest: React.FC<{
                         ? 'bg-green-200 text-green-800' 
                         : 'bg-red-500 text-white border border-white/10 animate-pulse'
                     }`}>
-                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Limited Time'}
+                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
                     </span>
                     {!isLocked && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
                 </div>
@@ -494,7 +494,7 @@ const DailyQuest: React.FC<{
                 ) : (
                     <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
                          <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Reward Claimed</span>
-                         <span className="text-xs font-mono text-green-600">Next: {timeLeft}</span>
+                         <span className="text-xs font-mono text-green-600">Next mission will unlock in {timeLeft}</span>
                     </div>
                 )}
             </div>
@@ -1086,11 +1086,11 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 resultImage={result}
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); }}
-                resultHeightClass="h-full min-h-[560px]" // Ensure height matches
+                resultHeightClass="h-[600px]" // Fixed strict height for alignment
                 hideGenerateButton={true} // Hiding default button to use custom one in right panel
                 leftContent={
                     image ? (
-                        <div className="relative h-full min-h-[560px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        <div className="relative h-[600px] w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
@@ -1121,7 +1121,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                         {/* Reward Banner */}
                         <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-6 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
                              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
-                             <h3 className="font-black text-2xl mb-1 flex items-center gap-2"><CurrencyDollarIcon className="w-6 h-6"/> GET {activeMission.reward} CREDITS</h3>
+                             <h3 className="font-black text-2xl mb-1 flex items-center gap-2">GET {activeMission.reward} CREDITS</h3>
                              <p className="font-bold text-sm opacity-80 mb-4">upon successful completion</p>
                              
                              <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10 text-xs font-bold">
@@ -1182,7 +1182,15 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-            {showReward && <MissionSuccessModal reward={activeMission.reward} onClose={() => { setShowReward(false); }} />}
+            {showReward && (
+                <MissionSuccessModal 
+                    reward={activeMission.reward} 
+                    onClose={() => { 
+                        setShowReward(false); 
+                        navigateTo('dashboard', 'home_dashboard'); 
+                    }} 
+                />
+            )}
         </>
     );
 };
