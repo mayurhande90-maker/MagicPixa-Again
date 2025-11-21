@@ -100,8 +100,11 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                   <div className="hidden sm:flex items-center gap-4">
                         {/* User Rank Badge */}
                         {badge && (
-                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${badge.bgColor} ${badge.borderColor}`} title={badge.rank}>
+                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ease-in-out group hover:pr-4 ${badge.bgColor} ${badge.borderColor}`}>
                                  <badge.Icon className={`w-4 h-4 ${badge.iconColor}`} />
+                                 <span className={`max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 ${badge.color}`}>
+                                     {badge.rank}
+                                 </span>
                              </div>
                         )}
 
