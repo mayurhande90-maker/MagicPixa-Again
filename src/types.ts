@@ -34,7 +34,12 @@ export interface User {
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
-  lastDailyMissionCompleted?: Timestamp; // For daily mission tracking
+  lastDailyMissionCompleted?: Timestamp; // Legacy field, keeping for backward compatibility
+  dailyMission?: {
+      completedAt: string; // ISO string
+      nextUnlock: string;  // ISO string
+      lastMissionId?: string;
+  };
 }
 
 export interface AuthProps {

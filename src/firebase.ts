@@ -124,6 +124,12 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       plan: 'Free', // All users are on a pay-as-you-go model now
       signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
       totalSpent: 0,
+      // Initialize daily mission structure
+      dailyMission: {
+          completedAt: new Date(0).toISOString(), // Epoch start
+          nextUnlock: new Date(0).toISOString(),
+          lastMissionId: null
+      }
     };
     // DEFINITIVE FIX: Used 'compat' set method.
     await userRef.set(newUserProfile);
@@ -282,33 +288,57 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
     return updatedDoc.data();
 };
 
-export const completeDailyMission = async (uid: string, reward: number, missionTitle: string) => {
+export const completeDailyMission = async (uid: string, reward: number, missionId: string) => {
     if (!db) throw new Error("Firestore is not initialized.");
 
     const userRef = db.collection("users").doc(uid);
     const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
 
+    // Transaction ensures atomic read-check-write to prevent race conditions
     await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists) {
             throw new Error("User does not exist.");
         }
 
+        const userData = userDoc.data() as User;
+        const now = new Date();
+        
+        // SERVER-SIDE CHECK (Simulated in Transaction): Check if mission is currently locked
+        if (userData.dailyMission?.nextUnlock) {
+            const nextUnlock = new Date(userData.dailyMission.nextUnlock);
+            // If strictly greater than now, it's locked.
+            if (nextUnlock > now) {
+                console.log(`[Mission] Locked. Now: ${now.toISOString()}, Unlock: ${nextUnlock.toISOString()}`);
+                throw new Error("Mission locked"); // This will abort the transaction
+            }
+        }
+
+        // Calculate next unlock time: Now + 12 hours
+        const nextUnlockTime = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+
+        console.log(`[Mission] Completing. Next unlock set to: ${nextUnlockTime.toISOString()}`);
+
         transaction.update(userRef, {
             credits: firebase.firestore.FieldValue.increment(reward),
             totalCreditsAcquired: firebase.firestore.FieldValue.increment(reward),
-            lastDailyMissionCompleted: firebase.firestore.FieldValue.serverTimestamp(),
+            dailyMission: {
+                completedAt: now.toISOString(),
+                nextUnlock: nextUnlockTime.toISOString(),
+                lastMissionId: missionId
+            }
         });
 
         transaction.set(newTransactionRef, {
             feature: "Daily Mission Reward",
             creditChange: `+${reward}`,
-            reason: `Completed: ${missionTitle}`,
+            reason: `Completed Mission`,
             date: firebase.firestore.FieldValue.serverTimestamp(),
             cost: 0
         });
     });
 
+    // Return fresh user data
     const updatedDoc = await userRef.get();
     return updatedDoc.data() as User;
 };
@@ -342,7 +372,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
  * Saves a newly generated image to Storage and its metadata to Firestore.
  * @param uid The user's unique ID.
  * @param dataUri The data URI of the image (e.g., 'data:image/png;base64,...').
- * @param feature The name of the feature used to create the image.
+ * @param feature The name of the feature used.
  */
 export const saveCreation = async (uid: string, dataUri: string, feature: string): Promise<void> => {
     if (!db || !storage) throw new Error("Firebase is not initialized.");

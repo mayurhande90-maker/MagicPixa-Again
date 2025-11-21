@@ -28,7 +28,7 @@ import {
     analyzeProductForModelPrompts
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
-import { getDailyMission, isMissionCompletedToday } from './utils/dailyMissions';
+import { getDailyMission, isMissionLocked } from './utils/dailyMissions';
 import { 
     PhotoStudioIcon, 
     UploadIcon, 
@@ -423,25 +423,22 @@ const DailyQuest: React.FC<{
 }> = ({ user, navigateTo }) => {
     const [timeLeft, setTimeLeft] = useState('');
     const mission = getDailyMission();
-    const isCompleted = useMemo(() => user ? isMissionCompletedToday(user.lastDailyMissionCompleted) : false, [user]);
+    // Use strict server-based locking logic
+    const isLocked = useMemo(() => isMissionLocked(user), [user]);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
-            const now = new Date();
-            // Calculate countdown to next 12-hour block (Noon or Midnight)
-            const nextReset = new Date(now);
-            const currentHour = now.getHours();
+            if (!user?.dailyMission?.nextUnlock) return;
             
-            if (currentHour < 12) {
-                // Next reset is at 12:00 PM today
-                nextReset.setHours(12, 0, 0, 0);
-            } else {
-                // Next reset is at 12:00 AM tomorrow
-                nextReset.setDate(nextReset.getDate() + 1);
-                nextReset.setHours(0, 0, 0, 0);
+            const now = new Date();
+            const nextReset = new Date(user.dailyMission.nextUnlock);
+            const diff = nextReset.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                setTimeLeft("Ready!");
+                return;
             }
             
-            const diff = nextReset.getTime() - now.getTime();
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
             const seconds = Math.floor((diff / 1000) % 60);
@@ -452,34 +449,34 @@ const DailyQuest: React.FC<{
         calculateTimeLeft();
         const timer = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [user]);
 
     return (
         <div className={`rounded-3xl p-6 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
-            isCompleted 
+            isLocked 
             ? 'bg-green-50 border-green-200' 
             : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
         }`}>
-            {!isCompleted && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
+            {!isLocked && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
             
             <div>
                 <div className="flex items-center justify-between mb-4 relative z-10">
                     <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
-                        isCompleted 
+                        isLocked 
                         ? 'bg-green-200 text-green-800' 
                         : 'bg-red-500 text-white border border-white/10 animate-pulse'
                     }`}>
-                        <FlagIcon className="w-3 h-3" /> {isCompleted ? 'Mission Complete' : 'Limited Time'}
+                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Limited Time'}
                     </span>
-                    {!isCompleted && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
+                    {!isLocked && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
                 </div>
                 
-                <h3 className={`text-xl font-bold mb-2 relative z-10 ${isCompleted ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
-                <p className={`text-sm mb-6 relative z-10 leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
+                <h3 className={`text-xl font-bold mb-2 relative z-10 ${isLocked ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
+                <p className={`text-sm mb-6 relative z-10 leading-relaxed ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
             </div>
             
             <div className="relative z-10 mt-auto">
-                {!isCompleted ? (
+                {!isLocked ? (
                     <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
                         <div>
                             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Complete to Unlock</p>
@@ -929,26 +926,22 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
     const activeMission = getDailyMission();
     const hasCompletedRef = useRef(false);
 
-    // STRICT COMPLETION CHECK - Re-evaluates whenever user updates
-    const isCompleted = useMemo(() => {
-        return auth.user ? isMissionCompletedToday(auth.user.lastDailyMissionCompleted) : false;
-    }, [auth.user]);
+    // STRICT PERSISTENCE: Use the helper that checks nextUnlock timestamp
+    const isLocked = useMemo(() => isMissionLocked(auth.user), [auth.user]);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
-            const now = new Date();
-            const nextReset = new Date(now);
-            const currentHour = now.getHours();
+            if (!auth.user?.dailyMission?.nextUnlock) return;
             
-            // Strict 12-hour block logic (12:00 PM or 12:00 AM)
-            if (currentHour < 12) {
-                nextReset.setHours(12, 0, 0, 0);
-            } else {
-                nextReset.setDate(nextReset.getDate() + 1);
-                nextReset.setHours(0, 0, 0, 0);
+            const now = new Date();
+            const nextReset = new Date(auth.user.dailyMission.nextUnlock);
+            const diff = nextReset.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                 setTimeLeft("Ready to start!");
+                 return;
             }
             
-            const diff = nextReset.getTime() - now.getTime();
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
             const seconds = Math.floor((diff / 1000) % 60);
@@ -959,7 +952,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
         calculateTimeLeft();
         const timer = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [auth.user]);
 
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -995,20 +988,25 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
             const url = `data:image/png;base64,${res}`;
             setResult(url);
 
-            // Only trigger credit grant if not already done in this session and not already completed on backend
-            if (!hasCompletedRef.current && auth.user && !isCompleted) {
+            // Only trigger credit grant if not already done in this session and not already locked
+            // Double check lock status to be safe
+            if (!hasCompletedRef.current && auth.user && !isMissionLocked(auth.user)) {
                 const updatedUser = await completeDailyMission(auth.user.uid, activeMission.reward, activeMission.title);
                 // Update user state, but set a flag to show reward modal
                 setShowReward(true);
                 hasCompletedRef.current = true;
-                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, lastDailyMissionCompleted: updatedUser.lastDailyMissionCompleted } : null);
+                auth.setUser(prev => prev ? { ...prev, credits: updatedUser.credits, dailyMission: updatedUser.dailyMission } : null);
             }
             
             saveCreation(auth.user.uid, url, `Daily Mission: ${activeMission.title}`);
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert('Mission generation failed. Please try again.');
+            if (e.message === "Mission locked") {
+                alert("This mission is currently locked.");
+            } else {
+                alert('Mission generation failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -1024,7 +1022,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
     }
 
     // STRICT PERSISTENCE: If completed and NOT currently showing the reward flow, show the Success/Locked screen.
-    if (isCompleted && !showReward) {
+    if (isLocked && !showReward) {
          return (
              <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto animate-fadeIn">
                  <div className="bg-white p-12 rounded-3xl shadow-xl border border-green-100 text-center relative overflow-hidden w-full">

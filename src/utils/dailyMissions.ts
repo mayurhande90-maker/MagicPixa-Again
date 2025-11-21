@@ -1,5 +1,5 @@
 
-import { View } from '../types';
+import { View, User } from '../types';
 
 export interface MissionConfig {
     // Unified config to support multiple tools
@@ -112,39 +112,15 @@ export const getDailyMission = (): Mission => {
     return MISSIONS[blockIndex % MISSIONS.length];
 };
 
-export const isMissionCompletedToday = (lastCompletedDate?: any): boolean => {
-    if (!lastCompletedDate) return false;
+/**
+ * Checks if the daily mission is currently locked based on the user's persistent data.
+ * Relies on the `nextUnlock` timestamp stored on the user record.
+ */
+export const isMissionLocked = (user: User | null): boolean => {
+    if (!user || !user.dailyMission || !user.dailyMission.nextUnlock) return false;
     
-    let lastDate: Date;
-    
-    // Handle Firebase Timestamp object (has seconds/nanoseconds)
-    if (lastCompletedDate && typeof lastCompletedDate.toDate === 'function') {
-        lastDate = lastCompletedDate.toDate();
-    } 
-    // Handle standard Date object or timestamp number/string
-    else if (lastCompletedDate instanceof Date) {
-        lastDate = lastCompletedDate;
-    } else {
-        lastDate = new Date(lastCompletedDate);
-    }
-    
-    // Check for invalid date
-    if (isNaN(lastDate.getTime())) return false;
-
     const now = new Date();
+    const unlockTime = new Date(user.dailyMission.nextUnlock);
     
-    // STRICT CHECK: Must be same calendar day
-    const isSameDate = lastDate.getDate() === now.getDate() &&
-                       lastDate.getMonth() === now.getMonth() &&
-                       lastDate.getFullYear() === now.getFullYear();
-    
-    if (!isSameDate) return false;
-
-    // STRICT CHECK: Must be in the same 12-hour block (AM vs PM)
-    // 00:00 - 11:59 is AM block
-    // 12:00 - 23:59 is PM block
-    const lastBlock = lastDate.getHours() < 12 ? 'AM' : 'PM';
-    const currentBlock = now.getHours() < 12 ? 'AM' : 'PM';
-
-    return lastBlock === currentBlock;
+    return unlockTime.getTime() > now.getTime();
 };
