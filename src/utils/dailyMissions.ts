@@ -100,14 +100,14 @@ const MISSIONS: Mission[] = [
 
 export const getDailyMission = (): Mission => {
     const today = new Date();
-    // Calculate 12-hour blocks since the start of the year
+    // Calculate 24-hour blocks since the start of the year
     const start = new Date(today.getFullYear(), 0, 0);
     const diff = (today.getTime() - start.getTime()) + ((start.getTimezoneOffset() - today.getTimezoneOffset()) * 60 * 1000);
     const oneHour = 1000 * 60 * 60;
     const hoursPassed = Math.floor(diff / oneHour);
     
-    // Change mission every 12 hours
-    const blockIndex = Math.floor(hoursPassed / 12);
+    // Change mission every 24 hours
+    const blockIndex = Math.floor(hoursPassed / 24);
     
     return MISSIONS[blockIndex % MISSIONS.length];
 };

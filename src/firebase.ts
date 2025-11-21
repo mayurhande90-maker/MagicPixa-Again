@@ -307,13 +307,15 @@ export const claimDailyAttendance = async (uid: string) => {
             const lastClaim = userData?.lastAttendanceClaim;
             const now = new Date();
             
-            // Check if already claimed today (Server time logic)
+            // Check if claimed within last 24 hours (Rolling window)
             if (lastClaim) {
                 const lastDate = lastClaim.toDate();
-                if (lastDate.getDate() === now.getDate() && 
-                    lastDate.getMonth() === now.getMonth() && 
-                    lastDate.getFullYear() === now.getFullYear()) {
-                    throw new Error("Already claimed today.");
+                const diffMs = now.getTime() - lastDate.getTime();
+                const diffHours = diffMs / (1000 * 60 * 60);
+                
+                if (diffHours < 24) {
+                    const remaining = Math.ceil(24 - diffHours);
+                    throw new Error(`Already claimed. Next claim available in approx ${remaining} hours.`);
                 }
             }
 
@@ -425,8 +427,8 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
             }
         }
 
-        // Set new lock time: Now + 12 hours
-        const nextUnlockTime = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+        // Set new lock time: Now + 24 hours
+        const nextUnlockTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
         transaction.update(userRef, {
             credits: firebase.firestore.FieldValue.increment(reward),

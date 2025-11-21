@@ -83,7 +83,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     if (!user?.lastAttendanceClaim) return false;
     const last = user.lastAttendanceClaim.toDate();
     const now = new Date();
-    return last.getDate() === now.getDate() && last.getMonth() === now.getMonth() && last.getFullYear() === now.getFullYear();
+    // Calculate difference in hours
+    const diffMs = now.getTime() - last.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours < 24;
   };
 
   const handleClaim = async () => {
@@ -95,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
         setUser(prev => prev ? { ...prev, ...updatedUser } as User : null);
     } catch (e) {
         console.error("Claim failed", e);
-        alert("Failed to claim credit. Try again.");
+        alert("Failed to claim credit. Please check if 24 hours have passed.");
     } finally {
         setIsClaiming(false);
     }
@@ -124,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
                         : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] hover:scale-105 shadow-md'
                     }`}
                 >
-                    {isClaiming ? 'Claiming...' : hasClaimedToday() ? 'Claimed Today' : 'Claim +1 Credit'}
+                    {isClaiming ? 'Claiming...' : hasClaimedToday() ? 'Claimed' : 'Claim +1 Credit'}
                 </button>
             </div>
         )}
