@@ -162,63 +162,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     // Generate Referral Code for new user
     const myReferralCode = generateReferralCode(name || 'User');
     
-    // Check for incoming referral
+    // Initial Credits
     let initialCredits = 10; // Standard start
-    let referredBy = null;
-    
-    // FIX: Check sessionStorage AND fallback to URL params directly to prevent race conditions
-    // where useEffect in App.tsx hasn't run yet.
-    let storedRefCode = window.sessionStorage.getItem('referralCode');
-    if (!storedRefCode) {
-        const params = new URLSearchParams(window.location.search);
-        storedRefCode = params.get('ref');
-    }
-    
-    if (storedRefCode) {
-        try {
-            // Normalize the referral code to handle case sensitivity (e.g. user typed lowercase)
-            const normalizedRefCode = storedRefCode.trim().toUpperCase();
-            console.log(`Processing referral code: ${normalizedRefCode}`);
-
-            const referrerQuery = await db.collection('users').where('referralCode', '==', normalizedRefCode).limit(1).get();
-            if (!referrerQuery.empty) {
-                const referrerDoc = referrerQuery.docs[0];
-                
-                // Prevent self-referral loop
-                if (referrerDoc.id !== uid) {
-                    referredBy = referrerDoc.id;
-                    initialCredits = 20; // 10 Standard + 10 Bonus
-                    
-                    console.log(`Referral successful! Referred by: ${referredBy}`);
-
-                    // Reward Referrer
-                    const referrerRef = db.collection('users').doc(referrerDoc.id);
-                    const referrerTxRef = referrerRef.collection('transactions').doc();
-                    
-                    // Run referrer update transaction and await it to ensure consistency
-                    await db.runTransaction(async (t) => {
-                        t.update(referrerRef, {
-                            credits: firebase.firestore.FieldValue.increment(10),
-                            referralCount: firebase.firestore.FieldValue.increment(1)
-                        });
-                         t.set(referrerTxRef, {
-                            feature: "Referral Bonus",
-                            creditChange: "+10",
-                            reason: `Referred ${name || 'New User'}`,
-                            cost: 0,
-                            date: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }).catch(e => console.error("Failed to reward referrer", e));
-                } else {
-                    console.warn("Self-referral detected and prevented.");
-                }
-            } else {
-                console.warn(`Referral code ${normalizedRefCode} not found in database.`);
-            }
-        } catch (e) {
-            console.error("Error processing referral code", e);
-        }
-    }
 
     const newUserProfile = {
       uid,
@@ -233,7 +178,7 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       lastAttendanceClaim: null,
       referralCode: myReferralCode,
       referralCount: 0,
-      referredBy: referredBy,
+      referredBy: null,
       dailyMission: {
           completedAt: new Date(0).toISOString(),
           nextUnlock: new Date(0).toISOString(),
@@ -247,11 +192,10 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     // Log the signup transaction for the new user
     if (initialCredits > 0) {
          const initialTxRef = userRef.collection('transactions').doc();
-         const reason = referredBy ? "Welcome Bonus + Referral Bonus" : "Welcome Bonus";
          await initialTxRef.set({
              feature: "Signup",
              creditChange: `+${initialCredits}`,
-             reason: reason,
+             reason: "Welcome Bonus",
              cost: 0,
              date: firebase.firestore.FieldValue.serverTimestamp()
          });
@@ -260,6 +204,80 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     // Return the profile data
     return { ...newUserProfile, credits: initialCredits, plan: 'Free', totalCreditsAcquired: initialCredits, totalSpent: 0 };
   }
+};
+
+/**
+ * Manual Referral Claim Function
+ * Allows a user to enter a code and claim bonus credits.
+ */
+export const claimReferralCode = async (uid: string, code: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    
+    const normalizedCode = code.trim().toUpperCase();
+    
+    // 1. Find referrer
+    const referrerQuery = await db.collection('users').where('referralCode', '==', normalizedCode).limit(1).get();
+    
+    if (referrerQuery.empty) {
+        throw new Error("Invalid referral code.");
+    }
+    
+    const referrerDoc = referrerQuery.docs[0];
+    const referrerId = referrerDoc.id;
+    
+    if (referrerId === uid) {
+        throw new Error("You cannot use your own referral code.");
+    }
+    
+    // 2. Run Transaction
+    const userRef = db.collection('users').doc(uid);
+    const referrerRef = db.collection('users').doc(referrerId);
+    
+    await db.runTransaction(async (t) => {
+        const userDoc = await t.get(userRef);
+        if (!userDoc.exists) throw new Error("User profile not found.");
+        
+        const userData = userDoc.data();
+        if (userData?.referredBy) {
+            throw new Error("You have already claimed a referral bonus.");
+        }
+        
+        // Update Current User (Referee)
+        t.update(userRef, {
+            credits: firebase.firestore.FieldValue.increment(10),
+            referredBy: referrerId,
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+        });
+        
+        const userTxRef = userRef.collection('transactions').doc();
+        t.set(userTxRef, {
+            feature: "Referral Bonus (Referee)",
+            creditChange: "+10",
+            reason: `Used code ${normalizedCode}`,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            cost: 0
+        });
+        
+        // Update Referrer
+        t.update(referrerRef, {
+            credits: firebase.firestore.FieldValue.increment(10),
+            referralCount: firebase.firestore.FieldValue.increment(1),
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(10)
+        });
+        
+        const referrerTxRef = referrerRef.collection('transactions').doc();
+        t.set(referrerTxRef, {
+            feature: "Referral Bonus (Referrer)",
+            creditChange: "+10",
+            reason: `User ${userData?.name || 'Unknown'} used your code`,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            cost: 0
+        });
+    });
+    
+    // Return updated user data
+    const finalDoc = await userRef.get();
+    return finalDoc.data();
 };
 
 /**

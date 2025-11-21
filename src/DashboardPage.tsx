@@ -1858,7 +1858,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
             
             {showReferralModal && auth.user && (
-                <ReferralModal user={auth.user} onClose={() => setShowReferralModal(false)} />
+                <ReferralModal 
+                    user={auth.user} 
+                    onClose={() => setShowReferralModal(false)} 
+                    onClaimSuccess={(updatedUser) => {
+                        // Use setUser from auth prop to update global user state immediately
+                        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+                    }}
+                />
             )}
         </div>
     );
