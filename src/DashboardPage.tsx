@@ -165,6 +165,27 @@ const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = (
     </div>
 );
 
+const MilestoneSuccessModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+         <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white" onClick={e => e.stopPropagation()}>
+             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                 <SparklesIcon className="w-10 h-10 text-yellow-300 animate-spin-slow" />
+             </div>
+             
+             <h2 className="text-2xl font-bold mt-4 mb-2">Milestone Reached!</h2>
+             <p className="text-indigo-100 mb-6">You've created 10 amazing designs. Here is a reward for your creativity.</p>
+             
+             <div className="bg-white/20 backdrop-blur-md text-white font-bold text-3xl py-4 rounded-2xl mb-6 border border-white/30">
+                 +5 Credits
+             </div>
+             
+             <button onClick={onClose} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
+                 Collect Bonus
+             </button>
+         </div>
+    </div>
+);
+
 
 // --- Standardized Layout Component (Strict 2-Column) ---
 const FeatureLayout: React.FC<{
@@ -353,6 +374,7 @@ const StandardFeature: React.FC<{
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [showMilestone, setShowMilestone] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -372,8 +394,14 @@ const StandardFeature: React.FC<{
             const url = res.startsWith('data:') ? res : `data:image/png;base64,${res}`;
             setResult(url);
             await saveCreation(auth.user.uid, url, title);
-            const updated = await deductCredits(auth.user.uid, cost, title);
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+            const updatedUser = await deductCredits(auth.user.uid, cost, title);
+            
+            // Check for milestone bonus in updated user object
+            if (updatedUser.lifetimeGenerations && updatedUser.lifetimeGenerations > 0 && updatedUser.lifetimeGenerations % 10 === 0) {
+                setShowMilestone(true);
+            }
+
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert("Generation failed.");
@@ -413,6 +441,7 @@ const StandardFeature: React.FC<{
                 }
             />
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*" />
+            {showMilestone && <MilestoneSuccessModal onClose={() => setShowMilestone(false)} />}
         </>
     );
 }
@@ -539,6 +568,11 @@ const DashboardHome: React.FC<{
     const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
     const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
 
+    // Progress Logic for Loyalty Bonus
+    const lifetimeGens = user?.lifetimeGenerations || 0;
+    const progressToBonus = lifetimeGens % 10;
+    const progressPercent = (progressToBonus / 10) * 100;
+
     // Helper to map feature name to view ID for "Generate Another"
     const getFeatureViewId = (featureName: string): View => {
         const map: Record<string, View> = {
@@ -640,28 +674,39 @@ const DashboardHome: React.FC<{
 
                 {/* Right: Boxy Layout (40% -> 2/5) */}
                 <div className="lg:col-span-2 flex flex-col gap-6 h-full">
-                    {/* Row 1: Stats */}
-                    <div className="grid grid-cols-2 gap-6 shrink-0">
-                         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
-                             <div className="p-3 bg-blue-50 rounded-full mb-2">
-                                 <ProjectsIcon className="w-6 h-6 text-blue-500" />
+                    {/* Row 1: Stats with Loyalty Progress */}
+                    <div className="grid grid-cols-2 gap-6 shrink-0 h-40">
+                         <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center h-full relative overflow-hidden">
+                             {/* Visual Progress Bar Background */}
+                             <div className="absolute bottom-0 left-0 h-1.5 bg-gray-100 w-full">
+                                 <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
                              </div>
-                             <span className="text-3xl font-bold text-[#1A1A1E]">{totalGenerations}</span>
-                             <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Total Creations</span>
+                             
+                             <div className="p-2 bg-indigo-50 rounded-full">
+                                 <SparklesIcon className="w-5 h-5 text-indigo-600" />
+                             </div>
+                             <div className="mt-1">
+                                 <span className="text-2xl font-bold text-[#1A1A1E]">{progressToBonus} / 10</span>
+                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Loyalty Bonus</p>
+                             </div>
+                             <div className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">
+                                 Next: +5 Credits
+                             </div>
                          </div>
-                         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-40">
-                             <div className="p-3 bg-purple-50 rounded-full mb-2">
-                                 <SparklesIcon className="w-6 h-6 text-purple-500" />
+
+                         <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center h-full">
+                             <div className="p-2 bg-purple-50 rounded-full mb-2">
+                                 <ProjectsIcon className="w-5 h-5 text-purple-500" />
                              </div>
-                             <span className="text-sm font-bold text-[#1A1A1E] line-clamp-2 w-full break-words px-2" title={mostUsedFeature}>
+                             <span className="text-sm font-bold text-[#1A1A1E] line-clamp-2 w-full break-words px-1" title={mostUsedFeature}>
                                 {mostUsedFeature.replace('Magic ', '')}
                              </span>
-                             <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mt-1">Favorite Tool</span>
+                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mt-1">Favorite Tool</span>
                          </div>
                     </div>
 
                     {/* Row 2: Daily Mission (Tray) */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-h-[160px]">
                          <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
                     </div>
                 </div>
@@ -768,9 +813,8 @@ const ProductStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> 
         try {
             const res = await generateProductPackPlan([image.base64.base64], productName, "A great product", { colors: [], fonts: []}, "", []);
             setResult(res);
-            await deductCredits(auth.user.uid, appConfig?.featureCosts['Product Studio'] || 5, 'Product Studio');
-            // Note: Product Studio usually generates a JSON plan, not an image directly here in this shim implementation.
-            // For visualization, we might just show the JSON or partials.
+            const updatedUser = await deductCredits(auth.user.uid, appConfig?.featureCosts['Product Studio'] || 5, 'Product Studio');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert("Failed to generate plan.");
@@ -832,7 +876,8 @@ const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({
         try {
             const res = await generateCaptions(image.base64.base64, image.base64.mimeType);
             setCaptions(res);
-            await deductCredits(auth.user.uid, appConfig?.featureCosts['CaptionAI'] || 1, 'CaptionAI');
+            const updatedUser = await deductCredits(auth.user.uid, appConfig?.featureCosts['CaptionAI'] || 1, 'CaptionAI');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert("Generation failed.");
@@ -1200,6 +1245,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
+    const [showMilestone, setShowMilestone] = useState(false);
 
     // Refs for File Inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1364,8 +1410,14 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            const updated = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            auth.setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
+            const updatedUser = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+            
+             // Check for milestone bonus in updated user object
+             if (updatedUser.lifetimeGenerations && updatedUser.lifetimeGenerations > 0 && updatedUser.lifetimeGenerations % 10 === 0) {
+                setShowMilestone(true);
+            }
+
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert('Generation failed. Please try again.');
@@ -1637,6 +1689,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             }
         />
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        {showMilestone && <MilestoneSuccessModal onClose={() => setShowMilestone(false)} />}
         </>
     );
 };

@@ -34,6 +34,11 @@ export interface User {
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
+  
+  // Engagement Features
+  lifetimeGenerations?: number; // Track total generations for milestones
+  lastAttendanceClaim?: Timestamp; // Track daily check-in
+
   lastDailyMissionCompleted?: Timestamp; // Legacy field, keeping for backward compatibility
   dailyMission?: {
       completedAt: string; // ISO string

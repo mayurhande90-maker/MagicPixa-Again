@@ -1,6 +1,8 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon } from './icons';
+import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
   user: User | null;
@@ -39,6 +41,8 @@ const NavButton: React.FC<{
 
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navigateTo, appConfig }) => {
+  const [isClaiming, setIsClaiming] = useState(false);
+
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
@@ -74,8 +78,66 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView, navi
     setActiveView(view);
   }
 
+  const hasClaimedToday = () => {
+    if (!user?.lastAttendanceClaim) return false;
+    const last = user.lastAttendanceClaim.toDate();
+    const now = new Date();
+    return last.getDate() === now.getDate() && last.getMonth() === now.getMonth() && last.getFullYear() === now.getFullYear();
+  };
+
+  const handleClaim = async () => {
+    if (!user || hasClaimedToday()) return;
+    setIsClaiming(true);
+    try {
+        // We rely on the parent to update user state via Auth listener, but for immediate feedback we might need a callback
+        // Ideally `Sidebar` should receive `setUser` or `onUserUpdate` prop, but for now we rely on firebase transaction success.
+        // The main App `onAuthStateChanged` listener usually picks up changes on refresh/token refresh, 
+        // but purely for UX speed we can trigger a page reload or just wait. 
+        // However, since `claimDailyAttendance` returns the new user data, we should probably emit it up.
+        // IMPORTANT: Since Sidebar props don't include setUser, we'll just trigger the action. 
+        // The `App.tsx` listens to `auth.onAuthStateChanged` which fires on user changes. 
+        // Wait, Firestore updates don't auto-trigger `onAuthStateChanged`. 
+        // We should ideally pass `setUser` down. For now, we'll reload the page or just let the user know.
+        // Actually, `App.tsx` listens to `onAuthStateChanged` which handles *Auth* state, not *Firestore* document changes.
+        // To fix this properly without refactoring the whole app to real-time listeners:
+        await claimDailyAttendance(user.uid);
+        window.location.reload(); // Simple way to refresh state for now as requested "minimal changes"
+    } catch (e) {
+        console.error("Claim failed", e);
+        alert("Failed to claim credit. Try again.");
+    } finally {
+        setIsClaiming(false);
+    }
+  };
+
   return (
     <aside className="hidden lg:flex w-72 bg-[#F4F6F8] border-r border-gray-200/80 p-4 flex-col">
+        
+        {/* Daily Check-in Card */}
+        {user && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-bold text-xs uppercase tracking-wider opacity-80">Daily Check-in</h3>
+                    <div className="p-1 bg-white/20 rounded-full">
+                        <CheckIcon className="w-3 h-3 text-white" />
+                    </div>
+                </div>
+                <p className="text-2xl font-bold mb-1">Free Credit</p>
+                <p className="text-xs text-indigo-100 mb-3">Claim +1 credit every 24 hours.</p>
+                <button 
+                    onClick={handleClaim}
+                    disabled={hasClaimedToday() || isClaiming}
+                    className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${
+                        hasClaimedToday() 
+                        ? 'bg-white/20 text-white cursor-default' 
+                        : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] hover:scale-105 shadow-md'
+                    }`}
+                >
+                    {isClaiming ? 'Claiming...' : hasClaimedToday() ? 'Claimed Today' : 'Claim +1 Credit'}
+                </button>
+            </div>
+        )}
+
         <nav className="flex-1 space-y-1">
             {navStructure.map((item, index) => {
             if (item.type === 'divider') {

@@ -113,17 +113,32 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
     // Profile exists, just return the data.
     const userData = docSnap.data();
     
-    // Fix for legacy users who might be missing the dailyMission field
-    if (userData && !userData.dailyMission) {
-         const defaultMission = {
-            completedAt: new Date(0).toISOString(),
-            nextUnlock: new Date(0).toISOString(),
-            lastMissionId: null
-        };
-        // Self-heal the record asynchronously
-        userRef.set({ dailyMission: defaultMission }, { merge: true }).catch(e => console.error("Failed to patch legacy user", e));
-        
-        return { ...userData, dailyMission: defaultMission };
+    // Self-heal: Add missing engagement fields if they don't exist
+    if (userData) {
+        let needsUpdate = false;
+        const updatePayload: any = {};
+
+        if (!userData.dailyMission) {
+            updatePayload.dailyMission = {
+                completedAt: new Date(0).toISOString(),
+                nextUnlock: new Date(0).toISOString(),
+                lastMissionId: null
+            };
+            needsUpdate = true;
+        }
+        if (userData.lifetimeGenerations === undefined) {
+            updatePayload.lifetimeGenerations = 0;
+            needsUpdate = true;
+        }
+        if (userData.lastAttendanceClaim === undefined) {
+            updatePayload.lastAttendanceClaim = null;
+            needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+             userRef.set(updatePayload, { merge: true }).catch(e => console.error("Failed to patch legacy user", e));
+             return { ...userData, ...updatePayload };
+        }
     }
 
     return userData;
@@ -139,6 +154,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       plan: 'Free', // All users are on a pay-as-you-go model now
       signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
       totalSpent: 0,
+      lifetimeGenerations: 0, // Init generation count
+      lastAttendanceClaim: null, // Init attendance
       // Initialize daily mission structure
       dailyMission: {
           completedAt: new Date(0).toISOString(), // Epoch start
@@ -168,9 +185,7 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
 
 /**
  * DEFINITIVE FIX: Atomically deducts credits using a more robust transaction pattern.
- * This version completes the transaction writes first, then re-fetches the user data.
- * This avoids potential issues with returning values from inside a transaction handler
- * and makes the function more resilient.
+ * Also handles the "Loyalty Loop" (every 10th generation = +5 credits).
  * @param uid The user's unique ID.
  * @param amount The number of credits to deduct.
  * @param feature The name of the feature used.
@@ -181,6 +196,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
   const userRef = db.collection("users").doc(uid);
   const newTransactionRef = db.collection(`users/${uid}/transactions`).doc();
+  const bonusTransactionRef = db.collection(`users/${uid}/transactions`).doc();
 
   try {
     // Run the transaction to perform writes.
@@ -198,7 +214,6 @@ export const deductCredits = async (uid: string, amount: number, feature: string
 
       const currentCredits = userProfile.credits;
       if (typeof currentCredits !== 'number' || isNaN(currentCredits)) {
-        console.error(`Data validation failed: User ${uid} has a non-numeric credit balance.`, userProfile);
         throw new Error("A data error occurred. Could not process your request.");
       }
 
@@ -206,16 +221,42 @@ export const deductCredits = async (uid: string, amount: number, feature: string
         throw new Error("Insufficient credits.");
       }
 
+      // Engagement Logic: Increment generations
+      const currentGens = userProfile.lifetimeGenerations || 0;
+      const newGens = currentGens + 1;
+      
+      // Check for Milestone (Every 10th generation)
+      const isMilestone = newGens > 0 && newGens % 10 === 0;
+      
+      // Calculate net credit change
+      // If milestone, we deduct cost but add 5 bonus. 
+      // E.g., Cost 2, Bonus 5 => Net +3.
+      // We will log them separately but update atomically.
+      const netChange = isMilestone ? (-amount + 5) : -amount;
+
       // Perform writes
       transaction.update(userRef, {
-        credits: firebase.firestore.FieldValue.increment(-amount),
+        credits: firebase.firestore.FieldValue.increment(netChange),
+        lifetimeGenerations: newGens
       });
 
+      // Log the cost deduction
       transaction.set(newTransactionRef, {
         feature,
         cost: amount,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
+
+      // Log the bonus if applicable
+      if (isMilestone) {
+          transaction.set(bonusTransactionRef, {
+            feature: "Loyalty Bonus",
+            creditChange: "+5",
+            reason: "10th Generation Milestone",
+            cost: 0,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+      }
     });
 
     // After the transaction succeeds, fetch the latest user profile data.
@@ -226,26 +267,69 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     return updatedDoc.data();
 
   } catch (error: any) {
-    // DETAILED LOGGING: Log the entire error object to the console for debugging.
-    // This will show specific Firestore error codes like 'permission-denied'.
-    console.error("Credit deduction transaction failed. Full error object:", error);
-
-    // Check for specific error codes or messages to give user-friendly feedback
-    if (error.code === 'permission-denied') {
-        throw new Error("A permissions error occurred. Please check your Firestore security rules.");
-    }
+    console.error("Credit deduction transaction failed:", error);
     if (error.message?.includes("Insufficient credits")) {
       throw new Error("You don't have enough credits for this action.");
     }
-    if (error.message?.includes("User profile does not exist")) {
-        throw new Error("Your user profile could not be found. Please try signing out and in again.");
-    }
-    
-    // For all other transaction failures, throw the generic message.
     throw new Error("An error occurred while processing your request. Please try again.");
   }
 };
 
+
+/**
+ * Claims the daily attendance credit (+1 credit every 24 hours).
+ * @param uid The user's unique ID.
+ */
+export const claimDailyAttendance = async (uid: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+
+    const userRef = db.collection("users").doc(uid);
+    const transactionRef = db.collection(`users/${uid}/transactions`).doc();
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) throw new Error("User not found.");
+
+            const userData = userDoc.data();
+            const lastClaim = userData?.lastAttendanceClaim;
+            const now = new Date();
+            
+            // Check if already claimed today (Server time logic)
+            if (lastClaim) {
+                const lastDate = lastClaim.toDate();
+                if (lastDate.getDate() === now.getDate() && 
+                    lastDate.getMonth() === now.getMonth() && 
+                    lastDate.getFullYear() === now.getFullYear()) {
+                    throw new Error("Already claimed today.");
+                }
+            }
+
+            // Update User
+            transaction.update(userRef, {
+                credits: firebase.firestore.FieldValue.increment(1),
+                totalCreditsAcquired: firebase.firestore.FieldValue.increment(1),
+                lastAttendanceClaim: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Log Transaction
+            transaction.set(transactionRef, {
+                feature: "Daily Attendance",
+                creditChange: "+1",
+                reason: "Daily Check-in",
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                cost: 0
+            });
+        });
+
+        const updatedDoc = await userRef.get();
+        return updatedDoc.data();
+
+    } catch (error: any) {
+        console.error("Attendance claim failed:", error);
+        throw error;
+    }
+};
 
 /**
  * DEFINITIVE FIX: Atomically adds purchased credits using a corrected and robust transaction pattern.
