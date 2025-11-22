@@ -7,6 +7,7 @@ import Billing from './components/Billing';
 import { AdminPanel } from './components/AdminPanel';
 import { ReferralModal } from './components/ReferralModal';
 import { MagicPhotoStudio } from './features/MagicPhotoStudio';
+import { MagicInterior } from './features/MagicInterior';
 import { DashboardHome } from './features/DashboardHome';
 import { Creations } from './features/Creations';
 import { CaptionAI } from './features/CaptionAI';
@@ -24,7 +25,6 @@ import {
     completeDailyMission
 } from './firebase';
 import { 
-    generateInteriorDesign, 
     colourizeImage, 
     generateMagicSoul, 
     generateApparelTryOn, 
@@ -32,7 +32,8 @@ import {
     generateProductPackPlan, 
     editImageWithPrompt,
     generateBrandStylistImage,
-    generateThumbnail
+    generateThumbnail,
+    generateInteriorDesign
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { getDailyMission, isMissionLocked } from './utils/dailyMissions';
@@ -574,7 +575,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'colour':
                  return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
             case 'interior':
-                 return <StandardFeature title="Magic Interior" description="Redesign your space." icon={<HomeIcon className="w-6 h-6 text-orange-500"/>} cost={appConfig?.featureCosts['Magic Interior'] || 2} auth={auth} onGenerate={async (img, p) => await generateInteriorDesign(img.base64, img.mimeType, p || 'Modern', 'home', 'Living Room')} />;
+                 return <MagicInterior auth={auth} appConfig={appConfig} />;
             case 'apparel':
                  return <StandardFeature title="Magic Apparel" description="Virtual Try-On." icon={<UsersIcon className="w-6 h-6 text-teal-500"/>} cost={appConfig?.featureCosts['Magic Apparel'] || 3} auth={auth} onGenerate={async (img) => await generateApparelTryOn(img.base64, img.mimeType, [])} />;
             case 'mockup':
