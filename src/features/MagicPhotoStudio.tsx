@@ -101,6 +101,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const autoScroll = () => {
         if (scrollRef.current) {
+            // Tuned to 100ms for snappier, smoother feel
             setTimeout(() => {
                 const element = scrollRef.current;
                 if (element) {
@@ -109,7 +110,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         behavior: 'smooth'
                     });
                 }
-            }, 300); 
+            }, 100); 
         }
     };
 

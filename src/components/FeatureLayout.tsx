@@ -238,8 +238,8 @@ export const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content Area */}
                         <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
-                            {/* Increase padding bottom to ensure content clears the footer visually when scrolled - Increased to pb-32 */}
-                            <div className="flex flex-col h-full justify-start pb-32">
+                            {/* Increase padding bottom to ensure content clears the footer visually when scrolled - Increased to pb-48 for large gap */}
+                            <div className="flex flex-col h-full justify-start pb-48">
                                 {/* Content */}
                                 <div className="space-y-2 flex-col">
                                     {rightContent}
@@ -249,7 +249,7 @@ export const FeatureLayout: React.FC<{
 
                         {/* Fixed Footer for Generate Button */}
                         {!hideGenerateButton && (
-                            <div className="pt-4 border-t border-gray-200 bg-[#F6F7FA] flex-shrink-0 z-10">
+                            <div className="pt-6 border-t border-gray-200 bg-[#F6F7FA] flex-shrink-0 z-10">
                                 <button 
                                     onClick={onGenerate} 
                                     disabled={isGenerating || !canGenerate}
