@@ -1497,6 +1497,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    
+    // New state for Drag & Drop
+    const [isDragging, setIsDragging] = useState(false);
 
     // Refs for File Inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1587,6 +1590,52 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             setSelectedPrompt(null);
             
             setImage({ url: URL.createObjectURL(file), base64 });
+        }
+    };
+
+    // Drag and Drop Handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                const base64 = await fileToBase64(file);
+                
+                // Reset state same as handleUpload
+                setResult(null);
+                setStudioMode(null);
+                setCategory(''); setBrandStyle(''); setVisualType('');
+                setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
+                setModelComposition(''); setModelFraming('');
+                setSuggestedPrompts([]);
+                setSuggestedModelPrompts([]);
+                setSelectedPrompt(null);
+                
+                setImage({ url: URL.createObjectURL(file), base64 });
+            } else {
+                alert("Please drop a valid image file.");
+            }
         }
     };
 
@@ -1808,7 +1857,15 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     <div className="w-full h-full flex justify-center">
                         <div 
                             onClick={() => fileInputRef.current?.click()}
-                            className="h-full w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-white rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden hover:-translate-y-1 hover:shadow-xl mx-auto"
+                            onDragOver={handleDragOver}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${
+                                isDragging 
+                                ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' 
+                                : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'
+                            }`}
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
                                 <UploadIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
@@ -1824,6 +1881,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Drag Overlay */}
+                            {isDragging && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                    <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
+                                        <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
+                                            <UploadIcon className="w-5 h-5"/> Drop to Upload!
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )
