@@ -1481,7 +1481,15 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
     );
 };
 
-const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
+    // Mode Selection State
+    const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
+
+    // Determine cost based on current mode selection. Default to base studio cost if no mode selected yet.
+    const currentCost = studioMode === 'model' 
+        ? (appConfig?.featureCosts['Model Shot'] || 3) 
+        : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
+
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -1499,8 +1507,6 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<{ display: string; prompt: string }[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
-    // Mode Selection State
-    const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
 
     // Manual Refinement State (Product)
     const [category, setCategory] = useState('');
@@ -1526,6 +1532,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const bodyTypes = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
     const compositionTypes = ['Single Model', 'Group Shot'];
     const shotTypes = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
+
+    // Check if user has enough credits for the selected operation
+    const userCredits = auth.user?.credits || 0;
+    // We only block if an image is uploaded AND credits are insufficient for current/default mode
+    const isLowCredits = image && userCredits < currentCost;
 
     // Animation Timer for Loading Text
     useEffect(() => {
@@ -1619,13 +1630,8 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
 
-        // Calculate cost first
-        const cost = studioMode === 'model' 
-            ? (appConfig?.featureCosts['Model Shot'] || 3) 
-            : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
-
         // FIX: Strict credit check with fallback for undefined
-        if ((auth.user.credits || 0) < cost) {
+        if (userCredits < currentCost) {
             alert("Insufficient credits. Please purchase a pack to continue.");
             return;
         }
@@ -1660,7 +1666,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             const url = `data:image/png;base64,${res}`;
             setResult(url);
             saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            const updatedUser = await deductCredits(auth.user.uid, cost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
             
              // Check for milestone bonus in updated user object
             if (updatedUser.lifetimeGenerations) {
@@ -1691,15 +1697,11 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setSelectedPrompt(null);
     };
 
-    const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && (
+    const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
             : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming))
     );
-
-    const currentCost = studioMode === 'model' 
-        ? (appConfig?.featureCosts['Model Shot'] || 3) 
-        : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
 
     return (
         <>
@@ -1715,6 +1717,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
             resultHeightClass="h-[560px]"
+            hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
@@ -1810,6 +1813,24 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         </div>
                         <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
                         <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
+                    </div>
+                ) : isLowCredits ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
+                            <CreditCardIcon className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
+                        <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">
+                            This generation requires <span className="font-bold text-gray-800">{currentCost} credits</span>, but you only have <span className="font-bold text-red-500">{userCredits}</span>.
+                        </p>
+                        <button
+                            onClick={() => navigateTo('dashboard', 'billing')}
+                            className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg shadow-yellow-500/20 hover:scale-105 flex items-center gap-2"
+                        >
+                            <SparklesIcon className="w-5 h-5" />
+                            Recharge Now
+                        </button>
+                        <p className="text-xs text-gray-400 mt-4">Or earn credits by referring friends!</p>
                     </div>
                 ) : (
                     <div className="space-y-4 animate-fadeIn p-1">
