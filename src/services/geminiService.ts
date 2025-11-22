@@ -141,16 +141,17 @@ YOUR JOB:
    - People (age range, mood, activity, expressions, poses).
    - Place and setting (indoor/outdoor, city/nature, travel, food, event, etc.).
    - Objects, fashion, colours, time of day, and overall vibe.
-2. Based ONLY on what is visible, generate 5 distinct caption options.
+2. Based ONLY on what is visible, generate exactly 6 distinct caption options.
 
 CAPTION STYLE RULES:
-- Write ONLY in ${language}. Do NOT mix languages.
+- Write ONLY in ${language}. Do NOT mix languages for the main text.
 - Use very simple, everyday, natural language.
 - No generic AI lines like "Here is a caption".
 - Short, scroll-stopping, personal tone (friendly, casual).
 - Emojis: Minimal (0–2) and natural.
 
 HASHTAG RULES:
+- **CRITICAL:** Hashtags MUST ALWAYS be in ENGLISH, even if the caption language is ${language}.
 - Ad-friendly and safe.
 - 8–15 organic keywords per caption.
 - Mix broad and niche tags related to the photo.
@@ -162,9 +163,9 @@ QUALITY RULES:
 - Clean grammar and spelling.
 
 OUTPUT FORMAT:
-Return a JSON array of exactly 5 objects. Each object must have:
+Return a JSON array of exactly 6 objects. Each object must have:
 - "caption": The caption sentence(s).
-- "hashtags": The string of hashtags.`;
+- "hashtags": The string of hashtags (IN ENGLISH).`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
