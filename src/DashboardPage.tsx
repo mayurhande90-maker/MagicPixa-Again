@@ -295,7 +295,7 @@ const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content Area */}
                         <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
-                            {/* Increase padding bottom to ensure content clears the footer visually when scrolled */}
+                            {/* Increase padding bottom to ensure content clears the footer visually when scrolled - Increased to pb-32 */}
                             <div className="flex flex-col h-full justify-start pb-32">
                                 {/* Content */}
                                 <div className="space-y-2 flex-col">
@@ -1738,7 +1738,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
-            resultHeightClass="h-[650px]" // Reduced height to approx 60% of previous 1050px (was 1050, now 650)
+            resultHeightClass="h-[600px]" // Reduced height to approx 60% of previous (approx 600px)
             hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
