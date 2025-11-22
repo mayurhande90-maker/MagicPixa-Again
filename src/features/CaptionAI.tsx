@@ -4,7 +4,7 @@ import { AuthProps, AppConfig } from '../types';
 import { generateCaptions } from '../services/geminiService';
 import { deductCredits } from '../firebase';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
-import { FeatureLayout } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid } from '../components/FeatureLayout';
 import { CaptionIcon, CopyIcon, UploadIcon, XIcon, ArrowUpCircleIcon } from '../components/icons';
 
 export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
@@ -12,7 +12,10 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [captions, setCaptions] = useState<{caption: string; hashtags: string}[]>([]);
-    const [language, setLanguage] = useState('English');
+    
+    // User Inputs
+    const [language, setLanguage] = useState('');
+    const [captionType, setCaptionType] = useState('');
     
     // UI States
     const [isDragging, setIsDragging] = useState(false);
@@ -27,11 +30,13 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < cost;
 
+    const captionTypes = ['SEO Friendly', 'Long Caption', 'Short Caption'];
+
     // Animation Timer
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Scanning Image...", "Analyzing Mood...", "Writing Captions...", "Generating Hashtags...", "Finalizing..."];
+            const steps = ["Scanning Image...", "Researching Trends...", "Analyzing Keywords...", "Drafting Content...", "Finalizing..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -114,14 +119,19 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
         setCaptions([]); // Clear previous results
 
         try {
-            const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language);
+            const res = await generateCaptions(
+                image.base64.base64, 
+                image.base64.mimeType, 
+                language || 'English', 
+                (captionType as any) || 'SEO Friendly'
+            );
             setCaptions(res);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'CaptionAI');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             autoScroll();
         } catch (e) {
             console.error(e);
-            alert("Generation failed.");
+            alert("Generation failed. Please try again.");
         } finally {
             setLoading(false);
             setIsAnalyzing(false);
@@ -131,22 +141,26 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const handleNewSession = () => {
         setImage(null);
         setCaptions([]);
-        setLanguage('English');
+        setLanguage('');
+        setCaptionType('');
     };
+
+    // Check if ready to generate
+    const canGenerate = !!image && !isLowCredits && !!language && !!captionType;
 
     return (
         <>
             <FeatureLayout
                 title="CaptionAI"
-                description="Get viral captions in your language. Optimized for engagement."
-                icon={<CaptionIcon className="w-6 h-6 text-amber-500"/>}
+                description="Get viral, research-backed captions optimized for engagement and organic reach."
+                icon={<CaptionIcon className="w-6 h-6 text-indigo-500"/>}
                 creditCost={cost}
                 isGenerating={loading}
-                canGenerate={!!image && !isLowCredits}
+                canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={null} // Captions don't generate a result image
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[600px]" // Match Magic Photo Studio height
+                resultHeightClass="h-[600px]" 
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -160,9 +174,9 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                             {/* Loading Animation Overlay */}
                             {(loading || isAnalyzing) && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                    {/* Animated Gradient Bar */}
+                                    {/* Animated Gradient Bar (Blue/Purple theme) */}
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                        <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                     </div>
                                     <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                                 </div>
@@ -205,25 +219,25 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                 onDrop={handleDrop}
                                 className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${
                                     isDragging 
-                                    ? 'border-amber-500 bg-amber-50 scale-[1.02] shadow-xl' 
-                                    : 'border-amber-300 hover:border-amber-500 bg-white hover:-translate-y-1 hover:shadow-xl'
+                                    ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' 
+                                    : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'
                                 }`}
                             >
-                                <div className="relative z-10 p-6 bg-amber-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <CaptionIcon className="w-12 h-12 text-amber-400 group-hover:text-amber-600 transition-colors duration-300" />
+                                <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                    <CaptionIcon className="w-12 h-12 text-indigo-400 group-hover:text-indigo-600 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                     <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Photo</p>
                                     <div className="bg-gray-50 rounded-full px-3 py-1 inline-block">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Click to Browse</p>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p>
                                     </div>
                                 </div>
 
                                 {isDragging && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-amber-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
-                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-amber-100 animate-bounce">
-                                            <p className="text-lg font-bold text-amber-600 flex items-center gap-2">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
+                                            <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
                                                 <UploadIcon className="w-5 h-5"/> Drop to Upload!
                                             </p>
                                         </div>
@@ -246,12 +260,15 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                         <div className="space-y-6 p-1 animate-fadeIn">
                             {/* Language Selection */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Select Language</label>
+                                <div className="flex items-center justify-between mb-3 ml-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Language</label>
+                                    {language && <button onClick={() => { setLanguage(''); setCaptionType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>}
+                                </div>
                                 <div className="flex gap-3">
                                     {['English', 'Hindi', 'Marathi'].map(lang => (
                                         <button
                                             key={lang}
-                                            onClick={() => setLanguage(lang)}
+                                            onClick={() => { setLanguage(lang); autoScroll(); }}
                                             className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
                                                 language === lang
                                                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105'
@@ -263,6 +280,21 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Caption Style Selection (Visible after Language) */}
+                            {language && (
+                                <div className="animate-fadeIn">
+                                    <SelectionGrid 
+                                        label="2. Caption Style (Deep Research)" 
+                                        options={captionTypes} 
+                                        value={captionType} 
+                                        onChange={(val) => { setCaptionType(val); autoScroll(); }} 
+                                    />
+                                    <p className="text-[10px] text-gray-400 px-1 -mt-4 mb-4 italic">
+                                        AI will research current internet trends for the best results.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Results Grid */}
                             {captions.length > 0 && (
@@ -280,15 +312,14 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                                 style={{ animationDelay: `${i * 100}ms` }}
                                             >
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed">{c.caption}</p>
-                                                    <p className="text-xs text-blue-600 font-semibold leading-snug opacity-80">{c.hashtags}</p>
+                                                    <p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed whitespace-pre-line">{c.caption}</p>
+                                                    <p className="text-xs text-indigo-600 font-semibold leading-snug opacity-80">{c.hashtags}</p>
                                                 </div>
                                                 <button 
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`);
-                                                        // Optional: Add visual feedback state here
                                                     }} 
-                                                    className="mt-4 w-full py-2 bg-gray-50 hover:bg-amber-50 text-gray-500 hover:text-amber-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors border border-transparent hover:border-amber-200"
+                                                    className="mt-4 w-full py-2 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors border border-transparent hover:border-indigo-200"
                                                 >
                                                     <CopyIcon className="w-3 h-3"/> Copy Caption
                                                 </button>
