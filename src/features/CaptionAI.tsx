@@ -5,7 +5,7 @@ import { generateCaptions } from '../services/geminiService';
 import { deductCredits } from '../firebase';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { FeatureLayout, SelectionGrid } from '../components/FeatureLayout';
-import { CaptionIcon, CopyIcon, UploadIcon, XIcon, ArrowUpCircleIcon } from '../components/icons';
+import { CaptionIcon, CopyIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CheckIcon } from '../components/icons';
 
 export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -20,6 +20,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     // UI States
     const [isDragging, setIsDragging] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +144,13 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
         setCaptions([]);
         setLanguage('');
         setCaptionType('');
+        setCopiedIndex(null);
+    };
+
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
     };
 
     // Check if ready to generate
@@ -164,7 +172,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
-                    label: "Generate Captions"
+                    label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions"
                 }}
                 scrollRef={scrollRef}
                 leftContent={
@@ -316,12 +324,22 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                                     <p className="text-xs text-indigo-600 font-semibold leading-snug opacity-80">{c.hashtags}</p>
                                                 </div>
                                                 <button 
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`${c.caption}\n\n${c.hashtags}`);
-                                                    }} 
-                                                    className="mt-4 w-full py-2 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors border border-transparent hover:border-indigo-200"
+                                                    onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, i)} 
+                                                    className={`mt-4 w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 ${
+                                                        copiedIndex === i 
+                                                        ? 'bg-green-100 text-green-700 border border-green-200' 
+                                                        : 'bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 border border-transparent hover:border-indigo-200'
+                                                    }`}
                                                 >
-                                                    <CopyIcon className="w-3 h-3"/> Copy Caption
+                                                    {copiedIndex === i ? (
+                                                        <>
+                                                            <CheckIcon className="w-3 h-3"/> Copied
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CopyIcon className="w-3 h-3"/> Copy Caption
+                                                        </>
+                                                    )}
                                                 </button>
                                             </div>
                                         ))}
