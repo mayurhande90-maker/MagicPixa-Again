@@ -20,6 +20,35 @@ export const STYLE_PROMPTS: Record<string, string> = {
     'Modern Corporate': `Apply Modern Corporate style: clean functional layout, ergonomic furniture, neutral palette with subtle brand accents. Use acoustic panels, organized work zones, soft overhead lighting, and clutter-free surfaces. Emphasize professionalism, comfort, and efficient movement flow.`
 };
 
+// Curtain Styles Configuration
+const CURTAIN_STYLES: Record<string, string> = {
+    'Modern': 'simple matte-fabric curtains with clean straight folds, neutral colors',
+    'Minimalist': 'very light sheer curtains, soft white or beige, thin profile',
+    'Japanese': 'natural linen curtains with soft earthy tones and gentle texture', // Japandi
+    'American': 'double-layer curtains with soft drapes and a subtle pattern',
+    'Coastal': 'sheer white or light-blue curtains, airy, allowing sunlight',
+    'Traditional Indian': 'rich fabric, earthy or warm colors, simple ethnic pattern, brass rod',
+    'Arabic': 'thicker luxurious drapes with elegant folds, warm tones, decorative finials',
+    'Futuristic': 'smooth, monochrome, minimal wave-fold curtains with sleek rail',
+    'Tech Futuristic': 'smooth, monochrome, minimal wave-fold curtains with sleek rail',
+    'African': 'textured fabric with earthy tone or subtle ethnic weave',
+    'Industrial': 'neutral fabric in simple straight drop, mounted on dark metal rod',
+    'Creative / Artistic': 'mildly expressive color or texture that fits the room palette',
+    'Luxury Executive': 'premium heavy drapes with elegant folds, deep muted tones',
+    'Biophilic / Nature-Inspired': 'natural organic fabric curtains, breathable texture, soft earth tones',
+    'Modern Corporate': 'professional roller blinds or clean, structured neutral drapes'
+};
+
+const CURTAIN_RULES = `
+*** AUTOMATIC CURTAIN GENERATION RULES ***
+- TRIGGER: If a window is detected in the photo, you MUST add curtains/blinds suited to the style.
+- CONSTRAINTS: Do NOT remove or modify the original window structure, shape, size, or position.
+- MOUNTING: Curtain rod must be realistically mounted on the wall or ceiling exactly above the window frame.
+- PHYSICS: Curtains must fall naturally with gravity, reaching near floor height when appropriate. No floating. No clipping into walls/furniture.
+- LIGHTING: Shadows and highlights must follow the original light direction. Adjust transparency (sheer vs blackout) based on style.
+- SCALE: Curtain must be proportionate to window width and height.
+`;
+
 // Room-Specific Safety Checks
 const ROOM_SPECIFIC_CHECKS: Record<string, string> = {
     'Living Room': `Check: Sofa/back not blocking windows/doors. Rug coverage: at least front legs on rug. TV placement: line-of-sight clear, no glare.`,
@@ -51,7 +80,7 @@ const COMPREHENSIVE_VALIDATION_RULES = `
 
 2. IMMUTABLE STRUCTURES
 - Check: No changes to walls, windows, doors, columns.
-- CRITICAL: DO NOT cover windows or doors with new objects.
+- CRITICAL: DO NOT cover windows or doors with new objects (except curtains/blinds).
 
 3. SCALE & PROPORTION (STRICT)
 - Sofa depth: 0.85–1.00 m.
@@ -96,6 +125,7 @@ const analyzeAndPlanRenovation = async (
 ): Promise<string> => {
     const roomChecks = ROOM_SPECIFIC_CHECKS[roomType] || "";
     const styleChecks = STYLE_SPECIFIC_CHECKS[style] || "";
+    const curtainDef = CURTAIN_STYLES[style] || "style-appropriate neutral curtains";
 
     const prompt = `You are a World-Class Senior Interior Architect and Spatial Analyst.
     
@@ -110,11 +140,16 @@ const analyzeAndPlanRenovation = async (
     TASK 2: APPLY VALIDATION CHECKS
     ${COMPREHENSIVE_VALIDATION_RULES}
     
-    TASK 3: ROOM & STYLE SPECIFIC CHECKS
+    TASK 3: WINDOW TREATMENT STRATEGY
+    ${CURTAIN_RULES}
+    - Selected Curtain Style: "${curtainDef}"
+    - INSTRUCTION: If windows are detected, explicitly include these curtains in the DESIGN PLAN below.
+    
+    TASK 4: ROOM & STYLE SPECIFIC CHECKS
     - Room Logic: ${roomChecks}
     - Style Logic: ${styleChecks}
     
-    TASK 4: DEEP INTERNET RESEARCH (Use Google Search)
+    TASK 5: DEEP INTERNET RESEARCH (Use Google Search)
     - Search for "Trending ${style} ${roomType} designs 2025".
     - Find 2-3 specific trending furniture pieces or layout concepts that are popular right now for this style.
     
@@ -122,7 +157,7 @@ const analyzeAndPlanRenovation = async (
     Format:
     "PERSPECTIVE: [Camera specs].
      CONSTRAINTS: [List specific furniture placements to AVOID to prevent blocking doors/windows].
-     DESIGN PLAN: [Layout instructions based on trends].
+     DESIGN PLAN: [Layout instructions based on trends, INCLUDING CURTAINS if windows exist].
      LIGHTING: [Lighting plan].
      CONFIRMATION: [State that checking rules 1-7 passed]."
     `;
@@ -167,6 +202,7 @@ export const generateInteriorDesign = async (
     // We feed the specific blueprint into the image generator.
     
     const styleMicroPrompt = STYLE_PROMPTS[style] || `${style} style.`;
+    const curtainDef = CURTAIN_STYLES[style] || "neutral, photorealistic curtains fitting the style";
 
     const prompt = `You are Magic Interiors — a hyper-realistic Interior rendering AI.
     
@@ -177,6 +213,11 @@ export const generateInteriorDesign = async (
     Execute the Architect's Blueprint above on the uploaded image.
     
     ${COMPREHENSIVE_VALIDATION_RULES}
+    
+    *** MANDATORY WINDOW TREATMENT ***
+    - IF a window is present in the image, ADD CURTAINS: ${curtainDef}.
+    - CONSTRAINTS: Do NOT remove/alter the window structure.
+    - PHYSICS: Curtains must be realistically mounted, fall naturally with gravity, and have correct transparency/shadows.
     
     DESIGN INSTRUCTIONS:
     - Style: ${style}
