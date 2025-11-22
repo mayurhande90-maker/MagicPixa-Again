@@ -115,6 +115,11 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
             return;
         }
 
+        // Final Safety Check
+        if (!language || !captionType) {
+            return;
+        }
+
         setLoading(true);
         setIsAnalyzing(true);
         setCaptions([]); // Clear previous results
@@ -153,7 +158,8 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
         setTimeout(() => setCopiedIndex(null), 2000);
     };
 
-    // Check if ready to generate
+    // Strict check: Generation is only possible if both Language AND Caption Type are selected.
+    // If user clears language, captionType is also cleared (see clear handler below), enforcing re-selection.
     const canGenerate = !!image && !isLowCredits && !!language && !!captionType;
 
     return (
@@ -172,6 +178,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
+                    // Dynamic label: "Regenerate" only if captions exist AND we are ready to generate again.
                     label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions"
                 }}
                 scrollRef={scrollRef}
@@ -270,7 +277,17 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Language</label>
-                                    {language && <button onClick={() => { setLanguage(''); setCaptionType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>}
+                                    {language && (
+                                        <button 
+                                            onClick={() => { 
+                                                setLanguage(''); 
+                                                setCaptionType(''); // Critical: Clear type to enforce re-selection
+                                            }} 
+                                            className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="flex gap-3">
                                     {['English', 'Hindi', 'Marathi'].map(lang => (
