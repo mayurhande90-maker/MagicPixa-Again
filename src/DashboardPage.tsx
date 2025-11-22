@@ -214,11 +214,12 @@ const FeatureLayout: React.FC<{
     resultHeightClass?: string;
     hideGenerateButton?: boolean; // New prop to hide the default generate button if custom UI handles it
     disableScroll?: boolean;
+    scrollRef?: React.RefObject<HTMLDivElement>;
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
-    disableScroll
+    disableScroll, scrollRef
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     
@@ -293,7 +294,7 @@ const FeatureLayout: React.FC<{
                         </div>
                         
                         {/* Scrollable Content Area */}
-                        <div className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
+                        <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
                             <div className="flex flex-col h-full justify-start pb-4">
                                 {/* Content */}
                                 <div className="space-y-2 flex-col">
@@ -1499,6 +1500,9 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     // Refs for File Inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Ref for auto-scrolling the right panel
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1553,6 +1557,17 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         return () => clearInterval(interval);
     }, [loading]);
 
+    const autoScroll = () => {
+        if (scrollRef.current) {
+            setTimeout(() => {
+                scrollRef.current?.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 150); 
+        }
+    };
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -1575,6 +1590,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setResult(null); // Clear any existing result to start scanning afresh on the original image
         setStudioMode(mode);
         setSelectedPrompt(null);
+        autoScroll();
         
         if (mode === 'product') {
             setIsAnalyzing(true);
@@ -1620,11 +1636,13 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
         setCategory(val);
         setBrandStyle('');
         setVisualType('');
+        autoScroll();
     };
 
     const handleBrandStyleSelect = (val: string) => {
         setBrandStyle(val);
         setVisualType('');
+        autoScroll();
     };
 
     const handleGenerate = async () => {
@@ -1716,13 +1734,13 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
-            resultHeightClass="h-[1050px]" // Increased to remove internal scrolling and fix clipping
-            disableScroll={true} // Explicitly disable internal scrolling for this feature
+            resultHeightClass="h-[630px]" // Reduced height to approx 60% of previous 1050px
             hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
+            scrollRef={scrollRef} // Pass the scroll ref to enable auto-scroll
             leftContent={
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -1943,16 +1961,16 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                                                              </div>
                                                         </div>
                                                         {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />}
-                                                        {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                        {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />
-                                                        {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); }} />}
-                                                        {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); }} />}
-                                                        {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); }} />}
-                                                        {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); }} />}
-                                                        {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
+                                                        <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
+                                                        {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
+                                                        {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); autoScroll(); }} />}
+                                                        {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); autoScroll(); }} />}
+                                                        {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
+                                                        {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
                                                     </>
                                                 )}
                                             </div>
