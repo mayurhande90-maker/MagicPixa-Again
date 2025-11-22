@@ -295,7 +295,8 @@ const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content Area */}
                         <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
-                            <div className="flex flex-col h-full justify-start pb-36">
+                            {/* Increase padding bottom to ensure content clears the footer visually when scrolled */}
+                            <div className="flex flex-col h-full justify-start pb-32">
                                 {/* Content */}
                                 <div className="space-y-2 flex-col">
                                     {rightContent}
@@ -1560,10 +1561,13 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
     const autoScroll = () => {
         if (scrollRef.current) {
             setTimeout(() => {
-                scrollRef.current?.scrollTo({
-                    top: scrollRef.current.scrollHeight,
-                    behavior: 'smooth'
-                });
+                const element = scrollRef.current;
+                if (element) {
+                    element.scrollTo({
+                        top: element.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
             }, 300); 
         }
     };
@@ -1734,7 +1738,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
-            resultHeightClass="h-[630px]" // Reduced height to approx 60% of previous 1050px
+            resultHeightClass="h-[650px]" // Reduced height to approx 60% of previous 1050px (was 1050, now 650)
             hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
