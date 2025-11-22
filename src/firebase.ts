@@ -741,14 +741,11 @@ export const getAppConfig = async (): Promise<AppConfig> => {
     const configRef = db.collection("config").doc("main");
     const docSnap = await configRef.get();
   
-    if (docSnap.exists) {
-      return docSnap.data() as AppConfig;
-    } else {
-      console.warn("App configuration not found in Firestore. Creating a default one.");
-      const defaultConfig: AppConfig = {
+    // Define the canonical default configuration with ALL current features
+    const defaultConfig: AppConfig = {
         featureCosts: {
           'Magic Photo Studio': 2,
-          'Model Shot': 3, // Added default cost for Model Shot
+          'Model Shot': 3,
           'Thumbnail Studio': 2,
           'Product Studio': 5,
           'Brand Stylist AI': 4,
@@ -759,6 +756,8 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Apparel': 3,
           'Magic Mockup': 2,
           'Magic Eraser': 1,
+          'Magic Scanner': 1,
+          'Magic Notes': 2,
         },
         featureToggles: {
           'studio': true,
@@ -780,7 +779,22 @@ export const getAppConfig = async (): Promise<AppConfig> => {
             { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
             { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
         ],
+    };
+
+    if (docSnap.exists) {
+      const dbConfig = docSnap.data() as AppConfig;
+      // Smart Merge: Ensure new keys in code (defaultConfig) appear even if DB is older.
+      // This fixes "New Feature not showing" issues.
+      return {
+          ...defaultConfig,
+          ...dbConfig,
+          featureCosts: { ...defaultConfig.featureCosts, ...(dbConfig.featureCosts || {}) },
+          featureToggles: { ...defaultConfig.featureToggles, ...(dbConfig.featureToggles || {}) },
+          // Arrays like creditPacks are overwritten by DB if present, as merging arrays is ambiguous
+          creditPacks: dbConfig.creditPacks || defaultConfig.creditPacks
       };
+    } else {
+      console.warn("App configuration not found in Firestore. Creating a default one.");
       await configRef.set(defaultConfig);
       return defaultConfig;
     }
@@ -825,12 +839,21 @@ export const getTotalRevenue = async (): Promise<number> => {
 export const getAllUsers = async (): Promise<any[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
     const usersRef = db.collection("users");
-    const snapshot = await usersRef.orderBy("signUpDate", "desc").get();
+    
+    // Remove server-side ordering to prevent filtering out users missing the field.
+    // Fetch ALL users and sort in memory.
+    const snapshot = await usersRef.get();
     const users: any[] = [];
     snapshot.forEach(doc => {
         users.push({ ...doc.data(), uid: doc.id });
     });
-    return users;
+    
+    // Robust client-side sort handling potential missing/malformed dates
+    return users.sort((a, b) => {
+        const dateA = a.signUpDate?.seconds || (a.signUpDate ? new Date(a.signUpDate).getTime() / 1000 : 0);
+        const dateB = b.signUpDate?.seconds || (b.signUpDate ? new Date(b.signUpDate).getTime() / 1000 : 0);
+        return dateB - dateA;
+    });
 };
 
 /**
