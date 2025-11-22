@@ -292,21 +292,29 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     ) : (
                         <div className="space-y-6 p-1 animate-fadeIn">
                             
-                            {/* 1. Space Type Toggle */}
+                            {/* 1. Space Type Buttons */}
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Space Type</label>
                                 </div>
-                                <div className="bg-gray-100 p-1 rounded-xl flex">
+                                <div className="flex gap-3">
                                     <button 
                                         onClick={() => { setSpaceType('home'); setRoomType(''); setStyle(''); }}
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'home' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
+                                            spaceType === 'home' 
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105' 
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                        }`}
                                     >
                                         🏡 Residential
                                     </button>
                                     <button 
                                         onClick={() => { setSpaceType('office'); setRoomType(''); setStyle(''); }}
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'office' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
+                                            spaceType === 'office' 
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105' 
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                        }`}
                                     >
                                         🏢 Commercial
                                     </button>
