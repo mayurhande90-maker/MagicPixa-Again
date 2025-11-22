@@ -297,12 +297,12 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 <div className="flex items-center justify-between mb-3 ml-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Space Type</label>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 p-1">
                                     <button 
                                         onClick={() => { setSpaceType('home'); setRoomType(''); setStyle(''); }}
                                         className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
                                             spaceType === 'home' 
-                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105' 
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md' 
                                             : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                                         }`}
                                     >
@@ -312,7 +312,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         onClick={() => { setSpaceType('office'); setRoomType(''); setStyle(''); }}
                                         className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
                                             spaceType === 'office' 
-                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105' 
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md' 
                                             : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                                         }`}
                                     >
