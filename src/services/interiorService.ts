@@ -1,4 +1,3 @@
-
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 
@@ -21,6 +20,25 @@ export const STYLE_PROMPTS: Record<string, string> = {
     'Modern Corporate': `Apply Modern Corporate style: clean functional layout, ergonomic furniture, neutral palette with subtle brand accents. Use acoustic panels, organized work zones, soft overhead lighting, and clutter-free surfaces. Emphasize professionalism, comfort, and efficient movement flow.`
 };
 
+const STRICT_PHYSICS_RULES = `
+STRICT LAYOUT & PHYSICS RULES (ZERO TOLERANCE):
+- **Never block doors, windows, or essential pathways** with furniture.
+- Maintain minimum walking clearance: 80–100 cm around main furniture pieces.
+- **Do not place beds directly in front of doors** or in tight corners without space to walk.
+- Do not attach heavy fixtures (swings, cabinets) to weak drywall; only use structural beams/walls.
+- **Keep furniture proportions realistic**: sofa depth ~0.9m, dining table height ~0.75m, chair seat height ~0.45m.
+- Maintain safe distance between stove and flammable materials.
+- Lighting fixtures must be realistically supported (no floating lamps).
+- Rugs must be proportioned realistically and fit under main furniture edges.
+- Avoid placing electronics near sinks or water zones.
+- **Avoid overstuffing small rooms** — keep spatial logic realistic.
+- **Match shadows** to detected light direction; no impossible lighting.
+- **Respect the camera angle and vanishing points** — no distorted or misaligned furniture.
+- **Do not change structural elements** (walls, windows, doors) unless user explicitly asks.
+- Keep décor at believable human heights (artwork ~1.5m center from floor).
+- Maintain ergonomic desk setups: monitor at eye level, chair under desk clearance, proper leg room.
+`;
+
 /**
  * PHASE 1: THE ARCHITECT (Analysis & Research)
  * This function uses a text/multimodal model with Google Search to create a safe, 
@@ -41,10 +59,13 @@ const analyzeAndPlanRenovation = async (
     
     TASK 1: DEEP VISUAL & PHYSICS ANALYSIS
     - STRICTLY identify all exits, doors, and windows.
-    - DEFINE "NO-GO ZONES": Where can furniture NOT go? (e.g., "Do not block the door on the left", "Keep window line of sight clear").
+    - DEFINE "NO-GO ZONES": Where can furniture NOT go?
     - Analyze the perspective: Where is the vanishing point? What is the camera height?
     
-    TASK 2: DEEP INTERNET RESEARCH (Use Google Search)
+    TASK 2: APPLY STRICT SAFETY & ERGONOMIC RULES
+    ${STRICT_PHYSICS_RULES}
+    
+    TASK 3: DEEP INTERNET RESEARCH (Use Google Search)
     - Search for "Trending ${style} ${roomType} designs 2025".
     - Find 2-3 specific trending furniture pieces or layout concepts that are popular right now for this style.
     
@@ -105,22 +126,19 @@ export const generateInteriorDesign = async (
     *** YOUR MISSION ***
     Execute the Architect's Blueprint above on the uploaded image.
     
-    STRICT PHYSICS & PERSPECTIVE RULES:
-    1. **DO NOT BLOCK EXITS:** If the Blueprint says a door/window is in a specific spot, YOU MUST NOT place a sofa, bed, or table in front of it.
-    2. **PRESERVE STRUCTURAL INTEGRITY:** Do not move walls or change the shape of the room.
-    3. **MATCH PERSPECTIVE:** All new furniture must align perfectly with the original floor perspective and vanishing point identified in the Blueprint.
-    4. **SCALE:** Do not create tiny chairs or giant tables. Use real-world scales.
+    ${STRICT_PHYSICS_RULES}
     
     DESIGN INSTRUCTIONS:
     - Style: ${style}
     - Room: ${roomType} (${spaceType})
     - Details: ${styleMicroPrompt}
     
-    RENDER SETTINGS:
-    - Photorealistic 8k render.
-    - Global Illumination.
-    - Soft shadows matching original light source.
-    - High-texture PBR materials.
+    RENDER SETTINGS (PHOTOREALISM PRIORITY):
+    - **Output must look like a real photograph, NOT a 3D render.**
+    - Use RAW photography style, natural film grain, imperfect textures.
+    - Global Illumination, Path Tracing.
+    - Soft shadows matching original light source exactly.
+    - High-texture PBR materials (scratches, smudges, fabric weaves).
     
     Output ONLY the transformed image.`;
 
