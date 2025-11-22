@@ -87,6 +87,7 @@ export interface Purchase {
 export interface Creation {
     id: string;
     imageUrl: string;
+    thumbnailUrl?: string; // Added for optimization
     storagePath: string;
     feature: string;
     createdAt: Timestamp;

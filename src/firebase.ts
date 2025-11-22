@@ -1,3 +1,4 @@
+
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -7,6 +8,7 @@ import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
 import { AppConfig, Purchase, User } from './types';
+import { resizeImage } from './utils/imageUtils';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -638,6 +640,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 
 /**
  * Saves a newly generated image to Storage and its metadata to Firestore.
+ * Also generates and saves a lightweight thumbnail for faster loading.
  * @param uid The user's unique ID.
  * @param dataUri The data URI of the image (e.g., 'data:image/png;base64,...').
  * @param feature The name of the feature used.
@@ -652,17 +655,34 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
         
         const creationId = db.collection('users').doc().id; // Generate a unique ID
         const storagePath = `creations/${uid}/${creationId}.png`;
-        const storageRef = storage.ref(storagePath);
+        const thumbStoragePath = `creations/${uid}/${creationId}_thumb.jpg`;
         
-        // Convert base64 to blob and upload
+        const storageRef = storage.ref(storagePath);
+        const thumbStorageRef = storage.ref(thumbStoragePath);
+        
+        // 1. Upload Original
         const imageBlob = base64ToBlob(base64, mimeType);
         const uploadTask = await storageRef.put(imageBlob);
         const downloadURL = await uploadTask.ref.getDownloadURL();
 
-        // Save metadata to Firestore
+        // 2. Generate & Upload Thumbnail
+        let thumbDownloadURL = null;
+        try {
+            const thumbDataUri = await resizeImage(dataUri, 300, 0.7);
+            const [thumbHeader, thumbBase64] = thumbDataUri.split(',');
+            const thumbBlob = base64ToBlob(thumbBase64, 'image/jpeg');
+            
+            const thumbUploadTask = await thumbStorageRef.put(thumbBlob);
+            thumbDownloadURL = await thumbUploadTask.ref.getDownloadURL();
+        } catch (thumbError) {
+            console.warn("Failed to generate thumbnail, falling back to original URL.", thumbError);
+        }
+
+        // 3. Save metadata to Firestore
         const creationRef = db.collection(`users/${uid}/creations`).doc(creationId);
         await creationRef.set({
             imageUrl: downloadURL,
+            thumbnailUrl: thumbDownloadURL || downloadURL, // Fallback to original if thumb failed
             storagePath: storagePath,
             feature: feature,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -672,8 +692,6 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
 
     } catch (error) {
         console.error("Error saving creation:", error);
-        // We don't throw here to avoid interrupting the user's flow if saving fails.
-        // In a real app, you might want a more robust error handling/retry mechanism.
     }
 };
 
@@ -702,9 +720,14 @@ export const getCreations = async (uid: string): Promise<any[]> => {
 export const deleteCreation = async (uid: string, creation: { id: string; storagePath: string }): Promise<void> => {
     if (!db || !storage) throw new Error("Firebase is not initialized.");
 
-    // Delete from Storage
+    // Delete from Storage (Original)
     const storageRef = storage.ref(creation.storagePath);
-    await storageRef.delete();
+    await storageRef.delete().catch(e => console.warn("Could not delete original image", e));
+    
+    // Delete from Storage (Thumbnail - try/catch as it might not exist for old items)
+    const thumbPath = creation.storagePath.replace('.png', '_thumb.jpg');
+    const thumbRef = storage.ref(thumbPath);
+    await thumbRef.delete().catch(e => console.warn("Could not delete thumbnail or it didn't exist", e));
     
     // Delete from Firestore
     const creationRef = db.doc(`users/${uid}/creations/${creation.id}`);
@@ -852,7 +875,5 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     }
     return updatedDoc.data();
 };
-
-
 
 export { app, auth };

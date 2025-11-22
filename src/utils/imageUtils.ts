@@ -29,4 +29,44 @@ export const fileToBase64 = (file: File): Promise<Base64File> => {
     };
   });
 };
-// Minor change for commit.
+
+/**
+ * Resizes a base64 image string to a specific max width, returning a new base64 string.
+ * Used for creating lightweight thumbnails.
+ */
+export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = dataUri;
+        
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error("Could not get canvas context"));
+                return;
+            }
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Export as JPEG for smaller file size, regardless of input
+            const resizedDataUri = canvas.toDataURL('image/jpeg', quality);
+            resolve(resizedDataUri);
+        };
+        
+        img.onerror = (err) => {
+            reject(err);
+        };
+    });
+};

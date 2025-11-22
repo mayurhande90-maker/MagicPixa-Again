@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Creation } from './types';
 import Sidebar from './components/Sidebar';
@@ -693,7 +694,7 @@ const DashboardHome: React.FC<{
                             className="relative h-full group cursor-zoom-in"
                             onClick={() => setZoomedImage(latestCreation.imageUrl)}
                         >
-                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" />
+                            <img src={latestCreation.thumbnailUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
                                 <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
@@ -831,7 +832,8 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth }) => 
         }
     }, [auth.user]);
 
-    const handleDelete = async (creation: Creation) => {
+    const handleDelete = async (e: React.MouseEvent, creation: Creation) => {
+        e.stopPropagation();
         if (confirm('Delete this creation?')) {
             if (auth.user) {
                 await deleteCreation(auth.user.uid, creation);
@@ -840,17 +842,32 @@ const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth }) => 
         }
     };
 
+    const handleDownload = (e: React.MouseEvent, url: string) => {
+        e.stopPropagation();
+        downloadImage(url, 'creation.png');
+    };
+
     return (
         <div className="p-8">
             <h2 className="text-2xl font-bold mb-6">My Creations</h2>
             {loading ? <p>Loading...</p> : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {creations.map(c => (
-                        <div key={c.id} className="group relative aspect-square bg-gray-100 rounded-xl overflow-hidden">
-                            <img src={c.imageUrl} className="w-full h-full object-cover" alt="Creation" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button onClick={() => downloadImage(c.imageUrl, 'creation.png')} className="p-2 bg-white rounded-full"><DownloadIcon className="w-5 h-5"/></button>
-                                <button onClick={() => handleDelete(c)} className="p-2 bg-white rounded-full text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <div 
+                            key={c.id} 
+                            className="group relative aspect-square bg-gray-100 rounded-xl overflow-hidden cursor-pointer"
+                            onClick={() => window.open(c.imageUrl, '_blank')}
+                            title="Click to open full resolution in new tab"
+                        >
+                            <img 
+                                src={c.thumbnailUrl || c.imageUrl} 
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                                alt="Creation" 
+                                loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+                                <button onClick={(e) => handleDownload(e, c.imageUrl)} className="p-2 bg-white rounded-full hover:bg-gray-100"><DownloadIcon className="w-5 h-5"/></button>
+                                <button onClick={(e) => handleDelete(e, c)} className="p-2 bg-white rounded-full text-red-500 hover:bg-red-50"><TrashIcon className="w-5 h-5"/></button>
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-xs truncate">
                                 {c.feature}
