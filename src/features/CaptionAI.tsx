@@ -195,7 +195,8 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     // Dynamic label: "Regenerate" only if captions exist AND we are ready to generate again.
-                    label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions"
+                    label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions",
+                    hideIcon: true
                 }}
                 scrollRef={scrollRef}
                 leftContent={
