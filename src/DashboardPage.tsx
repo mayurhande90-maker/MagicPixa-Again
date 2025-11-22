@@ -295,7 +295,7 @@ const FeatureLayout: React.FC<{
                         
                         {/* Scrollable Content Area */}
                         <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
-                            <div className="flex flex-col h-full justify-start pb-32">
+                            <div className="flex flex-col h-full justify-start pb-36">
                                 {/* Content */}
                                 <div className="space-y-2 flex-col">
                                     {rightContent}
@@ -1564,7 +1564,7 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                     top: scrollRef.current.scrollHeight,
                     behavior: 'smooth'
                 });
-            }, 200); 
+            }, 300); 
         }
     };
 
