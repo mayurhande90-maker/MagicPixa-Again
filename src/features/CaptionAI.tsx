@@ -25,6 +25,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const resultsRef = useRef<HTMLDivElement>(null);
 
     // Determine Cost
     const cost = appConfig?.featureCosts['CaptionAI'] || 1;
@@ -59,6 +60,21 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                     });
                 }
             }, 100); 
+        }
+    };
+
+    const scrollToResults = () => {
+        if (scrollRef.current && resultsRef.current) {
+            setTimeout(() => {
+                const element = resultsRef.current;
+                const container = scrollRef.current;
+                if (element && container) {
+                    container.scrollTo({
+                        top: element.offsetTop - 20, // Add some breathing room
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
         }
     };
 
@@ -134,7 +150,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
             setCaptions(res);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'CaptionAI');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            autoScroll();
+            scrollToResults();
         } catch (e) {
             console.error(e);
             alert("Generation failed. Please try again.");
@@ -293,7 +309,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                     {['English', 'Hindi', 'Marathi'].map(lang => (
                                         <button
                                             key={lang}
-                                            onClick={() => { setLanguage(lang); autoScroll(); }}
+                                            onClick={() => { setLanguage(lang); }}
                                             className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 ${
                                                 language === lang
                                                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg scale-105'
@@ -323,7 +339,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
 
                             {/* Results Grid */}
                             {captions.length > 0 && (
-                                <div className="mt-6 animate-fadeIn">
+                                <div className="mt-6 animate-fadeIn" ref={resultsRef}>
                                     <div className="flex items-center justify-between mb-4 ml-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Generated Captions</label>
                                         <span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">6 OPTIONS</span>
