@@ -1,0 +1,373 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { User, Page, View, AppConfig, Creation } from '../types';
+import { 
+    getCreations, 
+} from '../firebase';
+import { downloadImage } from '../utils/imageUtils';
+import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
+import { ImageModal } from '../components/FeatureLayout';
+import { CreatorRanksModal } from '../components/CreatorRanksModal';
+import { 
+    PhotoStudioIcon, 
+    SparklesIcon, 
+    DownloadIcon, 
+    ProjectsIcon,
+    UsersIcon,
+    LightbulbIcon,
+    ThumbnailIcon,
+    PaletteIcon,
+    HomeIcon,
+    MockupIcon,
+    CaptionIcon,
+    ProductStudioIcon,
+    FlagIcon,
+    CheckIcon,
+    GiftIcon,
+    InformationCircleIcon
+} from '../components/icons';
+
+const DailyQuest: React.FC<{ 
+    user: User | null;
+    navigateTo: (page: Page, view?: View) => void;
+}> = ({ user, navigateTo }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    const mission = getDailyMission();
+    // Use strict server-based locking logic
+    const isLocked = useMemo(() => isMissionLocked(user), [user]);
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            if (!user?.dailyMission?.nextUnlock) return;
+            
+            const now = new Date();
+            const nextReset = new Date(user.dailyMission.nextUnlock);
+            const diff = nextReset.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                setTimeLeft("Ready!");
+                return;
+            }
+            
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            
+            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        };
+        
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 1000);
+        return () => clearInterval(timer);
+    }, [user]);
+
+    return (
+        <div className={`rounded-3xl p-4 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
+            isLocked 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
+        }`}>
+            {!isLocked && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
+            
+            <div>
+                <div className="flex items-center justify-between mb-2 relative z-10">
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
+                        isLocked 
+                        ? 'bg-green-200 text-green-800' 
+                        : 'bg-red-500 text-white border border-white/10 animate-pulse'
+                    }`}>
+                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
+                    </span>
+                    {!isLocked && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
+                </div>
+                
+                <h3 className={`text-xl font-bold mb-2 relative z-10 ${isLocked ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
+                <p className={`text-xs mb-3 relative z-10 leading-relaxed line-clamp-3 ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
+            </div>
+            
+            <div className="relative z-10 mt-auto">
+                {!isLocked ? (
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
+                        <div>
+                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Complete to Unlock</p>
+                            <p className="text-xl font-black text-[#1A1A1E] flex items-center gap-1 leading-none">
+                               +5 <span className="text-xs font-bold text-amber-700">CREDITS</span>
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => navigateTo('dashboard', 'daily_mission')}
+                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg whitespace-nowrap"
+                        >
+                            Start Mission
+                        </button>
+                    </div>
+                ) : (
+                    <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
+                         <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Reward Claimed</span>
+                         <span className="text-xs font-mono text-green-600">Next mission will unlock in {timeLeft}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export const DashboardHome: React.FC<{ 
+    user: User | null; 
+    navigateTo: (page: Page, view?: View, sectionId?: string) => void; 
+    setActiveView: (view: View) => void;
+    appConfig: AppConfig | null;
+    openReferralModal: () => void;
+}> = ({ user, navigateTo, setActiveView, appConfig, openReferralModal }) => {
+    
+    const [creations, setCreations] = useState<Creation[]>([]);
+    const [loadingCreations, setLoadingCreations] = useState(true);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [showRanksModal, setShowRanksModal] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            getCreations(user.uid).then(data => {
+                setCreations(data as Creation[]);
+                setLoadingCreations(false);
+            });
+        }
+    }, [user]);
+
+    // Greeting Logic
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    };
+
+    // Stats Logic
+    const totalGenerations = creations.length;
+    const featureCounts: Record<string, number> = {};
+    creations.forEach(c => {
+        featureCounts[c.feature] = (featureCounts[c.feature] || 0) + 1;
+    });
+    const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
+    const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
+
+    // Progress Logic for Loyalty Bonus (Non-linear: 10, 30, 50...)
+    const lifetimeGens = user?.lifetimeGenerations || 0;
+    let nextMilestone = 10;
+    let prevMilestone = 0;
+    let nextReward = 5;
+
+    if (lifetimeGens >= 10) {
+        // Formula logic matching firebase.ts:
+        // 10 -> 5
+        // 30 -> 10 (Gap 20)
+        // 50 -> 15 (Gap 20)
+        // Blocks passed = floor((gens - 10) / 20)
+        const blocksPassed = Math.floor((lifetimeGens - 10) / 20) + 1;
+        nextMilestone = 10 + (blocksPassed * 20);
+        prevMilestone = nextMilestone - 20;
+        nextReward = 5 + (blocksPassed * 5);
+    }
+    
+    // Calculate percent within the current gap
+    let progressPercent = 0;
+    if (lifetimeGens < 10) {
+        progressPercent = (lifetimeGens / 10) * 100;
+    } else {
+        progressPercent = ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+    }
+    // Clamp
+    progressPercent = Math.min(100, Math.max(0, progressPercent));
+
+
+    // Helper to map feature name to view ID for "Generate Another"
+    const getFeatureViewId = (featureName: string): View => {
+        const map: Record<string, View> = {
+            'Magic Photo Studio': 'studio',
+            'Model Shot': 'studio',
+            'Product Studio': 'product_studio',
+            'Brand Stylist AI': 'brand_stylist',
+            'Thumbnail Studio': 'thumbnail_studio',
+            'Magic Soul': 'soul',
+            'Magic Photo Colour': 'colour',
+            'CaptionAI': 'caption',
+            'Magic Interior': 'interior',
+            'Magic Apparel': 'apparel',
+            'Magic Mockup': 'mockup'
+        };
+        // Try exact match first, then check if it contains the feature name
+        if (map[featureName]) return map[featureName];
+        const key = Object.keys(map).find(k => featureName.includes(k));
+        return key ? map[key] : 'studio';
+    };
+
+    const latestCreation = creations.length > 0 ? creations[0] : null;
+
+    const tools = [
+        { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
+        { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
+        { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'apparel', label: 'Magic Apparel', icon: UsersIcon, color: 'bg-teal-500' },
+        { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
+    ];
+
+    return (
+        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto animate-fadeIn">
+            {/* Header with Greeting */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-[#1A1A1E]">
+                        {getGreeting()}, {user?.name}!
+                    </h1>
+                    <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
+                </div>
+                
+                <button 
+                    onClick={openReferralModal}
+                    className="md:hidden bg-purple-100 text-purple-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 border border-purple-200"
+                >
+                    <GiftIcon className="w-4 h-4" /> Refer & Earn
+                </button>
+            </div>
+
+            {/* Hero Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
+                
+                {/* Left: Hero Banner (60% -> 3/5) */}
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[450px]">
+                    {loadingCreations ? (
+                         <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
+                    ) : latestCreation ? (
+                        <div 
+                            className="relative h-full group cursor-zoom-in"
+                            onClick={() => setZoomedImage(latestCreation.imageUrl)}
+                        >
+                            <img src={latestCreation.thumbnailUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
+                                <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
+                                <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
+                                <div className="flex gap-3 pointer-events-auto">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            downloadImage(latestCreation.imageUrl, 'latest-creation.png');
+                                        }}
+                                        className="bg-white text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                    >
+                                        <DownloadIcon className="w-4 h-4" /> Download
+                                    </button>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveView(getFeatureViewId(latestCreation.feature));
+                                        }}
+                                        className="bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#dfbc2b] transition-colors flex items-center gap-2"
+                                    >
+                                        <SparklesIcon className="w-4 h-4" /> Generate Another
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-full bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col justify-center items-start text-white relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                             <h2 className="text-3xl font-bold mb-4 relative z-10">Start your creative journey</h2>
+                             <p className="text-gray-400 mb-8 max-w-md relative z-10">You haven't generated anything yet. Try our Magic Photo Studio to transform your first image.</p>
+                             <button 
+                                onClick={() => setActiveView('studio')}
+                                className="bg-[#F9D230] text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors relative z-10"
+                             >
+                                Create Now
+                             </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Boxy Layout (40% -> 2/5) */}
+                <div className="lg:col-span-2 flex flex-col gap-4 h-full">
+                    {/* Row 1: Loyalty Bonus (Full Width Box) */}
+                    <div className="shrink-0 h-[155px] bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                        {/* Decorative BG */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
+                        
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Loyalty Bonus</p>
+                                    <button onClick={() => setShowRanksModal(true)} className="text-gray-500 hover:text-[#4D7CFF] transition-colors">
+                                         <InformationCircleIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <h3 className="text-xl font-black text-[#1A1A1E]">
+                                    {lifetimeGens} <span className="text-sm font-medium text-gray-400">Generations</span>
+                                </h3>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xl font-black text-indigo-600">
+                                    {nextMilestone}
+                                </p>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">Target</p>
+                            </div>
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex justify-between text-xs font-bold mb-1.5">
+                                <span className="text-indigo-600">Progress</span>
+                                <span className="text-gray-500">Next: +{nextReward} Credits</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative" style={{ width: `${progressPercent}%` }}>
+                                     <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Daily Mission (Tray) */}
+                    <div className="flex-1 min-h-[140px]">
+                         <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
+                    </div>
+                </div>
+            </div>
+
+            {/* All Tools Grid */}
+            <div>
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">All Creative Tools</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {tools.map(tool => {
+                        const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
+                        return (
+                            <button
+                                key={tool.id}
+                                onClick={() => setActiveView(tool.id as View)}
+                                disabled={isDisabled}
+                                className={`flex flex-col items-center text-center p-5 rounded-2xl transition-all duration-300 border group ${
+                                    isDisabled 
+                                    ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1'
+                                }`}
+                            >
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
+                                    <tool.icon className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-black">{tool.label}</span>
+                                {isDisabled && <span className="mt-2 text-[10px] font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+            
+            {/* Image Modal for Zoom */}
+            {zoomedImage && <ImageModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />}
+            
+            {/* Ranks Modal */}
+            {showRanksModal && <CreatorRanksModal currentGens={lifetimeGens} onClose={() => setShowRanksModal(false)} />}
+        </div>
+    );
+};
