@@ -1827,13 +1827,22 @@ const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: 
                         />
                         
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
-                            <button 
-                                onClick={() => redoFileInputRef.current?.click()} 
-                                className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all hover:scale-110 z-40 border border-gray-100 group-hover:opacity-100 opacity-0"
-                                title="Change Photo"
-                            >
-                                <UploadIcon className="w-5 h-5"/>
-                            </button>
+                            <>
+                                <button 
+                                    onClick={handleNewSession} 
+                                    className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"
+                                    title="Cancel"
+                                >
+                                    <XIcon className="w-5 h-5"/>
+                                </button>
+                                <button 
+                                    onClick={() => redoFileInputRef.current?.click()} 
+                                    className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
+                                    title="Change Photo"
+                                >
+                                    <UploadIcon className="w-5 h-5"/>
+                                </button>
+                            </>
                         )}
                         <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                         
