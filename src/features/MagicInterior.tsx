@@ -172,7 +172,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <FeatureLayout 
                 title="Magic Interior"
                 description="Redesign any room in seconds. Choose a style and watch your space transform."
-                icon={<HomeIcon className="w-6 h-6 text-orange-500"/>}
+                icon={<HomeIcon className="w-6 h-6 text-indigo-500"/>}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -183,8 +183,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 resultHeightClass="h-[600px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
-                    className: "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/30 border-none hover:scale-[1.02]",
-                    hideIcon: false
+                    className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
+                    hideIcon: true
                 }}
                 scrollRef={scrollRef}
                 leftContent={
@@ -193,7 +193,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                        <div className="h-full bg-gradient-to-r from-orange-400 to-red-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                     </div>
                                     <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                                 </div>
@@ -215,7 +215,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     </button>
                                     <button 
                                         onClick={() => redoFileInputRef.current?.click()} 
-                                        className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-orange-500 hover:text-white text-gray-500 transition-all z-40"
+                                        className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
                                         title="Change Photo"
                                     >
                                         <UploadIcon className="w-5 h-5"/>
@@ -235,25 +235,25 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 onDrop={handleDrop}
                                 className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${
                                     isDragging 
-                                    ? 'border-orange-500 bg-orange-50 scale-[1.02] shadow-xl' 
-                                    : 'border-orange-300 hover:border-orange-500 bg-white hover:-translate-y-1 hover:shadow-xl'
+                                    ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' 
+                                    : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'
                                 }`}
                             >
-                                <div className="relative z-10 p-6 bg-orange-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <HomeIcon className="w-12 h-12 text-orange-400 group-hover:text-orange-600 transition-colors duration-300" />
+                                <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                    <HomeIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                     <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Room Photo</p>
                                     <div className="bg-gray-50 rounded-full px-3 py-1 inline-block">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-orange-600 transition-colors">Click to Browse</p>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p>
                                     </div>
                                 </div>
 
                                 {isDragging && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-orange-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
-                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-orange-100 animate-bounce">
-                                            <p className="text-lg font-bold text-orange-600 flex items-center gap-2">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
+                                            <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
                                                 <UploadIcon className="w-5 h-5"/> Drop to Upload!
                                             </p>
                                         </div>
@@ -300,13 +300,13 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 <div className="bg-gray-100 p-1 rounded-xl flex">
                                     <button 
                                         onClick={() => { setSpaceType('home'); setRoomType(''); setStyle(''); }}
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'home' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'home' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         🏡 Residential
                                     </button>
                                     <button 
                                         onClick={() => { setSpaceType('office'); setRoomType(''); setStyle(''); }}
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'office' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${spaceType === 'office' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         🏢 Commercial
                                     </button>
