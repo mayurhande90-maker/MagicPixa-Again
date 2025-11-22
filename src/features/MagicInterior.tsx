@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCardIcon, SparklesIcon } from '../components/icons';
@@ -209,7 +208,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     <button 
                                         onClick={handleNewSession} 
                                         className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"
-                                        title="Remove Photo"
+                                        title="Cancel"
                                     >
                                         <XIcon className="w-5 h-5"/>
                                     </button>
