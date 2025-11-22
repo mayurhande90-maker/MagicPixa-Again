@@ -20,23 +20,65 @@ export const STYLE_PROMPTS: Record<string, string> = {
     'Modern Corporate': `Apply Modern Corporate style: clean functional layout, ergonomic furniture, neutral palette with subtle brand accents. Use acoustic panels, organized work zones, soft overhead lighting, and clutter-free surfaces. Emphasize professionalism, comfort, and efficient movement flow.`
 };
 
-const STRICT_PHYSICS_RULES = `
-STRICT LAYOUT & PHYSICS RULES (ZERO TOLERANCE):
-- **Never block doors, windows, or essential pathways** with furniture.
-- Maintain minimum walking clearance: 80–100 cm around main furniture pieces.
-- **Do not place beds directly in front of doors** or in tight corners without space to walk.
-- Do not attach heavy fixtures (swings, cabinets) to weak drywall; only use structural beams/walls.
-- **Keep furniture proportions realistic**: sofa depth ~0.9m, dining table height ~0.75m, chair seat height ~0.45m.
-- Maintain safe distance between stove and flammable materials.
-- Lighting fixtures must be realistically supported (no floating lamps).
-- Rugs must be proportioned realistically and fit under main furniture edges.
-- Avoid placing electronics near sinks or water zones.
-- **Avoid overstuffing small rooms** — keep spatial logic realistic.
-- **Match shadows** to detected light direction; no impossible lighting.
-- **Respect the camera angle and vanishing points** — no distorted or misaligned furniture.
-- **Do not change structural elements** (walls, windows, doors) unless user explicitly asks.
-- Keep décor at believable human heights (artwork ~1.5m center from floor).
-- Maintain ergonomic desk setups: monitor at eye level, chair under desk clearance, proper leg room.
+// Room-Specific Safety Checks
+const ROOM_SPECIFIC_CHECKS: Record<string, string> = {
+    'Living Room': `Check: Sofa/back not blocking windows/doors. Rug coverage: at least front legs on rug. TV placement: line-of-sight clear, no glare.`,
+    'Bedroom': `CRITICAL: Bed must NOT block door swing or emergency egress. Nightstand clearance ≥ 0.45m.`,
+    'Kitchen': `Check: Work triangle reasonable. No electronics within 0.6m of water. Do not move plumbing/sinks.`,
+    'Bathroom': `Check: No non-waterproof furniture in wet zones. Vanity depth ≤ 0.6m.`,
+    'Dining Room': `Check: Clearance around chairs ≥ 0.9m. Center table under light source.`,
+    'Home Office': `Check: Desk not blocking door. Monitor at eye level.`,
+    'Open Workspace': `Check: Fire egress preserved. Desk spacing ≥ 1.2m. Acoustic treatment if hard surfaces > 60%.`,
+    'Conference Room': `Check: Walkway clear around table. No glare on AV screen.`,
+    'Reception / Lobby': `Check: Seating not blocking path to desk. Clear sightlines.`
+};
+
+// Style-Specific Logic Checks
+const STYLE_SPECIFIC_CHECKS: Record<string, string> = {
+    'Minimalist': `Check: No excessive decor (>3 items per shelf). Remove clutter.`,
+    'Traditional Indian': `Check: Furniture must have robust bases, no floating tiny legs. Earthy tones required.`,
+    'Futuristic': `Check: LED accents must anchor to structure, not float.`,
+    'Biophilic': `Check: Plants must be in sun-appropriate spots. Do not block exits with pots.`,
+    'Industrial': `Check: Textures must be matte/rough, not plastic gloss.`
+};
+
+const COMPREHENSIVE_VALIDATION_RULES = `
+*** AUTOMATED EXECUTION CHECKLIST (MUST PASS ALL) ***
+
+1. PERSPECTIVE & CAMERA
+- Check: Generated elements align to detected vanishing points (max angular error ≤ 2°).
+- Fix: Reproject geometry to match original perspective exactly.
+
+2. IMMUTABLE STRUCTURES
+- Check: No changes to walls, windows, doors, columns.
+- CRITICAL: DO NOT cover windows or doors with new objects.
+
+3. SCALE & PROPORTION (STRICT)
+- Sofa depth: 0.85–1.00 m.
+- Coffee table height: 0.35–0.45 m.
+- Dining table height: ~0.75m.
+- Door height reference: 2.1m.
+- Bed width: ~1.6m (Double).
+
+4. CIRCULATION & CLEARANCE
+- Minimum clear walking width = 0.8 m.
+- Main paths = 1.0 m.
+- Action: Shift furniture to restore clearance if blocked.
+
+5. LIGHTING & SHADOWS
+- Check: Light direction matches photo (≤ 10° deviation).
+- Action: Ray-trace soft shadows consistent with original light sources.
+
+6. REALISM
+- Check: Micro-variation present (edge wear, slight dirt, tiny specular variance).
+- Film grain: 0.3–1.0.
+- Action: Add subtle imperfections; avoid "AI plastic" look.
+
+7. SAFETY & "NO-SILLY-MISTAKES" (AUTOMATIC FAIL)
+- Bed in front of door -> RELOCATE.
+- Swing attached to drywall -> REMOVE.
+- Floating furniture -> SNAP TO FLOOR.
+- Heavy objects on weak walls -> MOVE.
 `;
 
 /**
@@ -52,6 +94,9 @@ const analyzeAndPlanRenovation = async (
     spaceType: string,
     roomType: string
 ): Promise<string> => {
+    const roomChecks = ROOM_SPECIFIC_CHECKS[roomType] || "";
+    const styleChecks = STYLE_SPECIFIC_CHECKS[style] || "";
+
     const prompt = `You are a World-Class Senior Interior Architect and Spatial Analyst.
     
     INPUT: An image of a ${spaceType} ${roomType}.
@@ -62,10 +107,14 @@ const analyzeAndPlanRenovation = async (
     - DEFINE "NO-GO ZONES": Where can furniture NOT go?
     - Analyze the perspective: Where is the vanishing point? What is the camera height?
     
-    TASK 2: APPLY STRICT SAFETY & ERGONOMIC RULES
-    ${STRICT_PHYSICS_RULES}
+    TASK 2: APPLY VALIDATION CHECKS
+    ${COMPREHENSIVE_VALIDATION_RULES}
     
-    TASK 3: DEEP INTERNET RESEARCH (Use Google Search)
+    TASK 3: ROOM & STYLE SPECIFIC CHECKS
+    - Room Logic: ${roomChecks}
+    - Style Logic: ${styleChecks}
+    
+    TASK 4: DEEP INTERNET RESEARCH (Use Google Search)
     - Search for "Trending ${style} ${roomType} designs 2025".
     - Find 2-3 specific trending furniture pieces or layout concepts that are popular right now for this style.
     
@@ -74,7 +123,8 @@ const analyzeAndPlanRenovation = async (
     "PERSPECTIVE: [Camera specs].
      CONSTRAINTS: [List specific furniture placements to AVOID to prevent blocking doors/windows].
      DESIGN PLAN: [Layout instructions based on trends].
-     LIGHTING: [Lighting plan]."
+     LIGHTING: [Lighting plan].
+     CONFIRMATION: [State that checking rules 1-7 passed]."
     `;
 
     const response = await ai.models.generateContent({
@@ -126,7 +176,7 @@ export const generateInteriorDesign = async (
     *** YOUR MISSION ***
     Execute the Architect's Blueprint above on the uploaded image.
     
-    ${STRICT_PHYSICS_RULES}
+    ${COMPREHENSIVE_VALIDATION_RULES}
     
     DESIGN INSTRUCTIONS:
     - Style: ${style}
@@ -139,6 +189,7 @@ export const generateInteriorDesign = async (
     - Global Illumination, Path Tracing.
     - Soft shadows matching original light source exactly.
     - High-texture PBR materials (scratches, smudges, fabric weaves).
+    - Final Quality Score: Must be > 95/100 on realism check.
     
     Output ONLY the transformed image.`;
 
