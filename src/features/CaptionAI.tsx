@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { generateCaptions } from '../services/geminiService';
+import { generateCaptions } from '../services/captionService';
 import { deductCredits } from '../firebase';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { FeatureLayout, SelectionGrid } from '../components/FeatureLayout';

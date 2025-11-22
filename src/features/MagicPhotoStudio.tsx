@@ -19,7 +19,7 @@ import {
     checkMilestone 
 } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
-import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/geminiService';
+import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
 import { saveCreation, deductCredits } from '../firebase';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
