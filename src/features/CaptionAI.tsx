@@ -329,7 +329,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                         label="2. Caption Style (Deep Research)" 
                                         options={captionTypes} 
                                         value={captionType} 
-                                        onChange={(val) => { setCaptionType(val); autoScroll(); }} 
+                                        onChange={(val) => { setCaptionType(val); if (val) autoScroll(); }} 
                                     />
                                     <p className="text-[10px] text-gray-400 px-1 -mt-4 mb-4 italic">
                                         AI will research current internet trends for the best results.
