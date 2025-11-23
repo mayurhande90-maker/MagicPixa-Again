@@ -10,7 +10,7 @@ import {
     UserIcon,
     TrashIcon
 } from '../components/icons';
-import { FeatureLayout, TextAreaField, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, deductCredits } from '../firebase';
@@ -65,7 +65,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [tuckStyle, setTuckStyle] = useState('');
     const [fitStyle, setFitStyle] = useState('');
     const [sleeveStyle, setSleeveStyle] = useState('');
-    const [userPrompt, setUserPrompt] = useState('');
     
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -85,9 +84,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const isLowCredits = auth.user && userCredits < cost;
 
     // Options for Selection Grids
-    const tuckOptions = ['Tucked In', 'Untucked', 'French Tuck'];
+    const tuckOptions = ['Tucked In', 'Untucked'];
     const fitOptions = ['Slim Fit', 'Regular Fit', 'Oversized'];
-    const sleeveOptions = ['Full Length', 'Rolled Up', 'Cuffed'];
+    const sleeveOptions = ['Full Length', 'Rolled Up'];
 
     // Animation Timer
     useEffect(() => {
@@ -203,7 +202,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 personImage.base64.mimeType,
                 topImage ? topImage.base64 : null,
                 bottomImage ? bottomImage.base64 : null,
-                userPrompt,
+                undefined, // User Prompt removed
                 {
                     tuck: tuckStyle,
                     fit: fitStyle,
@@ -239,7 +238,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setTopImage(null);
         setBottomImage(null);
         setResult(null);
-        setUserPrompt('');
         setTuckStyle('');
         setFitStyle('');
         setSleeveStyle('');
@@ -410,17 +408,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 options={sleeveOptions} 
                                 value={sleeveStyle} 
                                 onChange={setSleeveStyle} 
-                            />
-                        </div>
-
-                        {/* 3. Instructions */}
-                        <div>
-                            <TextAreaField 
-                                label="3. Additional Notes (Optional)"
-                                value={userPrompt}
-                                onChange={(e: any) => setUserPrompt(e.target.value)}
-                                placeholder="e.g. Make sure the collar is popped, add a belt..."
-                                rows={2}
                             />
                         </div>
                     </div>
