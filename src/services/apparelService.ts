@@ -9,15 +9,17 @@ export interface ApparelStylingOptions {
     sleeve?: string;
 }
 
-// Aggressive Image Optimization to prevent API payload limits
+// Aggressive Image Optimization
+// 1. Force JPEG (smaller than PNG)
+// 2. Max dimension 1024px (safe for all Gemini vision models)
+// 3. Quality 0.7 (visually identical for AI analysis, half the file size)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Resize to 1024px max dimension, 0.75 quality JPEG for optimal speed/quality ratio
-        const resizedUri = await resizeImage(dataUri, 1024, 0.75);
+        const resizedUri = await resizeImage(dataUri, 1024, 0.7); 
         const [header, data] = resizedUri.split(',');
-        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-        return { data, mimeType: newMime };
+        // Force header to be image/jpeg as resizeImage returns jpeg
+        return { data, mimeType: 'image/jpeg' };
     } catch (e) {
         console.warn("Image optimization failed, using original", e);
         return { data: base64, mimeType };
@@ -34,17 +36,20 @@ export const generateApparelTryOn = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // Check for Single Outfit Upload (Same image for Top and Bottom)
+    // 1. DETECT DUPLICATES (Full Outfit Mode)
+    // If the base64 strings match, we treat this as a single "Reference Outfit" source.
     const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
 
-    // 1. Optimize Images (Parallel)
+    // 2. OPTIMIZE IMAGES (Parallel Processing)
+    // We resize everything before sending to avoid 413 Payload Too Large or Timeout errors.
     const personPromise = optimizeImage(personBase64, personMimeType);
     let topPromise, bottomPromise;
 
     if (isSameGarmentImage && topGarment) {
-        // If same, just optimize one and reuse the promise result to save processing
-        topPromise = optimizeImage(topGarment.base64, topGarment.mimeType);
-        bottomPromise = topPromise;
+        // OPTIMIZATION: Only resize ONCE if images are identical
+        const sharedPromise = optimizeImage(topGarment.base64, topGarment.mimeType);
+        topPromise = sharedPromise;
+        bottomPromise = sharedPromise;
     } else {
         topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
         bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
@@ -52,94 +57,103 @@ export const generateApparelTryOn = async (
 
     const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
 
-    // Construct the multimodal prompt
+    // 3. CONSTRUCT MULTIMODAL PAYLOAD
     const parts: any[] = [];
     
-    // Part 1: The Person (Target)
-    parts.push({ text: "TARGET MODEL IMAGE:" });
+    // Part A: The Target Model
+    parts.push({ text: "TARGET MODEL (The person to dress):" });
     parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
-    let instructions = `ROLE: Expert AI Fashion Stylist & Image Compositor.
-    TASK: High-Fidelity Virtual Try-On.
-    
-    OBJECTIVE: Photorealistically dress the TARGET MODEL in the provided reference garment(s).
-    `;
-
+    // Part B: The Garments
     if (isSameGarmentImage && optTop) {
-        // --- SCENARIO A: FULL OUTFIT TRANSFER (Same Image in Top & Bottom slots) ---
-        parts.push({ text: "REFERENCE OUTFIT IMAGE (Contains FULL LOOK):" });
+        // SINGLE REFERENCE MODE (Deduplicated)
+        // We send the image ONCE, but instruct the model to use it for BOTH parts.
+        parts.push({ text: "REFERENCE OUTFIT (Source for both Top and Bottom):" });
         parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        
-        instructions += `
-        **CRITICAL INSTRUCTION: FULL OUTFIT EXTRACTION**
-        The user has provided a SINGLE reference image containing a complete outfit (Top + Bottom).
-        1. **UPPER BODY**: Identify and extract the shirt/jacket/top from the Reference Image. Apply it to the Target Model's torso.
-        2. **LOWER BODY**: Identify and extract the pants/skirt/shorts from the Reference Image. Apply it to the Target Model's legs.
-        3. **INTEGRATION**: Seamlessly blend them at the waist.
-        `;
     } else {
-        // --- SCENARIO B: SEPARATE GARMENTS ---
+        // DISTINCT GARMENTS MODE
         if (optTop) {
-            parts.push({ text: "REFERENCE TOP GARMENT:" });
+            parts.push({ text: "REFERENCE TOP (Upper Body):" });
             parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-            instructions += `**STEP 1**: Replace the Target Model's upper-body clothing with the REFERENCE TOP GARMENT.\n`;
         }
-
         if (optBottom) {
-            parts.push({ text: "REFERENCE BOTTOM GARMENT:" });
+            parts.push({ text: "REFERENCE BOTTOM (Lower Body):" });
             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            instructions += `**STEP 2**: Replace the Target Model's lower-body clothing with the REFERENCE BOTTOM GARMENT.\n`;
         }
     }
 
-    // --- STYLING LOGIC (Strict Constraints) ---
+    // 4. SYSTEM INSTRUCTION (The "Hard Prompt")
+    let instructions = `TASK: Professional Virtual Fashion Compositing.
+    ACTION: Dress the TARGET MODEL in the REFERENCE OUTFIT.
+    
+    *** CRITICAL EXECUTION PROTOCOL ***
+    `;
+
+    if (isSameGarmentImage) {
+        instructions += `
+        **SCENARIO: FULL OUTFIT TRANSFER**
+        The "REFERENCE OUTFIT" image shows a complete look (Shirt + Pants).
+        1. Mentally segment the Upper Garment from the reference. Apply it to the model.
+        2. Mentally segment the Lower Garment from the reference. Apply it to the model.
+        3. Ensure they meet naturally at the waistline.
+        `;
+    } else {
+        instructions += `
+        **SCENARIO: MIX & MATCH**
+        1. Replace model's top with "REFERENCE TOP".
+        2. Replace model's bottom with "REFERENCE BOTTOM".
+        3. Blend the waistline naturally.
+        `;
+    }
+
+    // 5. STYLING OVERRIDES (The Logic Fix)
     const hasStyling = stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve);
     
     if (hasStyling) {
         instructions += `
-        **MANDATORY STYLING OVERRIDES (PRIORITY 1)**:
-        You MUST Ignore the reference image's original styling if it conflicts with these rules:
+        \n*** STYLING OVERRIDES (HIGHEST PRIORITY) ***
+        You are authorized to MODIFY the geometry of the reference garments to match these commands. 
+        Do not strictly copy the pixels if they conflict with these rules.
         `;
+        
         if (stylingOptions?.tuck) {
-            instructions += `- **WAIST INTERACTION**: Force the style to be "${stylingOptions.tuck}". 
-            (If 'Tucked In': The top MUST go inside the waistband. Synthesize a belt if needed.
-             If 'Untucked': The top MUST drape over the waistband. Synthesize the hemline if cut off in reference.)\n`;
+            instructions += `- **WAIST STYLE**: ${stylingOptions.tuck}. 
+            (Instruction: If the user wants "Tucked In" but the reference is Untucked, you must GENERATE the belt/waistband area and hide the shirttails. If "Untucked", extend the fabric over the waist.)\n`;
         }
         if (stylingOptions?.fit) {
-            instructions += `- **FIT**: Adjust fabric drape to be "${stylingOptions.fit}".\n`;
+            instructions += `- **FIT**: ${stylingOptions.fit}. (Adjust fabric looseness/tightness accordingly).\n`;
         }
         if (stylingOptions?.sleeve) {
-            instructions += `- **SLEEVES**: Force sleeves to be "${stylingOptions.sleeve}". Roll up or extend as commanded.\n`;
+            instructions += `- **SLEEVES**: ${stylingOptions.sleeve}. (Roll up or extend sleeves as requested, synthesizing skin or fabric as needed).\n`;
         }
-    } else if (isSameGarmentImage) {
-        instructions += `
-        **DEFAULT STYLING**: Maintain the EXACT tuck/drape relationship visible in the Reference Outfit Image.
-        `;
+    } else {
+        instructions += `\n**STYLING**: Default. Copy the drape and tuck style EXACTLY as seen in the Reference image.\n`;
     }
 
     instructions += `
-    **FINAL EXECUTION RULES**:
-    1. **PRESERVE IDENTITY**: The Target Model's face, hair, skin tone, and body shape must remain UNCHANGED.
-    2. **LIGHTING MATCH**: Re-light the new garments to match the Target Model's environment. Match shadows and color temperature.
-    3. **PHYSICS**: Fabric must fold, hang, and wrinkle realistically based on the model's pose.
-    4. **NO REFUSAL**: If a garment part is partially obscured in the reference, INFER its structure and complete the look. Do not fail. Generate the best possible result.
-    
-    Output ONLY the final image.
+    \n**REALISM CHECKLIST**:
+    - **Preserve Identity**: Do NOT change the Model's face or body shape.
+    - **Lighting**: Relight the garments to match the Model's room/environment.
+    - **Physics**: Add realistic wrinkles where the fabric bends (elbows, waist).
+    - **Output**: A single high-quality photorealistic image.
     `;
 
     parts.push({ text: instructions });
 
+    // 6. API CALL
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-2.5-flash-image', // Using the efficient vision model
       contents: { parts },
       config: { responseModalities: [Modality.IMAGE] },
     });
     
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated. The model might have blocked the request.");
+    
+    throw new Error("The AI refused to generate an image. Please try a different photo or angle.");
+
   } catch (error) {
-    console.error("Error generating apparel try-on:", error);
+    console.error("Apparel Generation Error:", error);
     throw error;
   }
 };
