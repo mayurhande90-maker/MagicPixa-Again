@@ -205,25 +205,42 @@ export const removeElementFromImage = async (
     maskBase64: string
 ): Promise<string> => {
     const ai = getAiClient();
-    
-    const [optImg] = await Promise.all([
-        optimizeImage(base64ImageData, mimeType)
-    ]);
+    try {
+        // Send the original image and the binary mask to Gemini 3 Pro for editing
+        const [optImg, optMask] = await Promise.all([
+            optimizeImage(base64ImageData, mimeType),
+            optimizeImage(maskBase64, 'image/png') // Masks are usually PNGs
+        ]);
 
-    const prompt = "Inpainting Task: Remove the masked object from the image. Fill the area seamlessly with the background texture/content. Ensure no artifacts remain.";
-    
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: {
-            parts: [
-                { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
-                { text: prompt } 
-            ]
-        },
-        config: { responseModalities: [Modality.IMAGE] }
-    });
-    
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+        const prompt = `TASK: Magic Eraser / Inpainting.
+        
+        INPUT:
+        1. Original Image.
+        2. Mask Image (White area represents the object to remove).
+        
+        INSTRUCTIONS:
+        - Seamlessly remove the object highlighted by the mask.
+        - Fill the empty space with the surrounding background texture, lighting, and geometry.
+        - The result must look 100% natural, as if the object never existed.
+        - High quality, photorealistic output.`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
+                    { inlineData: { data: optMask.data, mimeType: optMask.mimeType } },
+                    { text: prompt } 
+                ]
+            },
+            config: { responseModalities: [Modality.IMAGE] }
+        });
+        
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("No image generated.");
+    } catch (error) {
+        console.error("Error executing Magic Eraser:", error);
+        throw error;
+    }
 };

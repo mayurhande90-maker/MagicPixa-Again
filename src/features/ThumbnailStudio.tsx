@@ -4,9 +4,11 @@ import { AuthProps, AppConfig } from '../types';
 import { 
     ThumbnailIcon, 
     XIcon, 
-    UploadTrayIcon
+    UploadTrayIcon,
+    MagicWandIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { MagicEditorModal } from '../components/MagicEditorModal';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { saveCreation, deductCredits } from '../firebase';
@@ -58,15 +60,11 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Inputs
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
-    const [customText, setCustomText] = useState(''); // New State for Custom Text Override
+    const [customText, setCustomText] = useState(''); 
     
     // Images
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    // Standard Mode Images
     const [subjectImage, setSubjectImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    // Podcast Mode Images
     const [hostImage, setHostImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [guestImage, setGuestImage] = useState<{ url: string; base64: Base64File } | null>(null);
 
@@ -75,6 +73,9 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    
+    // Magic Editor State
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -82,12 +83,11 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Config
     const cost = appConfig?.featureCosts['Thumbnail Studio'] || 5;
     const regenCost = 3;
+    const editorCost = 1;
     const userCredits = auth.user?.credits || 0;
     
     // Requirement Check
     const isPodcast = category === 'Podcast';
-    // Podcast: Needs Host + Guest + Title. Reference is optional.
-    // Standard: Needs Title. Subject is optional. Reference is optional.
     const hasRequirements = isPodcast 
         ? (!!hostImage && !!guestImage && !!title)
         : (!!title); 
@@ -151,7 +151,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
-                customText: customText || undefined, // Pass custom text if present
+                customText: customText || undefined,
                 referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
@@ -193,7 +193,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
-                customText: customText || undefined, // Pass custom text here too
+                customText: customText || undefined,
                 referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
@@ -231,6 +231,21 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setCategory('');
     };
 
+    const handleEditorSave = async (newImageUrl: string) => {
+        setResult(newImageUrl);
+        // Also save this new version to creations
+        if (auth.user) {
+            await saveCreation(auth.user.uid, newImageUrl, 'Thumbnail Studio (Edited)');
+        }
+    };
+
+    const handleEditorDeduct = async (cost: number) => {
+        if (auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Editor');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
+    };
+
     return (
         <>
             <FeatureLayout 
@@ -244,7 +259,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 resultImage={result}
                 onResetResult={handleRegenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[850px]" // Increased height to accommodate extra field
+                resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -269,6 +284,20 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">Your generated thumbnail will appear here.</p>
+                            </div>
+                        )}
+                        {/* Magic Edit Button Overlay */}
+                        {result && !loading && (
+                            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent zoom
+                                        setShowMagicEditor(true);
+                                    }}
+                                    className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-5 py-2.5 rounded-full shadow-xl hover:shadow-red-500/30 hover:scale-105 transition-all font-bold text-sm flex items-center gap-2 border border-white/20 backdrop-blur-sm"
+                                >
+                                    <MagicWandIcon className="w-4 h-4 text-yellow-200" /> Magic Edit
+                                </button>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -382,6 +411,16 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {showMagicEditor && result && (
+                <MagicEditorModal 
+                    imageUrl={result}
+                    onClose={() => setShowMagicEditor(false)}
+                    onSave={handleEditorSave}
+                    credits={userCredits}
+                    onDeductCredits={handleEditorDeduct}
+                />
+            )}
         </>
     );
 };
