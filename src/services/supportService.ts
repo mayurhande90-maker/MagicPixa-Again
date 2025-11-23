@@ -75,7 +75,7 @@ export const generateSupportResponse = async (
     const ai = getAiClient();
     try {
         const chat = ai.chats.create({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview', // Upgraded for smarter context handling
             config: {
                 systemInstruction: SUPPORT_SYSTEM_INSTRUCTION,
                 tools: [{ functionDeclarations: [createSupportTicket] }],

@@ -1,6 +1,21 @@
 
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
+import { resizeImage } from "../utils/imageUtils";
+
+// Helper: Resize to 1280px (HD) for Gemini 3 Pro
+const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        console.warn("Image optimization failed, using original", e);
+        return { data: base64, mimeType };
+    }
+};
 
 export const colourizeImage = async (
   base64ImageData: string,
@@ -9,14 +24,22 @@ export const colourizeImage = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    let basePrompt = `Colourize this vintage photo. Realistic colors. Preserve faces/features exactly.`;
-    if (mode === 'restore') basePrompt += ` Also remove scratches, dust, and damage. Sharpen details.`;
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
+    let basePrompt = `Task: Professional Photo Restoration & Colorization.
+    
+    Instructions:
+    1. Analyze the image content (clothing, skin tone, background era).
+    2. Colorize the black and white image with historically accurate, photorealistic colors.
+    3. Maintain the exact facial features and identity of the subjects.`;
+    
+    if (mode === 'restore') basePrompt += `\n4. RESTORATION MODE: Actively detect and heal scratches, dust, tears, and noise. Sharpen blurred details slightly.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
-          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { inlineData: { data: data, mimeType: optimizedMime } },
           { text: basePrompt },
         ],
       },
@@ -42,22 +65,33 @@ export const generateMagicSoul = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    const prompt = `Generate a hyper-realistic photo of Subject A and Subject B together.
-Style: ${style}. Environment: ${environment}.
-RULES:
-- Preserve facial features/identities of both subjects exactly.
-- Adjust clothing to match the environment and style.
-- Realistic lighting and shadows.
-- High resolution, DSLR quality.`;
+    const [optA, optB] = await Promise.all([
+        optimizeImage(personABase64, personAMimeType),
+        optimizeImage(personBBase64, personBMimeType)
+    ]);
+
+    const prompt = `Task: Magic Soul - Hyper-realistic Couple Composition.
+    
+    Input: Two separate portraits (Subject A and Subject B).
+    Goal: Combine them into a SINGLE cohesive photograph.
+    
+    Style: ${style}.
+    Environment: ${environment}.
+    
+    CRITICAL RULES:
+    1. **Identity Lock**: You MUST preserve the facial features of Subject A and Subject B exactly.
+    2. **Interaction**: Position them naturally together (standing, sitting, or hugging) based on the context.
+    3. **Lighting**: Relight both subjects to match the new environment perfectly.
+    4. **Output**: High-resolution, DSLR quality photograph.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
-          { text: "Subject A:" },
-          { inlineData: { data: personABase64, mimeType: personAMimeType } },
-          { text: "Subject B:" },
-          { inlineData: { data: personBBase64, mimeType: personBMimeType } },
+          { text: "Subject A Reference:" },
+          { inlineData: { data: optA.data, mimeType: optA.mimeType } },
+          { text: "Subject B Reference:" },
+          { inlineData: { data: optB.data, mimeType: optB.mimeType } },
           { text: prompt },
         ],
       },
@@ -80,17 +114,24 @@ export const generateMockup = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    const prompt = `Create a photo-realistic product mockup.
-Mockup Item: ${mockupType}.
-Action: Place the provided image/logo onto the mockup item naturally.
-Perspective: Realistic 3D wrap/angle.
-Background: Clean, professional studio lighting.`;
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
+    const prompt = `Task: Professional Product Mockup.
+    
+    Input: A design/logo file.
+    Target Item: ${mockupType}.
+    
+    Instructions:
+    1. Generate a photorealistic image of the Target Item (${mockupType}) in a professional studio setting.
+    2. Apply the Input Design onto the surface of the Target Item.
+    3. **Physics**: The design must wrap correctly around curves, folds, and textures (e.g., displacement map effect).
+    4. **Lighting**: The design must interact with the scene lighting (reflections, shadows).`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
-          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { inlineData: { data: data, mimeType: optimizedMime } },
           { text: prompt },
         ],
       },
@@ -112,14 +153,14 @@ export const generateStyledImage = async (
 ): Promise<string> => {
     const ai = getAiClient();
     // Use the first product image as reference
-    const mainImage = productImages[0];
+    const { data, mimeType } = await optimizeImage(productImages[0], 'image/png');
     
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
-                { inlineData: { data: mainImage, mimeType: 'image/png' } }, // Assuming png/jpeg
-                { text: prompt }
+                { inlineData: { data: data, mimeType: mimeType } }, 
+                { text: `Stylized Generation. Prompt: ${prompt}` }
             ]
         },
         config: { responseModalities: [Modality.IMAGE] }
@@ -135,12 +176,20 @@ export const generateBrandStylistImage = async (
     prompt: string
 ): Promise<string> => {
     const ai = getAiClient();
+    // Image optimization usually not needed for style reference as small is fine, but we do it for consistency
+    const { data, mimeType } = await optimizeImage(referenceImageBase64, 'image/png');
+
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
-                { inlineData: { data: referenceImageBase64, mimeType: 'image/png' } },
-                { text: `Generate an image in the exact style of the provided reference image. Prompt: ${prompt}` }
+                { inlineData: { data: data, mimeType: mimeType } },
+                { text: `Task: Style Transfer / Brand Asset Generation.
+                
+                Reference Image: Provides the visual style, color palette, and mood.
+                Prompt: "${prompt}".
+                
+                Instruction: Generate a new image matching the text Prompt, but strictly adhering to the artistic style of the Reference Image.` }
             ]
         },
         config: { responseModalities: [Modality.IMAGE] }
@@ -156,14 +205,18 @@ export const removeElementFromImage = async (
     maskBase64: string
 ): Promise<string> => {
     const ai = getAiClient();
-    const prompt = "Remove the masked object from the image and fill in the background seamlessly.";
+    
+    const [optImg] = await Promise.all([
+        optimizeImage(base64ImageData, mimeType)
+    ]);
+
+    const prompt = "Inpainting Task: Remove the masked object from the image. Fill the area seamlessly with the background texture/content. Ensure no artifacts remain.";
     
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
-                { inlineData: { data: base64ImageData, mimeType: mimeType } },
-                { text: "Original Image" },
+                { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
                 { text: prompt } 
             ]
         },

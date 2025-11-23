@@ -11,18 +11,27 @@ export const generateProductPackPlan = async (
   inspirationImages: string[]
 ): Promise<any> => {
   const ai = getAiClient();
-  const prompt = `Generate a comprehensive marketing pack for product: "${productName}".
-  Description: ${productDescription}.
-  Brand Colors: ${brandDetails.colors.join(', ')}.
-  Competitor: ${competitorUrl}.
+  
+  // Construct a smarter prompt for Gemini 3 Pro
+  const prompt = `Act as a Senior Brand Strategist & Marketing Director.
+  
+  TASK: Generate a comprehensive, high-conversion marketing asset pack for the product: "${productName}".
+  
+  PRODUCT CONTEXT:
+  - Description: ${productDescription}
+  - Brand Palette: ${brandDetails.colors.join(', ')}
+  - Competitor Analysis Target: ${competitorUrl} (Simulate analysis of this competitor type)
 
-  Output JSON with:
-  1. imageGenerationPrompts: Object with keys 'heroShot', 'lifestyle1', 'lifestyle2', 'creative'. Values are detailed image generation prompts.
-  2. videoGenerationPrompts: Object with keys 'video360Spin', 'videoCinemagraph'. Values are video generation prompts.
-  3. textAssets: Object with keys 'seoTitle', 'captions' (array of {text: string}), 'keywords' (array of strings).`;
+  OBJECTIVE:
+  Create a detailed production plan for visual and textual content that will outperform competitors on social media and e-commerce platforms.
+
+  Output STRICT JSON with the following structure:
+  1. imageGenerationPrompts: Detailed, artistic prompts for an AI image generator (like Gemini 3 Image). Keys: 'heroShot', 'lifestyle1', 'lifestyle2', 'creative'.
+  2. videoGenerationPrompts: Prompts for AI Video generation (like Veo). Keys: 'video360Spin', 'videoCinemagraph'.
+  3. textAssets: SEO-optimized text. Keys: 'seoTitle' (Amazon style), 'captions' (array of 3 distinct styles), 'keywords' (10 high-volume tags).`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-pro-preview', // Upgraded
     contents: prompt,
     config: {
         responseMimeType: "application/json",

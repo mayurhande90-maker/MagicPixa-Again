@@ -4,7 +4,7 @@ import { getAiClient } from "./geminiClient";
 export const generateVideo = async (prompt: string) => {
     const ai = getAiClient();
     return await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
+        model: 'veo-3.1-generate-preview', // Upgraded to High Quality model
         prompt: prompt,
         config: {
             numberOfVideos: 1,

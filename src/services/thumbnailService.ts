@@ -1,13 +1,28 @@
 
 import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
-import { Base64File } from "../utils/imageUtils";
+import { Base64File, resizeImage } from "../utils/imageUtils";
+
+// Optimization Helper
+const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        return { data: base64, mimeType };
+    }
+};
 
 export const suggestThumbnailTitles = async (videoDescription: string): Promise<string[]> => {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Suggest 5 catchy, click-worthy YouTube thumbnail titles for a video about: ${videoDescription}. Return only a JSON array of strings.`,
+        model: 'gemini-3-pro-preview',
+        contents: `Act as a YouTube Growth Expert. Suggest 5 catchy, high-CTR, click-worthy thumbnail titles for a video about: "${videoDescription}". 
+        Rules: Keep them under 6 words. Use emotional hooks. 
+        Return only a JSON array of strings.`,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -28,12 +43,19 @@ export const analyzeVideoFrames = async (
     
     const parts: any[] = [];
     parts.push({ 
-        text: `Analyze these video frames from a single video. 
-        1. Generate 5 engaging, viral, clickbait-style YouTube video titles that would fit this content.
-        2. Identify the single best frame (0-indexed) to use as a thumbnail base. Look for clear expressions, high action, or interesting composition.
-        Return JSON.` 
+        text: `You are an expert Video Analyst using Gemini 3 Pro Vision.
+        Analyze these video frames from a single video. 
+        
+        Tasks:
+        1. Generate 5 engaging, viral, clickbait-style YouTube video titles.
+        2. Identify the SINGLE BEST frame (0-indexed) to use as a thumbnail base.
+           Criteria: Clear facial expression (shock/joy), high action, or clear focal point. Avoid blur.
+        
+        Return strictly JSON.` 
     });
 
+    // Limit frames analysis resolution slightly to save tokens if many frames, 
+    // but Gemini 3 Pro has huge context so it's fine.
     for (const frame of frames) {
         parts.push({
             inlineData: {
@@ -44,7 +66,7 @@ export const analyzeVideoFrames = async (
     }
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-pro-preview',
         contents: { parts },
         config: {
             responseMimeType: "application/json",
@@ -85,7 +107,7 @@ export const generateThumbnail = async (
     try {
         // Use text model with grounding for research
         const researchResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: `Conduct a deep analysis of trending YouTube thumbnails for the category "${inputs.category}" and specific topic "${inputs.title}".
             Search for high-CTR, "clickbait" style thumbnails.
             Identify:
@@ -104,22 +126,27 @@ export const generateThumbnail = async (
 
     const parts: any[] = [];
 
+    // Optimize inputs
+    const optRef = await optimizeImage(inputs.referenceImage, 'image/png');
+    const optSubA = await optimizeImage(inputs.subjectA, 'image/png');
+
     // 1. Add Reference Image
     parts.push({ text: "REFERENCE STYLE IMAGE (Use ONLY for art style, lighting, and text effects. DO NOT COPY CONTENT):" });
-    parts.push({ inlineData: { data: inputs.referenceImage, mimeType: 'image/png' } });
+    parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
 
     // 2. Add Subject A
     parts.push({ text: "SUBJECT A (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
-    parts.push({ inlineData: { data: inputs.subjectA, mimeType: 'image/png' } });
+    parts.push({ inlineData: { data: optSubA.data, mimeType: optSubA.mimeType } });
 
     // 3. Add Subject B (if exists)
     if (inputs.subjectB) {
+        const optSubB = await optimizeImage(inputs.subjectB, 'image/png');
         parts.push({ text: "SUBJECT B (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
-        parts.push({ inlineData: { data: inputs.subjectB, mimeType: 'image/png' } });
+        parts.push({ inlineData: { data: optSubB.data, mimeType: optSubB.mimeType } });
     }
 
     // 4. Detailed System Prompt with STRICT Identity & Design Rules
-    const prompt = `You are an Elite YouTube Thumbnail Art Director. Your goal is MAXIMAL Click-Through Rate (CTR).
+    const prompt = `You are an Elite YouTube Thumbnail Art Director using Gemini 3 Pro Image Generation.
 
     *** CRITICAL SAFETY PROTOCOL: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
     - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
@@ -172,7 +199,7 @@ export const generateThumbnail = async (
     parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { responseModalities: [Modality.IMAGE] }
     });
