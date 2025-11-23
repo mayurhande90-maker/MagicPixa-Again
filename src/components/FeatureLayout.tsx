@@ -183,7 +183,6 @@ export const FeatureLayout: React.FC<{
     canGenerate: boolean;
     creditCost: number;
     resultImage: string | null;
-    resultOverlay?: React.ReactNode;
     onResetResult?: () => void;
     onNewSession?: () => void;
     description?: string;
@@ -198,7 +197,7 @@ export const FeatureLayout: React.FC<{
     scrollRef?: React.RefObject<HTMLDivElement>;
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
-    creditCost, resultImage, resultOverlay, onResetResult, onNewSession, description,
+    creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef
 }) => {
@@ -235,9 +234,6 @@ export const FeatureLayout: React.FC<{
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
-                             
-                             {/* Custom Result Overlay */}
-                             {resultOverlay}
                              
                              {/* Result Actions */}
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
