@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
-    UsersIcon, 
+    ApparelIcon, 
     UploadIcon, 
     XIcon, 
     ArrowUpCircleIcon, 
@@ -10,7 +10,8 @@ import {
     GarmentTrousersIcon, 
     SparklesIcon,
     CreditCardIcon,
-    PlusIcon
+    PlusIcon,
+    ArrowLeftIcon
 } from '../components/icons';
 import { FeatureLayout, TextAreaField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
@@ -186,7 +187,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <FeatureLayout 
                 title="Magic Apparel"
                 description="Virtually try on any clothing item. Upload a photo of yourself and the garment you want to wear."
-                icon={<UsersIcon className="w-6 h-6 text-teal-500"/>}
+                icon={<ApparelIcon className="w-6 h-6 text-teal-500"/>}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -255,7 +256,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 }`}
                             >
                                 <div className="relative z-10 p-6 bg-teal-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <UsersIcon className="w-12 h-12 text-teal-300 group-hover:text-teal-600 transition-colors duration-300" />
+                                    <ApparelIcon className="w-12 h-12 text-teal-300 group-hover:text-teal-600 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
@@ -321,9 +322,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <button 
                                             key={item.id}
                                             onClick={() => setGarmentType(item.id as any)}
-                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
+                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 transform hover:scale-[1.02] ${
                                                 garmentType === item.id 
-                                                ? 'bg-teal-50 border-teal-500 text-teal-700 shadow-md scale-105' 
+                                                ? 'bg-teal-50 border-teal-500 text-teal-700 shadow-md' 
                                                 : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200 hover:bg-teal-50/50'
                                             }`}
                                         >
@@ -338,7 +339,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             <div className="animate-fadeIn">
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Garment</label>
                                 {garmentImage ? (
-                                    <div className="relative w-full h-48 bg-white rounded-2xl border-2 border-teal-100 flex items-center justify-center overflow-hidden group">
+                                    <div className="relative w-full h-48 bg-white rounded-2xl border-2 border-teal-100 flex items-center justify-center overflow-hidden group shadow-sm">
                                         <img src={garmentImage.url} className="max-w-full max-h-full object-contain" alt="Garment" />
                                         <button 
                                             onClick={() => setGarmentImage(null)}
