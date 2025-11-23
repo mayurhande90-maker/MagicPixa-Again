@@ -2,53 +2,6 @@
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 
-export const generateApparelTryOn = async (
-  personBase64: string,
-  personMimeType: string,
-  apparelItems: { type: string; base64: string; mimeType: string }[]
-): Promise<string> => {
-  const ai = getAiClient();
-  try {
-    const parts: any[] = [];
-    parts.push({ text: "{user_photo}:" });
-    parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
-
-    let apparelPromptInstructions = '';
-    for (const item of apparelItems) {
-        parts.push({ text: `{${item.type}_image}:` });
-        parts.push({ inlineData: { data: item.base64, mimeType: item.mimeType } });
-        const location = item.type === 'top' ? 'torso' : 'legs';
-        apparelPromptInstructions += `\n- Place the garment from {${item.type}_image} onto the person's ${location}.`;
-    }
-    
-    const prompt = `TASK: Expert photo compositing AI. Virtual try-on.
-Replace the clothing in {user_photo} with the provided apparel image(s).
-CRITICAL:
-1. Pixel preservation: Do NOT change face, hair, skin, body shape, or background.
-2. Identify and Replace: Completely replace the target garment. Ignore the original clothing style/length.
-${apparelPromptInstructions}
-3. Fit & Drape: Realistic folds, wrinkles, and gravity.
-4. Lighting: Match original lighting and shadows exactly.
-5. Occlusion: Keep hands/hair over the clothing intact.
-OUTPUT: Photorealistic image.`;
-    
-    parts.push({ text: prompt });
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: { parts },
-      config: { responseModalities: [Modality.IMAGE] },
-    });
-    
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
-  } catch (error) {
-    console.error("Error generating apparel:", error);
-    throw error;
-  }
-};
-
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,

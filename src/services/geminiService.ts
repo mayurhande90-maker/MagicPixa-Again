@@ -9,3 +9,4 @@ export * from './interiorService';
 export * from './productPackService';
 export * from './videoService';
 export * from './thumbnailService';
+export * from './apparelService';

@@ -8,6 +8,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { ReferralModal } from './components/ReferralModal';
 import { MagicPhotoStudio } from './features/MagicPhotoStudio';
 import { MagicInterior } from './features/MagicInterior';
+import { MagicApparel } from './features/MagicApparel';
 import { DashboardHome } from './features/DashboardHome';
 import { Creations } from './features/Creations';
 import { CaptionAI } from './features/CaptionAI';
@@ -27,7 +28,6 @@ import {
 import { 
     colourizeImage, 
     generateMagicSoul, 
-    generateApparelTryOn, 
     generateMockup, 
     generateProductPackPlan, 
     editImageWithPrompt,
@@ -577,7 +577,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'interior':
                  return <MagicInterior auth={auth} appConfig={appConfig} />;
             case 'apparel':
-                 return <StandardFeature title="Magic Apparel" description="Virtual Try-On." icon={<UsersIcon className="w-6 h-6 text-teal-500"/>} cost={appConfig?.featureCosts['Magic Apparel'] || 3} auth={auth} onGenerate={async (img) => await generateApparelTryOn(img.base64, img.mimeType, [])} />;
+                 return <MagicApparel auth={auth} appConfig={appConfig} />;
             case 'mockup':
                  return <StandardFeature title="Magic Mockup" description="Product Mockups." icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>} cost={appConfig?.featureCosts['Magic Mockup'] || 2} auth={auth} onGenerate={async (img, p) => await generateMockup(img.base64, img.mimeType, p || 'T-Shirt')} />;
             case 'caption':
