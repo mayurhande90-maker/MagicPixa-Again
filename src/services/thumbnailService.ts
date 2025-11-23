@@ -1,13 +1,14 @@
 
-import { Modality } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1280px (HD) for Gemini 3 Pro
+// Helper: Resize to 1024px (Safe HD) to prevent payload timeouts with multiple images
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        // Reduced to 1024px to ensure 3 images fit within the API payload limit reliably
+        const resizedUri = await resizeImage(dataUri, 1024, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -76,8 +77,8 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             `;
         } else {
             prompt += `
-            - **DEEP TREND RESEARCH**: Since no reference was provided, use Google Search to find the current best-performing thumbnail styles for "${inputs.title}" in the "${inputs.category}" niche for 2025.
-            - **DESIGN GENERATION**: Act as a Professional Graphic Designer. Invent a world-class, high-contrast, eye-catching composition from scratch based on your research.
+            - **DEEP TREND RESEARCH**: Use your internal knowledge of high-performing YouTube trends (2024-2025) for the "${inputs.category}" niche.
+            - **DESIGN GENERATION**: Act as a Professional Graphic Designer. Invent a world-class, high-contrast, eye-catching composition from scratch based on what currently works best on the platform.
             `;
         }
         
@@ -135,14 +136,20 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                // Enable search for trend research
-                tools: [{ googleSearch: {} }]
+                // Disabled search tool to prevent conflicts with image generation endpoint
+                // tools: [{ googleSearch: {} }] 
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ]
             },
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("No image generated.");
+        throw new Error("No image generated. The request may have been blocked or timed out.");
 
     } catch (error) {
         console.error("Error generating thumbnail:", error);
