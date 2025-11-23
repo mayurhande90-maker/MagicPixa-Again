@@ -663,18 +663,16 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
         const creationId = db.collection('users').doc().id; // Generate a unique ID
         const storagePath = `creations/${uid}/${creationId}.png`;
         const thumbStoragePath = `creations/${uid}/${creationId}_thumb.jpg`;
-        const mediumStoragePath = `creations/${uid}/${creationId}_medium.jpg`; // New optimized preview path
         
         const storageRef = storage.ref(storagePath);
         const thumbStorageRef = storage.ref(thumbStoragePath);
-        const mediumStorageRef = storage.ref(mediumStoragePath);
         
         // 1. Upload Original
         const imageBlob = base64ToBlob(base64, mimeType);
         const uploadTask = await storageRef.put(imageBlob);
         const downloadURL = await uploadTask.ref.getDownloadURL();
 
-        // 2. Generate & Upload Thumbnail (Low Res - 300px)
+        // 2. Generate & Upload Thumbnail
         let thumbDownloadURL = null;
         try {
             const thumbDataUri = await resizeImage(dataUri, 300, 0.7);
@@ -687,24 +685,10 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
             console.warn("Failed to generate thumbnail, falling back to original URL.", thumbError);
         }
 
-        // 3. Generate & Upload Medium Preview (Optimized HD - 1024px)
-        let mediumDownloadURL = null;
-        try {
-            const mediumDataUri = await resizeImage(dataUri, 1024, 0.85);
-            const [medHeader, medBase64] = mediumDataUri.split(',');
-            const medBlob = base64ToBlob(medBase64, 'image/jpeg');
-            
-            const medUploadTask = await mediumStorageRef.put(medBlob);
-            mediumDownloadURL = await medUploadTask.ref.getDownloadURL();
-        } catch (medError) {
-            console.warn("Failed to generate medium preview.", medError);
-        }
-
-        // 4. Save metadata to Firestore
+        // 3. Save metadata to Firestore
         const creationRef = db.collection(`users/${uid}/creations`).doc(creationId);
         await creationRef.set({
             imageUrl: downloadURL,
-            mediumUrl: mediumDownloadURL || null, // Store the medium URL
             thumbnailUrl: thumbDownloadURL || downloadURL, // Fallback to original if thumb failed
             storagePath: storagePath,
             feature: feature,
@@ -747,19 +731,10 @@ export const deleteCreation = async (uid: string, creation: { id: string; storag
     const storageRef = storage.ref(creation.storagePath);
     await storageRef.delete().catch(e => console.warn("Could not delete original image", e));
     
-    // Delete from Storage (Thumbnail)
-    const thumbPath = creation.storagePath.replace(/(\.[\w\d_-]+)$/i, '_thumb.jpg');
+    // Delete from Storage (Thumbnail - try/catch as it might not exist for old items)
+    const thumbPath = creation.storagePath.replace('.png', '_thumb.jpg');
     const thumbRef = storage.ref(thumbPath);
     await thumbRef.delete().catch(e => console.warn("Could not delete thumbnail or it didn't exist", e));
-
-    // Delete from Storage (Medium Preview)
-    // Constructing path manually to ensure it matches the save pattern if extension differs, 
-    // but regex replace on extension is usually safe if saved via standard flow.
-    // Safer: use the creation ID logic if storagePath pattern is consistent.
-    // Using replace for now as it's consistent with save logic which typically saves as .png or .jpg
-    const mediumPath = creation.storagePath.replace(/(\.[\w\d_-]+)$/i, '_medium.jpg');
-    const mediumRef = storage.ref(mediumPath);
-    await mediumRef.delete().catch(e => console.warn("Could not delete medium preview or it didn't exist", e));
     
     // Delete from Firestore
     const creationRef = db.doc(`users/${uid}/creations/${creation.id}`);
