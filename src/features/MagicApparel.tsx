@@ -92,13 +92,13 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Optimizing Images...", "Scanning Body Pose...", "Analyzing Fabric...", "Mapping 3D Drape...", "Compositing Final Look..."];
+            const steps = ["Scanning Body Pose...", "Analyzing Fabric...", "Mapping 3D Drape...", "Adjusting Lighting...", "Compositing Final Look..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 2000);
+            }, 1500);
         }
         return () => clearInterval(interval);
     }, [loading]);
@@ -131,7 +131,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResult(null);
             setPersonImage(data);
         }
-        e.target.value = ''; // Fix: Reset input to allow re-uploading same file
     };
 
     const handleTopUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +139,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setTopImage(data);
             autoScroll();
         }
-        e.target.value = ''; // Fix: Reset input
     };
 
     const handleBottomUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,7 +147,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setBottomImage(data);
             autoScroll();
         }
-        e.target.value = ''; // Fix: Reset input
     };
 
     // Drag and Drop Handlers for Left Panel
