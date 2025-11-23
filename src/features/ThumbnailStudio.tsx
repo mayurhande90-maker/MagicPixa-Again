@@ -267,6 +267,24 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                     label: "Generate Thumbnail"
                 }}
                 scrollRef={scrollRef}
+                
+                // Pass the Magic Edit button as a custom overlay
+                resultOverlay={
+                    result && !loading && (
+                        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    setShowMagicEditor(true);
+                                }}
+                                className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-5 py-2.5 rounded-full shadow-xl hover:shadow-red-500/30 hover:scale-105 transition-all font-bold text-sm flex items-center gap-2 border border-white/20 backdrop-blur-sm"
+                            >
+                                <MagicWandIcon className="w-4 h-4 text-yellow-200" /> Magic Edit
+                            </button>
+                        </div>
+                    )
+                }
+
                 // Left Content: Result Canvas
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -284,20 +302,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">Your generated thumbnail will appear here.</p>
-                            </div>
-                        )}
-                        {/* Magic Edit Button Overlay */}
-                        {result && !loading && (
-                            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Prevent zoom
-                                        setShowMagicEditor(true);
-                                    }}
-                                    className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-5 py-2.5 rounded-full shadow-xl hover:shadow-red-500/30 hover:scale-105 transition-all font-bold text-sm flex items-center gap-2 border border-white/20 backdrop-blur-sm"
-                                >
-                                    <MagicWandIcon className="w-4 h-4 text-yellow-200" /> Magic Edit
-                                </button>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
