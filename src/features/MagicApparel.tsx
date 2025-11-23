@@ -48,7 +48,7 @@ const CompactUpload: React.FC<{
                     <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
                         {icon}
                     </div>
-                    <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide">Upload</p>
+                    <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide">Upload {label}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
