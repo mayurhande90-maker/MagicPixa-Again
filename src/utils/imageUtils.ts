@@ -31,10 +31,11 @@ export const fileToBase64 = (file: File): Promise<Base64File> => {
 };
 
 /**
- * Resizes a base64 image string to a specific max width, returning a new base64 string.
- * Used for creating lightweight thumbnails.
+ * Smartly resizes a base64 image string to a specific max dimension (longest side), 
+ * returning a new base64 string. Maintains aspect ratio and prevents payload explosions
+ * for both portrait and landscape images.
  */
-export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: number = 0.7): Promise<string> => {
+export const resizeImage = (dataUri: string, maxDimension: number = 1280, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = dataUri;
@@ -44,9 +45,17 @@ export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: nu
             let width = img.width;
             let height = img.height;
 
-            if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
+            // Smart scaling: Check which side is larger and scale accordingly
+            if (width > height) {
+                if (width > maxDimension) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                }
+            } else {
+                if (height > maxDimension) {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
+                }
             }
 
             canvas.width = width;
@@ -58,9 +67,13 @@ export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: nu
                 return;
             }
             
+            // High quality smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Export as JPEG for smaller file size, regardless of input
+            // Export as JPEG for smaller file size with high visual fidelity
             const resizedDataUri = canvas.toDataURL('image/jpeg', quality);
             resolve(resizedDataUri);
         };
