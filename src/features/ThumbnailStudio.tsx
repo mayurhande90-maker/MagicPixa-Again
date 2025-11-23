@@ -58,6 +58,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Inputs
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
+    const [customText, setCustomText] = useState(''); // New State for Custom Text Override
     
     // Images
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -79,7 +80,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Config
-    // Updated default cost to 5 as requested
     const cost = appConfig?.featureCosts['Thumbnail Studio'] || 5;
     const regenCost = 3;
     const userCredits = auth.user?.credits || 0;
@@ -103,7 +103,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Trend Data...", "Enhancing Photos...", "Designing Layout...", "Generating Clickbait Title...", "Final Polish..."];
+            const steps = ["Analyzing Trend Data...", "Enhancing Photos...", "Designing Layout...", "Rendering Text...", "Final Polish..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -151,7 +151,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
-                referenceImage: referenceImage?.base64, // Optional
+                customText: customText || undefined, // Pass custom text if present
+                referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
                 guestImage: guestImage?.base64
@@ -192,6 +193,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
+                customText: customText || undefined, // Pass custom text here too
                 referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
@@ -225,6 +227,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setGuestImage(null);
         setResult(null);
         setTitle('');
+        setCustomText('');
         setCategory('');
     };
 
@@ -239,9 +242,9 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 canGenerate={hasRequirements && !isLowCredits}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={handleRegenerate} // Pass the regeneration handler here
+                onResetResult={handleRegenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[750px]"
+                resultHeightClass="h-[850px]" // Increased height to accommodate extra field
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -325,7 +328,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 onClear={() => setReferenceImage(null)}
                                                 icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
                                                 heightClass="h-40"
-                                                optional={true} // Made optional
+                                                optional={true}
                                             />
                                         </div>
                                     ) : (
@@ -345,22 +348,32 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 onClear={() => setReferenceImage(null)}
                                                 icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
                                                 heightClass="h-40"
-                                                optional={true} // Made optional
+                                                optional={true}
                                             />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 3. Title Input (Requires either reference or title to show step) */}
+                                {/* 3. Title Input (Context) */}
                                 <div className="animate-fadeIn">
                                     <InputField 
-                                        label="3. What is the video about? (AI will generate title)" 
+                                        label="3. What is the video about? (Context)" 
                                         placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
                                         value={title} 
                                         onChange={(e: any) => setTitle(e.target.value)} 
                                     />
+                                </div>
+
+                                {/* 4. Custom Text Input (Optional Override) */}
+                                <div className="animate-fadeIn">
+                                    <InputField 
+                                        label="4. Exact Title Text (Optional)" 
+                                        placeholder="e.g. DONT WATCH THIS" 
+                                        value={customText} 
+                                        onChange={(e: any) => setCustomText(e.target.value)} 
+                                    />
                                     <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                        AI will analyze this context to generate a viral, clickbait title for the thumbnail.
+                                        If you leave this blank, AI will generate a viral clickbait title for you.
                                     </p>
                                 </div>
                             </div>

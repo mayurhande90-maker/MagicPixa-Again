@@ -20,6 +20,7 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 interface ThumbnailInputs {
     category: string;
     title: string;
+    customText?: string; // Optional: User specific text override
     referenceImage?: { base64: string; mimeType: string } | null; // Now Optional
     subjectImage?: { base64: string; mimeType: string } | null; // Optional for standard
     hostImage?: { base64: string; mimeType: string } | null; // Podcast only
@@ -87,12 +88,24 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
           1. **RELIGHTING**: Fix any bad lighting. Add rim lights, match the subject lighting to your new background.
           2. **COLOR GRADING**: Fix skin tones (make them healthy and vibrant), adjust contrast, and remove noise/blur.
           3. **INTEGRATION**: Cut the subjects out perfectly and blend them into the scene so they don't look like cheap stickers.
-        
-        *** PHASE 3: AI COPYWRITING (TEXT GENERATION) ***
-        - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on the Context: "${inputs.title}".
-        - **EXAMPLES**: "IPHONE 15 FAIL?", "DO NOT WATCH", "GET RICH FAST", "THE TRUTH".
-        - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts.
+        `;
 
+        if (inputs.customText) {
+             prompt += `
+             *** PHASE 3: TEXT RENDERING (USER OVERRIDE) ***
+             - **MANDATORY**: The user has provided specific text. You MUST render exactly this text: "${inputs.customText}".
+             - **RULE**: Do NOT invent a new title. Do NOT change the wording. Just render "${inputs.customText}" in a high-impact, legible font styled for YouTube.
+             `;
+        } else {
+             prompt += `
+             *** PHASE 3: AI COPYWRITING (TEXT GENERATION) ***
+             - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on the Context: "${inputs.title}".
+             - **EXAMPLES**: "IPHONE 15 FAIL?", "DO NOT WATCH", "GET RICH FAST", "THE TRUTH".
+             - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts.
+             `;
+        }
+
+        prompt += `
         *** PHASE 4: COMPOSITION & RENDERING ***
         `;
 
