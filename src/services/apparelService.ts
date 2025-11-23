@@ -60,53 +60,62 @@ export const generateApparelTryOn = async (
     parts.push({ text: "TARGET MODEL IMAGE:" });
     parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
-    let instructions = `TASK: Virtual Apparel Try-On.
-    
-    INSTRUCTIONS:
-    1. Analyze the "TARGET MODEL IMAGE". Understand the pose, lighting, body shape, and skin tone.
-    `;
+    let step = 1;
+    let instructions = `TASK: Virtual Apparel Try-On.\n\nINSTRUCTIONS:\n${step++}. Analyze the "TARGET MODEL IMAGE". Understand the pose, lighting, body shape, and skin tone.\n`;
 
     if (isSameGarmentImage && optTop) {
         // Optimization: Send image once, instruct to extract both
-        parts.push({ text: "REFERENCE OUTFIT IMAGE (Full Look):" });
+        parts.push({ text: "REFERENCE OUTFIT IMAGE (Source):" });
         parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
         
-        instructions += `2. **Full Outfit Transfer**: The "REFERENCE OUTFIT IMAGE" contains a full outfit (both top and bottom garments).
+        instructions += `${step++}. **Full Outfit Transfer**: The "REFERENCE OUTFIT IMAGE" contains a full outfit (both top and bottom garments).
         - **Action**: Smartly detect and identify the Top (shirt/jacket) and the Bottom (pants/skirt) from this single reference image.
-        - **Apply**: Replace the target model's clothes with this complete outfit.
-        - **Context**: Maintain the relationship between top and bottom (e.g., if the reference shows the shirt tucked in, keep it tucked in unless specified otherwise).\n`;
+        - **Apply**: Dress the target model in this complete outfit.\n`;
+        
+        // Only enforce reference context if user didn't override the tuck
+        if (!stylingOptions?.tuck) {
+             instructions += `- **Context**: Maintain the waistline interaction (tucked/untucked) exactly as seen in the reference image.\n`;
+        }
     } else {
         // Distinct Images Logic
         if (optTop) {
             parts.push({ text: "REFERENCE GARMENT (TOP/UPPER BODY):" });
             parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-            instructions += `2. Identify the "REFERENCE GARMENT (TOP)". **Smartly detect and extract ONLY the upper-body garment** (shirt, jacket, dress top). Replace the model's current upper-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
+            instructions += `${step++}. Identify the "REFERENCE GARMENT (TOP)". **Smartly detect and extract ONLY the upper-body garment** (shirt, jacket, dress top). Replace the model's current upper-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
         }
 
         if (optBottom) {
             parts.push({ text: "REFERENCE GARMENT (BOTTOM/LOWER BODY):" });
             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            instructions += `3. Identify the "REFERENCE GARMENT (BOTTOM)". **Smartly detect and extract ONLY the lower-body garment** (pants, skirt, shorts). Replace the model's current lower-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
+            instructions += `${step++}. Identify the "REFERENCE GARMENT (BOTTOM)". **Smartly detect and extract ONLY the lower-body garment** (pants, skirt, shorts). Replace the model's current lower-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
         }
 
         if (optTop && optBottom) {
-            instructions += `4. **Composition**: Ensure the Top and Bottom interact naturally at the waist (tuck or drape based on style).\n`;
+            instructions += `${step++}. **Composition**: Ensure the Top and Bottom interact naturally at the waist.\n`;
         }
     }
 
-    // Structured Styling Options
-    if (stylingOptions) {
-        if (stylingOptions.tuck) instructions += `5. **Tuck Style**: The top garment MUST be worn ${stylingOptions.tuck}. Render the waist interaction accordingly.\n`;
-        if (stylingOptions.fit) instructions += `6. **Fit**: The clothing should have a ${stylingOptions.fit} look on the model. Adjust drape and volume.\n`;
-        if (stylingOptions.sleeve) instructions += `7. **Sleeve Styling**: Ensure sleeves are ${stylingOptions.sleeve}.\n`;
+    // Explicit Styling Overrides
+    const hasStyling = stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve);
+    
+    if (hasStyling) {
+        instructions += `\n${step++}. **STYLING OVERRIDES (CRITICAL)**:\n`;
+        if (stylingOptions?.tuck) {
+            instructions += `- **TUCK STYLE**: The user explicitly requests the top be **${stylingOptions.tuck}**. You MUST modify the outfit to match this rule, even if the reference image shows otherwise. Synthesize realistic waist details (belt line, fabric folds) if changing from untucked to tucked or vice versa.\n`;
+        }
+        if (stylingOptions?.fit) {
+            instructions += `- **FIT**: Adjust the garment volume to look **${stylingOptions.fit}** on the target model.\n`;
+        }
+        if (stylingOptions?.sleeve) {
+            instructions += `- **SLEEVES**: Modify sleeves to be **${stylingOptions.sleeve}**.\n`;
+        }
     }
 
     if (userPrompt) {
-        instructions += `8. **Additional Styling Note**: "${userPrompt}" (Follow this priority for specific details not covered above).\n`;
+        instructions += `\n${step++}. **User Note**: "${userPrompt}" (Follow this priority for specific details not covered above).\n`;
     }
 
-    instructions += `
-    CRITICAL REALISM RULES:
+    instructions += `\n**CRITICAL REALISM RULES**:
     - **Pixel Preservation**: DO NOT change the model's face, hair, skin tone, body shape, or background. Only change the clothing specified.
     - **Physics & Fit**: The garment must drape naturally over the model's specific body pose. Add realistic wrinkles, tension folds, and gravity effects.
     - **Lighting Integration**: Match the lighting, shadows, and color temperature of the original model photo exactly. The garment must not look like a flat sticker.
