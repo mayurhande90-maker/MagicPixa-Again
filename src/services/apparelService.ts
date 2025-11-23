@@ -2,12 +2,19 @@
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 
+export interface ApparelStylingOptions {
+    tuck?: string;
+    fit?: string;
+    sleeve?: string;
+}
+
 export const generateApparelTryOn = async (
   personBase64: string,
   personMimeType: string,
   topGarment: { base64: string; mimeType: string } | null,
   bottomGarment: { base64: string; mimeType: string } | null,
-  userPrompt?: string
+  userPrompt?: string,
+  stylingOptions?: ApparelStylingOptions
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -42,8 +49,15 @@ export const generateApparelTryOn = async (
         instructions += `4. **Composition**: Ensure the Top and Bottom interact naturally at the waist (tuck or drape based on style).\n`;
     }
 
+    // Structured Styling Options
+    if (stylingOptions) {
+        if (stylingOptions.tuck) instructions += `5. **Tuck Style**: The top garment MUST be worn ${stylingOptions.tuck}. Render the waist interaction accordingly (e.g. fabric tension if tucked, natural drape if untucked).\n`;
+        if (stylingOptions.fit) instructions += `6. **Fit**: The clothing should have a ${stylingOptions.fit} look on the model. Adjust drape and volume to match this fit.\n`;
+        if (stylingOptions.sleeve) instructions += `7. **Sleeve Styling**: Ensure sleeves are ${stylingOptions.sleeve}.\n`;
+    }
+
     if (userPrompt) {
-        instructions += `5. **User Styling Note**: "${userPrompt}" (Follow this priority for fit/styling).\n`;
+        instructions += `8. **Additional Styling Note**: "${userPrompt}" (Follow this priority for specific details not covered above).\n`;
     }
 
     instructions += `

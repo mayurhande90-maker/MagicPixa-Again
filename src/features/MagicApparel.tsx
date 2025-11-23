@@ -15,7 +15,7 @@ import {
     UserIcon,
     TrashIcon
 } from '../components/icons';
-import { FeatureLayout, TextAreaField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, TextAreaField, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, deductCredits } from '../firebase';
@@ -66,6 +66,10 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [topImage, setTopImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomImage, setBottomImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
+    // Styling Options
+    const [tuckStyle, setTuckStyle] = useState('');
+    const [fitStyle, setFitStyle] = useState('');
+    const [sleeveStyle, setSleeveStyle] = useState('');
     const [userPrompt, setUserPrompt] = useState('');
     
     const [loading, setLoading] = useState(false);
@@ -84,6 +88,11 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const cost = appConfig?.featureCosts['Magic Apparel'] || 3;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = auth.user && userCredits < cost;
+
+    // Options for Selection Grids
+    const tuckOptions = ['Tucked In', 'Untucked', 'French Tuck'];
+    const fitOptions = ['Slim Fit', 'Regular Fit', 'Oversized'];
+    const sleeveOptions = ['Full Length', 'Rolled Up', 'Cuffed'];
 
     // Animation Timer
     useEffect(() => {
@@ -199,7 +208,12 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 personImage.base64.mimeType,
                 topImage ? topImage.base64 : null,
                 bottomImage ? bottomImage.base64 : null,
-                userPrompt
+                userPrompt,
+                {
+                    tuck: tuckStyle,
+                    fit: fitStyle,
+                    sleeve: sleeveStyle
+                }
             );
             
             const url = `data:image/png;base64,${res}`;
@@ -231,6 +245,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setBottomImage(null);
         setResult(null);
         setUserPrompt('');
+        setTuckStyle('');
+        setFitStyle('');
+        setSleeveStyle('');
     };
 
     const canGenerate = !!personImage && (!!topImage || !!bottomImage) && !isLowCredits;
@@ -371,14 +388,50 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         </div>
 
-                        {/* 2. Instructions */}
+                        {/* 2. Styling Preferences */}
+                        {(topImage || bottomImage) && (
+                            <div>
+                                <div className="flex items-center gap-2 py-1 mb-4">
+                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">STYLING PREFERENCES</span>
+                                    <div className="h-px flex-1 bg-gray-200"></div>
+                                </div>
+                                
+                                {topImage && bottomImage && (
+                                    <SelectionGrid 
+                                        label="Tuck Style" 
+                                        options={tuckOptions} 
+                                        value={tuckStyle} 
+                                        onChange={setTuckStyle} 
+                                    />
+                                )}
+                                
+                                <SelectionGrid 
+                                    label="Fit Preference" 
+                                    options={fitOptions} 
+                                    value={fitStyle} 
+                                    onChange={setFitStyle} 
+                                />
+                                
+                                {topImage && (
+                                    <SelectionGrid 
+                                        label="Sleeve Style" 
+                                        options={sleeveOptions} 
+                                        value={sleeveStyle} 
+                                        onChange={setSleeveStyle} 
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {/* 3. Instructions */}
                         <div>
                             <TextAreaField 
-                                label="2. Styling Notes (Optional)"
+                                label="3. Additional Notes (Optional)"
                                 value={userPrompt}
                                 onChange={(e: any) => setUserPrompt(e.target.value)}
-                                placeholder="e.g. Tuck in the shirt, roll up sleeves, make it oversized..."
-                                rows={3}
+                                placeholder="e.g. Make sure the collar is popped, add a belt..."
+                                rows={2}
                             />
                         </div>
                     </div>
