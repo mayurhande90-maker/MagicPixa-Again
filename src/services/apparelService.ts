@@ -9,18 +9,18 @@ export interface ApparelStylingOptions {
     sleeve?: string;
 }
 
-// AGGRESSIVE OPTIMIZATION: 1024px @ 60% Quality
-// This is critical to prevent "Payload Too Large" or Timeout errors with multiple inputs.
-const optimizeForPayload = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+// Helper to reduce image size for AI payload safety
+const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Resize to 1024px (longest side) and compress to 0.6 quality
-        const resizedUri = await resizeImage(dataUri, 1024, 0.60);
+        // Resizing to 1024px and 0.70 quality significantly reduces payload size
+        // preventing API timeouts or refusal when sending multiple images.
+        const resizedUri = await resizeImage(dataUri, 1024, 0.70);
         const [header, data] = resizedUri.split(',');
-        // Force JPEG header for consistency and size
-        return { data, mimeType: 'image/jpeg' };
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
     } catch (e) {
-        console.warn("Image optimization failed, falling back to original (risk of crash)", e);
+        console.warn("Image optimization failed, using original", e);
         return { data: base64, mimeType };
     }
 };
@@ -35,85 +35,89 @@ export const generateApparelTryOn = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // 1. LOGIC: DETECT FULL OUTFIT (Same image for Top & Bottom)
-    const isFullOutfit = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
+    // Check for Single Outfit Upload (Same image for Top and Bottom)
+    const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
 
-    // 2. PREPROCESS: Optimize Images in Parallel
-    const personPromise = optimizeForPayload(personBase64, personMimeType);
-    
+    // 1. Optimize Images (Parallel)
+    const personPromise = optimizeImage(personBase64, personMimeType);
     let topPromise, bottomPromise;
 
-    if (isFullOutfit && topGarment) {
-        // Optimization: Process once, use for both prompt references conceptually
-        topPromise = optimizeForPayload(topGarment.base64, topGarment.mimeType);
-        bottomPromise = Promise.resolve(null); // Not needed physically
+    if (isSameGarmentImage && topGarment) {
+        // If same, just optimize one and reuse the promise result
+        topPromise = optimizeImage(topGarment.base64, topGarment.mimeType);
+        bottomPromise = topPromise;
     } else {
-        topPromise = topGarment ? optimizeForPayload(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
-        bottomPromise = bottomGarment ? optimizeForPayload(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
+        topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
+        bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
     }
 
     const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
 
-    // 3. CONSTRUCT "STRICT PRESERVATION" PROMPT
+    // Construct the multimodal prompt
+    // STRATEGY: Instructions FIRST, then Context Images, then Target Image.
+    // This helps the model understand "What am I looking at?" before processing pixel data.
     const parts: any[] = [];
+    
+    let systemInstructions = `TASK: Professional Virtual Apparel Try-On.\n\nGOAL: Photorealistic synthesis of the Target Model wearing the Reference Garments.\n\n`;
 
-    let pipelineDirective = `TASK: Professional Virtual Try-On with STRICT IDENTITY PRESERVATION.
-
-    *** CRITICAL MANDATE: DO NOT HALLUCINATE NEW FEATURES ***
-    You are an AI acting as a "Smart Layer Compositor". You are NOT generating a new person. You are modifying pixels ONLY in the clothing region of the "TARGET MODEL".
-
-    *** ZERO-TOLERANCE PRESERVATION RULES ***
-    1. **FACE LOCK**: The face pixels MUST be bit-for-bit identical to the original. Do NOT "enhance", "beautify", or "regenerate" the face. If the face changes, the result is a FAILURE.
-    2. **BODY LOCK**: Keep the exact body shape, pose, hands, and skin texture of the Target Model.
-    3. **BACKGROUND LOCK**: Do not alter the background environment, lighting, or context.
-    4. **ACCESSORY LOCK**: Preserve watches, jewelry, glasses, and hair strands exactly as they are.
-
-    *** EXECUTION STEPS ***
-    1. Analyze the "TARGET MODEL". Map the exact boundaries of their current clothing.
-    2. Inpaint/Swap ONLY the clothing area with the "REFERENCE GARMENT".
-    3. **Fabric Physics**: Wrap the new garment realistically around the existing body mesh. Apply folds and tension based on the pose.
-    4. **Lighting Match**: Sample the lighting from the Target Model's skin and background. Apply this exact lighting model to the new garment.
-    `;
-
-    // INPUT 1: The Reference Garments
-    if (isFullOutfit && optTop) {
-        parts.push({ text: "REFERENCE IMAGE (FULL OUTFIT SOURCE):" });
+    if (isSameGarmentImage && optTop) {
+        systemInstructions += `**SCENARIO: FULL OUTFIT TRANSFER**\n`;
+        systemInstructions += `The "REFERENCE OUTFIT IMAGE" below contains a complete look (both Upper and Lower garments).\n`;
+        systemInstructions += `1. **Analyze**: Smartly identify and mentally separate the Top (shirt/jacket) from the Bottom (pants/skirt).\n`;
+        systemInstructions += `2. **Transfer**: Apply BOTH extracted garments to the Target Model.\n`;
+        systemInstructions += `3. **Context**: Maintain the relationship (e.g., tucking) seen in the reference unless overridden by styling options.\n`;
+        
+        parts.push({ text: systemInstructions });
+        parts.push({ text: "REFERENCE OUTFIT IMAGE (Source of Top & Bottom):" });
         parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        pipelineDirective += `\n**OPERATION: FULL OUTFIT SWAP**
-        - Extract the full outfit (Top + Bottom) from the REFERENCE IMAGE.
-        - Apply it to the Target Model, replacing their current clothes completely.
-        - Maintain the tuck/drape style from the reference unless overridden below.\n`;
+
     } else {
+        // Distinct Images Logic
+        systemInstructions += `**SCENARIO: MULTI-GARMENT COMPOSITION**\n`;
+        if (optTop) systemInstructions += `- Replace Model's UPPER BODY clothing with the Reference Top.\n`;
+        if (optBottom) systemInstructions += `- Replace Model's LOWER BODY clothing with the Reference Bottom.\n`;
+        
+        parts.push({ text: systemInstructions });
+
         if (optTop) {
             parts.push({ text: "REFERENCE GARMENT (TOP):" });
             parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-            pipelineDirective += `\n**OPERATION: UPPER BODY SWAP**\n- Replace ONLY the Target Model's upper garment with the REFERENCE GARMENT (TOP).\n`;
         }
         if (optBottom) {
             parts.push({ text: "REFERENCE GARMENT (BOTTOM):" });
             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            pipelineDirective += `\n**OPERATION: LOWER BODY SWAP**\n- Replace ONLY the Target Model's lower garment with the REFERENCE GARMENT (BOTTOM).\n`;
         }
     }
 
-    // STYLING OVERRIDES (Hard Rules)
+    // Explicit Styling Overrides
+    let styleInstructions = `\n**STYLING & GENERATION RULES**:\n`;
     const hasStyling = stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve);
+    
     if (hasStyling) {
-        pipelineDirective += `\n**STYLING MODIFIERS (Apply to new garment only)**:\n`;
-        if (stylingOptions?.tuck) pipelineDirective += `- WAIST: ${stylingOptions.tuck}.\n`;
-        if (stylingOptions?.fit) pipelineDirective += `- FIT: ${stylingOptions.fit}.\n`;
-        if (stylingOptions?.sleeve) pipelineDirective += `- SLEEVES: ${stylingOptions.sleeve}.\n`;
+        styleInstructions += `\n**PRIORITY OVERRIDES** (You MUST follow these constraints over the reference image):\n`;
+        if (stylingOptions?.tuck) {
+            styleInstructions += `- **Waist**: ${stylingOptions.tuck}. (Generate/Remove belt or waistband as needed to achieve this).\n`;
+        }
+        if (stylingOptions?.fit) {
+            styleInstructions += `- **Fit**: ${stylingOptions.fit}.\n`;
+        }
+        if (stylingOptions?.sleeve) {
+            styleInstructions += `- **Sleeves**: ${stylingOptions.sleeve}.\n`;
+        }
     }
 
-    pipelineDirective += `\n**FINAL CHECK**: Before outputting, compare the Face and Background with the original. If they differ, revert them to the original pixels.`;
+    styleInstructions += `\n**QUALITY PROTOCOLS**:\n`;
+    styleInstructions += `- **Identity Lock**: PRESERVE the Target Model's face, hair, body shape, and skin tone exactly.\n`;
+    styleInstructions += `- **Lighting Match**: Relight the new garments to match the Target Model's environment perfectly.\n`;
+    styleInstructions += `- **Physics**: Add realistic fabric folds, tension wrinkles, and gravity effects. No "floating" clothes.\n`;
+    styleInstructions += `- **Generative Fill**: If the new garment reveals skin that was previously covered (e.g., shorter sleeves), generate realistic skin texture matching the model.\n`;
 
-    parts.push({ text: pipelineDirective });
+    parts.push({ text: styleInstructions });
 
-    // INPUT 2: The Target Model (Sent last to anchor the generation)
-    parts.push({ text: "TARGET MODEL (PRESERVE THIS IMAGE EXACTLY, CHANGE CLOTHES ONLY):" });
+    // Add Target Model LAST so the AI applies everything ONTO this image
+    parts.push({ text: "TARGET MODEL IMAGE (Apply changes here):" });
     parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
-    // 4. EXECUTE GENERATION
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts },
@@ -122,11 +126,9 @@ export const generateApparelTryOn = async (
     
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    
-    throw new Error("Model failed to generate image.");
-
+    throw new Error("No image generated. The model might have blocked the request.");
   } catch (error) {
-    console.error("Apparel Pipeline Failed:", error);
+    console.error("Error generating apparel try-on:", error);
     throw error;
   }
 };
