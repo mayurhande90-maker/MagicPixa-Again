@@ -5,9 +5,8 @@ import { getAiClient } from "./geminiClient";
 export const generateApparelTryOn = async (
   personBase64: string,
   personMimeType: string,
-  garmentBase64: string,
-  garmentMimeType: string,
-  garmentType: 'top' | 'bottom' | 'dress',
+  topGarment: { base64: string; mimeType: string } | null,
+  bottomGarment: { base64: string; mimeType: string } | null,
   userPrompt?: string
 ): Promise<string> => {
   const ai = getAiClient();
@@ -19,33 +18,45 @@ export const generateApparelTryOn = async (
     parts.push({ text: "TARGET MODEL IMAGE:" });
     parts.push({ inlineData: { data: personBase64, mimeType: personMimeType } });
 
-    // Part 2: The Garment (Reference)
-    parts.push({ text: "GARMENT IMAGE (Reference):" });
-    parts.push({ inlineData: { data: garmentBase64, mimeType: garmentMimeType } });
-
-    // Part 3: Instructions
-    const prompt = `TASK: Virtual Apparel Try-On.
+    let instructions = `TASK: Virtual Apparel Try-On.
     
     INSTRUCTIONS:
-    1. Analyze the "GARMENT IMAGE". Identify its fabric, texture, cut, pattern, and color.
-    2. Synthesize this exact garment onto the "TARGET MODEL IMAGE", replacing their current ${garmentType === 'dress' ? 'outfit' : garmentType}.
-    3. **Garment Type**: ${garmentType.toUpperCase()}.
-    ${userPrompt ? `4. User Note: "${userPrompt}" (Follow this for fit/styling).` : ''}
+    1. Analyze the "TARGET MODEL IMAGE". Understand the pose, lighting, body shape, and skin tone.
+    `;
 
+    // Part 2: Top Garment
+    if (topGarment) {
+        parts.push({ text: "REFERENCE GARMENT (TOP/UPPER BODY):" });
+        parts.push({ inlineData: { data: topGarment.base64, mimeType: topGarment.mimeType } });
+        instructions += `2. Identify the "REFERENCE GARMENT (TOP)". Replace the model's current upper-body clothing (shirt, jacket, dress top) with this exact garment. Match the fabric, texture, and cut.\n`;
+    }
+
+    // Part 3: Bottom Garment
+    if (bottomGarment) {
+        parts.push({ text: "REFERENCE GARMENT (BOTTOM/LOWER BODY):" });
+        parts.push({ inlineData: { data: bottomGarment.base64, mimeType: bottomGarment.mimeType } });
+        instructions += `3. Identify the "REFERENCE GARMENT (BOTTOM)". Replace the model's current lower-body clothing (pants, skirt, shorts) with this exact garment. Match the fabric, texture, and cut.\n`;
+    }
+
+    if (topGarment && bottomGarment) {
+        instructions += `4. **Composition**: Ensure the Top and Bottom interact naturally at the waist (tuck or drape based on style).\n`;
+    }
+
+    if (userPrompt) {
+        instructions += `5. **User Styling Note**: "${userPrompt}" (Follow this priority for fit/styling).\n`;
+    }
+
+    instructions += `
     CRITICAL REALISM RULES:
-    - **Pixel Preservation**: DO NOT change the model's face, hair, skin tone, body shape, or background. Only change the clothing.
+    - **Pixel Preservation**: DO NOT change the model's face, hair, skin tone, body shape, or background. Only change the clothing specified.
     - **Physics & Fit**: The garment must drape naturally over the model's specific body pose. Add realistic wrinkles, tension folds, and gravity effects.
     - **Lighting Integration**: Match the lighting, shadows, and color temperature of the original model photo exactly. The garment must not look like a flat sticker.
     - **Occlusion**: If the model's hands, hair, or accessories are covering their original clothes, they MUST cover the new garment in the same way.
-    - **Replacement**: 
-      - If 'top': Replace only the shirt/jacket. Keep existing pants/skirt unless they clash excessively.
-      - If 'bottom': Replace only the pants/skirt. Keep existing top.
-      - If 'dress': Replace the entire outfit.
 
     OUTPUT:
-    A high-resolution, photorealistic image of the original model wearing the new garment.`;
+    A high-resolution, photorealistic image of the original model wearing the new garment(s).`;
 
-    parts.push({ text: prompt });
+    parts.push({ text: instructions });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
