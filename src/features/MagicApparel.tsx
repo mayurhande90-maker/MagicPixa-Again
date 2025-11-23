@@ -130,6 +130,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const data = await processFile(e.target.files[0]);
             setResult(null);
             setPersonImage(data);
+            // Reset value to allow re-uploading same file if needed
+            e.target.value = '';
         }
     };
 
@@ -138,6 +140,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const data = await processFile(e.target.files[0]);
             setTopImage(data);
             autoScroll();
+            e.target.value = '';
         }
     };
 
@@ -146,6 +149,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const data = await processFile(e.target.files[0]);
             setBottomImage(data);
             autoScroll();
+            e.target.value = '';
         }
     };
 
@@ -194,9 +198,14 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
 
         setLoading(true);
-        setResult(null);
+        setResult(null); // Clear previous result to force fresh state visual
+
+        // Wait a tick to ensure UI updates to "Loading" state and resets any cached view logic
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         try {
+            // Always pass the current state of topImage and bottomImage. 
+            // This ensures even if one was added later, it is included in this new request.
             const res = await generateApparelTryOn(
                 personImage.base64.base64,
                 personImage.base64.mimeType,
