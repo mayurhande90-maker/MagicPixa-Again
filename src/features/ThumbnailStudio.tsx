@@ -3,15 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
     ThumbnailIcon, 
-    UploadIcon, 
     XIcon, 
-    SparklesIcon,
-    CreditCardIcon,
-    LightbulbIcon,
-    UploadTrayIcon,
-    UserIcon,
-    PhotoStudioIcon,
-    MicrophoneIcon
+    UploadTrayIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
@@ -27,7 +20,7 @@ const CompactUpload: React.FC<{
     icon: React.ReactNode;
     heightClass?: string;
     optional?: boolean;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional }) => {
+}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40", optional }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
@@ -270,14 +263,14 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                     image={hostImage} 
                                                     onUpload={handleUpload(setHostImage)} 
                                                     onClear={() => setHostImage(null)}
-                                                    icon={<MicrophoneIcon className="w-6 h-6 text-purple-400"/>}
+                                                    icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>}
                                                 />
                                                 <CompactUpload 
                                                     label="Guest Photo" 
                                                     image={guestImage} 
                                                     onUpload={handleUpload(setGuestImage)} 
                                                     onClear={() => setGuestImage(null)}
-                                                    icon={<UserIcon className="w-6 h-6 text-indigo-400"/>}
+                                                    icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>}
                                                 />
                                             </div>
                                             <CompactUpload 
@@ -285,8 +278,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 image={referenceImage} 
                                                 onUpload={handleUpload(setReferenceImage)} 
                                                 onClear={() => setReferenceImage(null)}
-                                                icon={<LightbulbIcon className="w-6 h-6 text-yellow-400"/>}
-                                                heightClass="h-24"
+                                                icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
+                                                heightClass="h-40"
                                             />
                                         </div>
                                     ) : (
@@ -296,7 +289,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 image={subjectImage} 
                                                 onUpload={handleUpload(setSubjectImage)} 
                                                 onClear={() => setSubjectImage(null)}
-                                                icon={<UserIcon className="w-6 h-6 text-blue-400"/>}
+                                                icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>}
                                                 optional={true}
                                             />
                                             <CompactUpload 
@@ -304,8 +297,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 image={referenceImage} 
                                                 onUpload={handleUpload(setReferenceImage)} 
                                                 onClear={() => setReferenceImage(null)}
-                                                icon={<LightbulbIcon className="w-6 h-6 text-yellow-400"/>}
-                                                heightClass="h-24"
+                                                icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
+                                                heightClass="h-40"
                                             />
                                         </div>
                                     )}

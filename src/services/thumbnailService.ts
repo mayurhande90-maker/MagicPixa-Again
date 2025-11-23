@@ -64,7 +64,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         
         PHASE 1: DEEP ANALYSIS
         1. Analyze the "REFERENCE THUMBNAIL STYLE" deeply. Extract the color palette, font style (bold/sans-serif), text placement, glow effects, and background complexity.
-        2. **CRITICAL EXCLUSION:** DO NOT USE ANY TEXT PRESENT IN THE REFERENCE IMAGE. You must ignore it completely. The reference is ONLY for visual vibe.
+        2. **ABSOLUTE PROHIBITION:** You are strictly FORBIDDEN from reading, extracting, or reproducing ANY text found in the Reference Image. If the Reference Image has text, you MUST IGNORE IT COMPLETELY. The reference is provided ONLY for visual vibe, color, and composition.
         
         PHASE 2: AI COPYWRITING (TEXT GENERATION)
         - **CONTEXT**: The user says the video is about: "${inputs.title}".
