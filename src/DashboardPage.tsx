@@ -254,7 +254,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'product_studio':
                  return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
-                 return <ThumbnailStudio auth={auth} appConfig={appConfig} />;
+                 return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
                  return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={appConfig?.featureCosts['Brand Stylist AI'] || 4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
             case 'soul':

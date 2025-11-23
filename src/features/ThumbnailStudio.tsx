@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, AppConfig } from '../types';
+import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
     ThumbnailIcon, 
     XIcon, 
@@ -56,7 +56,11 @@ const CompactUpload: React.FC<{
     );
 };
 
-export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+export const ThumbnailStudio: React.FC<{ 
+    auth: AuthProps; 
+    appConfig: AppConfig | null;
+    navigateTo: (page: Page, view?: View) => void;
+}> = ({ auth, appConfig, navigateTo }) => {
     // Inputs
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
@@ -289,7 +293,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 This generation requires <span className="font-bold text-gray-800">{cost} credits</span>, but you only have <span className="font-bold text-red-500">{userCredits}</span>.
                             </p>
                             <button
-                                onClick={() => (window as any).navigateTo('dashboard', 'billing')}
+                                onClick={() => navigateTo('dashboard', 'billing')}
                                 className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg shadow-yellow-500/20 hover:scale-105 flex items-center gap-2"
                             >
                                 <SparklesIcon className="w-5 h-5" />
