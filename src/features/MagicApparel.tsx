@@ -131,6 +131,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResult(null);
             setPersonImage(data);
         }
+        e.target.value = ''; // Fix: Reset input to allow re-uploading same file
     };
 
     const handleTopUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +140,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setTopImage(data);
             autoScroll();
         }
+        e.target.value = ''; // Fix: Reset input
     };
 
     const handleBottomUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +149,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setBottomImage(data);
             autoScroll();
         }
+        e.target.value = ''; // Fix: Reset input
     };
 
     // Drag and Drop Handlers for Left Panel
