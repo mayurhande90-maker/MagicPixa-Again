@@ -10,11 +10,12 @@ export interface ApparelStylingOptions {
 }
 
 // Helper to reduce image size for AI payload safety
-// Using 1024px and 60% quality to prevent payload bloating which causes API errors
+// Using 800px and 60% quality to prevent payload bloating which causes API errors
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1024, 0.60);
+        // Reduced to 800px to guarantee payload safety and faster processing
+        const resizedUri = await resizeImage(dataUri, 800, 0.60);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
