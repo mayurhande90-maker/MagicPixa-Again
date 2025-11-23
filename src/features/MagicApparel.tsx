@@ -8,7 +8,8 @@ import {
     GarmentTopIcon, 
     GarmentTrousersIcon, 
     UserIcon,
-    TrashIcon
+    TrashIcon,
+    UploadTrayIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
@@ -376,7 +377,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     image={topImage} 
                                     onUpload={handleTopUpload} 
                                     onClear={() => setTopImage(null)}
-                                    icon={<GarmentTopIcon className="w-6 h-6 text-purple-400"/>}
+                                    icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>}
                                     heightClass="h-32"
                                 />
                                 <CompactUpload 
@@ -384,7 +385,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     image={bottomImage} 
                                     onUpload={handleBottomUpload} 
                                     onClear={() => setBottomImage(null)}
-                                    icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>}
+                                    icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>}
                                     heightClass="h-32"
                                 />
                             </div>
