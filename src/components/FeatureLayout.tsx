@@ -334,14 +334,15 @@ export const FeatureLayout: React.FC<{
     );
 };
 
-// Helper to check milestone status (10, 30, 50...)
+// Helper to check milestone status based on new non-linear logic
 export const checkMilestone = (gens: number): number | false => {
     if (gens > 0) {
         if (gens === 10) return 5;
-        if (gens > 10 && (gens - 10) % 20 === 0) {
-            const multiplier = (gens - 10) / 20;
-            return 5 + (multiplier * 5);
-        }
+        if (gens === 25) return 10;
+        if (gens === 50) return 15;
+        if (gens === 75) return 20;
+        if (gens === 100) return 30;
+        if (gens > 100 && gens % 100 === 0) return 30;
     }
     return false;
 };

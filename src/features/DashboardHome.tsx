@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -151,29 +152,44 @@ export const DashboardHome: React.FC<{
     const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
     const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
 
-    // Progress Logic for Loyalty Bonus (Non-linear: 10, 30, 50...)
+    // Progress Logic for Loyalty Bonus (New Logic: 10, 25, 50, 75, 100, then every 100)
     const lifetimeGens = user?.lifetimeGenerations || 0;
     let nextMilestone = 10;
     let prevMilestone = 0;
     let nextReward = 5;
 
-    if (lifetimeGens >= 10) {
-        // Formula logic matching firebase.ts:
-        // 10 -> 5
-        // 30 -> 10 (Gap 20)
-        // 50 -> 15 (Gap 20)
-        // Blocks passed = floor((gens - 10) / 20)
-        const blocksPassed = Math.floor((lifetimeGens - 10) / 20) + 1;
-        nextMilestone = 10 + (blocksPassed * 20);
-        prevMilestone = nextMilestone - 20;
-        nextReward = 5 + (blocksPassed * 5);
+    if (lifetimeGens < 10) {
+        nextMilestone = 10;
+        prevMilestone = 0;
+        nextReward = 5;
+    } else if (lifetimeGens < 25) {
+        nextMilestone = 25;
+        prevMilestone = 10;
+        nextReward = 10;
+    } else if (lifetimeGens < 50) {
+        nextMilestone = 50;
+        prevMilestone = 25;
+        nextReward = 15;
+    } else if (lifetimeGens < 75) {
+        nextMilestone = 75;
+        prevMilestone = 50;
+        nextReward = 20;
+    } else if (lifetimeGens < 100) {
+        nextMilestone = 100;
+        prevMilestone = 75;
+        nextReward = 30;
+    } else {
+        // After 100, rewards every 100 generations
+        const hundreds = Math.floor(lifetimeGens / 100);
+        // If lifetimeGens is exactly 100, hundreds=1. prev=100, next=200.
+        prevMilestone = hundreds * 100;
+        nextMilestone = (hundreds + 1) * 100;
+        nextReward = 30;
     }
     
     // Calculate percent within the current gap
     let progressPercent = 0;
-    if (lifetimeGens < 10) {
-        progressPercent = (lifetimeGens / 10) * 100;
-    } else {
+    if (nextMilestone > prevMilestone) {
         progressPercent = ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
     }
     // Clamp
