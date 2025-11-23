@@ -15,7 +15,7 @@ import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, deductCredits } from '../firebase';
 
-// Mini Upload Component for the Right Panel
+// Compact Upload Component with Auto-Reset Input
 const CompactUpload: React.FC<{ 
     label: string; 
     image: { url: string } | null; 
@@ -28,7 +28,7 @@ const CompactUpload: React.FC<{
 
     const handleClick = () => {
         if (inputRef.current) {
-            inputRef.current.value = ''; // RESET INPUT VALUE
+            inputRef.current.value = ''; // CRITICAL: Reset value to allow re-selecting same file
             inputRef.current.click();
         }
     };
@@ -78,14 +78,13 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     
-    // Drag & Drop State
     const [isDragging, setIsDragging] = useState(false);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
     const personInputRef = useRef<HTMLInputElement>(null);
 
-    // Cost
+    // Cost Configuration
     const cost = appConfig?.featureCosts['Magic Apparel'] || 3;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = auth.user && userCredits < cost;
@@ -94,16 +93,17 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const fitOptions = ['Slim Fit', 'Regular Fit', 'Oversized'];
     const sleeveOptions = ['Full Length', 'Rolled Up'];
 
+    // Loading Animation
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Compressing Images...", "Scanning Pose...", "Applying Fabric...", "Adjusting Physics...", "Finalizing..."];
+            const steps = ["Optimizing Inputs...", "Detecting Pose...", "Warping Fabric...", "Blending Shadows...", "Finalizing..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 2000);
+            }, 1500);
         }
         return () => clearInterval(interval);
     }, [loading]);
@@ -128,9 +128,11 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handlePersonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const data = await processFile(e.target.files[0]);
-            setResult(null); // Clear result if new model uploaded
+            setResult(null);
             setPersonImage(data);
         }
+        // Clear input value to allow re-selection of same file
+        e.target.value = '';
     };
 
     const handleTopUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +141,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setTopImage(data);
             autoScroll();
         }
+        e.target.value = '';
     };
 
     const handleBottomUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +150,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setBottomImage(data);
             autoScroll();
         }
+        e.target.value = '';
     };
 
     const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
@@ -200,7 +204,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
         } catch (e) {
             console.error(e);
-            alert("Generation failed. Please use a clear photo or try again.");
+            alert("Generation failed. The image might be too complex or the service is busy. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -214,13 +218,12 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setTuckStyle('');
         setFitStyle('');
         setSleeveStyle('');
-        // Explicitly clear inputs if needed via refs, though state reset usually handles UI
+        // Reset Person Input Ref manually just in case
         if (personInputRef.current) personInputRef.current.value = '';
     };
 
     const handleRegenerate = () => {
-        // Clear result but keep images to try again
-        setResult(null);
+        setResult(null); // Simply clear result to show upload view again with existing images
     };
 
     const canGenerate = !!personImage && (!!topImage || !!bottomImage) && !isLowCredits;
@@ -229,15 +232,15 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         <>
             <FeatureLayout 
                 title="Magic Apparel"
-                description="Virtually try on clothing. Upload a full-length photo and the garments you want to wear."
+                description="AI-Powered Virtual Try-On. Upload a model and garments to visualize outfits instantly."
                 icon={<ApparelIcon className="w-6 h-6 text-blue-500"/>}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={handleRegenerate} // Enables "Regenerate" button
-                onNewSession={handleNewSession} // Enables "New Project" button
+                onResetResult={handleRegenerate} 
+                onNewSession={handleNewSession}
                 resultHeightClass="h-[650px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -263,12 +266,21 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {!loading && (
                                 <>
                                     <div className="absolute top-4 left-0 w-full px-4 flex justify-between pointer-events-none">
-                                         <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">MODEL PREVIEW</span>
+                                         <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">TARGET MODEL</span>
                                     </div>
                                     <button onClick={handleNewSession} className="absolute top-4 right-4 pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all" title="Start Over">
                                         <TrashIcon className="w-4 h-4"/>
                                     </button>
-                                    <button onClick={() => { if(personInputRef.current) { personInputRef.current.value = ''; personInputRef.current.click(); }}} className="absolute top-4 right-16 pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-blue-50 text-gray-500 hover:text-blue-500 transition-all" title="Change Model">
+                                    <button 
+                                        onClick={() => { 
+                                            if(personInputRef.current) { 
+                                                personInputRef.current.value = ''; 
+                                                personInputRef.current.click(); 
+                                            }
+                                        }} 
+                                        className="absolute top-4 right-16 pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-blue-50 text-gray-500 hover:text-blue-500 transition-all" 
+                                        title="Change Model"
+                                    >
                                         <UploadIcon className="w-4 h-4"/>
                                     </button>
                                 </>
@@ -282,8 +294,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden bg-white ${isDragging ? 'border-blue-500 bg-blue-50/30 scale-[1.01]' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}`}
                         >
                             <div className="p-6 bg-blue-50 text-blue-500 rounded-full mb-4 group-hover:scale-110 group-hover:bg-blue-100 transition-all duration-300 shadow-sm"><UserIcon className="w-12 h-12"/></div>
-                            <h3 className="text-xl font-bold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors">Upload Full Body Photo</h3>
-                            <div className="bg-gray-100 px-3 py-1 rounded-full group-hover:bg-white border border-transparent group-hover:border-gray-200 transition-colors"><p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest">Click or Drop</p></div>
+                            <h3 className="text-xl font-bold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors">Upload Target Model</h3>
+                            <div className="bg-gray-100 px-3 py-1 rounded-full group-hover:bg-white border border-transparent group-hover:border-gray-200 transition-colors"><p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest">Click or Drop Full Body Photo</p></div>
                             {isDragging && <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none"><div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-blue-100 animate-bounce"><p className="text-lg font-bold text-blue-600 flex items-center gap-2"><UploadIcon className="w-5 h-5"/> Drop to Upload Model</p></div></div>}
                         </div>
                     )
@@ -297,11 +309,16 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         )}
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Choose Outfit</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Reference Garments</label>
                             <div className="grid grid-cols-2 gap-4">
                                 <CompactUpload label="Top" image={topImage} onUpload={handleTopUpload} onClear={() => setTopImage(null)} icon={<GarmentTopIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-32"/>
                                 <CompactUpload label="Bottom" image={bottomImage} onUpload={handleBottomUpload} onClear={() => setBottomImage(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-32"/>
                             </div>
+                            {(topImage && bottomImage && topImage.url === bottomImage.url) && (
+                                <div className="mt-2 text-[10px] text-blue-500 font-bold bg-blue-50 px-2 py-1 rounded-lg inline-block">
+                                    Full Outfit Detected (Optimized)
+                                </div>
+                            )}
                         </div>
                         <div>
                             <div className="flex items-center gap-2 py-1 mb-4">
