@@ -10,3 +10,4 @@ export * from './productPackService';
 export * from './videoService';
 export * from './thumbnailService';
 export * from './apparelService';
+export * from './missionService';
