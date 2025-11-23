@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
     SparklesIcon, 
@@ -5,7 +6,8 @@ import {
     TrashIcon, 
     RetryIcon, 
     UploadIcon, 
-    XIcon 
+    XIcon,
+    CheckIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 
@@ -99,26 +101,61 @@ export const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = (
     </div>
 );
 
-export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number }> = ({ onClose, bonus }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
-         <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white" onClick={e => e.stopPropagation()}>
-             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
-                 <SparklesIcon className="w-10 h-10 text-yellow-300 animate-spin-slow" />
+export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number }> = ({ onClose, bonus = 5 }) => {
+    const [isClaimed, setIsClaimed] = useState(false);
+
+    const handleClaim = () => {
+        setIsClaimed(true);
+        setTimeout(() => {
+            onClose();
+        }, 2500); // Allow user to see the success state for 2.5 seconds
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+             <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white border border-white/10" onClick={e => e.stopPropagation()}>
+                 {!isClaimed ? (
+                     <div className="animate-fadeIn">
+                         <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                             <SparklesIcon className="w-10 h-10 text-yellow-300 animate-spin-slow" />
+                         </div>
+                         
+                         <h2 className="text-2xl font-bold mt-4 mb-2">Milestone Reached!</h2>
+                         <p className="text-indigo-100 mb-6 text-sm leading-relaxed">
+                             You've hit a new creation record. Here is a reward for your creativity.
+                         </p>
+                         
+                         <div className="bg-white/20 backdrop-blur-md text-white font-black text-4xl py-6 rounded-2xl mb-6 border border-white/30 shadow-inner">
+                             +{bonus} <span className="text-lg font-bold opacity-80">Credits</span>
+                         </div>
+                         
+                         <button 
+                            onClick={handleClaim} 
+                            className="w-full bg-white text-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all shadow-lg hover:scale-[1.02] active:scale-95"
+                         >
+                             Collect Bonus
+                         </button>
+                     </div>
+                 ) : (
+                     <div className="animate-[fadeInUp_0.5s_ease-out]">
+                         <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_#22c55e] animate-[bounce_1s_infinite]">
+                             <CheckIcon className="w-10 h-10 text-white" />
+                         </div>
+                         
+                         <h2 className="text-3xl font-bold mb-2 text-white">Bonus Credited!</h2>
+                         <p className="text-indigo-200 text-sm mb-6">Added to your account balance</p>
+                         
+                         <div className="scale-110 transition-transform duration-500">
+                             <div className="inline-block bg-white/20 backdrop-blur-md text-[#6EFACC] font-black text-5xl px-8 py-4 rounded-2xl border border-[#6EFACC]/50 shadow-[0_0_20px_rgba(110,250,204,0.4)]">
+                                 +{bonus}
+                             </div>
+                         </div>
+                     </div>
+                 )}
              </div>
-             
-             <h2 className="text-2xl font-bold mt-4 mb-2">Milestone Reached!</h2>
-             <p className="text-indigo-100 mb-6">You've hit a new creation record. Here is a reward for your creativity.</p>
-             
-             <div className="bg-white/20 backdrop-blur-md text-white font-bold text-3xl py-4 rounded-2xl mb-6 border border-white/30">
-                 +{bonus || 5} Credits
-             </div>
-             
-             <button onClick={onClose} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
-                 Collect Bonus
-             </button>
-         </div>
-    </div>
-);
+        </div>
+    );
+};
 
 export const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; icon?: React.ReactNode }> = ({ label, onClick, icon }) => (
     <div 
