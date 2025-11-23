@@ -10,12 +10,12 @@ export interface ApparelStylingOptions {
 }
 
 // Helper to reduce image size for AI payload safety
-// Using 800px and 60% quality to prevent payload bloating which causes API errors
+// Updated for Gemini 3 Pro: Increased to 1280px and 85% quality for high-definition results
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Reduced to 800px to guarantee payload safety and faster processing
-        const resizedUri = await resizeImage(dataUri, 800, 0.60);
+        // Increased to 1280px (Standard HD) to leverage Gemini 3 Pro's higher visual fidelity
+        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
