@@ -1,59 +1,204 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
-import { getCreations } from '../firebase';
+import { 
+    getCreations, 
+} from '../firebase';
 import { downloadImage } from '../utils/imageUtils';
 import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
+import { ImageModal } from '../components/FeatureLayout';
+import { CreatorRanksModal } from '../components/CreatorRanksModal';
 import { 
+    PhotoStudioIcon, 
     SparklesIcon, 
     DownloadIcon, 
-    PhotoStudioIcon, 
-    FlagIcon, 
-    GiftIcon, 
-    CheckIcon, 
-    ArrowRightIcon,
-    ProductStudioIcon,
+    ProjectsIcon,
+    UsersIcon,
     LightbulbIcon,
     ThumbnailIcon,
     PaletteIcon,
-    UsersIcon
+    HomeIcon,
+    MockupIcon,
+    CaptionIcon,
+    ProductStudioIcon,
+    FlagIcon,
+    CheckIcon,
+    GiftIcon,
+    InformationCircleIcon,
+    ApparelIcon
 } from '../components/icons';
-import { ImageModal } from '../components/FeatureLayout';
 
-interface DashboardHomeProps {
+const DailyQuest: React.FC<{ 
     user: User | null;
-    navigateTo: (page: Page, view?: View, sectionId?: string) => void;
+    navigateTo: (page: Page, view?: View) => void;
+}> = ({ user, navigateTo }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    const mission = getDailyMission();
+    // Use strict server-based locking logic
+    const isLocked = useMemo(() => isMissionLocked(user), [user]);
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            if (!user?.dailyMission?.nextUnlock) return;
+            
+            const now = new Date();
+            const nextReset = new Date(user.dailyMission.nextUnlock);
+            const diff = nextReset.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                setTimeLeft("Ready!");
+                return;
+            }
+            
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            
+            setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        };
+        
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 1000);
+        return () => clearInterval(timer);
+    }, [user]);
+
+    return (
+        <div className={`rounded-3xl p-4 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
+            isLocked 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
+        }`}>
+            {!isLocked && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
+            
+            <div>
+                <div className="flex items-center justify-between mb-2 relative z-10">
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
+                        isLocked 
+                        ? 'bg-green-200 text-green-800' 
+                        : 'bg-red-500 text-white border border-white/10 animate-pulse'
+                    }`}>
+                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
+                    </span>
+                    {!isLocked && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
+                </div>
+                
+                <h3 className={`text-xl font-bold mb-2 relative z-10 ${isLocked ? 'text-[#1A1A1E]' : 'text-white'}`}>{mission.title}</h3>
+                <p className={`text-xs mb-3 relative z-10 leading-relaxed line-clamp-3 ${isLocked ? 'text-gray-500' : 'text-gray-300'}`}>{mission.description}</p>
+            </div>
+            
+            <div className="relative z-10 mt-auto">
+                {!isLocked ? (
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-inner transform transition-transform hover:scale-[1.02]">
+                        <div>
+                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-0.5">Complete to Unlock</p>
+                            <p className="text-xl font-black text-[#1A1A1E] flex items-center gap-1 leading-none">
+                               +5 <span className="text-xs font-bold text-amber-700">CREDITS</span>
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => navigateTo('dashboard', 'daily_mission')}
+                            className="bg-[#1A1A1E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black hover:scale-105 transition-all shadow-lg whitespace-nowrap"
+                        >
+                            Start Mission
+                        </button>
+                    </div>
+                ) : (
+                    <div className="w-full flex justify-between items-center bg-white/50 p-3 rounded-xl border border-green-100">
+                         <span className="text-xs font-bold text-green-700 flex items-center gap-1"><CheckIcon className="w-4 h-4"/> Reward Claimed</span>
+                         <span className="text-xs font-mono text-green-600">Next mission will unlock in {timeLeft}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export const DashboardHome: React.FC<{ 
+    user: User | null; 
+    navigateTo: (page: Page, view?: View, sectionId?: string) => void; 
     setActiveView: (view: View) => void;
     appConfig: AppConfig | null;
     openReferralModal: () => void;
-}
-
-export const DashboardHome: React.FC<DashboardHomeProps> = ({ user, navigateTo, setActiveView, appConfig, openReferralModal }) => {
-    const [latestCreation, setLatestCreation] = useState<Creation | null>(null);
+}> = ({ user, navigateTo, setActiveView, appConfig, openReferralModal }) => {
+    
+    const [creations, setCreations] = useState<Creation[]>([]);
     const [loadingCreations, setLoadingCreations] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-    
-    const dailyMission = getDailyMission();
-    // Check if mission is locked based on persistent user state
-    const isMissionDone = isMissionLocked(user);
+    const [showRanksModal, setShowRanksModal] = useState(false);
 
     useEffect(() => {
         if (user) {
-            getCreations(user.uid)
-                .then(creations => {
-                    if (creations.length > 0) {
-                        // Assuming getCreations returns sorted by date desc (as per firebase.ts impl)
-                        setLatestCreation(creations[0] as Creation);
-                    }
-                })
-                .catch(err => console.error("Failed to load creations", err))
-                .finally(() => setLoadingCreations(false));
-        } else {
-            setLoadingCreations(false);
+            getCreations(user.uid).then(data => {
+                setCreations(data as Creation[]);
+                setLoadingCreations(false);
+            });
         }
     }, [user]);
 
+    // Greeting Logic
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    };
+
+    // Stats Logic
+    const totalGenerations = creations.length;
+    const featureCounts: Record<string, number> = {};
+    creations.forEach(c => {
+        featureCounts[c.feature] = (featureCounts[c.feature] || 0) + 1;
+    });
+    const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
+    const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
+
+    // Progress Logic for Loyalty Bonus (New Logic: 10, 25, 50, 75, 100, then every 100)
+    const lifetimeGens = user?.lifetimeGenerations || 0;
+    let nextMilestone = 10;
+    let prevMilestone = 0;
+    let nextReward = 5;
+
+    if (lifetimeGens < 10) {
+        nextMilestone = 10;
+        prevMilestone = 0;
+        nextReward = 5;
+    } else if (lifetimeGens < 25) {
+        nextMilestone = 25;
+        prevMilestone = 10;
+        nextReward = 10;
+    } else if (lifetimeGens < 50) {
+        nextMilestone = 50;
+        prevMilestone = 25;
+        nextReward = 15;
+    } else if (lifetimeGens < 75) {
+        nextMilestone = 75;
+        prevMilestone = 50;
+        nextReward = 20;
+    } else if (lifetimeGens < 100) {
+        nextMilestone = 100;
+        prevMilestone = 75;
+        nextReward = 30;
+    } else {
+        // After 100, rewards every 100 generations
+        const hundreds = Math.floor(lifetimeGens / 100);
+        // If lifetimeGens is exactly 100, hundreds=1. prev=100, next=200.
+        prevMilestone = hundreds * 100;
+        nextMilestone = (hundreds + 1) * 100;
+        nextReward = 30;
+    }
+    
+    // Calculate percent within the current gap
+    let progressPercent = 0;
+    if (nextMilestone > prevMilestone) {
+        progressPercent = ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+    }
+    // Clamp
+    progressPercent = Math.min(100, Math.max(0, progressPercent));
+
+
+    // Helper to map feature name to view ID for "Generate Another"
     const getFeatureViewId = (featureName: string): View => {
-        const map: {[key: string]: View} = {
+        const map: Record<string, View> = {
             'Magic Photo Studio': 'studio',
             'Model Shot': 'studio',
             'Product Studio': 'product_studio',
@@ -66,42 +211,50 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ user, navigateTo, 
             'Magic Apparel': 'apparel',
             'Magic Mockup': 'mockup'
         };
-        // Simple partial match
-        for (const key in map) {
-            if (featureName.includes(key)) return map[key];
-        }
-        return 'studio';
+        // Try exact match first, then check if it contains the feature name
+        if (map[featureName]) return map[featureName];
+        const key = Object.keys(map).find(k => featureName.includes(k));
+        return key ? map[key] : 'studio';
     };
 
-    const quickActions = [
-        { id: 'studio', label: 'Magic Photo', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'product_studio', label: 'Product Pack', icon: ProductStudioIcon, color: 'bg-green-500' },
-        { id: 'brand_stylist', label: 'Brand Style', icon: LightbulbIcon, color: 'bg-yellow-500' },
-        { id: 'thumbnail_studio', label: 'Thumbnails', icon: ThumbnailIcon, color: 'bg-red-500' },
-        { id: 'colour', label: 'Restoration', icon: PaletteIcon, color: 'bg-rose-500' },
+    const latestCreation = creations.length > 0 ? creations[0] : null;
+
+    const tools = [
+        { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
+        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
+        { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
+        { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
+        { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
     ];
 
     return (
-        <div className="p-6 lg:p-8 pb-24 max-w-[1600px] mx-auto space-y-8">
-            {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto animate-fadeIn">
+            {/* Header with Greeting */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[#1A1A1E]">
-                        Welcome back, {user?.name.split(' ')[0] || 'Creator'}!
+                        {getGreeting()}, {user?.name}!
                     </h1>
-                    <p className="text-gray-500 mt-1">Ready to create some magic today?</p>
+                    <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
                 </div>
+                
                 <button 
-                    onClick={() => navigateTo('dashboard', 'billing')} 
-                    className="bg-white border border-gray-200 text-[#1A1A1E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm"
+                    onClick={openReferralModal}
+                    className="md:hidden bg-purple-100 text-purple-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 border border-purple-200"
                 >
-                    <span className="text-[#4D7CFF] font-black mr-1">{user?.credits || 0}</span> Credits Available
+                    <GiftIcon className="w-4 h-4" /> Refer & Earn
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Left: Hero Banner (3/5) */}
+            {/* Hero Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
+                
+                {/* Left: Hero Banner (60% -> 3/5) */}
                 <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[450px]">
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
@@ -110,7 +263,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ user, navigateTo, 
                             className="relative h-full group cursor-zoom-in"
                             onClick={() => setZoomedImage(latestCreation.imageUrl)}
                         >
-                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
+                            <img src={latestCreation.thumbnailUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
                                 <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
@@ -151,84 +304,86 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ user, navigateTo, 
                     )}
                 </div>
 
-                {/* Right: Sidebar Widgets (2/5) */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    
-                    {/* Daily Mission Card */}
-                    <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white relative overflow-hidden flex-1 flex flex-col justify-between">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                {/* Right: Boxy Layout (40% -> 2/5) */}
+                <div className="lg:col-span-2 flex flex-col gap-4 h-full">
+                    {/* Row 1: Loyalty Bonus (Full Width Box) */}
+                    <div className="shrink-0 h-[155px] bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                        {/* Decorative BG */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
                         
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-4">
-                                <span className="bg-white/20 backdrop-blur-md text-xs font-bold px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                                    <FlagIcon className="w-3 h-3" /> Daily Mission
-                                </span>
-                                {isMissionDone && (
-                                    <span className="bg-green-500/20 text-green-300 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                                        <CheckIcon className="w-3 h-3" /> Completed
-                                    </span>
-                                )}
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Loyalty Bonus</p>
+                                    <button onClick={() => setShowRanksModal(true)} className="text-gray-500 hover:text-[#4D7CFF] transition-colors">
+                                         <InformationCircleIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <h3 className="text-xl font-black text-[#1A1A1E]">
+                                    {lifetimeGens} <span className="text-sm font-medium text-gray-400">Generations</span>
+                                </h3>
                             </div>
-                            <h3 className="text-xl font-bold mb-2">{dailyMission.title}</h3>
-                            <p className="text-indigo-200 text-sm line-clamp-2">{dailyMission.description}</p>
+                            <div className="text-right">
+                                <p className="text-xl font-black text-indigo-600">
+                                    {nextMilestone}
+                                </p>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">Target</p>
+                            </div>
                         </div>
 
-                        <div className="relative z-10 mt-6 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Reward</p>
-                                <p className="text-2xl font-bold">+{dailyMission.reward} Credits</p>
+                        <div className="relative z-10">
+                            <div className="flex justify-between text-xs font-bold mb-1.5">
+                                <span className="text-indigo-600">Progress</span>
+                                <span className="text-gray-500">Next: +{nextReward} Credits</span>
                             </div>
-                            <button 
-                                onClick={() => setActiveView('daily_mission')}
-                                disabled={isMissionDone}
-                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${
-                                    isMissionDone 
-                                    ? 'bg-white/10 text-white/50 cursor-default' 
-                                    : 'bg-white text-indigo-600 hover:bg-indigo-50'
+                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative" style={{ width: `${progressPercent}%` }}>
+                                     <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Daily Mission (Tray) */}
+                    <div className="flex-1 min-h-[140px]">
+                         <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
+                    </div>
+                </div>
+            </div>
+
+            {/* All Tools Grid */}
+            <div>
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">All Creative Tools</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {tools.map(tool => {
+                        const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
+                        return (
+                            <button
+                                key={tool.id}
+                                onClick={() => setActiveView(tool.id as View)}
+                                disabled={isDisabled}
+                                className={`flex flex-col items-center text-center p-5 rounded-2xl transition-all duration-300 border group ${
+                                    isDisabled 
+                                    ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1'
                                 }`}
                             >
-                                {isMissionDone ? 'Done' : 'Start'} <ArrowRightIcon className="w-4 h-4" />
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
+                                    <tool.icon className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-black">{tool.label}</span>
+                                {isDisabled && <span className="mt-2 text-[10px] font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>}
                             </button>
-                        </div>
-                    </div>
-
-                    {/* Referral Card */}
-                    <div className="bg-[#F6F7FA] border border-gray-200 rounded-3xl p-6 flex-1 flex flex-col justify-center items-start relative overflow-hidden group cursor-pointer" onClick={openReferralModal}>
-                        <div className="absolute right-4 top-4 p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform duration-300">
-                            <GiftIcon className="w-6 h-6 text-purple-500" />
-                        </div>
-                        <h3 className="text-lg font-bold text-[#1A1A1E] mb-1">Refer & Earn</h3>
-                        <p className="text-gray-500 text-sm mb-4 max-w-[80%]">Invite friends and get 10 free credits for every signup.</p>
-                        <button className="text-purple-600 font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-                            Invite Now <ArrowRightIcon className="w-4 h-4" />
-                        </button>
-                    </div>
+                        )
+                    })}
                 </div>
             </div>
-
-            {/* Quick Actions Grid */}
-            <div>
-                <h2 className="text-lg font-bold text-[#1A1A1E] mb-4">Quick Access</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {quickActions.map(action => (
-                        <button 
-                            key={action.id}
-                            onClick={() => setActiveView(action.id as View)}
-                            className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center gap-3 group h-32 justify-center"
-                        >
-                            <div className={`w-10 h-10 ${action.color} text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                <action.icon className="w-5 h-5" />
-                            </div>
-                            <span className="text-xs font-bold text-gray-700 group-hover:text-black">{action.label}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Image Modal */}
-            {zoomedImage && (
-                <ImageModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />
-            )}
+            
+            {/* Image Modal for Zoom */}
+            {zoomedImage && <ImageModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />}
+            
+            {/* Ranks Modal */}
+            {showRanksModal && <CreatorRanksModal currentGens={lifetimeGens} onClose={() => setShowRanksModal(false)} />}
         </div>
     );
 };

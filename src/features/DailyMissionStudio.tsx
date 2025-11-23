@@ -300,7 +300,7 @@ export const DailyMissionStudio: React.FC<{
                                 )}
                             </button>
                             <p className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Powered by MagicPixa
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Powered by MagicPixa's latest AI model
                             </p>
                         </div>
                     </div>
