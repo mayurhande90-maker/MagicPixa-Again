@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -24,7 +23,8 @@ import {
     FlagIcon,
     CheckIcon,
     GiftIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    ApparelIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -212,7 +212,7 @@ export const DashboardHome: React.FC<{
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
         { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
-        { id: 'apparel', label: 'Magic Apparel', icon: UsersIcon, color: 'bg-teal-500' },
+        { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
         { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
     ];
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -187,7 +186,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <FeatureLayout 
                 title="Magic Apparel"
                 description="Virtually try on any clothing item. Upload a photo of yourself and the garment you want to wear."
-                icon={<ApparelIcon className="w-6 h-6 text-teal-500"/>}
+                icon={<ApparelIcon className="w-6 h-6 text-blue-500"/>}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -209,7 +208,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                        <div className="h-full bg-gradient-to-r from-teal-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                     </div>
                                     <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                                 </div>
@@ -251,25 +250,25 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 onDrop={handleDrop}
                                 className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${
                                     isDragging 
-                                    ? 'border-teal-600 bg-teal-50 scale-[1.02] shadow-xl' 
-                                    : 'border-teal-300 hover:border-teal-500 bg-white hover:-translate-y-1 hover:shadow-xl'
+                                    ? 'border-blue-600 bg-blue-50 scale-[1.02] shadow-xl' 
+                                    : 'border-blue-300 hover:border-blue-500 bg-white hover:-translate-y-1 hover:shadow-xl'
                                 }`}
                             >
-                                <div className="relative z-10 p-6 bg-teal-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <ApparelIcon className="w-12 h-12 text-teal-300 group-hover:text-teal-600 transition-colors duration-300" />
+                                <div className="relative z-10 p-6 bg-blue-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                    <ApparelIcon className="w-12 h-12 text-blue-300 group-hover:text-blue-600 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                     <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Model Photo</p>
                                     <div className="bg-gray-50 rounded-full px-3 py-1 inline-block">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-teal-600 transition-colors">Click to Browse</p>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Click to Browse</p>
                                     </div>
                                 </div>
 
                                 {isDragging && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-teal-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
-                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-teal-100 animate-bounce">
-                                            <p className="text-lg font-bold text-teal-600 flex items-center gap-2">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                        <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-blue-100 animate-bounce">
+                                            <p className="text-lg font-bold text-blue-600 flex items-center gap-2">
                                                 <UploadIcon className="w-5 h-5"/> Drop to Upload!
                                             </p>
                                         </div>
@@ -324,8 +323,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                             onClick={() => setGarmentType(item.id as any)}
                                             className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 transform hover:scale-[1.02] ${
                                                 garmentType === item.id 
-                                                ? 'bg-teal-50 border-teal-500 text-teal-700 shadow-md' 
-                                                : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200 hover:bg-teal-50/50'
+                                                ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-md' 
+                                                : 'bg-white border-gray-200 text-gray-500 hover:border-blue-200 hover:bg-blue-50/50'
                                             }`}
                                         >
                                             <item.icon className="w-6 h-6 mb-1"/>
@@ -339,7 +338,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             <div className="animate-fadeIn">
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Garment</label>
                                 {garmentImage ? (
-                                    <div className="relative w-full h-48 bg-white rounded-2xl border-2 border-teal-100 flex items-center justify-center overflow-hidden group shadow-sm">
+                                    <div className="relative w-full h-48 bg-white rounded-2xl border-2 border-blue-100 flex items-center justify-center overflow-hidden group shadow-sm">
                                         <img src={garmentImage.url} className="max-w-full max-h-full object-contain" alt="Garment" />
                                         <button 
                                             onClick={() => setGarmentImage(null)}
@@ -351,12 +350,12 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 ) : (
                                     <div 
                                         onClick={() => garmentInputRef.current?.click()}
-                                        className="w-full h-48 border-2 border-dashed border-gray-300 hover:border-teal-400 bg-gray-50 hover:bg-teal-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group"
+                                        className="w-full h-48 border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group"
                                     >
                                         <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform mb-2">
-                                            <PlusIcon className="w-6 h-6 text-teal-500" />
+                                            <PlusIcon className="w-6 h-6 text-blue-500" />
                                         </div>
-                                        <p className="text-sm font-bold text-gray-500 group-hover:text-teal-600">Select Garment Image</p>
+                                        <p className="text-sm font-bold text-gray-500 group-hover:text-blue-600">Select Garment Image</p>
                                         <p className="text-[10px] text-gray-400 mt-1">Flat lay or mannequin shots work best</p>
                                     </div>
                                 )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon } from './icons';
+import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, ProductStudioIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: false },
     { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
-    { id: 'apparel', label: 'Magic Apparel', icon: UsersIcon, disabled: false },
+    { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, disabled: false },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },

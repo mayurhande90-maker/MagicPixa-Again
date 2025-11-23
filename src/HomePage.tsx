@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon, ThumbnailIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -79,10 +79,10 @@ const features = [
     },
     {
         id: 'apparel',
-        icon: <UsersIcon className="w-10 h-10 text-white" />,
+        icon: <ApparelIcon className="w-10 h-10 text-white" />,
         title: "Magic Apparel",
         description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds.",
-        color: "bg-teal-500",
+        color: "bg-blue-500",
         disabled: false,
     },
     {

@@ -3,7 +3,7 @@ import { User, Transaction, AppConfig, CreditPack } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
-    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon
+    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon
 } from './icons';
 
 interface BillingProps {
@@ -76,7 +76,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
         'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,
         'Magic Interior': <div className="p-2 bg-orange-100 rounded-full"><HomeIcon className={`${iconClass} text-orange-600`} /></div>,
-        'Magic Apparel': <div className="p-2 bg-teal-100 rounded-full"><UsersIcon className={`${iconClass} text-teal-600`} /></div>,
+        'Magic Apparel': <div className="p-2 bg-blue-100 rounded-full"><ApparelIcon className={`${iconClass} text-blue-600`} /></div>,
         'Magic Mockup': <div className="p-2 bg-indigo-100 rounded-full"><MockupIcon className={`${iconClass} text-indigo-600`} /></div>,
     };
     
