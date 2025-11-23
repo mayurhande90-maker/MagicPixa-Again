@@ -5,13 +5,8 @@ import {
     ApparelIcon, 
     UploadIcon, 
     XIcon, 
-    ArrowUpCircleIcon, 
     GarmentTopIcon, 
     GarmentTrousersIcon, 
-    SparklesIcon,
-    CreditCardIcon,
-    PlusIcon,
-    ArrowLeftIcon,
     UserIcon,
     TrashIcon
 } from '../components/icons';
@@ -388,41 +383,35 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         </div>
 
-                        {/* 2. Styling Preferences */}
-                        {(topImage || bottomImage) && (
-                            <div>
-                                <div className="flex items-center gap-2 py-1 mb-4">
-                                    <div className="h-px flex-1 bg-gray-200"></div>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">STYLING PREFERENCES</span>
-                                    <div className="h-px flex-1 bg-gray-200"></div>
-                                </div>
-                                
-                                {topImage && bottomImage && (
-                                    <SelectionGrid 
-                                        label="Tuck Style" 
-                                        options={tuckOptions} 
-                                        value={tuckStyle} 
-                                        onChange={setTuckStyle} 
-                                    />
-                                )}
-                                
-                                <SelectionGrid 
-                                    label="Fit Preference" 
-                                    options={fitOptions} 
-                                    value={fitStyle} 
-                                    onChange={setFitStyle} 
-                                />
-                                
-                                {topImage && (
-                                    <SelectionGrid 
-                                        label="Sleeve Style" 
-                                        options={sleeveOptions} 
-                                        value={sleeveStyle} 
-                                        onChange={setSleeveStyle} 
-                                    />
-                                )}
+                        {/* 2. Styling Preferences - NOW ALWAYS VISIBLE */}
+                        <div>
+                            <div className="flex items-center gap-2 py-1 mb-4">
+                                <div className="h-px flex-1 bg-gray-200"></div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">2. STYLING (OPTIONAL)</span>
+                                <div className="h-px flex-1 bg-gray-200"></div>
                             </div>
-                        )}
+                            
+                            <SelectionGrid 
+                                label="Fit Preference" 
+                                options={fitOptions} 
+                                value={fitStyle} 
+                                onChange={setFitStyle} 
+                            />
+                            
+                            <SelectionGrid 
+                                label="Tuck Style" 
+                                options={tuckOptions} 
+                                value={tuckStyle} 
+                                onChange={setTuckStyle} 
+                            />
+                            
+                            <SelectionGrid 
+                                label="Sleeve Style" 
+                                options={sleeveOptions} 
+                                value={sleeveStyle} 
+                                onChange={setSleeveStyle} 
+                            />
+                        </div>
 
                         {/* 3. Instructions */}
                         <div>
