@@ -20,26 +20,53 @@ import {
 } from '../components/icons';
 
 // --- Mission Success Modal ---
-const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = ({ reward, onClose }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
-         <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
-             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                 <CheckIcon className="w-10 h-10 text-green-600" />
+const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = ({ reward, onClose }) => {
+    const [isClaimed, setIsClaimed] = useState(false);
+
+    const handleClaim = () => {
+        setIsClaimed(true);
+        setTimeout(() => {
+            onClose();
+        }, 2500);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+             <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
+                 {!isClaimed ? (
+                     <div className="animate-fadeIn">
+                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                             <CheckIcon className="w-10 h-10 text-green-600" />
+                         </div>
+                         
+                         <h2 className="text-2xl font-bold text-[#1A1A1E] mb-2">Mission Complete!</h2>
+                         <p className="text-gray-500 mb-6">You've successfully completed the daily challenge.</p>
+                         
+                         <div className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 font-bold text-3xl py-4 rounded-2xl mb-6 border border-amber-200 shadow-sm">
+                             +{reward} Credits
+                         </div>
+                         
+                         <button onClick={handleClaim} className="w-full bg-[#1A1A1E] text-white font-bold py-3 rounded-xl hover:bg-black transition-colors shadow-lg">
+                             Claim Reward
+                         </button>
+                     </div>
+                 ) : (
+                     <div className="animate-[fadeInUp_0.5s_ease-out] py-8">
+                         <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_#22c55e] animate-[bounce_1s_infinite]">
+                             <CheckIcon className="w-12 h-12 text-white" />
+                         </div>
+                         
+                         <h2 className="text-3xl font-bold mb-2 text-[#1A1A1E]">Credited!</h2>
+                         
+                         <div className="scale-110 transition-transform duration-500 mt-4">
+                             <span className="text-4xl font-black text-green-600">+{reward} Credits</span>
+                         </div>
+                     </div>
+                 )}
              </div>
-             
-             <h2 className="text-2xl font-bold text-[#1A1A1E] mb-2">Mission Complete!</h2>
-             <p className="text-gray-500 mb-6">You've successfully completed the daily challenge.</p>
-             
-             <div className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 font-bold text-3xl py-4 rounded-2xl mb-6 border border-amber-200 shadow-sm">
-                 +{reward} Credits
-             </div>
-             
-             <button onClick={onClose} className="w-full bg-[#1A1A1E] text-white font-bold py-3 rounded-xl hover:bg-black transition-colors shadow-lg">
-                 Claim Reward
-             </button>
-         </div>
-    </div>
-);
+        </div>
+    );
+};
 
 export const DailyMissionStudio: React.FC<{ 
     auth: AuthProps; 
@@ -300,7 +327,7 @@ export const DailyMissionStudio: React.FC<{
                                 )}
                             </button>
                             <p className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Powered by MagicPixa's latest AI model
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Powered by MagicPixa
                             </p>
                         </div>
                     </div>
