@@ -78,6 +78,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
+    const personInputRef = useRef<HTMLInputElement>(null);
 
     // Cost
     const cost = appConfig?.featureCosts['Magic Apparel'] || 3;
@@ -142,6 +143,42 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const data = await processFile(e.target.files[0]);
             setBottomImage(data);
             autoScroll();
+        }
+    };
+
+    // Drag and Drop Handlers for Left Panel
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                const data = await processFile(file);
+                setResult(null);
+                setPersonImage(data);
+            } else {
+                alert("Please drop a valid image file.");
+            }
         }
     };
 
@@ -239,28 +276,62 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             />
 
                             {!loading && (
-                                <div className="absolute top-4 left-0 w-full px-4 flex justify-between pointer-events-none">
-                                     <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">
-                                        MODEL PREVIEW
-                                     </span>
-                                     <button 
+                                <>
+                                    <div className="absolute top-4 left-0 w-full px-4 flex justify-between pointer-events-none">
+                                         <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">
+                                            MODEL PREVIEW
+                                         </span>
+                                    </div>
+                                    
+                                    <button 
                                         onClick={handleNewSession} 
-                                        className="pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
+                                        className="absolute top-4 right-4 pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
                                         title="Clear All"
-                                     >
+                                    >
                                         <TrashIcon className="w-4 h-4"/>
-                                     </button>
-                                </div>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => personInputRef.current?.click()} 
+                                        className="absolute top-4 right-16 pointer-events-auto bg-white p-2 rounded-full shadow-md hover:bg-blue-50 text-gray-500 hover:text-blue-500 transition-all"
+                                        title="Change Model"
+                                    >
+                                        <UploadIcon className="w-4 h-4"/>
+                                    </button>
+                                </>
                             )}
                             <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-200 shadow-sm">
-                                <UserIcon className="w-10 h-10 text-gray-300"/>
+                        <div 
+                            onClick={() => personInputRef.current?.click()}
+                            onDragOver={handleDragOver}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden bg-white ${
+                                isDragging 
+                                ? 'border-blue-500 bg-blue-50/30 scale-[1.01]' 
+                                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                            }`}
+                        >
+                            <div className="p-6 bg-blue-50 text-blue-500 rounded-full mb-4 group-hover:scale-110 group-hover:bg-blue-100 transition-all duration-300 shadow-sm">
+                                <UserIcon className="w-12 h-12"/>
                             </div>
-                            <h3 className="font-bold text-gray-600 mb-2 text-lg">Fitting Room</h3>
-                            <p className="text-sm text-gray-400 max-w-xs">Your generated look will appear here after you upload your photos on the right.</p>
+                            <h3 className="text-xl font-bold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors">Upload Full Body Photo</h3>
+                            <div className="bg-gray-100 px-3 py-1 rounded-full group-hover:bg-white border border-transparent group-hover:border-gray-200 transition-colors">
+                                <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest">Click or Drop</p>
+                            </div>
+                            
+                            {isDragging && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                    <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-blue-100 animate-bounce">
+                                        <p className="text-lg font-bold text-blue-600 flex items-center gap-2">
+                                            <UploadIcon className="w-5 h-5"/> Drop to Upload Model
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )
                 }
@@ -277,24 +348,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         )}
 
-                        {/* 1. Model Upload */}
-                        <div className="space-y-3">
-                            <CompactUpload 
-                                label="1. Upload Model (Full Body)" 
-                                image={personImage} 
-                                onUpload={handlePersonUpload} 
-                                onClear={() => { setPersonImage(null); setResult(null); }}
-                                icon={<UserIcon className="w-6 h-6 text-blue-400"/>}
-                                heightClass="h-48"
-                            />
-                            <p className="text-[10px] text-gray-400 px-1">
-                                Best results with good lighting and clear full-body visibility.
-                            </p>
-                        </div>
-
-                        {/* 2. Garments Grid */}
+                        {/* 1. Garments Grid */}
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Choose Outfit</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">1. Choose Outfit</label>
                             <div className="grid grid-cols-2 gap-4">
                                 <CompactUpload 
                                     label="Top" 
@@ -315,10 +371,10 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         </div>
 
-                        {/* 3. Instructions */}
+                        {/* 2. Instructions */}
                         <div>
                             <TextAreaField 
-                                label="3. Styling Notes (Optional)"
+                                label="2. Styling Notes (Optional)"
                                 value={userPrompt}
                                 onChange={(e: any) => setUserPrompt(e.target.value)}
                                 placeholder="e.g. Tuck in the shirt, roll up sleeves, make it oversized..."
@@ -328,6 +384,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     </div>
                 }
             />
+            <input ref={personInputRef} type="file" className="hidden" accept="image/*" onChange={handlePersonUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
     );
