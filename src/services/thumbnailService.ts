@@ -20,7 +20,7 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 interface ThumbnailInputs {
     category: string;
     title: string;
-    referenceImage: { base64: string; mimeType: string }; // Required
+    referenceImage?: { base64: string; mimeType: string } | null; // Now Optional
     subjectImage?: { base64: string; mimeType: string } | null; // Optional for standard
     hostImage?: { base64: string; mimeType: string } | null; // Podcast only
     guestImage?: { base64: string; mimeType: string } | null; // Podcast only
@@ -32,73 +32,84 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         const parts: any[] = [];
         const isPodcast = inputs.category === 'Podcast';
 
-        // 1. Optimize and Attach Reference Image (Always Required)
-        const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-        parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font style, and color ONLY):" });
-        parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+        // 1. Handle Reference Image (Optional)
+        if (inputs.referenceImage) {
+            const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+            parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font style, and color ONLY):" });
+            parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+        }
 
         // 2. Handle Subjects based on Category
         if (isPodcast) {
             if (inputs.hostImage) {
                 const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
-                parts.push({ text: "HOST PHOTO (Preserve Identity):" });
+                parts.push({ text: "HOST PHOTO (Main Subject):" });
                 parts.push({ inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
             }
             if (inputs.guestImage) {
                 const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
-                parts.push({ text: "GUEST PHOTO (Preserve Identity):" });
+                parts.push({ text: "GUEST PHOTO (Second Subject):" });
                 parts.push({ inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
             }
         } else {
             if (inputs.subjectImage) {
                 const optSubject = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-                parts.push({ text: "MAIN SUBJECT PHOTO (Preserve Identity):" });
+                parts.push({ text: "MAIN SUBJECT PHOTO:" });
                 parts.push({ inlineData: { data: optSubject.data, mimeType: optSubject.mimeType } });
             }
         }
 
         // 3. Construct Highly Specific System Prompt
-        let prompt = `You are an Elite YouTube Thumbnail Designer using Gemini 3 Pro.
+        let prompt = `You are an Elite YouTube Thumbnail Designer and Graphic Artist using Gemini 3 Pro.
         
         TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail for the category: "${inputs.category}".
+        CONTEXT: The video is about: "${inputs.title}".
         
-        PHASE 1: DEEP ANALYSIS
-        1. Analyze the "REFERENCE THUMBNAIL STYLE" deeply. Extract the color palette, font style (bold/sans-serif), text placement, glow effects, and background complexity.
-        2. **ABSOLUTE PROHIBITION:** You are strictly FORBIDDEN from reading, extracting, or reproducing ANY text found in the Reference Image. If the Reference Image has text, you MUST IGNORE IT COMPLETELY. The reference is provided ONLY for visual vibe, color, and composition.
-        
-        PHASE 2: AI COPYWRITING (TEXT GENERATION)
-        - **CONTEXT**: The user says the video is about: "${inputs.title}".
-        - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on this context.
-        - **EXAMPLES**: 
-          - If context is "Reviewing new iPhone", generate "IPHONE 15 FAIL?".
-          - If context is "Scary story", generate "DO NOT WATCH".
-          - If context is "Finance tips", generate "GET RICH FAST".
-        - **RULE**: The text overlay on the image MUST be your generated clickbait phrase, NOT the user's long description.
+        *** PHASE 1: VISUAL STRATEGY & RESEARCH ***
+        `;
 
-        PHASE 3: COMPOSITION & RENDERING
+        if (inputs.referenceImage) {
+            prompt += `
+            - **REFERENCE ANALYSIS**: Analyze the provided "REFERENCE THUMBNAIL STYLE". Extract the color palette, font style (bold/sans-serif), text placement, and energy.
+            - **ABSOLUTE PROHIBITION:** You are strictly FORBIDDEN from reading or extracting text from the Reference Image. IGNORE reference text completely. Use it only for visual vibe.
+            `;
+        } else {
+            prompt += `
+            - **DEEP TREND RESEARCH**: Since no reference was provided, use Google Search to find the current best-performing thumbnail styles for "${inputs.title}" in the "${inputs.category}" niche for 2025.
+            - **DESIGN GENERATION**: Act as a Professional Graphic Designer. Invent a world-class, high-contrast, eye-catching composition from scratch based on your research.
+            `;
+        }
+        
+        prompt += `
+        *** PHASE 2: PROFESSIONAL PHOTO ENHANCEMENT (CRITICAL) ***
+        - **INPUT PHOTOS**: Take the uploaded HOST, GUEST, or MAIN SUBJECT photos.
+        - **ACTION**: You must act as a high-end photo retoucher.
+          1. **RELIGHTING**: Fix any bad lighting. Add rim lights, match the subject lighting to your new background.
+          2. **COLOR GRADING**: Fix skin tones (make them healthy and vibrant), adjust contrast, and remove noise/blur.
+          3. **INTEGRATION**: Cut the subjects out perfectly and blend them into the scene so they don't look like cheap stickers.
+        
+        *** PHASE 3: AI COPYWRITING (TEXT GENERATION) ***
+        - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on the Context: "${inputs.title}".
+        - **EXAMPLES**: "IPHONE 15 FAIL?", "DO NOT WATCH", "GET RICH FAST", "THE TRUTH".
+        - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts.
+
+        *** PHASE 4: COMPOSITION & RENDERING ***
         `;
 
         if (isPodcast) {
-            prompt += `- **Podcast Layout**: Place the HOST and GUEST side-by-side or facing each other, mimicking the composition of the Reference Thumbnail.
-            - **Background**: Generate a high-quality studio background or a relevant scene based on the Context, matching the lighting of the Reference.
-            - **Text Placement**: Render your GENERATED CLICKBAIT TEXT clearly, using the font style/color from the Reference.
-            `;
+            prompt += `- **Podcast Layout**: Place HOST and GUEST side-by-side or facing each other. Add a studio background or relevant environment.`;
         } else {
-            prompt += `- **Standard Layout**: If a Subject Photo is provided, place them prominently in the foreground. If not, generate a compelling central subject based on the Context.
-            - **Style Transfer**: Apply the exact color grading, saturation, and energy of the Reference Thumbnail.
-            - **Text Placement**: Render your GENERATED CLICKBAIT TEXT big and bold, ensuring high readability.
-            `;
+            prompt += `- **Standard Layout**: Place the Subject prominently in the foreground. Create a compelling background that tells a story.`;
         }
 
         prompt += `
         *** CRITICAL IDENTITY PRESERVATION RULES (ZERO TOLERANCE) ***
-        - You MUST use the faces/bodies from the uploaded HOST/GUEST/SUBJECT photos.
+        - You MUST use the faces/bodies from the uploaded photos.
         - **DO NOT REGENERATE THEIR FACES.** Do not change their ethnicity, age, hair, or facial features.
-        - You are a compositor: Cut them out of their original photos and blend them seamlessly into the new thumbnail design.
-        - **Lighting**: You MAY adjust the lighting on the subjects to match the new background (e.g., add rim light, fix shadows), but do not alter their geometry.
+        - Keep the identity 100% exact, just make the photo quality *better*.
         
         *** HYPER-REALISM & QUALITY ***
-        - The final image must look like a 4K polished photograph, not a cartoon (unless the Reference is a cartoon).
+        - The final image must look like a 4K polished design.
         - Text must be legible, spelled correctly, and professional.
         - Add depth of field (blur) to the background to make subjects pop.
         
@@ -111,7 +122,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                // Enable search for trend analysis
+                // Enable search for trend research
                 tools: [{ googleSearch: {} }]
             },
         });

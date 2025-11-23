@@ -86,9 +86,11 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     // Requirement Check
     const isPodcast = category === 'Podcast';
+    // Podcast: Needs Host + Guest + Title. Reference is optional.
+    // Standard: Needs Title. Subject is optional. Reference is optional.
     const hasRequirements = isPodcast 
-        ? (!!referenceImage && !!hostImage && !!guestImage && !!title)
-        : (!!referenceImage && !!title); // Subject is optional in standard
+        ? (!!hostImage && !!guestImage && !!title)
+        : (!!title); 
         
     const isLowCredits = hasRequirements && userCredits < cost;
 
@@ -101,7 +103,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Reference Style...", "Detecting Faces...", "Generating Clickbait Title...", "Compositing Scene...", "Final Polish..."];
+            const steps = ["Analyzing Trend Data...", "Enhancing Photos...", "Designing Layout...", "Generating Clickbait Title...", "Final Polish..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -149,7 +151,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
-                referenceImage: referenceImage!.base64,
+                referenceImage: referenceImage?.base64, // Optional
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
                 guestImage: guestImage?.base64
@@ -190,7 +192,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({
                 category,
                 title,
-                referenceImage: referenceImage!.base64,
+                referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
                 guestImage: guestImage?.base64
@@ -317,12 +319,13 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 />
                                             </div>
                                             <CompactUpload 
-                                                label="Reference Thumbnail (Style Source)" 
+                                                label="Reference Thumbnail" 
                                                 image={referenceImage} 
                                                 onUpload={handleUpload(setReferenceImage)} 
                                                 onClear={() => setReferenceImage(null)}
                                                 icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
                                                 heightClass="h-40"
+                                                optional={true} // Made optional
                                             />
                                         </div>
                                     ) : (
@@ -336,31 +339,30 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 optional={true}
                                             />
                                             <CompactUpload 
-                                                label="Reference Thumbnail (Style Source)" 
+                                                label="Reference Thumbnail" 
                                                 image={referenceImage} 
                                                 onUpload={handleUpload(setReferenceImage)} 
                                                 onClear={() => setReferenceImage(null)}
                                                 icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
                                                 heightClass="h-40"
+                                                optional={true} // Made optional
                                             />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 3. Title Input */}
-                                {referenceImage && (
-                                    <div className="animate-fadeIn">
-                                        <InputField 
-                                            label="3. What is the video about? (AI will generate title)" 
-                                            placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
-                                            value={title} 
-                                            onChange={(e: any) => setTitle(e.target.value)} 
-                                        />
-                                        <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                            AI will analyze this context to generate a viral, clickbait title for the thumbnail.
-                                        </p>
-                                    </div>
-                                )}
+                                {/* 3. Title Input (Requires either reference or title to show step) */}
+                                <div className="animate-fadeIn">
+                                    <InputField 
+                                        label="3. What is the video about? (AI will generate title)" 
+                                        placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
+                                        value={title} 
+                                        onChange={(e: any) => setTitle(e.target.value)} 
+                                    />
+                                    <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
+                                        AI will analyze this context to generate a viral, clickbait title for the thumbnail.
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>
