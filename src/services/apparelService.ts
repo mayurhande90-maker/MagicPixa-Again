@@ -57,7 +57,7 @@ export const generateApparelTryOn = async (
     const parts: any[] = [];
     
     // Simplified System Instruction for better adherence
-    parts.push({ text: `You are an expert AI fashion stylist and image editor. 
+    parts.push({ text: `You are an expert AI fashion stylist and image editor using the advanced Gemini 3 Pro vision capabilities.
 Task: Virtual Try-On. 
 Goal: Generate a photorealistic image of the model wearing the provided clothing.
 Constraint: Keep the model's face, skin tone, body shape, and background EXACTLY the same.` });
@@ -100,7 +100,7 @@ Constraint: Keep the model's face, skin tone, body shape, and background EXACTLY
     parts.push({ text: `Ensure the lighting on the clothes matches the model's environment. The result must be indistinguishable from a real photo.` });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
