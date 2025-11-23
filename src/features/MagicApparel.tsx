@@ -5,8 +5,6 @@ import {
     ApparelIcon, 
     UploadIcon, 
     XIcon, 
-    GarmentTopIcon, 
-    GarmentTrousersIcon, 
     UserIcon,
     TrashIcon,
     UploadTrayIcon
@@ -266,7 +264,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={() => setResult(null)}
                 onNewSession={handleNewSession}
                 resultHeightClass="h-[650px]"
                 hideGenerateButton={isLowCredits}
