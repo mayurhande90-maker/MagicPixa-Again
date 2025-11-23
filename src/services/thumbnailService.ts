@@ -1,13 +1,13 @@
 
-import { Modality } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1280px (HD) for Gemini 3 Pro
+// Helper: Resize to 1024px (Balanced HD) to prevent payload issues with multiple images
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const resizedUri = await resizeImage(dataUri, 1024, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -76,8 +76,9 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             `;
         } else {
             prompt += `
-            - **DEEP TREND RESEARCH**: Since no reference was provided, use Google Search to find the current best-performing thumbnail styles for "${inputs.title}" in the "${inputs.category}" niche for 2025.
-            - **DESIGN GENERATION**: Act as a Professional Graphic Designer. Invent a world-class, high-contrast, eye-catching composition from scratch based on your research.
+            - **DESIGN STRATEGY**: Apply your knowledge of 2025 YouTube trends for "${inputs.category}". 
+            - Use high contrast, vibrant saturation, and clear focal points.
+            - Invent a world-class composition that triggers curiosity.
             `;
         }
         
@@ -101,7 +102,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
              *** PHASE 3: AI COPYWRITING (TEXT GENERATION) ***
              - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on the Context: "${inputs.title}".
              - **EXAMPLES**: "IPHONE 15 FAIL?", "DO NOT WATCH", "GET RICH FAST", "THE TRUTH".
-             - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts.
+             - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts (Sans Serif, Impact style).
              `;
         }
 
@@ -135,14 +136,19 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                // Enable search for trend research
-                tools: [{ googleSearch: {} }]
+                // Relaxed safety settings to prevent blocks on faces/expressions
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ]
             },
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("No image generated.");
+        throw new Error("No image generated. The model might have blocked the request.");
 
     } catch (error) {
         console.error("Error generating thumbnail:", error);
