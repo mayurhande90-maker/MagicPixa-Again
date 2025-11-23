@@ -54,62 +54,63 @@ export const generateApparelTryOn = async (
 
     const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
 
-    // 3. CONSTRUCT "PIPELINE" PROMPT
+    // 3. CONSTRUCT "STRICT PRESERVATION" PROMPT
     const parts: any[] = [];
 
-    let pipelineDirective = `SYSTEM DIRECTIVE: You are a deterministic image synthesis pipeline for Virtual Apparel Try-On.
-    
-    YOUR GOAL: Produce a hyper-realistic full-body try-on result.
-    PRIORITY: Correctness, stability, and blending. NEVER return a blank output.
+    let pipelineDirective = `TASK: Professional Virtual Try-On with STRICT IDENTITY PRESERVATION.
 
-    ===========================
-    EXECUTION PIPELINE (INTERNAL)
-    ===========================
-    1. **POSE DETECTION**: Analyze the "TARGET MODEL". Lock face, hair, hands, and skin tone. These must NOT change.
-    2. **GARMENT SEGMENTATION**: Identify the clothing in the "REFERENCE" image(s).
-    3. **GEOMETRIC WARP**: Warp the reference garment to match the Target Model's pose (shoulders, chest, waist).
-    4. **LIGHTING MATCH**: Detect scene lighting from Target Model. Relight the new garment to match.
-    5. **BLENDING**: Composite with realistic shadows (under arms, neckline, hem) and soft edges.
+    *** CRITICAL MANDATE: DO NOT HALLUCINATE NEW FEATURES ***
+    You are an AI acting as a "Smart Layer Compositor". You are NOT generating a new person. You are modifying pixels ONLY in the clothing region of the "TARGET MODEL".
+
+    *** ZERO-TOLERANCE PRESERVATION RULES ***
+    1. **FACE LOCK**: The face pixels MUST be bit-for-bit identical to the original. Do NOT "enhance", "beautify", or "regenerate" the face. If the face changes, the result is a FAILURE.
+    2. **BODY LOCK**: Keep the exact body shape, pose, hands, and skin texture of the Target Model.
+    3. **BACKGROUND LOCK**: Do not alter the background environment, lighting, or context.
+    4. **ACCESSORY LOCK**: Preserve watches, jewelry, glasses, and hair strands exactly as they are.
+
+    *** EXECUTION STEPS ***
+    1. Analyze the "TARGET MODEL". Map the exact boundaries of their current clothing.
+    2. Inpaint/Swap ONLY the clothing area with the "REFERENCE GARMENT".
+    3. **Fabric Physics**: Wrap the new garment realistically around the existing body mesh. Apply folds and tension based on the pose.
+    4. **Lighting Match**: Sample the lighting from the Target Model's skin and background. Apply this exact lighting model to the new garment.
     `;
 
     // INPUT 1: The Reference Garments
     if (isFullOutfit && optTop) {
         parts.push({ text: "REFERENCE IMAGE (FULL OUTFIT SOURCE):" });
         parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        pipelineDirective += `\n**TASK: FULL OUTFIT TRANSFER**
-        - The "REFERENCE IMAGE" contains a complete look (Top + Bottom).
-        - ACTION: Extract BOTH the Upper Garment and Lower Garment from this single reference image.
-        - ACTION: Apply this complete outfit to the Target Model.\n`;
+        pipelineDirective += `\n**OPERATION: FULL OUTFIT SWAP**
+        - Extract the full outfit (Top + Bottom) from the REFERENCE IMAGE.
+        - Apply it to the Target Model, replacing their current clothes completely.
+        - Maintain the tuck/drape style from the reference unless overridden below.\n`;
     } else {
         if (optTop) {
             parts.push({ text: "REFERENCE GARMENT (TOP):" });
             parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-            pipelineDirective += `\n**TASK: TOP TRANSFER**\n- Replace Target Model's upper clothing with "REFERENCE GARMENT (TOP)".\n`;
+            pipelineDirective += `\n**OPERATION: UPPER BODY SWAP**\n- Replace ONLY the Target Model's upper garment with the REFERENCE GARMENT (TOP).\n`;
         }
         if (optBottom) {
             parts.push({ text: "REFERENCE GARMENT (BOTTOM):" });
             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            pipelineDirective += `\n**TASK: BOTTOM TRANSFER**\n- Replace Target Model's lower clothing with "REFERENCE GARMENT (BOTTOM)".\n`;
+            pipelineDirective += `\n**OPERATION: LOWER BODY SWAP**\n- Replace ONLY the Target Model's lower garment with the REFERENCE GARMENT (BOTTOM).\n`;
         }
     }
 
     // STYLING OVERRIDES (Hard Rules)
     const hasStyling = stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve);
     if (hasStyling) {
-        pipelineDirective += `\n**STYLING OVERRIDES (STRICT)**:\n`;
-        if (stylingOptions?.tuck) pipelineDirective += `- WAIST: Force ${stylingOptions.tuck}. (Synthesize belt/waistband if needed).\n`;
-        if (stylingOptions?.fit) pipelineDirective += `- FIT: Make it ${stylingOptions.fit}.\n`;
-        if (stylingOptions?.sleeve) pipelineDirective += `- SLEEVES: Force ${stylingOptions.sleeve}.\n`;
-    } else if (isFullOutfit) {
-        pipelineDirective += `\n**STYLING**: Maintain the exact tuck/drape style seen in the Reference Image.\n`;
+        pipelineDirective += `\n**STYLING MODIFIERS (Apply to new garment only)**:\n`;
+        if (stylingOptions?.tuck) pipelineDirective += `- WAIST: ${stylingOptions.tuck}.\n`;
+        if (stylingOptions?.fit) pipelineDirective += `- FIT: ${stylingOptions.fit}.\n`;
+        if (stylingOptions?.sleeve) pipelineDirective += `- SLEEVES: ${stylingOptions.sleeve}.\n`;
     }
 
-    pipelineDirective += `\n**GLOBAL RULES**:\n- DO NOT modify the person's face or identity.\n- Preserve the original background.\n- Output high-resolution photorealism.`;
+    pipelineDirective += `\n**FINAL CHECK**: Before outputting, compare the Face and Background with the original. If they differ, revert them to the original pixels.`;
 
     parts.push({ text: pipelineDirective });
 
     // INPUT 2: The Target Model (Sent last to anchor the generation)
-    parts.push({ text: "TARGET MODEL (PRESERVE FACE & POSE):" });
+    parts.push({ text: "TARGET MODEL (PRESERVE THIS IMAGE EXACTLY, CHANGE CLOTHES ONLY):" });
     parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
     // 4. EXECUTE GENERATION
@@ -122,7 +123,7 @@ export const generateApparelTryOn = async (
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     
-    throw new Error("Pipeline Error: Model failed to generate a valid image result.");
+    throw new Error("Model failed to generate image.");
 
   } catch (error) {
     console.error("Apparel Pipeline Failed:", error);
