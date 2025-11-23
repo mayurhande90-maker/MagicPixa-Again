@@ -44,17 +44,9 @@ export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: nu
             let width = img.width;
             let height = img.height;
 
-            // Calculate new dimensions based on longest side to preserve detail in portrait shots
-            if (width > height) {
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-            } else {
-                if (height > maxWidth) {
-                    width = Math.round((width * maxWidth) / height);
-                    height = maxWidth;
-                }
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
             }
 
             canvas.width = width;
@@ -81,31 +73,18 @@ export const resizeImage = (dataUri: string, maxWidth: number = 300, quality: nu
 
 export const downloadImage = async (url: string, filename: string) => {
     try {
-        // Fetch the image as a blob to force download
-        const response = await fetch(url, {
-            mode: 'cors',
-            cache: 'no-cache', // Prevent caching issues
-        });
-        
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
+        const response = await fetch(url);
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
-        
         const link = document.createElement('a');
         link.href = blobUrl;
         link.download = filename;
-        
-        // Append to body to ensure click works in all browsers (Firefox requirement)
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        // Revoke the URL to free up memory
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+        window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
-        console.warn("Direct download failed, opening in new tab as fallback.", error);
-        // Fallback: open in new tab if CORS prevents blob access
+        console.warn("Download failed, opening in new tab", error);
         window.open(url, '_blank');
     }
 };
