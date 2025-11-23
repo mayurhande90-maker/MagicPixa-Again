@@ -18,6 +18,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [isDrawing, setIsDrawing] = useState(false);
     const [brushSize, setBrushSize] = useState(30);
     const [history, setHistory] = useState<ImageData[]>([]);
+    const [maskHistory, setMaskHistory] = useState<ImageData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [originalImgElement, setOriginalImgElement] = useState<HTMLImageElement | null>(null);
@@ -71,6 +72,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     // Fill with black (no mask)
                     mCtx.fillStyle = 'black';
                     mCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+                    setMaskHistory([mCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
             }
         };
@@ -104,53 +106,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         draw(e);
     };
 
-    const stopDrawing = () => {
-        if (!isDrawing) return;
-        setIsDrawing(false);
-        
-        // Save state for Undo
-        if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
-                const currentState = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-                setHistory(prev => [...prev, currentState]);
-            }
-        }
-        
-        // We assume the mask canvas parallels the drawing operations, 
-        // but for Undo to work perfectly, we should really save the Mask state too.
-        // A simplified approach for this "scribble" UI: 
-        // We'll only rely on the main canvas history for visuals.
-        // But wait, if we undo the visual red stroke, we MUST undo the mask stroke too.
-        // FIX: Let's redraw the mask from scratch based on saved stroke paths? 
-        // Easier: Save history for BOTH canvases.
-    };
-
-    // Complex Undo Logic: We need to sync Visual Canvas and Mask Canvas
-    // To simplify, let's actually just redraw the Mask Canvas whenever we 'Process'. 
-    // Wait, no, that's hard if we don't store paths.
-    // Better: Save image data history for both? Can be memory intensive.
-    // OPTIMIZED APPROACH: Just accept that "Undo" steps back the visual. 
-    // The user is scribbling. We need to ensure the mask stays in sync.
-    // Let's just store the `ImageData` for the mask canvas in a ref/state parallel to `history`.
-    
-    // Correction: Let's implement path-based history for cleaner logic.
-    const [paths, setPaths] = useState<{x: number, y: number, size: number, dragging: boolean}[]>([]);
-    // Actually, standard drawing involves hundreds of points. Storing ImageData is standard for raster editors.
-    
-    // Let's use a parallel history for the mask.
-    const [maskHistory, setMaskHistory] = useState<ImageData[]>([]);
-
-    // Initialize mask history
-    useEffect(() => {
-        if (imageLoaded && maskCanvasRef.current && maskHistory.length === 0) {
-             const mCtx = maskCanvasRef.current.getContext('2d');
-             if (mCtx) {
-                 setMaskHistory([mCtx.getImageData(0, 0, maskCanvasRef.current.width, maskCanvasRef.current.height)]);
-             }
-        }
-    }, [imageLoaded]);
-
     const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !canvasRef.current || !maskCanvasRef.current) return;
         
@@ -167,13 +122,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             ctx.lineWidth = brushSize;
             ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'; // Red 50%
             
-            // We need 'prevX' and 'prevY' for smooth lines, but simplicity for now: dots
-            // Better: Path approach.
-            // Let's rely on the fact that MouseMove fires rapidly.
-            // To make it smooth, we really need start/end points.
-            // Let's assume point-to-point drawing is handled by the browser event rate.
-            // Just drawing arcs (circles) at points is easier for "brush" feel without complex state
-            
             ctx.beginPath();
             ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
@@ -187,8 +135,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         }
     };
     
-    // Override stopDrawing to save mask history
     const handleMouseUp = () => {
+        if (!isDrawing) return;
         setIsDrawing(false);
         if (canvasRef.current && maskCanvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
@@ -263,8 +211,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn">
-            <div className="relative bg-[#1A1A1E] w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
+            <div className="relative bg-[#1A1A1E] w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-[#2C2C2E]">
@@ -283,20 +231,16 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 </div>
 
                 {/* Canvas Area */}
-                <div className="flex-1 relative bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-[#121212] flex items-center justify-center overflow-hidden cursor-crosshair">
+                <div className="flex-1 relative bg-[#121212] flex items-center justify-center overflow-hidden cursor-crosshair">
                     {/* The Main Interactive Canvas */}
                     <canvas 
                         ref={canvasRef}
                         onMouseDown={startDrawing}
-                        onMouseMove={(e) => {
-                            if(isDrawing) draw(e);
-                        }}
+                        onMouseMove={(e) => { if(isDrawing) draw(e); }}
                         onMouseUp={handleMouseUp}
                         onMouseLeave={handleMouseUp}
                         onTouchStart={startDrawing}
-                        onTouchMove={(e) => {
-                            if(isDrawing) draw(e);
-                        }}
+                        onTouchMove={(e) => { if(isDrawing) draw(e); }}
                         onTouchEnd={handleMouseUp}
                         className="shadow-2xl border border-gray-700"
                     />
