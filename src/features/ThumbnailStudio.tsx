@@ -94,8 +94,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         ? (!!hostImage && !!guestImage && !!title)
         : (!!title); 
         
-    // Only trigger blocking if requirements are met AND credits are low
-    const isLowCredits = hasRequirements && userCredits < cost;
+    // Immediate credit check: Block UI if user doesn't have enough credits to start
+    const isLowCredits = userCredits < cost;
 
     const categories = [
         'Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 
