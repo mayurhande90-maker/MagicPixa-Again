@@ -106,7 +106,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Reference Style...", "Detecting Faces...", "Researching Clickbait Trends...", "Compositing Scene...", "Final Polish..."];
+            const steps = ["Analyzing Reference Style...", "Detecting Faces...", "Generating Clickbait Title...", "Compositing Scene...", "Final Polish..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -315,13 +315,13 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 {referenceImage && (
                                     <div className="animate-fadeIn">
                                         <InputField 
-                                            label="3. Video Title (What is the video about?)" 
-                                            placeholder={isPodcast ? "e.g. The Future of AI with Sam Altman" : "e.g. I SPENT 24 HOURS IN VR..."} 
+                                            label="3. What is the video about? (AI will generate title)" 
+                                            placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
                                             value={title} 
                                             onChange={(e: any) => setTitle(e.target.value)} 
                                         />
                                         <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                            AI will analyze current trends to optimize this title visually.
+                                            AI will analyze this context to generate a viral, clickbait title for the thumbnail.
                                         </p>
                                     </div>
                                 )}

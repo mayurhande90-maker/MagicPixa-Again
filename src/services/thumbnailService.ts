@@ -34,7 +34,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
 
         // 1. Optimize and Attach Reference Image (Always Required)
         const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-        parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font, color, and vibe):" });
+        parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font style, and color ONLY):" });
         parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
 
         // 2. Handle Subjects based on Category
@@ -61,24 +61,32 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         let prompt = `You are an Elite YouTube Thumbnail Designer using Gemini 3 Pro.
         
         TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail for the category: "${inputs.category}".
-        VIDEO TITLE / CONTEXT: "${inputs.title}"
         
         PHASE 1: DEEP ANALYSIS
         1. Analyze the "REFERENCE THUMBNAIL STYLE" deeply. Extract the color palette, font style (bold/sans-serif), text placement, glow effects, and background complexity.
-        2. Search YouTube trends for "${inputs.category} thumbnails 2025" to understand current clickbait aesthetics.
+        2. **CRITICAL EXCLUSION:** DO NOT USE ANY TEXT PRESENT IN THE REFERENCE IMAGE. You must ignore it completely. The reference is ONLY for visual vibe.
         
-        PHASE 2: COMPOSITION RULES
+        PHASE 2: AI COPYWRITING (TEXT GENERATION)
+        - **CONTEXT**: The user says the video is about: "${inputs.title}".
+        - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on this context.
+        - **EXAMPLES**: 
+          - If context is "Reviewing new iPhone", generate "IPHONE 15 FAIL?".
+          - If context is "Scary story", generate "DO NOT WATCH".
+          - If context is "Finance tips", generate "GET RICH FAST".
+        - **RULE**: The text overlay on the image MUST be your generated clickbait phrase, NOT the user's long description.
+
+        PHASE 3: COMPOSITION & RENDERING
         `;
 
         if (isPodcast) {
             prompt += `- **Podcast Layout**: Place the HOST and GUEST side-by-side or facing each other, mimicking the composition of the Reference Thumbnail.
-            - **Background**: Generate a high-quality studio background or a relevant scene based on the Title, matching the lighting of the Reference.
-            - **Text**: Place the text "${inputs.title}" clearly, using the font style from the Reference.
+            - **Background**: Generate a high-quality studio background or a relevant scene based on the Context, matching the lighting of the Reference.
+            - **Text Placement**: Render your GENERATED CLICKBAIT TEXT clearly, using the font style/color from the Reference.
             `;
         } else {
-            prompt += `- **Standard Layout**: If a Subject Photo is provided, place them prominently in the foreground. If not, generate a compelling central subject based on the Title.
-            - **Style Transfer**: Apply the exact color grading, saturation, and energy of the Reference Thumbnail to this new image.
-            - **Text**: Render the text "${inputs.title}" big and bold, ensuring high readability.
+            prompt += `- **Standard Layout**: If a Subject Photo is provided, place them prominently in the foreground. If not, generate a compelling central subject based on the Context.
+            - **Style Transfer**: Apply the exact color grading, saturation, and energy of the Reference Thumbnail.
+            - **Text Placement**: Render your GENERATED CLICKBAIT TEXT big and bold, ensuring high readability.
             `;
         }
 
@@ -91,7 +99,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         
         *** HYPER-REALISM & QUALITY ***
         - The final image must look like a 4K polished photograph, not a cartoon (unless the Reference is a cartoon).
-        - Text must be legible and professional.
+        - Text must be legible, spelled correctly, and professional.
         - Add depth of field (blur) to the background to make subjects pop.
         
         OUTPUT: A single high-resolution thumbnail image (16:9).`;
