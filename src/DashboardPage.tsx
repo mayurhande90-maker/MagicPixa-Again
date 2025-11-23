@@ -13,6 +13,7 @@ import { DashboardHome } from './features/DashboardHome';
 import { Creations } from './features/Creations';
 import { CaptionAI } from './features/CaptionAI';
 import { DailyMissionStudio } from './features/DailyMissionStudio';
+import { ThumbnailStudio } from './features/ThumbnailStudio';
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -31,7 +32,6 @@ import {
     generateMockup, 
     generateProductPackPlan, 
     generateBrandStylistImage,
-    generateThumbnail,
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
@@ -254,7 +254,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'product_studio':
                  return <ProductStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
-                 return <StandardFeature title="Thumbnail Studio" description="Create viral thumbnails." icon={<ThumbnailIcon className="w-6 h-6 text-red-500"/>} cost={appConfig?.featureCosts['Thumbnail Studio'] || 2} auth={auth} onGenerate={async (img, p) => await generateThumbnail({ category: 'General', title: p || 'Video', referenceImage: img.base64, subjectA: img.base64 })} />;
+                 return <ThumbnailStudio auth={auth} appConfig={appConfig} />;
             case 'brand_stylist':
                  return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={appConfig?.featureCosts['Brand Stylist AI'] || 4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
             case 'soul':

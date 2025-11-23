@@ -1,9 +1,9 @@
 
-import { Modality, Type } from "@google/genai";
+import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
-import { Base64File, resizeImage } from "../utils/imageUtils";
+import { resizeImage } from "../utils/imageUtils";
 
-// Optimization Helper
+// Helper: Resize to 1280px (HD) for Gemini 3 Pro
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -12,199 +12,86 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
     } catch (e) {
+        console.warn("Image optimization failed, using original", e);
         return { data: base64, mimeType };
     }
 };
 
-export const suggestThumbnailTitles = async (videoDescription: string): Promise<string[]> => {
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Act as a YouTube Growth Expert. Suggest 5 catchy, high-CTR, click-worthy thumbnail titles for a video about: "${videoDescription}". 
-        Rules: Keep them under 6 words. Use emotional hooks. 
-        Return only a JSON array of strings.`,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-            }
-        }
-    });
-    const text = response.text;
-    if (!text) return [];
-    return JSON.parse(text);
-};
-
-export const analyzeVideoFrames = async (
-    frames: { base64: Base64File }[]
-): Promise<{ titles: string[]; bestFrameIndex: number }> => {
-    const ai = getAiClient();
-    
-    const parts: any[] = [];
-    parts.push({ 
-        text: `You are an expert Video Analyst using Gemini 3 Pro Vision.
-        Analyze these video frames from a single video. 
-        
-        Tasks:
-        1. Generate 5 engaging, viral, clickbait-style YouTube video titles.
-        2. Identify the SINGLE BEST frame (0-indexed) to use as a thumbnail base.
-           Criteria: Clear facial expression (shock/joy), high action, or clear focal point. Avoid blur.
-        
-        Return strictly JSON.` 
-    });
-
-    // Limit frames analysis resolution slightly to save tokens if many frames, 
-    // but Gemini 3 Pro has huge context so it's fine.
-    for (const frame of frames) {
-        parts.push({
-            inlineData: {
-                data: frame.base64.base64,
-                mimeType: frame.base64.mimeType
-            }
-        });
-    }
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: { parts },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    titles: {
-                        type: Type.ARRAY,
-                        items: { type: Type.STRING }
-                    },
-                    bestFrameIndex: {
-                        type: Type.INTEGER
-                    }
-                },
-                required: ["titles", "bestFrameIndex"]
-            }
-        }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No analysis result generated.");
-    return JSON.parse(text);
-};
-
 export const generateThumbnail = async (
-    inputs: {
-        category: string;
-        title: string;
-        referenceImage: string;
-        subjectA: string;
-        subjectB?: string;
-    }
+    subjectBase64: string,
+    subjectMimeType: string,
+    styleBase64: string | null,
+    styleMimeType: string | null,
+    title: string,
+    category: string
 ): Promise<string> => {
     const ai = getAiClient();
-
-    // STEP 1: Deep Internet Research for Trends
-    let trendInsights = "";
     try {
-        // Use text model with grounding for research
-        const researchResponse = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: `Conduct a deep analysis of trending YouTube thumbnails for the category "${inputs.category}" and specific topic "${inputs.title}".
-            Search for high-CTR, "clickbait" style thumbnails.
-            Identify:
-            1. Dominant colors and lighting (e.g., high saturation neon, dark moody).
-            2. Key facial expressions (e.g., Shocked, Angry, Crying, Joyful).
-            3. Common background elements.
-            4. Text/Typography trends.
-            Provide a concise, intense visual description of the "ultimate clickbait thumbnail" for this topic based on your research.`,
-            config: { tools: [{ googleSearch: {} }] }
+        const parts: any[] = [];
+
+        // 1. Optimize Subject
+        const optSubject = await optimizeImage(subjectBase64, subjectMimeType);
+        parts.push({ text: "MAIN SUBJECT IMAGE:" });
+        parts.push({ inlineData: { data: optSubject.data, mimeType: optSubject.mimeType } });
+
+        // 2. Optimize Style (if provided)
+        if (styleBase64 && styleMimeType) {
+            const optStyle = await optimizeImage(styleBase64, styleMimeType);
+            parts.push({ text: "STYLE REFERENCE (Copy art style, lighting, and composition vibe ONLY. Do NOT copy the person):" });
+            parts.push({ inlineData: { data: optStyle.data, mimeType: optStyle.mimeType } });
+        }
+
+        // 3. Construct System Prompt
+        let prompt = `You are an Elite YouTube Thumbnail Designer powered by Gemini 3 Pro.
+        
+        TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail.
+        
+        CONTEXT:
+        - Video Title: "${title}"
+        - Category: ${category}
+        
+        INSTRUCTIONS:
+        1. **Subject Integration**: Use the person/object from the "MAIN SUBJECT IMAGE". 
+           - Isolate them from their original background.
+           - Enhance their expression/lighting to make them pop.
+           - If it's a person, ensure they look expressive and engaging.
+        
+        2. **Background & Composition**:
+           - Generate a background relevant to the "${category}" category and the Title "${title}".
+           - Use complementary colors (e.g., Blue background + Orange subject/text).
+           - Add depth (bokeh/blur) to separate the subject from the background.
+        
+        3. **Text & Typography**:
+           - Render the text "${title}" (or a punchy 2-3 word summary of it) clearly in the image.
+           - Use massive, BOLD, Sans-Serif fonts (Impact, Roboto Black).
+           - Add drop shadows, strokes, or glow to the text for maximum readability.
+           - Ensure text does not cover the subject's face.
+        
+        4. **Style Transfer** (If Reference provided):
+           - Mimic the color grading, saturation, and energy of the "STYLE REFERENCE".
+           - Do NOT copy the specific content of the reference, only the "Vibe".
+        
+        5. **Final Polish**:
+           - High saturation.
+           - High contrast.
+           - "Clickbait" aesthetic (glowing outlines, arrows, emojis if suitable for the category).
+        
+        OUTPUT: A single high-resolution image.`;
+
+        parts.push({ text: prompt });
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: { parts },
+            config: { responseModalities: [Modality.IMAGE] },
         });
-        trendInsights = researchResponse.text || "Focus on high contrast, emotional faces, and bold text.";
-    } catch (e) {
-        console.warn("Thumbnail research failed, falling back to heuristic analysis.", e);
-        trendInsights = "Create a high-contrast, emotionally charged thumbnail with vibrant colors.";
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("No image generated.");
+
+    } catch (error) {
+        console.error("Error generating thumbnail:", error);
+        throw error;
     }
-
-    const parts: any[] = [];
-
-    // Optimize inputs
-    const optRef = await optimizeImage(inputs.referenceImage, 'image/png');
-    const optSubA = await optimizeImage(inputs.subjectA, 'image/png');
-
-    // 1. Add Reference Image
-    parts.push({ text: "REFERENCE STYLE IMAGE (Use ONLY for art style, lighting, and text effects. DO NOT COPY CONTENT):" });
-    parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
-
-    // 2. Add Subject A
-    parts.push({ text: "SUBJECT A (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
-    parts.push({ inlineData: { data: optSubA.data, mimeType: optSubA.mimeType } });
-
-    // 3. Add Subject B (if exists)
-    if (inputs.subjectB) {
-        const optSubB = await optimizeImage(inputs.subjectB, 'image/png');
-        parts.push({ text: "SUBJECT B (REAL PERSON - KEEP FACE EXACTLY AS IS):" });
-        parts.push({ inlineData: { data: optSubB.data, mimeType: optSubB.mimeType } });
-    }
-
-    // 4. Detailed System Prompt with STRICT Identity & Design Rules
-    const prompt = `You are an Elite YouTube Thumbnail Art Director using Gemini 3 Pro Image Generation.
-
-    *** CRITICAL SAFETY PROTOCOL: ZERO TOLERANCE FOR FACE/BODY MODIFICATION ***
-    - You MUST use the provided SUBJECT A (and B) images exactly as they are. 
-    - DO NOT generate a new face. DO NOT "improve" the face. DO NOT change the expression.
-    - DO NOT change the body type, hair, or clothing unless explicitly asked.
-    - The person in the output MUST be pixel-perfect identical to the uploaded image.
-    - If the face looks different, the task is a FAILURE.
-
-    *** PHASE 1: INTELLIGENT DESIGN SYSTEMS (MANDATORY) ***
-    
-    1. **TYPOGRAPHY RULES (Prevent Basic Mistakes):**
-       - FONT SELECTION: Use ONLY massive, BOLD, Sans-Serif fonts (e.g., Impact, Montserrat ExtraBold, Roboto Black).
-       - **BANNED FONTS**: Do NOT use thin, serif, curly, or handwritten fonts (like Times New Roman or scripts). They are unreadable.
-       - READABILITY: Text MUST have a heavy Drop Shadow, Black Outline (Stroke), or be on a high-contrast box.
-       - HIERARCHY: The Title "${inputs.title}" must be the second largest element after the face.
-
-    2. **COLOR THEORY & PALETTE:**
-       - Use COMPLEMENTARY COLORS. If background is Cool (Blue/Purple), Text/Light must be Warm (Yellow/Orange).
-       - AVOID: Muddy, pastel, or desaturated colors.
-       - TREND: High saturation is required for YouTube. Make the colors "pop".
-
-    3. **COMPOSITION & BACKGROUND:**
-       - DEPTH OF FIELD: The background MUST be slightly blurred (Bokeh effect) to separate it from the Subject and Text.
-       - SEPARATION: Ensure the Subject has a "Rim Light" (backlight) to separate them from the background.
-       - CONTEXT: Background elements must match the semantic meaning of the title (e.g., "Money" -> Cash/Gold, "Tech" -> Circuits/Neon).
-
-    *** PHASE 2: CONTEXTUAL SYNTHESIS ***
-    
-    1. **Context Deduction**:
-       - Analyze Subject (Attire, Ethnicity) + Title ("${inputs.title}").
-       - IF Subject/Title implies a specific region (e.g., India, USA, Japan), strictly use background elements from that region.
-       - Example: Title "Budget 2025" + Indian Subject -> Background MUST be Indian Parliament/Currency, NOT US Capitol.
-
-    2. **Internet Trend Integration**:
-       - Trend Data: "${trendInsights}"
-       - incorporate these specific visual elements into the background.
-
-    *** PHASE 3: REFERENCE STYLE EXTRACTION ***
-    - Extract the *Vibe* (e.g., "Glow effect", "Split screen", "3D Text") from the Reference Image.
-    - **DO NOT COPY TEXT/CONTENT**: Ignore any words or people in the reference. Only copy the *Design Style*.
-
-    *** FINAL OUTPUT INSTRUCTIONS ***
-    - Composite Subject A (and B) into the new background.
-    - Apply matching lighting to the subjects.
-    - Render the title text "${inputs.title}" using the strict Typography Rules above.
-    - Ensure NO text from the reference image appears.
-
-    Output the final, high-CTR thumbnail.`;
-
-    parts.push({ text: prompt });
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: { parts },
-        config: { responseModalities: [Modality.IMAGE] }
-    });
-
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No thumbnail generated.");
 };
