@@ -31,22 +31,36 @@ export const generateApparelTryOn = async (
     1. Analyze the "TARGET MODEL IMAGE". Understand the pose, lighting, body shape, and skin tone.
     `;
 
-    // Part 2: Top Garment
-    if (topGarment) {
-        parts.push({ text: "REFERENCE GARMENT (TOP/UPPER BODY):" });
+    // Check for Single Outfit Upload (Same image for Top and Bottom)
+    // Note: We compare the base64 data string to see if they are identical.
+    const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
+
+    if (isSameGarmentImage && topGarment) {
+        // Optimization: Send image once, instruct to extract both
+        parts.push({ text: "REFERENCE OUTFIT IMAGE (Full Look):" });
         parts.push({ inlineData: { data: topGarment.base64, mimeType: topGarment.mimeType } });
-        instructions += `2. Identify the "REFERENCE GARMENT (TOP)". Replace the model's current upper-body clothing (shirt, jacket, dress top) with this exact garment. Match the fabric, texture, and cut.\n`;
-    }
+        
+        instructions += `2. **Full Outfit Transfer**: The "REFERENCE OUTFIT IMAGE" contains a full outfit (both top and bottom garments).
+        - **Action**: Smartly detect and identify the Top (shirt/jacket) and the Bottom (pants/skirt) from this single reference image.
+        - **Apply**: Replace the target model's clothes with this complete outfit.
+        - **Context**: Maintain the relationship between top and bottom (e.g., if the reference shows the shirt tucked in, keep it tucked in unless specified otherwise).\n`;
+    } else {
+        // Distinct Images Logic
+        if (topGarment) {
+            parts.push({ text: "REFERENCE GARMENT (TOP/UPPER BODY):" });
+            parts.push({ inlineData: { data: topGarment.base64, mimeType: topGarment.mimeType } });
+            instructions += `2. Identify the "REFERENCE GARMENT (TOP)". **Smartly detect and extract ONLY the upper-body garment** (shirt, jacket, dress top). Replace the model's current upper-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
+        }
 
-    // Part 3: Bottom Garment
-    if (bottomGarment) {
-        parts.push({ text: "REFERENCE GARMENT (BOTTOM/LOWER BODY):" });
-        parts.push({ inlineData: { data: bottomGarment.base64, mimeType: bottomGarment.mimeType } });
-        instructions += `3. Identify the "REFERENCE GARMENT (BOTTOM)". Replace the model's current lower-body clothing (pants, skirt, shorts) with this exact garment. Match the fabric, texture, and cut.\n`;
-    }
+        if (bottomGarment) {
+            parts.push({ text: "REFERENCE GARMENT (BOTTOM/LOWER BODY):" });
+            parts.push({ inlineData: { data: bottomGarment.base64, mimeType: bottomGarment.mimeType } });
+            instructions += `3. Identify the "REFERENCE GARMENT (BOTTOM)". **Smartly detect and extract ONLY the lower-body garment** (pants, skirt, shorts). Replace the model's current lower-body clothing with this exact garment. Match the fabric, texture, and cut.\n`;
+        }
 
-    if (topGarment && bottomGarment) {
-        instructions += `4. **Composition**: Ensure the Top and Bottom interact naturally at the waist (tuck or drape based on style).\n`;
+        if (topGarment && bottomGarment) {
+            instructions += `4. **Composition**: Ensure the Top and Bottom interact naturally at the waist (tuck or drape based on style).\n`;
+        }
     }
 
     // Structured Styling Options
