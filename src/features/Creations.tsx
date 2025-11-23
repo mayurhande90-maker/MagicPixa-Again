@@ -83,9 +83,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         }
     };
 
-    const handleDownload = (e: React.MouseEvent, url: string) => {
+    const handleDownload = (e: React.MouseEvent, url: string, id: string) => {
         e.stopPropagation();
-        downloadImage(url, 'creation.png');
+        downloadImage(url, `magicpixa-${id}.png`);
     };
 
     return (
@@ -163,7 +163,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                         {/* Overlay Actions */}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[1px]">
                                             <button 
-                                                onClick={(e) => handleDownload(e, c.imageUrl)} 
+                                                onClick={(e) => handleDownload(e, c.imageUrl, c.id)} 
                                                 className="p-2.5 bg-white/90 rounded-full hover:bg-white text-gray-700 hover:text-[#1A1A1E] transform hover:scale-110 transition-all shadow-lg"
                                                 title="Download"
                                             >
