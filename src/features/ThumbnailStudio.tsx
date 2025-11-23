@@ -4,7 +4,9 @@ import { AuthProps, AppConfig } from '../types';
 import { 
     ThumbnailIcon, 
     XIcon, 
-    UploadTrayIcon
+    UploadTrayIcon,
+    CreditCardIcon,
+    SparklesIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
@@ -92,6 +94,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         ? (!!hostImage && !!guestImage && !!title)
         : (!!title); 
         
+    // Only trigger blocking if requirements are met AND credits are low
     const isLowCredits = hasRequirements && userCredits < cost;
 
     const categories = [
@@ -276,109 +279,119 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
                 // Right Content: Control Panel
                 rightContent={
-                    <div className="space-y-8 p-1 animate-fadeIn">
-                        
-                        {isLowCredits && (
-                            <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col items-center text-center">
-                                <p className="text-sm text-red-600 font-bold mb-2">Insufficient Credits</p>
-                                <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold hover:bg-red-200 transition-colors">
-                                    Recharge
-                                </button>
+                    isLowCredits ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
+                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
+                                <CreditCardIcon className="w-10 h-10 text-red-500" />
                             </div>
-                        )}
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
+                            <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">
+                                This generation requires <span className="font-bold text-gray-800">{cost} credits</span>, but you only have <span className="font-bold text-red-500">{userCredits}</span>.
+                            </p>
+                            <button
+                                onClick={() => (window as any).navigateTo('dashboard', 'billing')}
+                                className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg shadow-yellow-500/20 hover:scale-105 flex items-center gap-2"
+                            >
+                                <SparklesIcon className="w-5 h-5" />
+                                Recharge Now
+                            </button>
+                            <p className="text-xs text-gray-400 mt-4">Or earn credits by referring friends!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-8 p-1 animate-fadeIn">
+                            {/* 1. Category Selection */}
+                            <SelectionGrid 
+                                label="1. Select Category" 
+                                options={categories} 
+                                value={category} 
+                                onChange={(val) => { setCategory(val); autoScroll(); }} 
+                            />
 
-                        {/* 1. Category Selection */}
-                        <SelectionGrid 
-                            label="1. Select Category" 
-                            options={categories} 
-                            value={category} 
-                            onChange={(val) => { setCategory(val); autoScroll(); }} 
-                        />
-
-                        {category && (
-                            <div className="animate-fadeIn space-y-6">
-                                <div className="h-px w-full bg-gray-200"></div>
-                                
-                                {/* 2. Uploads */}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Assets</label>
+                            {category && (
+                                <div className="animate-fadeIn space-y-6">
+                                    <div className="h-px w-full bg-gray-200"></div>
                                     
-                                    {isPodcast ? (
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
+                                    {/* 2. Uploads */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Assets</label>
+                                        
+                                        {isPodcast ? (
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <CompactUpload 
+                                                        label="Host Photo" 
+                                                        image={hostImage} 
+                                                        onUpload={handleUpload(setHostImage)} 
+                                                        onClear={() => setHostImage(null)}
+                                                        icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>}
+                                                    />
+                                                    <CompactUpload 
+                                                        label="Guest Photo" 
+                                                        image={guestImage} 
+                                                        onUpload={handleUpload(setGuestImage)} 
+                                                        onClear={() => setGuestImage(null)}
+                                                        icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>}
+                                                    />
+                                                </div>
                                                 <CompactUpload 
-                                                    label="Host Photo" 
-                                                    image={hostImage} 
-                                                    onUpload={handleUpload(setHostImage)} 
-                                                    onClear={() => setHostImage(null)}
-                                                    icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>}
-                                                />
-                                                <CompactUpload 
-                                                    label="Guest Photo" 
-                                                    image={guestImage} 
-                                                    onUpload={handleUpload(setGuestImage)} 
-                                                    onClear={() => setGuestImage(null)}
-                                                    icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>}
+                                                    label="Reference Thumbnail" 
+                                                    image={referenceImage} 
+                                                    onUpload={handleUpload(setReferenceImage)} 
+                                                    onClear={() => setReferenceImage(null)}
+                                                    icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
+                                                    heightClass="h-40"
+                                                    optional={true}
                                                 />
                                             </div>
-                                            <CompactUpload 
-                                                label="Reference Thumbnail" 
-                                                image={referenceImage} 
-                                                onUpload={handleUpload(setReferenceImage)} 
-                                                onClear={() => setReferenceImage(null)}
-                                                icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
-                                                heightClass="h-40"
-                                                optional={true}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <CompactUpload 
-                                                label="Your Photo" 
-                                                image={subjectImage} 
-                                                onUpload={handleUpload(setSubjectImage)} 
-                                                onClear={() => setSubjectImage(null)}
-                                                icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>}
-                                                optional={true}
-                                            />
-                                            <CompactUpload 
-                                                label="Reference Thumbnail" 
-                                                image={referenceImage} 
-                                                onUpload={handleUpload(setReferenceImage)} 
-                                                onClear={() => setReferenceImage(null)}
-                                                icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
-                                                heightClass="h-40"
-                                                optional={true}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <CompactUpload 
+                                                    label="Your Photo" 
+                                                    image={subjectImage} 
+                                                    onUpload={handleUpload(setSubjectImage)} 
+                                                    onClear={() => setSubjectImage(null)}
+                                                    icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>}
+                                                    optional={true}
+                                                />
+                                                <CompactUpload 
+                                                    label="Reference Thumbnail" 
+                                                    image={referenceImage} 
+                                                    onUpload={handleUpload(setReferenceImage)} 
+                                                    onClear={() => setReferenceImage(null)}
+                                                    icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
+                                                    heightClass="h-40"
+                                                    optional={true}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
 
-                                {/* 3. Title Input (Context) */}
-                                <div className="animate-fadeIn">
-                                    <InputField 
-                                        label="3. What is the video about? (Context)" 
-                                        placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
-                                        value={title} 
-                                        onChange={(e: any) => setTitle(e.target.value)} 
-                                    />
-                                </div>
+                                    {/* 3. Title Input (Context) */}
+                                    <div className="animate-fadeIn">
+                                        <InputField 
+                                            label="3. What is the video about? (Context)" 
+                                            placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
+                                            value={title} 
+                                            onChange={(e: any) => setTitle(e.target.value)} 
+                                        />
+                                    </div>
 
-                                {/* 4. Custom Text Input (Optional Override) */}
-                                <div className="animate-fadeIn">
-                                    <InputField 
-                                        label="4. Exact Title Text (Optional)" 
-                                        placeholder="e.g. DONT WATCH THIS" 
-                                        value={customText} 
-                                        onChange={(e: any) => setCustomText(e.target.value)} 
-                                    />
-                                    <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                        If you leave this blank, AI will generate a viral clickbait title for you.
-                                    </p>
+                                    {/* 4. Custom Text Input (Optional Override) */}
+                                    <div className="animate-fadeIn">
+                                        <InputField 
+                                            label="4. Exact Title Text (Optional)" 
+                                            placeholder="e.g. DONT WATCH THIS" 
+                                            value={customText} 
+                                            onChange={(e: any) => setCustomText(e.target.value)} 
+                                        />
+                                        <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
+                                            If you leave this blank, AI will generate a viral clickbait title for you.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
