@@ -92,13 +92,13 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Scanning Body Pose...", "Analyzing Fabric...", "Mapping 3D Drape...", "Adjusting Lighting...", "Compositing Final Look..."];
+            const steps = ["Optimizing Images...", "Scanning Body Pose...", "Analyzing Fabric...", "Mapping 3D Drape...", "Compositing Final Look..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 1500);
+            }, 2000);
         }
         return () => clearInterval(interval);
     }, [loading]);
