@@ -1,6 +1,21 @@
 
 import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
+import { resizeImage } from "../utils/imageUtils";
+
+// Helper: Resize to 1280px (HD) for Gemini 3 Pro
+const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        console.warn("Image optimization failed, using original", e);
+        return { data: base64, mimeType };
+    }
+};
 
 export const analyzeProductImage = async (
     base64ImageData: string,
@@ -8,6 +23,9 @@ export const analyzeProductImage = async (
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
+        // Optimized image for analysis
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
         const prompt = `Analyse the uploaded product image in depth. Identify the exact product type, its visible design, shape, packaging material, printed text, logos, colors, proportions, surface details, and category.
         
         Based on this analysis, generate exactly 4 short, conversational requests that a user would ask an AI editor. 
@@ -19,10 +37,10 @@ export const analyzeProductImage = async (
         Return ONLY a JSON array of strings.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
-                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { inlineData: { data: data, mimeType: optimizedMime } },
                     { text: prompt },
                 ]
             },
@@ -59,6 +77,8 @@ export const analyzeProductForModelPrompts = async (
 ): Promise<{ display: string; prompt: string }[]> => {
     const ai = getAiClient();
     try {
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
         const prompt = `Analyse the uploaded product in depth.
         Generate 4 distinct, creative, and highly specific model scenarios.
         
@@ -76,10 +96,10 @@ export const analyzeProductForModelPrompts = async (
         Return ONLY the JSON array.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
-                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { inlineData: { data: data, mimeType: optimizedMime } },
                     { text: prompt },
                 ]
             },
@@ -124,6 +144,8 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
     // "World Class" System Prompt Construction
     let prompt = `TASK: Professional Product Photography Generation.
     
@@ -149,10 +171,10 @@ export const editImageWithPrompt = async (
     Generate a final marketing-ready image that feels real, premium, and professionally photographed, while preserving the product exactly as it appears and in correct scale.`;
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
-          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { inlineData: { data: data, mimeType: optimizedMime } },
           { text: prompt },
         ],
       },
@@ -183,6 +205,8 @@ export const generateModelShot = async (
   ): Promise<string> => {
     const ai = getAiClient();
     try {
+      const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
       // Detailed Model Shot System Prompt with HYPER-REALISM and INTELLIGENT FRAMING
       let userSelectionPart = "";
       
@@ -273,10 +297,10 @@ export const generateModelShot = async (
   Place the product naturally with correct PHYSICAL SCALE and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
           parts: [
-            { inlineData: { data: base64ImageData, mimeType: mimeType } },
+            { inlineData: { data: data, mimeType: optimizedMime } },
             { text: prompt },
           ],
         },

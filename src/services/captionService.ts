@@ -19,7 +19,7 @@ export const generateCaptions = async (
         styleInstruction = "RESEARCH GOAL: Find witty, aesthetic, or punchy one-liners trending now. GENERATION: High impact, instant readability. CONSTRAINT: Do NOT make it single words; use a complete thought or clever phrase (1 sentence max).";
     }
 
-    const prompt = `You are CaptionAI, a world-class social media strategist for MagicPixa.
+    const prompt = `You are CaptionAI, a world-class social media strategist for MagicPixa, powered by Gemini 3 Pro.
 
 INPUT:
 - One user photo (image input).
@@ -27,8 +27,9 @@ INPUT:
 - Style/Length: ${lengthType}.
 
 YOUR PROCESS:
-1. **DEEP RESEARCH**: Analyze the image. Use Google Search to find real-time trending caption styles, viral hooks, and best-performing keywords for this specific visual topic (e.g., 'trending sunset captions 2025', 'viral coffee aesthetics').
-2. **GENERATE**: Based on your research and the "${lengthType}" rule below, generate exactly 6 distinct caption options.
+1. **DEEP VISUAL ANALYSIS**: Use your advanced vision capabilities to detect subtle details, emotions, lighting, and context in the image.
+2. **DEEP RESEARCH**: Use Google Search to find real-time trending caption styles, viral hooks, and best-performing keywords for this specific visual topic (e.g., 'trending sunset captions 2025', 'viral coffee aesthetics').
+3. **GENERATE**: Based on your research and the "${lengthType}" rule below, generate exactly 6 distinct caption options.
 
 ${styleInstruction}
 
@@ -54,7 +55,7 @@ Example:
 Do not add any other text outside the code block.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview', // Upgraded for superior multimodal analysis
       contents: {
         parts: [
           { inlineData: { data: base64ImageData, mimeType: mimeType } },

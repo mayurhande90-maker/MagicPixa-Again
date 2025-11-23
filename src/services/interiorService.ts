@@ -1,5 +1,21 @@
+
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
+import { resizeImage } from "../utils/imageUtils";
+
+// Helper: Resize to 1280px (HD)
+const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        console.warn("Image optimization failed, using original", e);
+        return { data: base64, mimeType };
+    }
+};
 
 // Micro-Prompts for Styles
 export const STYLE_PROMPTS: Record<string, string> = {
@@ -163,7 +179,7 @@ const analyzeAndPlanRenovation = async (
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-pro-preview', // Upgraded to Pro for complex analysis
         contents: {
             parts: [
                 { inlineData: { data: base64ImageData, mimeType: mimeType } },
@@ -190,21 +206,21 @@ export const generateInteriorDesign = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
+    // Optimize Image First (1280px)
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
     // Step 1: Deep Analysis & Planning (The "Brain")
-    // We pause briefly to let the Architect think.
     const renovationBlueprint = await analyzeAndPlanRenovation(
-        ai, base64ImageData, mimeType, style, spaceType, roomType
+        ai, data, optimizedMime, style, spaceType, roomType
     );
 
     console.log("Renovation Blueprint Generated:", renovationBlueprint);
 
     // Step 2: Image Generation (The "Hand")
-    // We feed the specific blueprint into the image generator.
-    
     const styleMicroPrompt = STYLE_PROMPTS[style] || `${style} style.`;
     const curtainDef = CURTAIN_STYLES[style] || "neutral, photorealistic curtains fitting the style";
 
-    const prompt = `You are Magic Interiors — a hyper-realistic Interior rendering AI.
+    const prompt = `You are Magic Interiors — a hyper-realistic Interior rendering AI using Gemini 3 Pro.
     
     *** CRITICAL INPUT: ARCHITECT'S BLUEPRINT ***
     ${renovationBlueprint}
@@ -235,10 +251,10 @@ export const generateInteriorDesign = async (
     Output ONLY the transformed image.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview', // Upgraded to Pro Image
       contents: {
         parts: [
-          { inlineData: { data: base64ImageData, mimeType: mimeType } },
+          { inlineData: { data: data, mimeType: optimizedMime } },
           { text: prompt },
         ],
       },
