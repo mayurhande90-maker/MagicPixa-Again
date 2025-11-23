@@ -79,7 +79,9 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Config
-    const cost = appConfig?.featureCosts['Thumbnail Studio'] || 2;
+    // Updated default cost to 5 as requested
+    const cost = appConfig?.featureCosts['Thumbnail Studio'] || 5;
+    const regenCost = 3;
     const userCredits = auth.user?.credits || 0;
     
     // Requirement Check
@@ -173,6 +175,47 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         }
     };
 
+    const handleRegenerate = async () => {
+        if (!hasRequirements || !auth.user) return;
+        
+        if (userCredits < regenCost) { 
+            alert("Insufficient credits for regeneration (3 credits required)."); 
+            return; 
+        }
+
+        setLoading(true);
+        setResult(null);
+
+        try {
+            const res = await generateThumbnail({
+                category,
+                title,
+                referenceImage: referenceImage!.base64,
+                subjectImage: subjectImage?.base64,
+                hostImage: hostImage?.base64,
+                guestImage: guestImage?.base64
+            });
+
+            const url = `data:image/png;base64,${res}`;
+            setResult(url);
+            
+            saveCreation(auth.user.uid, url, 'Thumbnail Studio (Regen)');
+            const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Thumbnail Studio (Regen)');
+            
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) setMilestoneBonus(bonus);
+            }
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+
+        } catch (e) {
+            console.error(e);
+            alert("Regeneration failed. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleNewSession = () => {
         setReferenceImage(null);
         setSubjectImage(null);
@@ -194,7 +237,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 canGenerate={hasRequirements && !isLowCredits}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={() => setResult(null)}
+                onResetResult={handleRegenerate} // Pass the regeneration handler here
                 onNewSession={handleNewSession}
                 resultHeightClass="h-[750px]"
                 hideGenerateButton={isLowCredits}

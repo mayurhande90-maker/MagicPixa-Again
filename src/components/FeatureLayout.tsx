@@ -4,7 +4,7 @@ import {
     SparklesIcon, 
     DownloadIcon, 
     TrashIcon, 
-    RetryIcon, 
+    RegenerateIcon, 
     UploadIcon, 
     XIcon,
     CheckIcon
@@ -246,7 +246,7 @@ export const FeatureLayout: React.FC<{
                                     )}
                                     {onResetResult && (
                                         <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
-                                            <RetryIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
+                                            <RegenerateIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
                                             <span className="hidden sm:inline">Regenerate</span>
                                         </button>
                                     )}

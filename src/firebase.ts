@@ -663,16 +663,18 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
         const creationId = db.collection('users').doc().id; // Generate a unique ID
         const storagePath = `creations/${uid}/${creationId}.png`;
         const thumbStoragePath = `creations/${uid}/${creationId}_thumb.jpg`;
+        const mediumStoragePath = `creations/${uid}/${creationId}_medium.jpg`;
         
         const storageRef = storage.ref(storagePath);
         const thumbStorageRef = storage.ref(thumbStoragePath);
+        const mediumStorageRef = storage.ref(mediumStoragePath);
         
         // 1. Upload Original
         const imageBlob = base64ToBlob(base64, mimeType);
         const uploadTask = await storageRef.put(imageBlob);
         const downloadURL = await uploadTask.ref.getDownloadURL();
 
-        // 2. Generate & Upload Thumbnail
+        // 2. Generate & Upload Thumbnail (300px)
         let thumbDownloadURL = null;
         try {
             const thumbDataUri = await resizeImage(dataUri, 300, 0.7);
@@ -685,11 +687,25 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
             console.warn("Failed to generate thumbnail, falling back to original URL.", thumbError);
         }
 
-        // 3. Save metadata to Firestore
+        // 3. Generate & Upload Medium Preview (1024px)
+        let mediumDownloadURL = null;
+        try {
+            const mediumDataUri = await resizeImage(dataUri, 1024, 0.8);
+            const [mediumHeader, mediumBase64] = mediumDataUri.split(',');
+            const mediumBlob = base64ToBlob(mediumBase64, 'image/jpeg');
+            
+            const mediumUploadTask = await mediumStorageRef.put(mediumBlob);
+            mediumDownloadURL = await mediumUploadTask.ref.getDownloadURL();
+        } catch (mediumError) {
+            console.warn("Failed to generate medium preview, falling back to original URL.", mediumError);
+        }
+
+        // 4. Save metadata to Firestore
         const creationRef = db.collection(`users/${uid}/creations`).doc(creationId);
         await creationRef.set({
             imageUrl: downloadURL,
-            thumbnailUrl: thumbDownloadURL || downloadURL, // Fallback to original if thumb failed
+            thumbnailUrl: thumbDownloadURL || downloadURL,
+            mediumUrl: mediumDownloadURL || downloadURL, // New optimized field
             storagePath: storagePath,
             feature: feature,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -736,6 +752,11 @@ export const deleteCreation = async (uid: string, creation: { id: string; storag
     const thumbRef = storage.ref(thumbPath);
     await thumbRef.delete().catch(e => console.warn("Could not delete thumbnail or it didn't exist", e));
     
+    // Delete from Storage (Medium Preview)
+    const mediumPath = creation.storagePath.replace('.png', '_medium.jpg');
+    const mediumRef = storage.ref(mediumPath);
+    await mediumRef.delete().catch(e => console.warn("Could not delete medium preview or it didn't exist", e));
+    
     // Delete from Firestore
     const creationRef = db.doc(`users/${uid}/creations/${creation.id}`);
     await creationRef.delete();
@@ -753,7 +774,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
         featureCosts: {
           'Magic Photo Studio': 2,
           'Model Shot': 3,
-          'Thumbnail Studio': 2,
+          'Thumbnail Studio': 5, // Updated from 2 to 5
           'Product Studio': 5,
           'Brand Stylist AI': 4,
           'Magic Soul': 3,
