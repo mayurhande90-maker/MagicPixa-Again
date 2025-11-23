@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { getCreations } from '../firebase';
@@ -110,7 +111,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ user, navigateTo, 
                             className="relative h-full group cursor-zoom-in"
                             onClick={() => setZoomedImage(latestCreation.imageUrl)}
                         >
-                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
+                            {/* Optimized Image Load: Use Medium URL if available (new creations), else Fallback to Original (old creations) */}
+                            <img 
+                                src={latestCreation.mediumUrl || latestCreation.imageUrl} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                alt="Latest creation" 
+                                loading="lazy" 
+                            />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
                                 <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>

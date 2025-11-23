@@ -87,7 +87,8 @@ export interface Purchase {
 export interface Creation {
     id: string;
     imageUrl: string;
-    thumbnailUrl?: string; // Added for optimization
+    mediumUrl?: string; // Added for dashboard hero banner (optimized quality)
+    thumbnailUrl?: string; // Added for grid view (low quality)
     storagePath: string;
     feature: string;
     createdAt: Timestamp;
