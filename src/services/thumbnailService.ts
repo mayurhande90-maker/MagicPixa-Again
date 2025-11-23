@@ -17,73 +17,95 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-export const generateThumbnail = async (
-    subjectBase64: string,
-    subjectMimeType: string,
-    styleBase64: string | null,
-    styleMimeType: string | null,
-    title: string,
-    category: string
-): Promise<string> => {
+interface ThumbnailInputs {
+    category: string;
+    title: string;
+    referenceImage: { base64: string; mimeType: string }; // Required
+    subjectImage?: { base64: string; mimeType: string } | null; // Optional for standard
+    hostImage?: { base64: string; mimeType: string } | null; // Podcast only
+    guestImage?: { base64: string; mimeType: string } | null; // Podcast only
+}
+
+export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string> => {
     const ai = getAiClient();
     try {
         const parts: any[] = [];
+        const isPodcast = inputs.category === 'Podcast';
 
-        // 1. Optimize Subject
-        const optSubject = await optimizeImage(subjectBase64, subjectMimeType);
-        parts.push({ text: "MAIN SUBJECT IMAGE:" });
-        parts.push({ inlineData: { data: optSubject.data, mimeType: optSubject.mimeType } });
+        // 1. Optimize and Attach Reference Image (Always Required)
+        const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+        parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font, color, and vibe):" });
+        parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
 
-        // 2. Optimize Style (if provided)
-        if (styleBase64 && styleMimeType) {
-            const optStyle = await optimizeImage(styleBase64, styleMimeType);
-            parts.push({ text: "STYLE REFERENCE (Copy art style, lighting, and composition vibe ONLY. Do NOT copy the person):" });
-            parts.push({ inlineData: { data: optStyle.data, mimeType: optStyle.mimeType } });
+        // 2. Handle Subjects based on Category
+        if (isPodcast) {
+            if (inputs.hostImage) {
+                const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
+                parts.push({ text: "HOST PHOTO (Preserve Identity):" });
+                parts.push({ inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
+            }
+            if (inputs.guestImage) {
+                const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
+                parts.push({ text: "GUEST PHOTO (Preserve Identity):" });
+                parts.push({ inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
+            }
+        } else {
+            if (inputs.subjectImage) {
+                const optSubject = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
+                parts.push({ text: "MAIN SUBJECT PHOTO (Preserve Identity):" });
+                parts.push({ inlineData: { data: optSubject.data, mimeType: optSubject.mimeType } });
+            }
         }
 
-        // 3. Construct System Prompt
-        let prompt = `You are an Elite YouTube Thumbnail Designer powered by Gemini 3 Pro.
+        // 3. Construct Highly Specific System Prompt
+        let prompt = `You are an Elite YouTube Thumbnail Designer using Gemini 3 Pro.
         
-        TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail.
+        TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail for the category: "${inputs.category}".
+        VIDEO TITLE / CONTEXT: "${inputs.title}"
         
-        CONTEXT:
-        - Video Title: "${title}"
-        - Category: ${category}
+        PHASE 1: DEEP ANALYSIS
+        1. Analyze the "REFERENCE THUMBNAIL STYLE" deeply. Extract the color palette, font style (bold/sans-serif), text placement, glow effects, and background complexity.
+        2. Search YouTube trends for "${inputs.category} thumbnails 2025" to understand current clickbait aesthetics.
         
-        INSTRUCTIONS:
-        1. **Subject Integration**: Use the person/object from the "MAIN SUBJECT IMAGE". 
-           - Isolate them from their original background.
-           - Enhance their expression/lighting to make them pop.
-           - If it's a person, ensure they look expressive and engaging.
+        PHASE 2: COMPOSITION RULES
+        `;
+
+        if (isPodcast) {
+            prompt += `- **Podcast Layout**: Place the HOST and GUEST side-by-side or facing each other, mimicking the composition of the Reference Thumbnail.
+            - **Background**: Generate a high-quality studio background or a relevant scene based on the Title, matching the lighting of the Reference.
+            - **Text**: Place the text "${inputs.title}" clearly, using the font style from the Reference.
+            `;
+        } else {
+            prompt += `- **Standard Layout**: If a Subject Photo is provided, place them prominently in the foreground. If not, generate a compelling central subject based on the Title.
+            - **Style Transfer**: Apply the exact color grading, saturation, and energy of the Reference Thumbnail to this new image.
+            - **Text**: Render the text "${inputs.title}" big and bold, ensuring high readability.
+            `;
+        }
+
+        prompt += `
+        *** CRITICAL IDENTITY PRESERVATION RULES (ZERO TOLERANCE) ***
+        - You MUST use the faces/bodies from the uploaded HOST/GUEST/SUBJECT photos.
+        - **DO NOT REGENERATE THEIR FACES.** Do not change their ethnicity, age, hair, or facial features.
+        - You are a compositor: Cut them out of their original photos and blend them seamlessly into the new thumbnail design.
+        - **Lighting**: You MAY adjust the lighting on the subjects to match the new background (e.g., add rim light, fix shadows), but do not alter their geometry.
         
-        2. **Background & Composition**:
-           - Generate a background relevant to the "${category}" category and the Title "${title}".
-           - Use complementary colors (e.g., Blue background + Orange subject/text).
-           - Add depth (bokeh/blur) to separate the subject from the background.
+        *** HYPER-REALISM & QUALITY ***
+        - The final image must look like a 4K polished photograph, not a cartoon (unless the Reference is a cartoon).
+        - Text must be legible and professional.
+        - Add depth of field (blur) to the background to make subjects pop.
         
-        3. **Text & Typography**:
-           - Render the text "${title}" (or a punchy 2-3 word summary of it) clearly in the image.
-           - Use massive, BOLD, Sans-Serif fonts (Impact, Roboto Black).
-           - Add drop shadows, strokes, or glow to the text for maximum readability.
-           - Ensure text does not cover the subject's face.
-        
-        4. **Style Transfer** (If Reference provided):
-           - Mimic the color grading, saturation, and energy of the "STYLE REFERENCE".
-           - Do NOT copy the specific content of the reference, only the "Vibe".
-        
-        5. **Final Polish**:
-           - High saturation.
-           - High contrast.
-           - "Clickbait" aesthetic (glowing outlines, arrows, emojis if suitable for the category).
-        
-        OUTPUT: A single high-resolution image.`;
+        OUTPUT: A single high-resolution thumbnail image (16:9).`;
 
         parts.push({ text: prompt });
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                // Enable search for trend analysis
+                tools: [{ googleSearch: {} }]
+            },
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
