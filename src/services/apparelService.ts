@@ -1,5 +1,5 @@
 
-import { Modality } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -10,11 +10,10 @@ export interface ApparelStylingOptions {
 }
 
 // Helper to reduce image size for AI payload safety
-// Reduced to 1024px to ensure reliability with multiple image inputs
+// Using 1024px and 60% quality to prevent payload bloating which causes API errors
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Use 1024px and 60% quality to prevent payload bloating
         const resizedUri = await resizeImage(dataUri, 1024, 0.60);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -38,7 +37,7 @@ export const generateApparelTryOn = async (
     // Check for Single Outfit Upload (Same image for Top and Bottom)
     const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
 
-    // 1. Optimize Images (Parallel)
+    // 1. Optimize Images (Parallel) to ensure request fits in limit
     const personPromise = optimizeImage(personBase64, personMimeType);
     let topPromise, bottomPromise;
 
@@ -56,85 +55,62 @@ export const generateApparelTryOn = async (
     // Construct the multimodal prompt
     const parts: any[] = [];
     
-    // STRICT SYSTEM INSTRUCTION (PIPELINE DIRECTIVE)
-    // We place this first to set the behavior context immediately.
-    parts.push({ text: `
-SYSTEM PIPELINE: DETERMINISTIC APPAREL TRY-ON
-GOAL: Realistic Virtual Try-On.
-RULES:
-1. IDENTITY LOCK: Do NOT change the user's face, hair, skin tone, body shape, or background.
-2. INPUTS: You will receive a TARGET MODEL and REFERENCE GARMENTS.
-3. ACTION: Replace the model's clothing with the reference garments.
-`});
+    // Simplified System Instruction for better adherence
+    parts.push({ text: `You are an expert AI fashion stylist and image editor. 
+Task: Virtual Try-On. 
+Goal: Generate a photorealistic image of the model wearing the provided clothing.
+Constraint: Keep the model's face, skin tone, body shape, and background EXACTLY the same.` });
 
     // Part 1: The Person (Target)
-    parts.push({ text: "INPUT 1: TARGET MODEL IMAGE" });
+    parts.push({ text: "TARGET MODEL:" });
     parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
-
-    let instructions = `\n*** EXECUTION PLAN ***\n`;
 
     if (isSameGarmentImage && optTop) {
         // Optimization: Send image once, instruct to extract both
-        parts.push({ text: "INPUT 2: REFERENCE OUTFIT SOURCE (Contains both Top & Bottom)" });
+        parts.push({ text: "REFERENCE OUTFIT (Source Image):" });
         parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        
-        instructions += `DETECTED SOURCE: Single reference image containing full outfit.\n`;
-        instructions += `TASK: Extract both Upper and Lower garments from INPUT 2 and apply them to the Target Model.\n`;
+        parts.push({ text: `INSTRUCTION: The Reference Outfit image contains a full look (Top + Bottom). 
+        1. Identify the upper body garment (shirt/jacket) from the Reference and put it on the Model.
+        2. Identify the lower body garment (pants/skirt) from the Reference and put it on the Model.
+        3. Ensure the fit matches the reference.` });
     } else {
-        // Distinct Images Logic - Handles 1 or 2 separate garments
-        if (optTop && optBottom) {
-             // Both Provided - Combined Instruction
-             parts.push({ text: "INPUT 2: TOP GARMENT (Reference)" });
+        // Distinct Images Logic
+        if (optTop) {
+             parts.push({ text: "REFERENCE TOP:" });
              parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-             parts.push({ text: "INPUT 3: BOTTOM GARMENT (Reference)" });
-             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-
-             instructions += `TASK: FULL OUTFIT REPLACEMENT.\n`;
-             instructions += `1. Replace Model's UPPER body clothing with INPUT 2 (Top).\n`;
-             instructions += `2. Replace Model's LOWER body clothing with INPUT 3 (Bottom).\n`;
-             instructions += `3. Ensure natural transition at the waistline between Top and Bottom.\n`;
-        } else if (optTop) {
-            parts.push({ text: "INPUT 2: TOP GARMENT (Reference)" });
-            parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-            instructions += `TASK: UPPER BODY REPLACEMENT ONLY. Keep original pants/bottoms unless they conflict visually.\n`;
-            instructions += `Replace Model's upper clothing with INPUT 2.\n`;
-        } else if (optBottom) {
-            parts.push({ text: "INPUT 2: BOTTOM GARMENT (Reference)" });
+             parts.push({ text: "INSTRUCTION: Replace the model's top with this Reference Top." });
+        } 
+        if (optBottom) {
+            parts.push({ text: "REFERENCE BOTTOM:" });
             parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            instructions += `TASK: LOWER BODY REPLACEMENT ONLY. Keep original shirt/top unless it conflicts visually.\n`;
-            instructions += `Replace Model's lower clothing with INPUT 2.\n`;
+            parts.push({ text: "INSTRUCTION: Replace the model's bottom with this Reference Bottom." });
         }
     }
 
     // Explicit Styling Overrides
-    const hasStyling = stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve);
-    
-    if (hasStyling) {
-        instructions += `\n*** STYLING OVERRIDES (HIGHEST PRIORITY) ***\n`;
-        instructions += `You MUST synthesize these details even if not visible in reference:\n`;
-        if (stylingOptions?.tuck) {
-            instructions += `- WAIST: ${stylingOptions.tuck}. (If "Tucked In", generate waistband/belt interaction. If "Untucked", generate hem draping over bottom).\n`;
-        }
-        if (stylingOptions?.fit) {
-            instructions += `- FIT: ${stylingOptions.fit}.\n`;
-        }
-        if (stylingOptions?.sleeve) {
-            instructions += `- SLEEVES: ${stylingOptions.sleeve}.\n`;
-        }
+    if (stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve)) {
+        let styleText = "STYLING RULES: ";
+        if (stylingOptions.tuck) styleText += `Waist: ${stylingOptions.tuck}. `;
+        if (stylingOptions.fit) styleText += `Fit: ${stylingOptions.fit}. `;
+        if (stylingOptions.sleeve) styleText += `Sleeves: ${stylingOptions.sleeve}. `;
+        parts.push({ text: styleText });
     }
 
-    instructions += `\n*** FINAL QUALITY CHECK ***\n`;
-    instructions += `- Lighting match: YES.\n`;
-    instructions += `- Skin texture preserved: YES.\n`;
-    instructions += `- Background untouched: YES.\n`;
-    instructions += `- Resolution: High.\n`;
-
-    parts.push({ text: instructions });
+    parts.push({ text: `Ensure the lighting on the clothes matches the model's environment. The result must be indistinguishable from a real photo.` });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts },
-      config: { responseModalities: [Modality.IMAGE] },
+      config: { 
+          responseModalities: [Modality.IMAGE],
+          // CRITICAL: Relax safety settings to prevent false positives on clothing/skin
+          safetySettings: [
+              { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+              { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+              { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+              { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          ]
+      },
     });
     
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
