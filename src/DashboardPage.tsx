@@ -428,7 +428,7 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                 onNewSession={() => { setImage(null); setResult(null); }}
                 resultHeightClass="h-[650px]" // Increased strict height to allow content to fit comfortably
                 hideGenerateButton={true} // Hiding default button to use custom one in right panel
-                // Removed disableScroll to allow scrolling if content overflows, preventing button from hiding
+                disableScroll={true} // Take control of scrolling to fix layout
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -457,50 +457,52 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                     )
                 }
                 rightContent={
-                     // New Marketing-Focused Right Panel
+                     // Fixed Layout Right Panel
                     <div className="h-full flex flex-col">
-                        {/* Reward Banner */}
-                        <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-5 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden mb-6 transform transition-transform hover:scale-[1.02]">
-                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
-                             <h3 className="font-black text-xl mb-1 flex items-center gap-2">GET {activeMission.reward} CREDITS</h3>
-                             <p className="font-bold text-xs opacity-80 mb-3">upon successful completion</p>
-                             
-                             <div className="bg-white/20 rounded-xl p-2 backdrop-blur-sm border border-white/10 text-[10px] font-bold">
-                                 <div className="flex items-center gap-2 mb-1.5">
-                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">1</span>
-                                     <span>Upload Photo</span>
-                                 </div>
-                                 <div className="flex items-center gap-2 mb-1.5">
-                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">2</span>
-                                     <span>AI Transforms It</span>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">3</span>
-                                     <span>Receive Reward</span>
-                                 </div>
-                             </div>
-                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2 space-y-4">
+                            {/* Reward Banner */}
+                            <div className="bg-gradient-to-br from-[#F9D230] to-[#F5A623] p-5 rounded-2xl text-[#1A1A1E] shadow-lg relative overflow-hidden transform transition-transform hover:scale-[1.01] shrink-0">
+                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+                                <h3 className="font-black text-xl mb-1 flex items-center gap-2">GET {activeMission.reward} CREDITS</h3>
+                                <p className="font-bold text-xs opacity-80 mb-3">upon successful completion</p>
+                                
+                                <div className="bg-white/20 rounded-xl p-2 backdrop-blur-sm border border-white/10 text-[10px] font-bold">
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">1</span>
+                                        <span>Upload Photo</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">2</span>
+                                        <span>AI Transforms It</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[9px]">3</span>
+                                        <span>Receive Reward</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* Active Task Info */}
-                        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col">
-                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Mission Briefing</h4>
-                             <h3 className="text-lg font-bold text-[#1A1A1E] mb-2">{activeMission.title}</h3>
-                             <p className="text-gray-500 text-xs leading-relaxed mb-4">{activeMission.description}</p>
-                             
-                             <div className="mt-auto pt-3 border-t border-gray-100">
-                                 <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 p-2.5 rounded-xl">
-                                     <CheckIcon className="w-3.5 h-3.5"/>
-                                     AI Settings Pre-Configured
-                                 </div>
-                             </div>
+                            {/* Active Task Info */}
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col shrink-0">
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Mission Briefing</h4>
+                                <h3 className="text-lg font-bold text-[#1A1A1E] mb-2">{activeMission.title}</h3>
+                                <p className="text-gray-500 text-xs leading-relaxed mb-4">{activeMission.description}</p>
+                                
+                                <div className="mt-auto pt-3 border-t border-gray-100">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 p-2.5 rounded-xl">
+                                        <CheckIcon className="w-3.5 h-3.5"/>
+                                        AI Settings Pre-Configured
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        {/* Action Button */}
-                        <div className="mt-5">
+                        {/* Fixed Bottom Section */}
+                        <div className="mt-auto pt-4 border-t border-gray-200/50 shrink-0 z-10 bg-[#F6F7FA]">
                             <button 
                                 onClick={handleGenerate} 
                                 disabled={!image || loading}
-                                className={`w-full py-3 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
+                                className={`w-full py-3 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 mb-2 ${
                                     !image 
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                                     : 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-[1.02] shadow-black/20'
@@ -518,6 +520,9 @@ const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any; }> = ({ a
                                     </>
                                 )}
                             </button>
+                            <p className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Powered by Gemini 3
+                            </p>
                         </div>
                     </div>
                 }
