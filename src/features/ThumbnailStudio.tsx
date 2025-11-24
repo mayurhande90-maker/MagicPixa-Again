@@ -276,14 +276,15 @@ export const ThumbnailStudio: React.FC<{
                     label: "Generate Thumbnail"
                 }}
                 scrollRef={scrollRef}
-                // Custom Overlay Button for Magic Editor
-                resultOverlay={
+                // Pass Magic Editor Button via new custom action slot
+                customActionButtons={
                     result ? (
                         <button 
                             onClick={() => setShowMagicEditor(true)}
-                            className="bg-white text-[#1A1A1E] px-4 py-2 rounded-full font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2 border border-gray-200 hover:bg-gray-50"
+                            className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"
                         >
-                            <MagicWandIcon className="w-4 h-4 text-[#F9D230]"/> Magic Edit
+                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> 
+                            <span>Magic Editor</span>
                         </button>
                     ) : null
                 }

@@ -195,12 +195,13 @@ export const FeatureLayout: React.FC<{
     hideGenerateButton?: boolean;
     disableScroll?: boolean;
     scrollRef?: React.RefObject<HTMLDivElement>;
-    resultOverlay?: React.ReactNode; // New prop for Magic Editor button
+    resultOverlay?: React.ReactNode;
+    customActionButtons?: React.ReactNode; // New prop for additional action buttons
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
-    disableScroll, scrollRef, resultOverlay
+    disableScroll, scrollRef, resultOverlay, customActionButtons
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     
@@ -236,9 +237,9 @@ export const FeatureLayout: React.FC<{
                                 title="Click to zoom"
                              />
                              
-                             {/* Custom Result Overlay (e.g., Magic Edit Button) */}
+                             {/* Custom Result Overlay (e.g., Status badges, optional) */}
                              {resultOverlay && (
-                                 <div className="absolute top-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                 <div className="absolute top-4 right-4 z-30">
                                      {resultOverlay}
                                  </div>
                              )}
@@ -246,6 +247,9 @@ export const FeatureLayout: React.FC<{
                              {/* Result Actions */}
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
                                 <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
+                                    {/* Inject Custom Buttons First or Last based on preference. Here first for visibility. */}
+                                    {customActionButtons}
+
                                     {onNewSession && (
                                          <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
                                             <TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
