@@ -475,32 +475,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                             <StatCard icon={SparklesIcon} title="Avg. Credits / User" value={users.length > 0 ? (users.reduce((acc, u) => acc + u.credits, 0) / users.length).toFixed(1) : 0} color="bg-yellow-500" />
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                           <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                                <h3 className="font-bold text-lg mb-4">Recent Sign-ups</h3>
-                                <div className="space-y-3">
-                                    {recentSignups.map(user => (
-                                        <div key={user.uid} className="flex justify-between items-center text-sm">
-                                            <div>
-                                                <p className="font-semibold text-gray-800">{user.name}</p>
-                                                <p className="text-xs text-gray-500">{user.email}</p>
+                           <div className="bg-white p-6 rounded-2xl border border-gray-200 flex flex-col h-[350px]">
+                                <h3 className="font-bold text-lg mb-4 flex-shrink-0">Recent Sign-ups</h3>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                    <div className="space-y-3">
+                                        {recentSignups.map(user => (
+                                            <div key={user.uid} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                <div className="min-w-0 mr-4">
+                                                    <p className="font-semibold text-gray-800 truncate">{user.name}</p>
+                                                    <p className="text-xs text-gray-500 truncate" title={user.email}>{user.email}</p>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    <p className="text-xs text-gray-400">
+                                                        {user.signUpDate 
+                                                            ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() 
+                                                            : 'N/A'}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-300">
+                                                        {user.signUpDate 
+                                                            ? new Date((user.signUpDate as any).seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                                                            : ''}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-gray-400">{user.signUpDate ? new Date(user.signUpDate.seconds * 1000).toLocaleDateString() : ''}</p>
-                                        </div>
-                                    ))}
+                                        ))}
+                                        {recentSignups.length === 0 && <p className="text-center text-gray-400 text-sm py-10">No recent signups.</p>}
+                                    </div>
                                 </div>
                            </div>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                                <h3 className="font-bold text-lg mb-4">Recent Purchases</h3>
-                                <div className="space-y-3">
-                                    {recentPurchases.map(p => (
-                                        <div key={p.id} className="flex justify-between items-center text-sm">
-                                            <div>
-                                                <p className="font-semibold text-gray-800">{p.userName}</p>
-                                                <p className="text-xs text-gray-500">{p.packName}</p>
+                            <div className="bg-white p-6 rounded-2xl border border-gray-200 flex flex-col h-[350px]">
+                                <h3 className="font-bold text-lg mb-4 flex-shrink-0">Recent Purchases</h3>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                    <div className="space-y-3">
+                                        {recentPurchases.map(p => (
+                                            <div key={p.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{p.userName}</p>
+                                                    <p className="text-xs text-gray-500">{p.packName}</p>
+                                                </div>
+                                                <p className="font-bold text-green-600">₹{p.amountPaid}</p>
                                             </div>
-                                            <p className="font-bold text-green-600">₹{p.amountPaid}</p>
-                                        </div>
-                                    ))}
+                                        ))}
+                                        {recentPurchases.length === 0 && <p className="text-center text-gray-400 text-sm py-10">No recent purchases.</p>}
+                                    </div>
                                 </div>
                             </div>
                         </div>
