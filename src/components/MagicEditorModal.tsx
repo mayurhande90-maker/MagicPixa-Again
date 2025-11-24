@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon, PencilIcon } from './icons';
 import { removeElementFromImage } from '../services/imageToolsService';
@@ -32,6 +32,20 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     // Image Dimensions
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
 
+    // Zoom Limits
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 3.0;
+
+    // Helper to Fit Image to Screen
+    const resetView = useCallback((width: number, height: number) => {
+        const fitZoom = Math.min(
+            (window.innerWidth * 0.85) / width,
+            (window.innerHeight * 0.7) / height,
+            1
+        );
+        setZoomLevel(fitZoom);
+    }, []);
+
     // Initialize Canvases
     useEffect(() => {
         const img = new Image();
@@ -61,16 +75,11 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     setHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
                 
-                // Initial Auto-Fit Zoom
-                const fitZoom = Math.min(
-                    (window.innerWidth * 0.85) / img.width,
-                    (window.innerHeight * 0.7) / img.height,
-                    1
-                );
-                setZoomLevel(fitZoom);
+                // Initial Auto-Fit
+                resetView(img.width, img.height);
             }
         };
-    }, [currentImageSrc]);
+    }, [currentImageSrc, resetView]);
 
     // Keyboard Listeners for Spacebar Panning
     useEffect(() => {
@@ -95,22 +104,30 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         };
     }, []);
 
-    // Zoom on Scroll
+    // Zoom & Pan on Scroll
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            e.preventDefault(); // Prevent default scroll behavior
+            // Logic:
+            // If Ctrl key is pressed (or Pinch gesture on trackpad) -> ZOOM
+            // If NO key is pressed -> PAN (Native scroll behavior)
             
-            // Determine direction
-            const delta = -e.deltaY;
-            const scaleFactor = delta > 0 ? 1.1 : 0.9;
-            
-            setZoomLevel(prev => {
-                const newZoom = prev * scaleFactor;
-                return Math.min(Math.max(newZoom, 0.1), 5);
-            });
+            if (e.ctrlKey) {
+                e.preventDefault();
+                
+                // Reduced sensitivity for smoother zoom
+                // Using a smaller multiplier (0.005) instead of 10% jumps
+                const zoomSensitivity = 0.005;
+                const delta = -e.deltaY * zoomSensitivity;
+
+                setZoomLevel(prev => {
+                    const newZoom = prev + delta;
+                    return Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
+                });
+            }
+            // Otherwise, let the browser handle native scrolling (Panning)
         };
 
         container.addEventListener('wheel', handleWheel, { passive: false });
@@ -140,9 +157,9 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         }
     };
 
-    // Zoom Logic
-    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev * 1.2, 5)); 
-    const handleZoomOut = () => setZoomLevel(prev => Math.max(prev / 1.2, 0.1)); 
+    // Zoom Logic (Buttons)
+    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM)); 
+    const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM)); 
 
     // Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -261,6 +278,9 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const resultUrl = `data:image/png;base64,${resultBase64}`;
             
             setCurrentImageSrc(resultUrl);
+            
+            // Reset View to Original Size after edit
+            resetView(imgDims.w, imgDims.h);
 
         } catch (e) {
             console.error(e);
@@ -291,7 +311,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             <div className="p-2 bg-[#F9D230] rounded-full text-[#1A1A1E]"><MagicWandIcon className="w-5 h-5"/></div>
                             Magic Editor
                         </h2>
-                        <p className="text-xs text-gray-500 mt-1 ml-11">Scroll to zoom • Draw to remove objects</p>
+                        <p className="text-xs text-gray-500 mt-1 ml-11">Scroll to Pan • Ctrl + Scroll to Zoom</p>
                     </div>
                     
                     <div className="flex items-center gap-4">
@@ -377,7 +397,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                                 <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
                             </div>
                         </div>
-                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">Hold Spacebar to Pan</span>
+                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">Scroll to Pan • Hold Spacebar or Ctrl+Scroll to Zoom</span>
                     </div>
 
                     {isProcessing && (
