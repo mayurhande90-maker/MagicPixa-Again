@@ -6,6 +6,7 @@ import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
+import ToastNotification from './components/ToastNotification';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig } from './types';
@@ -27,6 +28,10 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState<ReactNode | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
+  
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -178,6 +183,8 @@ const App: React.FC = () => {
     try {
       await signInWithGoogle();
       // Successful sign-in is handled by the onAuthStateChanged listener.
+      setToastMessage("Successfully signed in!");
+      setToastType('success');
     } catch (error: any) {
        console.error("Google Sign-In Error:", error);
 
@@ -223,6 +230,8 @@ const App: React.FC = () => {
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
+      setToastMessage("Successfully logged out.");
+      setToastType('success');
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -291,6 +300,13 @@ const App: React.FC = () => {
           user={user}
           onClose={() => setEditProfileModalOpen(false)}
           onSave={handleSaveProfile}
+        />
+      )}
+      {toastMessage && (
+        <ToastNotification 
+            message={toastMessage} 
+            type={toastType} 
+            onClose={() => setToastMessage(null)} 
         />
       )}
     </div>
