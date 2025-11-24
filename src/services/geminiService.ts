@@ -7,6 +7,7 @@ export * from './photoStudioService';
 export * from './imageToolsService';
 export * from './interiorService';
 export * from './brandKitService';
+export * from './brandStylistService';
 export * from './videoService';
 export * from './thumbnailService';
 export * from './apparelService';

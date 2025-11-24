@@ -186,34 +186,6 @@ export const generateStyledImage = async (
     throw new Error("No image generated.");
 };
 
-export const generateBrandStylistImage = async (
-    referenceImageBase64: string,
-    prompt: string
-): Promise<string> => {
-    const ai = getAiClient();
-    // Image optimization usually not needed for style reference as small is fine, but we do it for consistency
-    const { data, mimeType } = await optimizeImage(referenceImageBase64, 'image/png');
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: {
-            parts: [
-                { inlineData: { data: data, mimeType: mimeType } },
-                { text: `Task: Style Transfer / Brand Asset Generation.
-                
-                Reference Image: Provides the visual style, color palette, and mood.
-                Prompt: "${prompt}".
-                
-                Instruction: Generate a new image matching the text Prompt, but strictly adhering to the artistic style of the Reference Image.` }
-            ]
-        },
-        config: { responseModalities: [Modality.IMAGE] }
-    });
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
-};
-
 export const removeElementFromImage = async (
     base64ImageData: string,
     mimeType: string,

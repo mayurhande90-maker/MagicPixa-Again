@@ -15,6 +15,7 @@ import { CaptionAI } from './features/CaptionAI';
 import { DailyMissionStudio } from './features/DailyMissionStudio';
 import { ThumbnailStudio } from './features/ThumbnailStudio';
 import { BrandKitAI } from './features/BrandKitAI';
+import { BrandStylistAI } from './features/BrandStylistAI';
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -31,7 +32,6 @@ import {
     colourizeImage, 
     generateMagicSoul, 
     generateMockup, 
-    generateBrandStylistImage,
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
@@ -184,7 +184,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'thumbnail_studio':
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
-                 return <StandardFeature title="Brand Stylist" description="Style transfer for brands." icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} cost={appConfig?.featureCosts['Brand Stylist AI'] || 4} auth={auth} onGenerate={async (img, p) => await generateBrandStylistImage(img.base64, p || '')} />;
+                 return <BrandStylistAI auth={auth} appConfig={appConfig} />;
             case 'soul':
                  return <StandardFeature title="Magic Soul" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
             case 'colour':
