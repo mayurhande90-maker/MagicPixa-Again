@@ -31,7 +31,7 @@ const App: React.FC = () => {
   
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'logout'>('success');
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -231,7 +231,7 @@ const App: React.FC = () => {
       setCurrentPage('home');
       window.scrollTo(0, 0);
       setToastMessage("Successfully logged out.");
-      setToastType('success');
+      setToastType('logout');
     } catch (error) {
       console.error("Error signing out: ", error);
     }
