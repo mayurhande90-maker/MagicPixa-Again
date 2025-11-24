@@ -62,7 +62,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ message, type = '
     };
 
     const getTitle = () => {
-        if (type === 'logout') return 'Signed Out';
+        if (type === 'logout') return 'Success';
         if (type === 'success') return 'Success';
         if (type === 'error') return 'Error';
         return 'Notification';

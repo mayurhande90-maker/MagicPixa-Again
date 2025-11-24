@@ -230,7 +230,7 @@ const App: React.FC = () => {
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
-      setToastMessage("Successfully logged out.");
+      setToastMessage("Successfully logged out!");
       setToastType('logout');
     } catch (error) {
       console.error("Error signing out: ", error);
