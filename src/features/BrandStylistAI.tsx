@@ -10,8 +10,8 @@ import { deductCredits, saveCreation } from '../firebase';
 // Compact Upload Component (Reused)
 const CompactUpload: React.FC<{
     label: string;
-    image: { url: string } | null;
-    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    image: { url: string } | null; 
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
     onClear: () => void;
     icon: React.ReactNode;
     heightClass?: string;
@@ -56,7 +56,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     
     // Data Inputs
     const [brandName, setBrandName] = useState('');
-    const [contactDetails, setContactDetails] = useState('');
+    const [website, setWebsite] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [address, setAddress] = useState('');
     const [description, setDescription] = useState('');
     
     const [resultImage, setResultImage] = useState<string | null>(null);
@@ -101,7 +103,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 logoImage?.base64.base64, // Optional Logo
                 logoImage?.base64.mimeType,
                 brandName,
-                contactDetails,
+                website,
+                phoneNumber,
+                address,
                 description
             );
             
@@ -132,7 +136,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setReferenceImage(null);
         setResultImage(null);
         setBrandName('');
-        setContactDetails('');
+        setWebsite('');
+        setPhoneNumber('');
+        setAddress('');
         setDescription('');
     };
 
@@ -142,7 +148,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Smartly replicate any ad style. AI analyzes the reference layout, detects logo placement, and reconstructs the ad with your product and brand info."
+                description="Smartly replicate any ad style. AI detects logo/text spots in the reference and only adds your details if they match the original layout."
                 icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -204,7 +210,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     <span className="text-xs font-bold text-blue-800 uppercase">Smart Analysis Mode</span>
                                 </div>
                                 <p className="text-[10px] text-blue-800/80 leading-relaxed">
-                                    We analyze your product AND the reference. We'll auto-detect logo/text spots in the reference and swap them with your details.
+                                    We auto-detect layout elements in the reference image. We will <b>only</b> add your contact details/logo if similar elements exist in the reference design.
                                 </p>
                             </div>
 
@@ -241,18 +247,27 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
                             {/* Row 3: Smart Inputs */}
                             <div className="space-y-4 pt-2">
-                                <div className="grid grid-cols-2 gap-4">
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Brand Details (Auto-inserted if detected)</label>
+                                <div className="grid grid-cols-2 gap-3">
                                     <InputField
-                                        label="Brand Name (Optional)"
-                                        placeholder="e.g. LuxeSip"
+                                        placeholder="Brand Name"
                                         value={brandName}
                                         onChange={(e: any) => setBrandName(e.target.value)}
                                     />
                                     <InputField
-                                        label="Contact / Web (Optional)"
-                                        placeholder="e.g. www.luxesip.com"
-                                        value={contactDetails}
-                                        onChange={(e: any) => setContactDetails(e.target.value)}
+                                        placeholder="Website / URL"
+                                        value={website}
+                                        onChange={(e: any) => setWebsite(e.target.value)}
+                                    />
+                                    <InputField
+                                        placeholder="Contact Number"
+                                        value={phoneNumber}
+                                        onChange={(e: any) => setPhoneNumber(e.target.value)}
+                                    />
+                                    <InputField
+                                        placeholder="Address"
+                                        value={address}
+                                        onChange={(e: any) => setAddress(e.target.value)}
                                     />
                                 </div>
                                 

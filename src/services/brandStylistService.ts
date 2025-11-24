@@ -25,7 +25,9 @@ export const generateStyledBrandAsset = async (
     logoBase64: string | undefined,
     logoMime: string | undefined,
     brandName: string,
-    contactDetails: string,
+    website: string,
+    phoneNumber: string,
+    address: string,
     productDescription: string
 ): Promise<string> => {
     const ai = getAiClient();
@@ -43,26 +45,31 @@ export const generateStyledBrandAsset = async (
     INPUTS:
     1. **Reference Image** (The style/layout target).
     2. **Product Image** (The user's item).
-    3. **User Brand Info**: Name="${brandName}", Contact="${contactDetails}", Context="${productDescription}".
 
     TASK:
     1. **Analyze Product**: Look at the Product Image. Identify what it is (e.g., "Coffee Bag", "Perfume Bottle"). Read any visible text on the packaging to understand the brand vibe.
-    2. **Analyze Reference Layout**:
-       - Where is the logo placed? (e.g., Top Right, Bottom Center).
+    2. **Analyze Reference Layout (STRICT CHECK)**:
+       - Does the Reference Image contain a **visible Logo**? (Yes/No)
+       - Does it contain a **Website URL**? (Yes/No)
+       - Does it contain a **Phone Number**? (Yes/No)
+       - Does it contain a **Physical Address**? (Yes/No)
        - Where is the main headline? What font style/size?
-       - Is there contact info (website/phone) at the bottom?
        - What is the lighting/environment mood?
     3. **Create a Transfer Plan**:
-       - If the Reference has a Logo, replace it with the User's Logo (or Brand Name text if no logo provided).
-       - If the Reference has a Headline, write a NEW headline based on the User's Product Description that fits the reference vibe.
-       - If the Reference has a website/phone number, replace it with "${contactDetails}".
+       - Write a new headline based on: "${productDescription}".
+       - Determine exact placements for text/logo based *only* on what exists in the Reference.
     
     OUTPUT JSON:
     {
         "visualStyle": "Detailed description of lighting, colors, and composition...",
-        "layoutPlan": "Instructions on where to place the product, logo, and text based on the reference...",
+        "layoutPlan": "Instructions on where to place the product...",
         "generatedHeadline": "A creative headline (2-5 words) fitting the product and style",
-        "logoPlacement": "Description of where to place the user's logo (e.g. 'Top Right corner floating')",
+        "hasVisibleLogo": boolean,
+        "hasVisibleWebsite": boolean,
+        "hasVisiblePhone": boolean,
+        "hasVisibleAddress": boolean,
+        "logoPlacement": "Description of where to place the logo IF it exists in reference",
+        "contactPlacement": "Description of where to place contact info IF it exists in reference",
         "textInstructions": "Specific instructions on font style and color to match reference"
     }`;
 
@@ -85,10 +92,15 @@ export const generateStyledBrandAsset = async (
                     visualStyle: { type: Type.STRING },
                     layoutPlan: { type: Type.STRING },
                     generatedHeadline: { type: Type.STRING },
+                    hasVisibleLogo: { type: Type.BOOLEAN },
+                    hasVisibleWebsite: { type: Type.BOOLEAN },
+                    hasVisiblePhone: { type: Type.BOOLEAN },
+                    hasVisibleAddress: { type: Type.BOOLEAN },
                     logoPlacement: { type: Type.STRING },
+                    contactPlacement: { type: Type.STRING },
                     textInstructions: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "logoPlacement"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisiblePhone", "hasVisibleAddress"]
             }
         }
     });
@@ -98,16 +110,54 @@ export const generateStyledBrandAsset = async (
         blueprint = JSON.parse(analysisResponse.text || "{}");
     } catch (e) {
         console.error("Analysis parsing failed", e);
+        // Fallback safe defaults
         blueprint = {
             visualStyle: "Professional studio lighting",
-            layoutPlan: "Center product, logo top right",
+            layoutPlan: "Center product",
             generatedHeadline: "Premium Quality",
+            hasVisibleLogo: true,
+            hasVisibleWebsite: false,
+            hasVisiblePhone: false,
+            hasVisibleAddress: false,
             logoPlacement: "Top corner",
             textInstructions: "Modern bold font"
         };
     }
 
     // Step 2: Generation (The "Executor")
+    // Construct Conditional Text Instructions based on Analysis
+    let dynamicTextInstructions = `
+    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}.
+    `;
+
+    if (blueprint.hasVisibleLogo) {
+        if (optLogo) {
+            dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look naturally integrated.\n`;
+        } else if (brandName) {
+            dynamicTextInstructions += `- **LOGO**: Render brand name "${brandName}" at: ${blueprint.logoPlacement} as a text logo.\n`;
+        }
+    } else {
+        dynamicTextInstructions += `- **LOGO**: DO NOT add a logo, as the reference image does not have one.\n`;
+    }
+
+    if (blueprint.hasVisibleWebsite && website) {
+        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at: ${blueprint.contactPlacement}.\n`;
+    } else {
+        dynamicTextInstructions += `- **WEBSITE**: Do NOT add a website URL.\n`;
+    }
+
+    if (blueprint.hasVisiblePhone && phoneNumber) {
+        dynamicTextInstructions += `- **PHONE**: Render "${phoneNumber}" near the contact area.\n`;
+    } else {
+        dynamicTextInstructions += `- **PHONE**: Do NOT add a phone number.\n`;
+    }
+
+    if (blueprint.hasVisibleAddress && address) {
+        dynamicTextInstructions += `- **ADDRESS**: Render "${address}" near the bottom/contact area.\n`;
+    } else {
+        dynamicTextInstructions += `- **ADDRESS**: Do NOT add an address.\n`;
+    }
+
     const parts: any[] = [];
     
     parts.push({ text: "MAIN PRODUCT:" });
@@ -123,17 +173,19 @@ export const generateStyledBrandAsset = async (
     **EXECUTION PLAN (Strictly Follow):**
     1. **SCENE**: Recreate the exact aesthetic described here: "${blueprint.visualStyle}".
     2. **PRODUCT**: Place the Main Product into this scene naturally. Maintain its identity, shape, and label text.
-    3. **LAYOUT & COMPOSITION**: ${blueprint.layoutPlan}.
+    3. **LAYOUT**: ${blueprint.layoutPlan}.
     
-    **SMART TEXT & LOGO PLACEMENT (The "Intelligence" Layer):**
-    - **HEADLINE**: Render the text "${blueprint.generatedHeadline}" in the main text area (where the reference had text). Style: ${blueprint.textInstructions}.
-    - **LOGO**: ${optLogo ? `Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look printed or overlaid naturally.` : `Render the brand name "${brandName}" at: ${blueprint.logoPlacement} using a logo-like font.`}
-    - **CONTACT INFO**: If the reference had a website/phone number at the bottom, render "${contactDetails || 'www.brand.com'}" there in small, clean text.
+    **SMART TEXT PLACEMENT RULES (STRICT):**
+    ${dynamicTextInstructions}
+    
+    **CRITICAL CONSTRAINT:**
+    - **DO NOT HALLUCINATE CONTACT INFO.** If the instructions above say "Do NOT add...", then the final image MUST NOT contain that text element.
+    - Only add text if specifically instructed above based on the Reference Analysis.
     
     **QUALITY CONTROL:**
     - Text must be spelled correctly.
     - Lighting on the product must match the new environment.
-    - The final image should look like a finished graphic design piece, not just a photo.
+    - The final image should look like a finished graphic design piece.
     
     Output a single, high-resolution image.`;
 
