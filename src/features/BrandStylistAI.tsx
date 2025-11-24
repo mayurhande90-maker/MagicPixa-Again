@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -15,14 +15,15 @@ const CompactUpload: React.FC<{
     onClear: () => void;
     icon: React.ReactNode;
     heightClass?: string;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
+    optional?: boolean;
+}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="relative w-full group">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>
+        <div className="relative w-full group h-full">
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label} {optional && <span className="text-gray-300 font-normal">(Optional)</span>}</label>
             {image ? (
-                <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-yellow-100 flex items-center justify-center overflow-hidden shadow-sm`}>
+                <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}>
                     <img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} />
                     <button
                         onClick={(e) => { e.stopPropagation(); onClear(); }}
@@ -34,12 +35,12 @@ const CompactUpload: React.FC<{
             ) : (
                 <div
                     onClick={() => inputRef.current?.click()}
-                    className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-yellow-400 bg-gray-50 hover:bg-yellow-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
+                    className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
                 >
                     <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
                         {icon}
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-yellow-500 uppercase tracking-wide text-center px-2">Upload {label}</p>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -48,8 +49,14 @@ const CompactUpload: React.FC<{
 };
 
 export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    // Assets
     const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    
+    // Data Inputs
+    const [brandName, setBrandName] = useState('');
+    const [contactDetails, setContactDetails] = useState('');
     const [description, setDescription] = useState('');
     
     const [resultImage, setResultImage] = useState<string | null>(null);
@@ -78,11 +85,11 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     };
 
     const handleGenerate = async () => {
-        if (!productImage || !referenceImage || !description || !auth.user) return;
+        if (!productImage || !referenceImage || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText("Analyzing Style & Fonts...");
+        setLoadingText("Analyzing Layout & Brand Identity...");
         setResultImage(null);
         
         try {
@@ -91,6 +98,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 productImage.base64.mimeType,
                 referenceImage.base64.base64,
                 referenceImage.base64.mimeType,
+                logoImage?.base64.base64, // Optional Logo
+                logoImage?.base64.mimeType,
+                brandName,
+                contactDetails,
                 description
             );
             
@@ -117,19 +128,22 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const handleNewSession = () => {
         setProductImage(null);
+        setLogoImage(null);
         setReferenceImage(null);
         setResultImage(null);
+        setBrandName('');
+        setContactDetails('');
         setDescription('');
     };
 
-    const canGenerate = !!productImage && !!referenceImage && !!description && !isLowCredits;
+    const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
 
     return (
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Replicate any visual style. AI analyzes the reference image and creates a new ad with your product and matching text."
-                icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
+                description="Smartly replicate any ad style. AI analyzes the reference layout, detects logo placement, and reconstructs the ad with your product and brand info."
+                icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -137,12 +151,12 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 resultImage={resultImage}
                 onResetResult={() => setResultImage(null)}
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[750px]"
+                resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Design"
+                    label: "Generate Styled Ad"
                 }}
                 scrollRef={scrollRef}
                 // LEFT CONTENT: Canvas
@@ -151,17 +165,17 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         {loading ? (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
-                                <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <LightbulbIcon className="w-10 h-10 text-yellow-500" />
+                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <LightbulbIcon className="w-10 h-10 text-blue-500" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-300">Design Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-1">Your styled ad will appear here.</p>
+                                <h3 className="text-xl font-bold text-gray-300">Smart Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-1">Your smart ad will appear here.</p>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -183,46 +197,76 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             </button>
                         </div>
                     ) : (
-                        <div className="space-y-8 p-1 animate-fadeIn flex flex-col h-full">
-                            <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                        <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full">
+                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <SparklesIcon className="w-4 h-4 text-yellow-600"/>
-                                    <span className="text-xs font-bold text-yellow-800 uppercase">How it works</span>
+                                    <SparklesIcon className="w-4 h-4 text-blue-600"/>
+                                    <span className="text-xs font-bold text-blue-800 uppercase">Smart Analysis Mode</span>
                                 </div>
-                                <p className="text-[10px] text-yellow-800/80 leading-relaxed">
-                                    Upload a reference image. AI will clone its lighting, font, and layout, then insert your product and write matching text automatically.
+                                <p className="text-[10px] text-blue-800/80 leading-relaxed">
+                                    We analyze your product AND the reference. We'll auto-detect logo/text spots in the reference and swap them with your details.
                                 </p>
                             </div>
 
-                            {/* Uploads */}
+                            {/* Row 1: Product & Logo */}
                             <div className="grid grid-cols-2 gap-4">
                                 <CompactUpload
-                                    label="1. Your Product"
+                                    label="1. Product Image"
                                     image={productImage}
                                     onUpload={handleUpload(setProductImage)}
                                     onClear={() => setProductImage(null)}
                                     icon={<UploadTrayIcon className="w-6 h-6 text-blue-400" />}
                                 />
                                 <CompactUpload
-                                    label="2. Reference Style"
+                                    label="Brand Logo"
+                                    image={logoImage}
+                                    onUpload={handleUpload(setLogoImage)}
+                                    onClear={() => setLogoImage(null)}
+                                    icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />}
+                                    optional={true}
+                                />
+                            </div>
+
+                            {/* Row 2: Reference Image (Full Width) */}
+                            <div>
+                                <CompactUpload
+                                    label="2. Reference Style (Ad/Design)"
                                     image={referenceImage}
                                     onUpload={handleUpload(setReferenceImage)}
                                     onClear={() => setReferenceImage(null)}
                                     icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
+                                    heightClass="h-40"
                                 />
                             </div>
 
-                            {/* Description Input */}
-                            <div>
-                                <InputField
-                                    label="3. Product Description"
-                                    placeholder="e.g. Premium Organic Coffee, start your morning right."
-                                    value={description}
-                                    onChange={(e: any) => setDescription(e.target.value)}
-                                />
-                                <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                    AI will use this to write the Headline on the image.
-                                </p>
+                            {/* Row 3: Smart Inputs */}
+                            <div className="space-y-4 pt-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InputField
+                                        label="Brand Name (Optional)"
+                                        placeholder="e.g. LuxeSip"
+                                        value={brandName}
+                                        onChange={(e: any) => setBrandName(e.target.value)}
+                                    />
+                                    <InputField
+                                        label="Contact / Web (Optional)"
+                                        placeholder="e.g. www.luxesip.com"
+                                        value={contactDetails}
+                                        onChange={(e: any) => setContactDetails(e.target.value)}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <InputField
+                                        label="Product Description (Context)"
+                                        placeholder="e.g. Organic Coffee, morning energy boost. Use this for the headline."
+                                        value={description}
+                                        onChange={(e: any) => setDescription(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
+                                        AI will use this to write smart copy if the reference has text.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )
