@@ -17,45 +17,48 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-export interface CampaignAnalysis {
-    visualDirection: string;
-    headline: string;
-    caption: string;
-    colorPalette: string[];
+export interface AdStrategy {
+    type: string;
+    visualPrompt: string;
+    reasoning: string;
 }
 
 /**
- * Analyzes the product and research trending aesthetics for the selected occasion.
+ * Analyzes the product and audience to generate 4 distinct ad strategies.
  */
-export const analyzeCampaignTrends = async (
+export const analyzeAdStrategy = async (
     base64ImageData: string,
     mimeType: string,
-    occasion: string,
-    brandName: string
-): Promise<CampaignAnalysis> => {
+    productName: string,
+    targetAudience: string
+): Promise<AdStrategy[]> => {
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    const prompt = `You are a Creative Director for a top advertising agency.
-    
+    const prompt = `You are a World-Class Performance Marketing Strategist.
+
     INPUTS:
     - Product Image (attached).
-    - Brand Name: "${brandName}".
-    - Campaign Occasion/Theme: "${occasion}".
-    
+    - Product Name: "${productName}".
+    - Target Audience: "${targetAudience}".
+
     TASK:
-    1. **PRODUCT ANALYSIS**: Identify the product type, color, and material.
-    2. **TREND RESEARCH**: Use Google Search to find the Visual Trends for "${occasion} 2025" advertising. What colors, lighting, and props are trending?
-    3. **CREATIVE DIRECTION**: Formulate a cohesive visual style for a photoshoot that combines the Product with the Occasion.
-    4. **COPYWRITING**: Write a short, punchy Headline (max 5 words) and a social media Caption.
-    
-    OUTPUT JSON:
-    {
-      "visualDirection": "Detailed description of background, lighting, props, and mood for the image generator...",
-      "headline": "Catchy headline...",
-      "caption": "Social media caption...",
-      "colorPalette": ["#hex", "#hex", "#hex", "#hex", "#hex"]
-    }`;
+    Analyze the product and audience. Develop 4 distinct visual strategies (Psychological Hooks) for an ad campaign.
+
+    1. **Pain/Solution**: A visual showing the product solving a specific problem or pain point for this audience.
+    2. **Social Proof**: A lifestyle/UGC-style shot that looks authentic, showing the product being used happily by a person matching the audience.
+    3. **Luxury/Authority**: A high-end, clean, premium studio shot that builds trust and perceived value.
+    4. **Urgency/Impact**: A high-contrast, bold, creative composition designed to stop the scroll immediately.
+
+    OUTPUT JSON ARRAY:
+    [
+      {
+        "type": "Pain/Solution",
+        "visualPrompt": "Detailed image generation prompt describing the scene...",
+        "reasoning": "Why this works..."
+      },
+      ... (for all 4 types)
+    ]`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
@@ -66,17 +69,18 @@ export const analyzeCampaignTrends = async (
             ]
         },
         config: {
-            tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
             responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    visualDirection: { type: Type.STRING },
-                    headline: { type: Type.STRING },
-                    caption: { type: Type.STRING },
-                    colorPalette: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ['visualDirection', 'headline', 'caption', 'colorPalette']
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING },
+                        visualPrompt: { type: Type.STRING },
+                        reasoning: { type: Type.STRING }
+                    },
+                    required: ['type', 'visualPrompt', 'reasoning']
+                }
             }
         }
     });
@@ -87,39 +91,26 @@ export const analyzeCampaignTrends = async (
 };
 
 /**
- * Generates a campaign asset with a specific aspect ratio.
+ * Generates a single ad variant based on a specific strategy prompt.
  */
-export const generateCampaignAsset = async (
+export const generateAdVariantImage = async (
     base64ImageData: string,
     mimeType: string,
-    visualDirection: string,
-    aspectRatio: '1:1' | '9:16' | '16:9'
+    visualPrompt: string
 ): Promise<string> => {
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    let compositionRule = "";
-    if (aspectRatio === '1:1') {
-        compositionRule = "Square composition. Center the product. Leave some negative space around it.";
-    } else if (aspectRatio === '9:16') {
-        compositionRule = "Portrait/Vertical composition (Story format). Place product in the lower-center or center. Leave significant NEGATIVE SPACE at the TOP and BOTTOM for UI elements/text.";
-    } else if (aspectRatio === '16:9') {
-        compositionRule = "Landscape/Wide composition (Banner format). Place product to the LEFT or RIGHT side. Leave clear negative space on the other side for text.";
-    }
+    const prompt = `Professional Product Photography Generation.
 
-    const prompt = `Professional Product Photography for an Ad Campaign.
-    
-    SCENE DESCRIPTION: ${visualDirection}
-    
-    COMPOSITION RULES (${aspectRatio}):
-    ${compositionRule}
-    
+    SCENE DESCRIPTION: ${visualPrompt}
+
     CRITICAL GUIDELINES:
     1. **Identity Preservation**: The product must look EXACTLY like the input image. Do not alter logos or text on the product.
     2. **Realism**: Photorealistic output. High-end commercial lighting. 85mm lens.
-    3. **Scale**: Ensure the product is sized correctly relative to the props.
-    4. **No Text**: Do NOT generate any text on the background. The user will add text overlays later.
-    
+    3. **Scale**: Ensure the product is sized correctly relative to the props or models.
+    4. **Aspect Ratio**: 1:1 (Square) for social media feed.
+
     Output only the image.`;
 
     const response = await ai.models.generateContent({
@@ -130,10 +121,10 @@ export const generateCampaignAsset = async (
                 { text: prompt },
             ],
         },
-        config: { 
+        config: {
             responseModalities: [Modality.IMAGE],
             imageConfig: {
-                aspectRatio: aspectRatio,
+                aspectRatio: '1:1',
                 imageSize: "1K"
             }
         },
@@ -141,5 +132,5 @@ export const generateCampaignAsset = async (
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error(`Failed to generate ${aspectRatio} image.`);
+    throw new Error(`Failed to generate image.`);
 };
