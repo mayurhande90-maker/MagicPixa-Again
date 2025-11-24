@@ -34,21 +34,21 @@ export const generateStyledBrandAsset = async (
     
     // PERFORMANCE OPTIMIZATION: 
     // 1. Generate Low-Res versions (512px) for the Analysis step (Fast, low latency).
-    // 2. Generate High-Res versions (1280px) for the final Generation step (High quality).
+    // 2. Generate Standard HD versions (1024px) for the final Generation step (Faster than 1280px, good quality).
     
     const [
         // Analysis Assets (Fast)
         optProductLow, 
         optRefLow,
-        // Generation Assets (Quality)
+        // Generation Assets (Quality - Optimized to 1024px)
         optProductHigh,
         optRefHigh,
         optLogoHigh
     ] = await Promise.all([
         optimizeImage(productBase64, productMime, 512),
         optimizeImage(referenceBase64, referenceMime, 512),
-        optimizeImage(productBase64, productMime, 1280),
-        optimizeImage(referenceBase64, referenceMime, 1280),
+        optimizeImage(productBase64, productMime, 1024),
+        optimizeImage(referenceBase64, referenceMime, 1024),
         logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime, 1024) : Promise.resolve(null)
     ]);
 
