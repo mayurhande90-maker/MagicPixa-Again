@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -54,6 +54,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
+    // Mode
+    const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica');
+
     // Data Inputs
     const [productName, setProductName] = useState('');
     const [website, setWebsite] = useState('');
@@ -91,7 +94,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText("Analyzing Layout & Style...");
+        setLoadingText(genMode === 'replica' ? "Analyzing Layout & Style..." : "Creating Trendy Remix...");
         setResultImage(null);
         
         try {
@@ -106,15 +109,16 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 website,
                 specialOffer,
                 address,
-                description
+                description,
+                genMode // Pass the selected mode
             );
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
             setResultImage(finalImageUrl);
             
             // Deduct Credits & Save
-            saveCreation(auth.user.uid, finalImageUrl, 'Brand Stylist AI');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Brand Stylist AI');
+            saveCreation(auth.user.uid, finalImageUrl, `Brand Stylist (${genMode})`);
+            const updatedUser = await deductCredits(auth.user.uid, cost, `Brand Stylist (${genMode})`);
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -140,6 +144,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setSpecialOffer('');
         setAddress('');
         setDescription('');
+        setGenMode('replica');
     };
 
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
@@ -148,7 +153,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Smartly replicate any ad style. AI detects layout elements (Offers, Titles, Logos) in the reference and only inserts your content if it fits the original design."
+                description="Smartly replicate ads. Choose 'Exact Replica' to copy a layout 1:1, or 'AI Remix' to let our AI upgrade it with modern trends."
                 icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -160,9 +165,11 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
-                    className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
+                    className: genMode === 'remix' 
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]"
+                        : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Styled Ad"
+                    label: genMode === 'remix' ? "Generate Trendy Remix" : "Generate Replica"
                 }}
                 scrollRef={scrollRef}
                 // LEFT CONTENT: Canvas
@@ -171,17 +178,19 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         {loading ? (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className={`h-full rounded-full animate-[progress_2s_ease-in-out_infinite] ${genMode === 'remix' ? 'bg-gradient-to-r from-purple-400 to-pink-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
-                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <LightbulbIcon className="w-10 h-10 text-blue-500" />
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${genMode === 'remix' ? 'bg-purple-50' : 'bg-blue-50'}`}>
+                                    {genMode === 'remix' ? <MagicWandIcon className="w-10 h-10 text-purple-500" /> : <LightbulbIcon className="w-10 h-10 text-blue-500" />}
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Smart Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-1">Your smart ad will appear here.</p>
+                                <p className="text-sm text-gray-300 mt-1">
+                                    {genMode === 'remix' ? 'Your trendy remix will appear here.' : 'Your exact replica will appear here.'}
+                                </p>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -223,7 +232,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 />
                             </div>
 
-                            {/* Row 2: Reference Image (Full Width) */}
+                            {/* Row 2: Reference Image */}
                             <div>
                                 <CompactUpload
                                     label="2. Reference Style (Ad/Design)"
@@ -235,7 +244,41 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 />
                             </div>
 
-                            {/* Row 3: Smart Inputs */}
+                            {/* Row 3: Mode Toggle */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">3. Generation Mode</label>
+                                <div className="flex bg-gray-100 p-1 rounded-xl">
+                                    <button
+                                        onClick={() => setGenMode('replica')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                            genMode === 'replica'
+                                                ? 'bg-white text-[#1A1A1E] shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${genMode === 'replica' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                        Exact Replica
+                                    </button>
+                                    <button
+                                        onClick={() => setGenMode('remix')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                            genMode === 'remix'
+                                                ? 'bg-white text-purple-600 shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <MagicWandIcon className={`w-3 h-3 ${genMode === 'remix' ? 'text-purple-500' : 'text-gray-400'}`} />
+                                        AI Trend Remix
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-gray-400 px-1 mt-2 italic">
+                                    {genMode === 'replica' 
+                                        ? "Copies the reference layout, text positions, and style exactly." 
+                                        : "Uses the reference style but creates a NEW, modern layout based on 2025 trends."}
+                                </p>
+                            </div>
+
+                            {/* Row 4: Smart Inputs */}
                             <div className="space-y-4 pt-2">
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Product Details (Auto-inserted if detected)</label>
                                 <div className="grid grid-cols-2 gap-3">
@@ -268,9 +311,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         value={description}
                                         onChange={(e: any) => setDescription(e.target.value)}
                                     />
-                                    <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                        AI will use this to write smart copy if the reference has text.
-                                    </p>
                                 </div>
                             </div>
                         </div>

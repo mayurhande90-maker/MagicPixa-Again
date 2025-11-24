@@ -28,7 +28,8 @@ export const generateStyledBrandAsset = async (
     website: string,
     specialOffer: string,
     address: string,
-    productDescription: string
+    productDescription: string,
+    mode: 'replica' | 'remix' = 'replica'
 ): Promise<string> => {
     const ai = getAiClient();
     
@@ -53,27 +54,51 @@ export const generateStyledBrandAsset = async (
     ]);
 
     // Step 1: Deep Analysis (The "Intelligent Planner")
-    // Uses Low-Res images to speed up the request significantly.
-    const analysisPrompt = `You are a Senior Creative Director and AI Layout Expert.
-    
-    INPUTS:
-    1. **Reference Image** (The style/layout target).
-    2. **Product Image** (The user's item).
+    let analysisPrompt = "";
 
-    TASK:
-    1. **Analyze Product**: Look at the Product Image. Identify what it is (e.g., "Coffee Bag", "Perfume Bottle"). Read any visible text on the packaging to understand the brand vibe.
-    2. **Analyze Reference Layout (STRICT CHECK)**:
-       - Does the Reference Image contain a **visible Logo**? (Yes/No)
-       - Does it contain a **Website URL**? (Yes/No)
-       - Does it contain a **Product Name** or **Title** text? (Yes/No)
-       - Does it contain a **Special Offer** or **Discount Badge** (e.g. "50% Off", "Sale", "Limited Time")? (Yes/No)
-       - Does it contain a **Physical Address**? (Yes/No)
-       - Where is the main headline? What font style/size?
-       - What is the lighting/environment mood?
-    3. **Create a Transfer Plan**:
-       - Write a new headline based on: "${productDescription}".
-       - Determine exact placements for text/logo based *only* on what exists in the Reference.
-    
+    if (mode === 'replica') {
+        analysisPrompt = `You are a Senior Creative Director and AI Layout Expert.
+        
+        INPUTS:
+        1. **Reference Image** (The style/layout target).
+        2. **Product Image** (The user's item).
+
+        TASK:
+        1. **Analyze Product**: Look at the Product Image. Identify what it is.
+        2. **Analyze Reference Layout (STRICT CHECK)**:
+           - Does the Reference Image contain a **visible Logo**? (Yes/No)
+           - Does it contain a **Website URL**? (Yes/No)
+           - Does it contain a **Product Name** or **Title** text? (Yes/No)
+           - Does it contain a **Special Offer** or **Discount Badge**? (Yes/No)
+           - Does it contain a **Physical Address**? (Yes/No)
+           - Where is the main headline? What font style/size?
+           - What is the lighting/environment mood?
+        3. **Create a Transfer Plan**:
+           - Write a new headline based on: "${productDescription}".
+           - Determine exact placements for text/logo based *only* on what exists in the Reference.
+           - The goal is to DUPLICATE the reference layout structure exactly.
+        
+        OUTPUT JSON (Structure below).`;
+    } else {
+        // Remix Mode
+        analysisPrompt = `You are a Visionary Art Director and Trend Specialist.
+
+        INPUTS: Reference Image (Style Source), Product Image.
+
+        TASK:
+        1. **Extract Vibe**: Analyze the Reference Image. Ignore the strict layout. Extract the *Mood*, *Color Palette*, *Lighting Style*, and *Typography Aesthetic*.
+        2. **Analyze Product**: Understand the product shape and best angle.
+        3. **Trend Search**: Apply top 2025 advertising design trends for this product category.
+        4. **Create a Remix Plan**:
+           - Create a NEW, superior layout.
+           - Determine where text/logos *should* go for maximum impact, regardless of where they are in the reference.
+           - Suggest placements for Product Name, Offer, etc. that look professional.
+           - Focus on "High CTR", "Modern Minimalist", or "Dynamic" aesthetics.
+
+        OUTPUT JSON (Structure below).`;
+    }
+
+    const jsonSchemaPart = `
     OUTPUT JSON:
     {
         "visualStyle": "Detailed description of lighting, colors, and composition...",
@@ -84,11 +109,11 @@ export const generateStyledBrandAsset = async (
         "hasVisibleProductName": boolean,
         "hasVisibleOffer": boolean,
         "hasVisibleAddress": boolean,
-        "logoPlacement": "Description of where to place the logo IF it exists in reference",
-        "productNamePlacement": "Description of where to place the Product Name IF it exists in reference",
-        "offerPlacement": "Description of where to place the Offer/Discount IF it exists in reference",
-        "contactPlacement": "Description of where to place contact info (website/address) IF it exists in reference",
-        "textInstructions": "Specific instructions on font style and color to match reference"
+        "logoPlacement": "Description of where to place the logo",
+        "productNamePlacement": "Description of where to place the Product Name",
+        "offerPlacement": "Description of where to place the Offer/Discount",
+        "contactPlacement": "Description of where to place contact info",
+        "textInstructions": "Specific instructions on font style and color"
     }`;
 
     // Wrapped in callWithRetry to handle 503 Overloaded errors
@@ -100,7 +125,7 @@ export const generateStyledBrandAsset = async (
                 { inlineData: { data: optRefLow.data, mimeType: optRefLow.mimeType } },
                 { text: "PRODUCT IMAGE:" },
                 { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
-                { text: analysisPrompt }
+                { text: analysisPrompt + jsonSchemaPart }
             ]
         },
         config: {
@@ -132,7 +157,6 @@ export const generateStyledBrandAsset = async (
         blueprint = JSON.parse(analysisResponse.text || "{}");
     } catch (e) {
         console.error("Analysis parsing failed", e);
-        // Fallback safe defaults
         blueprint = {
             visualStyle: "Professional studio lighting",
             layoutPlan: "Center product",
@@ -148,31 +172,37 @@ export const generateStyledBrandAsset = async (
     }
 
     // Step 2: Generation (The "Executor")
-    // Uses High-Res images for best quality output.
     
     let dynamicTextInstructions = `
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}.
     `;
 
-    if (blueprint.hasVisibleLogo && optLogoHigh) {
-        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look naturally integrated.\n`;
+    // Logic to respect user inputs even if "hasVisible..." is false in Remix mode if sensible
+    const shouldShowLogo = (mode === 'remix' && logoBase64) || (blueprint.hasVisibleLogo && logoBase64);
+    const shouldShowProduct = (mode === 'remix' && productName) || (blueprint.hasVisibleProductName && productName);
+    const shouldShowOffer = (mode === 'remix' && specialOffer) || (blueprint.hasVisibleOffer && specialOffer);
+    const shouldShowWeb = (mode === 'remix' && website) || (blueprint.hasVisibleWebsite && website);
+    const shouldShowAddress = (mode === 'remix' && address) || (blueprint.hasVisibleAddress && address);
+
+    if (shouldShowLogo && optLogoHigh) {
+        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement || 'Top Corner'}. It must look naturally integrated.\n`;
     } else {
         dynamicTextInstructions += `- **LOGO**: DO NOT add a logo.\n`;
     }
 
-    if (blueprint.hasVisibleProductName && productName) {
-        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at: ${blueprint.productNamePlacement} using the style of the reference title.\n`;
+    if (shouldShowProduct) {
+        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at: ${blueprint.productNamePlacement || 'Near Product'}.\n`;
     }
 
-    if (blueprint.hasVisibleOffer && specialOffer) {
-        dynamicTextInstructions += `- **SPECIAL OFFER**: Render "${specialOffer}" at: ${blueprint.offerPlacement}. Use a badge, sticker, or bold text style matching the reference offer.\n`;
+    if (shouldShowOffer) {
+        dynamicTextInstructions += `- **SPECIAL OFFER**: Render "${specialOffer}" at: ${blueprint.offerPlacement || 'Prominent Badge Position'}. Use a badge, sticker, or bold text style.\n`;
     }
 
-    if (blueprint.hasVisibleWebsite && website) {
-        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at: ${blueprint.contactPlacement}.\n`;
+    if (shouldShowWeb) {
+        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at: ${blueprint.contactPlacement || 'Bottom Center'}.\n`;
     }
 
-    if (blueprint.hasVisibleAddress && address) {
+    if (shouldShowAddress) {
         dynamicTextInstructions += `- **ADDRESS**: Render "${address}" near the bottom/contact area.\n`;
     }
 
@@ -186,23 +216,34 @@ export const generateStyledBrandAsset = async (
         parts.push({ inlineData: { data: optLogoHigh.data, mimeType: optLogoHigh.mimeType } });
     }
 
-    const genPrompt = `Task: Create a Final High-End Advertisement.
+    let genPrompt = `Task: Create a Final High-End Advertisement.\n`;
     
-    **EXECUTION PLAN (Strictly Follow):**
-    1. **SCENE**: Recreate the exact aesthetic described here: "${blueprint.visualStyle}".
-    2. **PRODUCT**: Place the Main Product into this scene naturally. Maintain its identity, shape, and label text.
-    3. **LAYOUT**: ${blueprint.layoutPlan}.
+    if (mode === 'replica') {
+        genPrompt += `
+        **EXECUTION PLAN (Strict Replica):**
+        1. **SCENE**: Recreate the exact aesthetic described here: "${blueprint.visualStyle}".
+        2. **LAYOUT**: ${blueprint.layoutPlan} (Match reference structure).
+        3. **PRODUCT**: Place the Main Product naturally.
+        `;
+    } else {
+        genPrompt += `
+        **EXECUTION PLAN (Creative Remix):**
+        1. **SCENE**: Create a stunning scene based on this direction: "${blueprint.visualStyle}".
+        2. **LAYOUT**: ${blueprint.layoutPlan}. Use professional design principles (Rule of Thirds, Golden Ratio). Ignore the reference layout if it's cluttered.
+        3. **IMPROVEMENT**: Apply "2025 Design Trends" (Depth of field, dynamic lighting, texture) to make it look better than the original reference.
+        `;
+    }
     
+    genPrompt += `
     **SMART TEXT PLACEMENT RULES (STRICT):**
     ${dynamicTextInstructions}
     
     **CRITICAL CONSTRAINT:**
     - **DO NOT HALLUCINATE TEXT.** If the instructions above say "Do NOT add...", then the final image MUST NOT contain that text element.
-    - Only add text if specifically instructed above based on the Reference Analysis.
-    - The goal is to COPY the reference layout structure, but use the USER's content.
+    - Only add text if specifically instructed above.
     
     **QUALITY CONTROL:**
-    - Text must be spelled correctly.
+    - Text must be legible and spelled correctly.
     - Lighting on the product must match the new environment.
     - The final image should look like a finished graphic design piece.
     
