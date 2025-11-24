@@ -263,7 +263,7 @@ export const DashboardHome: React.FC<{
                             className="relative h-full group cursor-zoom-in"
                             onClick={() => setZoomedImage(latestCreation.imageUrl)}
                         >
-                            {/* Use Medium URL (1024px) if available, fallback to Full URL. Do not use Thumbnail (300px) here. */}
+                            {/* Use Medium URL (800px) if available, fallback to Full URL. Do not use Thumbnail (300px) here. */}
                             <img src={(latestCreation as any).mediumUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>

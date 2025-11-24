@@ -687,10 +687,10 @@ export const saveCreation = async (uid: string, dataUri: string, feature: string
             console.warn("Failed to generate thumbnail, falling back to original URL.", thumbError);
         }
 
-        // 3. Generate & Upload Medium Preview (1024px)
+        // 3. Generate & Upload Medium Preview (800px) - Optimized for Dashboard Hero
         let mediumDownloadURL = null;
         try {
-            const mediumDataUri = await resizeImage(dataUri, 1024, 0.8);
+            const mediumDataUri = await resizeImage(dataUri, 800, 0.8);
             const [mediumHeader, mediumBase64] = mediumDataUri.split(',');
             const mediumBlob = base64ToBlob(mediumBase64, 'image/jpeg');
             
