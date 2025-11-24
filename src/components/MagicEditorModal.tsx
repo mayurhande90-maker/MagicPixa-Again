@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon } from './icons';
+import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon, HandRaisedIcon, PencilIcon } from './icons';
 import { removeElementFromImage } from '../services/imageToolsService';
 
 interface MagicEditorModalProps {
@@ -13,8 +13,16 @@ interface MagicEditorModalProps {
 
 export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, onClose, onSave, deductCredit }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Tools: 'brush' or 'pan'
+    const [activeTool, setActiveTool] = useState<'brush' | 'pan'>('brush');
     const [brushSize, setBrushSize] = useState(30);
+    
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
     const [history, setHistory] = useState<ImageData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
@@ -81,13 +89,25 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev / 1.2, 0.1)); // Min 0.1x
 
     // Interaction Handlers
-    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        setIsDrawing(true);
-        draw(e);
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (activeTool === 'pan') {
+            setIsPanning(true);
+            setPanStart({ x: e.clientX, y: e.clientY });
+        } else {
+            setIsDrawing(true);
+            draw(e);
+        }
     };
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (isDrawing) {
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (activeTool === 'pan' && isPanning && containerRef.current) {
+            e.preventDefault();
+            const dx = e.clientX - panStart.x;
+            const dy = e.clientY - panStart.y;
+            containerRef.current.scrollLeft -= dx;
+            containerRef.current.scrollTop -= dy;
+            setPanStart({ x: e.clientX, y: e.clientY });
+        } else if (activeTool === 'brush' && isDrawing) {
             draw(e);
         }
     };
@@ -97,9 +117,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             setIsDrawing(false);
             saveHistory();
         }
+        if (isPanning) {
+            setIsPanning(false);
+        }
     };
 
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Draw Function
+    const draw = (e: React.MouseEvent) => {
         if (!isDrawing) return;
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
@@ -107,8 +131,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const rect = canvas.getBoundingClientRect();
             
             // Calculate scale ratio between visual size and internal size
-            // rect.width is the visual width on screen (css width)
-            // canvas.width is the internal bitmap width
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
 
@@ -117,10 +139,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.beginPath();
-            // Adjust brush size relative to zoom so it feels consistent on screen
-            // If zoom is 2x, we need the circle on bitmap to be smaller to look same size?
-            // Actually, users usually want "Screen Pixel" brush size.
-            // If I have a 20px brush on screen, that's 20 * scaleX pixels on image.
+            
+            // Draw relative to visual brush size
             const scaledBrush = brushSize * scaleX;
             
             ctx.arc(x, y, scaledBrush / 2, 0, Math.PI * 2); 
@@ -153,7 +173,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 
                 for (let i = 0; i < currentData!.length; i += 4) {
                     // Check for Red overlay (simple diff)
-                    // If pixel has changed significantly from original, mark as mask
                     if (
                         Math.abs(currentData![i] - initialData[i]) > 10 ||
                         Math.abs(currentData![i+1] - initialData[i+1]) > 10 || // Red channel diff
@@ -236,31 +255,57 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
 
-                {/* Main Workspace with Native Scrolling */}
-                <div className="flex-1 bg-[#f0f0f0] relative overflow-auto flex items-center justify-center cursor-crosshair">
-                    <div className="relative m-auto p-10"> {/* m-auto centers content in overflow container */}
+                {/* Main Workspace */}
+                {/* Added 'overscroll-behavior: none' to prevent browser back/forward navigation on trackpads */}
+                <div 
+                    ref={containerRef}
+                    className={`flex-1 bg-[#f0f0f0] relative overflow-auto flex items-center justify-center ${activeTool === 'pan' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-crosshair'}`}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    style={{ overscrollBehavior: 'none' }}
+                >
+                    <div className="relative m-auto p-10"> 
                         <canvas
                             ref={canvasRef}
-                            onMouseDown={handleMouseDown}
-                            onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onMouseLeave={handleMouseUp}
-                            className="shadow-2xl bg-white"
+                            className="shadow-2xl bg-white pointer-events-none" // Disable pointer events on canvas so div handles them
                             style={{ 
                                 width: imgDims.w * zoomLevel,
                                 height: imgDims.h * zoomLevel,
-                                // Ensure crisp rendering
                                 imageRendering: 'auto' 
                             }}
                         />
                     </div>
 
-                    {/* Floating Zoom Controls */}
-                    <div className="fixed bottom-24 right-12 flex flex-col gap-2 bg-white/90 backdrop-blur shadow-lg p-2 rounded-xl border border-gray-200 z-20">
-                        <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-6 h-6"/></button>
-                        <div className="h-px bg-gray-200 w-full my-1"></div>
-                        <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-6 h-6"/></button>
-                        <div className="text-xs font-mono text-center text-gray-400 mt-1">{Math.round(zoomLevel * 100)}%</div>
+                    {/* Floating Tool Bar */}
+                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/90 backdrop-blur shadow-2xl p-3 rounded-2xl border border-gray-200 z-20">
+                        {/* Tool Switcher */}
+                        <div className="flex bg-gray-100 p-1 rounded-xl">
+                            <button 
+                                onClick={() => setActiveTool('brush')}
+                                className={`p-3 rounded-lg transition-all flex flex-col items-center gap-1 ${activeTool === 'brush' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="Brush Tool"
+                            >
+                                <PencilIcon className="w-5 h-5" />
+                            </button>
+                            <button 
+                                onClick={() => setActiveTool('pan')}
+                                className={`p-3 rounded-lg transition-all flex flex-col items-center gap-1 ${activeTool === 'pan' ? 'bg-white shadow text-[#1A1A1E]' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="Pan / Move Tool"
+                            >
+                                <HandRaisedIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="w-px h-8 bg-gray-200"></div>
+
+                        {/* Zoom Controls */}
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-5 h-5"/></button>
+                            <span className="text-xs font-mono font-bold text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                            <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
+                        </div>
                     </div>
 
                     {isProcessing && (
@@ -275,7 +320,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 {/* Footer Controls */}
                 <div className="px-8 py-4 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0 z-10">
                     <div className="flex items-center gap-6 w-full sm:w-auto">
-                        <div className="flex flex-col gap-2 w-full sm:w-64">
+                        <div className={`flex flex-col gap-2 w-full sm:w-64 transition-opacity ${activeTool === 'pan' ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                             <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
                                 <span>Brush Size</span>
                                 <span>{brushSize}px</span>
@@ -295,7 +340,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         >
                             <div 
                                 style={{ width: Math.min(32, brushSize/2), height: Math.min(32, brushSize/2) }} 
-                                className="rounded-full bg-red-500/50"
+                                className={`rounded-full ${activeTool === 'brush' ? 'bg-red-500/50' : 'bg-gray-300'}`}
                             ></div>
                         </div>
                     </div>
