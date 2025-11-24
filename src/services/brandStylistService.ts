@@ -22,7 +22,7 @@ export const generateStyledBrandAsset = async (
     productMime: string,
     referenceBase64: string,
     referenceMime: string,
-    context?: string
+    productDescription: string
 ): Promise<string> => {
     const ai = getAiClient();
     
@@ -31,42 +31,81 @@ export const generateStyledBrandAsset = async (
         optimizeImage(referenceBase64, referenceMime)
     ]);
 
-    // Step 1: Extract Style
-    const stylePrompt = `Analyze this image's visual style in extreme detail. 
-    Describe the lighting (soft, hard, cinematic, natural), color palette (hex codes if possible), composition (minimalist, chaotic, centered), texture (grain, smooth, matte), and overall mood. 
+    // Step 1: Deep Analysis & Copywriting (The "Creative Director")
+    // We need to understand the visual style AND generate text that fits that style.
+    const analysisPrompt = `You are a Creative Director and Typography Expert.
     
-    IMPORTANT: Do NOT describe the specific objects in the image. Only describe the AESTHETIC STYLE and VIBE so it can be replicated.`;
+    INPUTS:
+    1. Reference Image (Attached).
+    2. Product Description: "${productDescription}".
 
-    const styleResponse = await ai.models.generateContent({
+    TASK:
+    1. **Analyze Visual Style**: Describe the lighting, color palette, composition, and mood of the Reference Image in detail.
+    2. **Analyze Typography**: Look at any text in the Reference Image. Describe the font style (Serif/Sans, Bold/Thin), placement (Center/Top/Corner), and color.
+    3. **Write Copy**: Based on the "${productDescription}", write a short, punchy Headline (2-5 words) that fits this visual vibe.
+    
+    OUTPUT JSON:
+    {
+        "visualStyle": "Detailed description of lighting, colors, and composition...",
+        "typographyStyle": "Description of font style, size, and placement...",
+        "generatedHeadline": "THE HEADLINE TEXT"
+    }`;
+
+    const analysisResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: {
             parts: [
                 { inlineData: { data: optRef.data, mimeType: optRef.mimeType } },
-                { text: stylePrompt }
+                { text: analysisPrompt }
             ]
+        },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    visualStyle: { type: Type.STRING },
+                    typographyStyle: { type: Type.STRING },
+                    generatedHeadline: { type: Type.STRING }
+                },
+                required: ["visualStyle", "typographyStyle", "generatedHeadline"]
+            }
         }
     });
-    
-    const styleDescription = styleResponse.text;
-    if(!styleDescription) throw new Error("Failed to analyze reference style.");
 
-    // Step 2: Generate
-    const genPrompt = `Task: Professional Brand Photography.
+    let blueprint;
+    try {
+        blueprint = JSON.parse(analysisResponse.text || "{}");
+    } catch (e) {
+        console.error("Analysis parsing failed", e);
+        // Fallback blueprint
+        blueprint = {
+            visualStyle: "Professional studio lighting, clean composition",
+            typographyStyle: "Modern sans-serif font, bold, centered",
+            generatedHeadline: "Premium Quality"
+        };
+    }
+
+    // Step 2: Generation (The "Photographer & Designer")
+    const genPrompt = `Task: Create a Final Advertisement Image.
     
     INPUTS:
     1. Product Image (Attached).
-    2. Style Description: "${styleDescription}".
-    ${context ? `3. Context/Brand Info: "${context}".` : ''}
+    2. Blueprint:
+       - Style: "${blueprint.visualStyle}"
+       - Text to Render: "${blueprint.generatedHeadline}"
+       - Font/Layout: "${blueprint.typographyStyle}"
     
     INSTRUCTIONS:
-    - Place the exact Product from the input image into a new scene that perfectly matches the "Style Description".
-    - **CRITICAL**: Preserve the product's identity (logo, shape, text) exactly.
-    - Ensure the lighting on the product matches the scene's lighting described in the style.
-    - If the style is "minimalist", keep it clean. If "moody", make it dramatic.
-    - The final image must look like it belongs in the same campaign as the reference image.
-    - Output photorealistic, high-resolution photography.
+    1. **COMPOSITION**: Recreate the exact aesthetic/scene of the style description.
+    2. **PRODUCT PLACEMENT**: Place the attached Product Image into this scene naturally. Preserve its identity (logo/shape) exactly.
+    3. **TEXT RENDERING (CRITICAL)**: You MUST render the text "${blueprint.generatedHeadline}" directly onto the image.
+       - Use the font style and placement described in the blueprint.
+       - Ensure the text is legible, high-quality, and integrated into the design (like a real ad).
+       - Do NOT misspell the text.
+    4. **LIGHTING**: Match the product lighting to the scene.
     
-    Output only the image.`;
+    Output a single, high-resolution, photorealistic advertisement image.`;
 
     const genResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
@@ -83,55 +122,3 @@ export const generateStyledBrandAsset = async (
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("No image generated.");
 };
-
-export const generateBrandCopy = async (
-    imageBase64: string,
-    imageMime: string,
-    context?: string
-): Promise<{ headline: string; caption: string }> => {
-    const ai = getAiClient();
-    
-    // No need to optimize heavily for text analysis, but consistency helps
-    const { data, mimeType } = await optimizeImage(imageBase64, imageMime);
-
-    const prompt = `You are a World-Class Copywriter.
-    
-    Look at this ad creative.
-    ${context ? `Brand/Product Context: ${context}` : ''}
-    
-    Write two things:
-    1. A punchy, high-impact Headline (3-6 words) that captures the exact mood of the image.
-    2. A social media Caption (2 sentences) that engages the viewer and matches the visual vibe.
-    
-    Return JSON: { "headline": "...", "caption": "..." }`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: {
-            parts: [
-                { inlineData: { data, mimeType } },
-                { text: prompt }
-            ]
-        },
-        config: { 
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    headline: { type: Type.STRING },
-                    caption: { type: Type.STRING }
-                },
-                required: ["headline", "caption"]
-            }
-        }
-    });
-
-    const text = response.text;
-    if(!text) return { headline: "Experience the Difference", caption: "Elevate your style with our latest collection. Designed for those who appreciate quality." };
-    
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        return { headline: "Experience the Difference", caption: "Elevate your style with our latest collection. Designed for those who appreciate quality." };
-    }
-}
