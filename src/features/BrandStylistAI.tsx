@@ -122,9 +122,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 if (bonus !== false) setMilestoneBonus(bonus);
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Generation failed. Please try again.");
+            alert(`Generation failed: ${e.message || "Please try again."}`);
         } finally {
             setLoading(false);
         }

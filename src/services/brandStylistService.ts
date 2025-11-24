@@ -1,5 +1,5 @@
 
-import { Modality, Type } from "@google/genai";
+import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -194,10 +194,19 @@ export const generateStyledBrandAsset = async (
     const genResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
-        config: { responseModalities: [Modality.IMAGE] }
+        config: { 
+            responseModalities: [Modality.IMAGE],
+            // CRITICAL: Disable safety blocks to allow generating text like phone numbers/addresses
+            safetySettings: [
+                { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            ]
+        }
     });
 
     const imagePart = genResponse.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+    throw new Error("No image generated. The request might have been blocked.");
 };
