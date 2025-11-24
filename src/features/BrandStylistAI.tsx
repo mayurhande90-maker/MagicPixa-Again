@@ -244,52 +244,44 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 />
                             </div>
 
-                            {/* Row 3: Mode Toggle */}
+                            {/* Row 3: Mode Toggle (Redesigned) */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Generation Mode</label>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setGenMode('replica')}
-                                        className={`relative p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center group hover:-translate-y-0.5 ${
-                                            genMode === 'replica' 
-                                            ? 'border-[#4D7CFF] bg-blue-50/50 text-[#4D7CFF] shadow-sm' 
-                                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50'
+                                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group hover:-translate-y-0.5 ${
+                                            genMode === 'replica'
+                                                ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200 shadow-sm'
+                                                : 'bg-white border-gray-100 hover:bg-gray-50'
                                         }`}
                                     >
-                                        <div className={`p-2.5 rounded-full transition-colors ${genMode === 'replica' ? 'bg-blue-100' : 'bg-gray-100 group-hover:bg-white'}`}>
-                                            <CopyIcon className="w-5 h-5" />
+                                        <div className={`p-2 rounded-full shrink-0 transition-colors ${genMode === 'replica' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400 group-hover:bg-white'}`}>
+                                            <CopyIcon className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <span className="block text-sm font-bold">Exact Replica</span>
-                                            <span className="block text-[10px] font-medium mt-1 opacity-80">Copy layout 100%</span>
+                                        <div className="min-w-0">
+                                            <p className={`text-xs font-bold truncate ${genMode === 'replica' ? 'text-blue-700' : 'text-gray-600'}`}>Exact Replica</p>
+                                            <p className="text-[10px] text-gray-400 truncate">Strict layout copy</p>
                                         </div>
-                                        {genMode === 'replica' && (
-                                            <div className="absolute top-3 right-3 text-[#4D7CFF]">
-                                                <CheckIcon className="w-4 h-4" />
-                                            </div>
-                                        )}
+                                        {genMode === 'replica' && <CheckIcon className="w-4 h-4 text-blue-500 ml-auto shrink-0" />}
                                     </button>
 
                                     <button
                                         onClick={() => setGenMode('remix')}
-                                        className={`relative p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center group hover:-translate-y-0.5 ${
-                                            genMode === 'remix' 
-                                            ? 'border-purple-500 bg-purple-50/50 text-purple-600 shadow-sm' 
-                                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50'
+                                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group hover:-translate-y-0.5 ${
+                                            genMode === 'remix'
+                                                ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-200 shadow-sm'
+                                                : 'bg-white border-gray-100 hover:bg-gray-50'
                                         }`}
                                     >
-                                        <div className={`p-2.5 rounded-full transition-colors ${genMode === 'remix' ? 'bg-purple-100' : 'bg-gray-100 group-hover:bg-white'}`}>
-                                            <MagicWandIcon className="w-5 h-5" />
+                                        <div className={`p-2 rounded-full shrink-0 transition-colors ${genMode === 'remix' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400 group-hover:bg-white'}`}>
+                                            <MagicWandIcon className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <span className="block text-sm font-bold">Reimagine</span>
-                                            <span className="block text-[10px] font-medium mt-1 opacity-80">Creative AI Upgrade</span>
+                                        <div className="min-w-0">
+                                            <p className={`text-xs font-bold truncate ${genMode === 'remix' ? 'text-purple-700' : 'text-gray-600'}`}>Reimagine</p>
+                                            <p className="text-[10px] text-gray-400 truncate">Creative upgrade</p>
                                         </div>
-                                        {genMode === 'remix' && (
-                                            <div className="absolute top-3 right-3 text-purple-500">
-                                                <CheckIcon className="w-4 h-4" />
-                                            </div>
-                                        )}
+                                        {genMode === 'remix' && <CheckIcon className="w-4 h-4 text-purple-500 ml-auto shrink-0" />}
                                     </button>
                                 </div>
                             </div>
