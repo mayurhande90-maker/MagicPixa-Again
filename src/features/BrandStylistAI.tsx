@@ -153,7 +153,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Smartly replicate ads. Choose 'Exact Replica' to copy a layout 1:1, or 'Reimagine' to let AI upgrade it with modern trends."
+                description="Turn inspiration into high-converting ads instantly. Replicate a proven style exactly or let AI reimagine it with modern design trends."
                 icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
