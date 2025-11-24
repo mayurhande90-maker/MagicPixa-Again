@@ -300,8 +300,8 @@ export const ThumbnailStudio: React.FC<{
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
-                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <ThumbnailIcon className="w-10 h-10 text-blue-300" />
+                                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <ThumbnailIcon className="w-10 h-10 text-red-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">Your generated thumbnail will appear here.</p>
