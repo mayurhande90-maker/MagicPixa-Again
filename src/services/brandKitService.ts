@@ -17,51 +17,45 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-export interface BrandAnalysis {
-    identity: {
-        colors: string[]; // Hex codes
-        fonts: string[];
-        vibe: string;
-    };
-    copywriting: {
-        slogans: string[];
-        socialCaptions: string[];
-        hashtags: string[];
-    };
-    prompts: {
-        ecommerce: string;
-        lifestyle: string;
-        model: string;
-        adCreative: string;
-    };
+export interface CampaignAnalysis {
+    visualDirection: string;
+    headline: string;
+    caption: string;
+    colorPalette: string[];
 }
 
-export const analyzeBrandKit = async (
+/**
+ * Analyzes the product and research trending aesthetics for the selected occasion.
+ */
+export const analyzeCampaignTrends = async (
     base64ImageData: string,
     mimeType: string,
-    productName?: string
-): Promise<BrandAnalysis> => {
+    occasion: string,
+    brandName: string
+): Promise<CampaignAnalysis> => {
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    const prompt = `Act as a World-Class Brand Director and Visual Strategist.
+    const prompt = `You are a Creative Director for a top advertising agency.
     
-    INPUT: A raw product photo.
-    PRODUCT NAME: "${productName || 'The Product'}".
+    INPUTS:
+    - Product Image (attached).
+    - Brand Name: "${brandName}".
+    - Campaign Occasion/Theme: "${occasion}".
     
-    YOUR TASK:
-    Analyze the image to understand the product type, material, packaging, and aesthetics.
-    Then, generate a complete BRAND KIT and MARKETING PLAN.
+    TASK:
+    1. **PRODUCT ANALYSIS**: Identify the product type, color, and material.
+    2. **TREND RESEARCH**: Use Google Search to find the Visual Trends for "${occasion} 2025" advertising. What colors, lighting, and props are trending?
+    3. **CREATIVE DIRECTION**: Formulate a cohesive visual style for a photoshoot that combines the Product with the Occasion.
+    4. **COPYWRITING**: Write a short, punchy Headline (max 5 words) and a social media Caption.
     
-    1. **BRAND IDENTITY**: Define 5 dominant brand colors (Hex codes), 2 matching font styles, and a 3-word "Vibe" description.
-    2. **COPYWRITING**: Write 3 catchy slogans, 3 social media captions, and 10 relevant hashtags.
-    3. **VISUAL PROMPTS**: Write 4 highly detailed, photorealistic image generation prompts for this specific product:
-       - **ecommerce**: A clean, professional e-commerce shot on a pure white background with soft shadows. Focus on clarity.
-       - **lifestyle**: A natural, high-end lifestyle shot showing the product in its ideal environment (e.g., kitchen, desk, vanity, outdoors).
-       - **model**: A photorealistic shot of a human model (appropriate for the product) holding or using the product naturally.
-       - **adCreative**: A high-impact, creative advertising visual (e.g., splashing water, levitating, neon lighting, dramatic podium) suitable for a premium ad.
-
-    Output strictly valid JSON matching the schema.`;
+    OUTPUT JSON:
+    {
+      "visualDirection": "Detailed description of background, lighting, props, and mood for the image generator...",
+      "headline": "Catchy headline...",
+      "caption": "Social media caption...",
+      "colorPalette": ["#hex", "#hex", "#hex", "#hex", "#hex"]
+    }`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
@@ -72,40 +66,17 @@ export const analyzeBrandKit = async (
             ]
         },
         config: {
+            tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    identity: {
-                        type: Type.OBJECT,
-                        properties: {
-                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            fonts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            vibe: { type: Type.STRING }
-                        },
-                        required: ['colors', 'fonts', 'vibe']
-                    },
-                    copywriting: {
-                        type: Type.OBJECT,
-                        properties: {
-                            slogans: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            socialCaptions: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }
-                        },
-                        required: ['slogans', 'socialCaptions', 'hashtags']
-                    },
-                    prompts: {
-                        type: Type.OBJECT,
-                        properties: {
-                            ecommerce: { type: Type.STRING },
-                            lifestyle: { type: Type.STRING },
-                            model: { type: Type.STRING },
-                            adCreative: { type: Type.STRING }
-                        },
-                        required: ['ecommerce', 'lifestyle', 'model', 'adCreative']
-                    }
+                    visualDirection: { type: Type.STRING },
+                    headline: { type: Type.STRING },
+                    caption: { type: Type.STRING },
+                    colorPalette: { type: Type.ARRAY, items: { type: Type.STRING } }
                 },
-                required: ['identity', 'copywriting', 'prompts']
+                required: ['visualDirection', 'headline', 'caption', 'colorPalette']
             }
         }
     });
@@ -115,25 +86,39 @@ export const analyzeBrandKit = async (
     return JSON.parse(text);
 };
 
-export const generateBrandAsset = async (
+/**
+ * Generates a campaign asset with a specific aspect ratio.
+ */
+export const generateCampaignAsset = async (
     base64ImageData: string,
     mimeType: string,
-    prompt: string,
-    assetType: string
+    visualDirection: string,
+    aspectRatio: '1:1' | '9:16' | '16:9'
 ): Promise<string> => {
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    const finalPrompt = `You are a professional product photographer and editor.
+    let compositionRule = "";
+    if (aspectRatio === '1:1') {
+        compositionRule = "Square composition. Center the product. Leave some negative space around it.";
+    } else if (aspectRatio === '9:16') {
+        compositionRule = "Portrait/Vertical composition (Story format). Place product in the lower-center or center. Leave significant NEGATIVE SPACE at the TOP and BOTTOM for UI elements/text.";
+    } else if (aspectRatio === '16:9') {
+        compositionRule = "Landscape/Wide composition (Banner format). Place product to the LEFT or RIGHT side. Leave clear negative space on the other side for text.";
+    }
+
+    const prompt = `Professional Product Photography for an Ad Campaign.
     
-    TASK: Generate a "${assetType}" image for the provided product.
-    SPECIFIC INSTRUCTION: ${prompt}
+    SCENE DESCRIPTION: ${visualDirection}
     
-    CRITICAL RULES:
-    1. **Identity Preservation**: The product in the generated image MUST look exactly like the input image (same logo, shape, colors, labels). Do not hallucinate a different product.
-    2. **Realism**: The output must be a photorealistic photograph, not a 3D render or cartoon (unless specified in prompt).
-    3. **Scale**: Ensure the product is sized correctly relative to the environment or model.
-    4. **Quality**: High resolution, sharp focus, professional lighting.
+    COMPOSITION RULES (${aspectRatio}):
+    ${compositionRule}
+    
+    CRITICAL GUIDELINES:
+    1. **Identity Preservation**: The product must look EXACTLY like the input image. Do not alter logos or text on the product.
+    2. **Realism**: Photorealistic output. High-end commercial lighting. 85mm lens.
+    3. **Scale**: Ensure the product is sized correctly relative to the props.
+    4. **No Text**: Do NOT generate any text on the background. The user will add text overlays later.
     
     Output only the image.`;
 
@@ -142,13 +127,19 @@ export const generateBrandAsset = async (
         contents: {
             parts: [
                 { inlineData: { data, mimeType: optimizedMime } },
-                { text: finalPrompt },
+                { text: prompt },
             ],
         },
-        config: { responseModalities: [Modality.IMAGE] },
+        config: { 
+            responseModalities: [Modality.IMAGE],
+            imageConfig: {
+                aspectRatio: aspectRatio,
+                imageSize: "1K"
+            }
+        },
     });
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error(`Failed to generate ${assetType} image.`);
+    throw new Error(`Failed to generate ${aspectRatio} image.`);
 };
