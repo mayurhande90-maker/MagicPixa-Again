@@ -226,28 +226,31 @@ export const removeElementFromImage = async (
         optimizeImageForEditing(base64ImageData, mimeType)
     ]);
 
-    const prompt = `TASK: Expert Image Manipulation - Object Removal & Inpainting.
+    // REVISED PROMPT: EXPLICIT MASK INTERPRETATION
+    const prompt = `You are an expert Photo Retoucher using Gemini 3 Pro.
     
-    INPUTS:
-    1. **Original Image**: The source photograph.
-    2. **Binary Mask**: The second image provided. 
-       - **BLACK PIXELS** indicate the object/area to **REMOVE**.
-       - **WHITE PIXELS** indicate the area to **KEEP** unchanged.
+    **TASK: ERASE & INPAINT (Magic Eraser)**
     
-    INSTRUCTIONS:
-    1. **REMOVE**: Completely erase the visual content defined by the Black area of the mask.
-    2. **INPAINT**: Fill the erased area by intelligently synthesizing the background. You must extend lines, textures, patterns, and lighting from the surrounding pixels (the White area) to seamlessly cover the hole.
-    3. **CONSISTENCY**: The filled area must match the noise, focus, and lighting of the original photo.
-    4. **STRICT PRESERVATION**: Do NOT modify any part of the image that is White in the mask.
+    **INPUTS:**
+    1. **IMAGE 1 (Source)**: The photo that needs editing.
+    2. **IMAGE 2 (Instruction Mask)**: A binary mask layer.
+       - **BLACK** pixels = THE REMOVAL ZONE (The object to erase).
+       - **WHITE** pixels = THE SAFE ZONE (Keep exactly as is).
     
-    GOAL: A photorealistic result where it looks like the removed object never existed.`;
+    **EXECUTION INSTRUCTIONS:**
+    1. **ERASE:** Identify the pixels in IMAGE 1 that correspond to the BLACK areas in IMAGE 2. Delete them completely.
+    2. **INPAINT:** Hallucinate a realistic background to fill the empty space. You MUST analyze the surrounding textures (walls, floor, patterns) in the WHITE area and extend them seamlessly into the gap.
+    3. **BLEND:** Ensure perfect lighting, noise, and focus consistency. The removed object should vanish without a trace.
+    4. **PROTECT:** Do NOT alter any part of the image covered by the WHITE mask.
+    
+    Output ONLY the final edited image.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
                 { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
-                { text: "MASK:" },
+                { text: "MASK LAYER (Black=Remove, White=Keep):" },
                 { inlineData: { data: maskBase64, mimeType: "image/png" } },
                 { text: prompt } 
             ]

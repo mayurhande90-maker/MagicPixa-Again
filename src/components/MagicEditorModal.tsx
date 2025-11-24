@@ -33,7 +33,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
 
     // Zoom Limits
-    const MIN_ZOOM = 0.5; // Changed to 50% as requested
+    const MIN_ZOOM = 0.5;
     const MAX_ZOOM = 5.0;
 
     // Helper to Fit Image to Screen
@@ -47,7 +47,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         
         // Center scroll
         if (containerRef.current) {
-            // Slight delay to allow React to render the new dimensions
             setTimeout(() => {
                 if (containerRef.current) {
                     const scrollX = (width * fitZoom - containerRef.current.clientWidth) / 2;
@@ -118,26 +117,22 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         };
     }, []);
 
-    // Scroll Handling (Pan vs Zoom)
+    // Scroll Handling (Scroll = Zoom, no Ctrl required)
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            // Standard Trackpad/Mouse Wheel behavior = PAN (Native scrolling).
-            // We ONLY intercept for Zoom if Ctrl/Meta is held (Pinch gesture or intentional Zoom).
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                
-                // Zoom Sensitivity
-                const zoomSensitivity = 0.002; 
-                const delta = -e.deltaY * zoomSensitivity;
+            e.preventDefault(); // Always prevent default scroll
+            
+            // Direct Zoom with Wheel
+            const zoomSensitivity = 0.002; 
+            const delta = -e.deltaY * zoomSensitivity;
 
-                setZoomLevel(prev => {
-                    const newZoom = prev + delta;
-                    return Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
-                });
-            }
+            setZoomLevel(prev => {
+                const newZoom = prev + delta;
+                return Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
+            });
         };
 
         container.addEventListener('wheel', handleWheel, { passive: false });
@@ -173,13 +168,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     // Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
-        // Pan Trigger: Spacebar held OR Middle Mouse Button (button 1)
+        // Pan Trigger: Spacebar held OR Middle Mouse Button
         if (isSpacePanning || e.button === 1) {
             e.preventDefault();
             setIsPanning(true);
             setPanStart({ x: e.clientX, y: e.clientY });
         } 
-        // Draw Trigger: Left Mouse Button (button 0) AND NOT Panning
+        // Draw Trigger: Left Mouse Button
         else if (e.button === 0) {
             setIsDrawing(true);
             draw(e);
@@ -406,7 +401,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             </div>
                         </div>
                         <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">
-                            Scroll to Pan • Ctrl+Scroll to Zoom • Spacebar to Move
+                            Scroll to Zoom • Hold Spacebar to Pan
                         </span>
                     </div>
 
