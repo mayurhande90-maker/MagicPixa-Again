@@ -12,7 +12,8 @@ interface MagicEditorModalProps {
 }
 
 export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, onClose, onSave, deductCredit }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageCanvasRef = useRef<HTMLCanvasElement>(null);
+    const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     
     const [brushSize, setBrushSize] = useState(30);
@@ -22,31 +23,42 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
+    // History now stores the ImageData of the MASK canvas only, as the base image doesn't change during edit
     const [history, setHistory] = useState<ImageData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
     
-    // Image Dimensions for Canvas scaling
+    // Image Dimensions
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
 
-    // Initialize Canvas with Image
+    // Initialize Canvases
     useEffect(() => {
         const img = new Image();
         img.src = currentImageSrc;
         img.crossOrigin = "anonymous";
         img.onload = () => {
             setImgDims({ w: img.width, h: img.height });
-            const canvas = canvasRef.current;
-            if (canvas) {
+            
+            const imgCanvas = imageCanvasRef.current;
+            const maskCanvas = maskCanvasRef.current;
+            
+            if (imgCanvas && maskCanvas) {
                 // Set internal resolution to native image size
-                canvas.width = img.width;
-                canvas.height = img.height;
+                imgCanvas.width = img.width;
+                imgCanvas.height = img.height;
+                maskCanvas.width = img.width;
+                maskCanvas.height = img.height;
                 
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0);
-                    setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+                const imgCtx = imgCanvas.getContext('2d');
+                const maskCtx = maskCanvas.getContext('2d');
+                
+                if (imgCtx && maskCtx) {
+                    imgCtx.drawImage(img, 0, 0);
+                    // Clear mask initially
+                    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+                    // Save initial empty mask state
+                    setHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
                 
                 // Initial Auto-Fit Zoom
@@ -83,11 +95,33 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         };
     }, []);
 
+    // Zoom on Scroll
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault(); // Prevent default scroll behavior
+            
+            // Determine direction
+            const delta = -e.deltaY;
+            const scaleFactor = delta > 0 ? 1.1 : 0.9;
+            
+            setZoomLevel(prev => {
+                const newZoom = prev * scaleFactor;
+                return Math.min(Math.max(newZoom, 0.1), 5);
+            });
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleWheel);
+    }, []);
+
     const saveHistory = () => {
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (canvas && ctx) {
-            setHistory(prev => [...prev, ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+        const maskCanvas = maskCanvasRef.current;
+        const ctx = maskCanvas?.getContext('2d');
+        if (maskCanvas && ctx) {
+            setHistory(prev => [...prev, ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
         }
     };
 
@@ -98,9 +132,9 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const previousState = newHistory[newHistory.length - 1];
             setHistory(newHistory);
             
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext('2d');
-            if (canvas && ctx && previousState) {
+            const maskCanvas = maskCanvasRef.current;
+            const ctx = maskCanvas?.getContext('2d');
+            if (maskCanvas && ctx && previousState) {
                 ctx.putImageData(previousState, 0, 0);
             }
         }
@@ -151,14 +185,15 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     // Draw Function
     const draw = (e: React.MouseEvent) => {
         if (!isDrawing) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (canvas && ctx) {
-            const rect = canvas.getBoundingClientRect();
+        const maskCanvas = maskCanvasRef.current;
+        const ctx = maskCanvas?.getContext('2d');
+        
+        if (maskCanvas && ctx) {
+            const rect = maskCanvas.getBoundingClientRect();
             
-            // Calculate scale ratio
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+            // Calculate scale ratio between visual size and internal resolution
+            const scaleX = maskCanvas.width / rect.width;
+            const scaleY = maskCanvas.height / rect.height;
 
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
@@ -171,62 +206,58 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             
             ctx.arc(x, y, scaledBrush / 2, 0, Math.PI * 2); 
             
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            // Draw Solid Red. The opacity is handled by CSS on the canvas element.
+            // This prevents "stacking" opacity where strokes overlap.
+            ctx.fillStyle = '#FF0000'; 
             ctx.fill();
         }
     };
 
     // Generate Mask & Process
     const handleRemove = async () => {
-        if (!canvasRef.current) return;
+        if (!imageCanvasRef.current || !maskCanvasRef.current) return;
         
         setIsProcessing(true);
         try {
             await deductCredit();
 
-            const canvas = canvasRef.current;
-            const maskCanvas = document.createElement('canvas');
-            maskCanvas.width = canvas.width;
-            maskCanvas.height = canvas.height;
-            const maskCtx = maskCanvas.getContext('2d');
+            const maskCanvas = maskCanvasRef.current;
+            const imgCanvas = imageCanvasRef.current;
             
-            if (maskCtx) {
-                const mainCtx = canvas.getContext('2d');
-                const currentData = mainCtx?.getImageData(0, 0, canvas.width, canvas.height).data;
-                const initialData = history[0].data;
-                const maskImgData = maskCtx.createImageData(canvas.width, canvas.height);
-                
-                for (let i = 0; i < currentData!.length; i += 4) {
-                    // Detect Red Overlay
-                    if (
-                        Math.abs(currentData![i] - initialData[i]) > 10 ||
-                        Math.abs(currentData![i+1] - initialData[i+1]) > 10 || 
-                        Math.abs(currentData![i+2] - initialData[i+2]) > 10
-                    ) {
-                        maskImgData.data[i] = 0;     // Black
-                        maskImgData.data[i+1] = 0;   // Black
-                        maskImgData.data[i+2] = 0;   // Black
-                        maskImgData.data[i+3] = 255; 
-                    } else {
-                        maskImgData.data[i] = 255;   // White
-                        maskImgData.data[i+1] = 255; 
-                        maskImgData.data[i+2] = 255; 
-                        maskImgData.data[i+3] = 255; 
+            // 1. Generate Binary Mask for AI
+            // Create a temp canvas to process the mask data
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = maskCanvas.width;
+            tempCanvas.height = maskCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            if (tempCtx) {
+                const maskData = maskCanvas.getContext('2d')?.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                if (maskData) {
+                    const pixels = maskData.data;
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        // Alpha channel check. If drawn (alpha > 0), make it BLACK (Remove). Else WHITE (Keep).
+                        if (pixels[i + 3] > 0) {
+                            pixels[i] = 0;     // R
+                            pixels[i + 1] = 0; // G
+                            pixels[i + 2] = 0; // B
+                            pixels[i + 3] = 255; // Alpha full
+                        } else {
+                            pixels[i] = 255;   // R
+                            pixels[i + 1] = 255; // G
+                            pixels[i + 2] = 255; // B
+                            pixels[i + 3] = 255; // Alpha full
+                        }
                     }
+                    tempCtx.putImageData(maskData, 0, 0);
                 }
-                maskCtx.putImageData(maskImgData, 0, 0);
             }
 
-            const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
-            
-            const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = canvas.width;
-            exportCanvas.height = canvas.height;
-            const exportCtx = exportCanvas.getContext('2d');
-            exportCtx?.putImageData(history[0], 0, 0);
-            const cleanBase64 = exportCanvas.toDataURL('image/png').split(',')[1];
+            const maskBase64 = tempCanvas.toDataURL('image/png').split(',')[1];
+            const originalBase64 = imgCanvas.toDataURL('image/png').split(',')[1];
 
-            const resultBase64 = await removeElementFromImage(cleanBase64, 'image/png', maskBase64);
+            // Send to AI
+            const resultBase64 = await removeElementFromImage(originalBase64, 'image/png', maskBase64);
             const resultUrl = `data:image/png;base64,${resultBase64}`;
             
             setCurrentImageSrc(resultUrl);
@@ -260,10 +291,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             <div className="p-2 bg-[#F9D230] rounded-full text-[#1A1A1E]"><MagicWandIcon className="w-5 h-5"/></div>
                             Magic Editor
                         </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500">Draw to remove objects.</span>
-                            <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">Hold Space to Pan</span>
-                        </div>
+                        <p className="text-xs text-gray-500 mt-1 ml-11">Scroll to zoom • Draw to remove objects</p>
                     </div>
                     
                     <div className="flex items-center gap-4">
@@ -297,33 +325,59 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     style={{ overscrollBehavior: 'none' }} // Prevent browser back swipe
                 >
                     <div className="relative m-auto p-20"> 
-                        <canvas
-                            ref={canvasRef}
-                            className="shadow-2xl bg-white pointer-events-none" // Pointer events handled by container
-                            style={{ 
-                                width: imgDims.w * zoomLevel,
-                                height: imgDims.h * zoomLevel,
-                                imageRendering: 'auto' 
-                            }}
-                        />
+                        {/* DUAL CANVAS SYSTEM */}
+                        <div style={{ position: 'relative', width: imgDims.w * zoomLevel, height: imgDims.h * zoomLevel }}>
+                            {/* Bottom: Base Image */}
+                            <canvas
+                                ref={imageCanvasRef}
+                                className="shadow-2xl bg-white pointer-events-none"
+                                style={{ 
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    imageRendering: 'auto',
+                                    zIndex: 1
+                                }}
+                            />
+                            {/* Top: Mask Layer (Opacity 0.5) */}
+                            <canvas
+                                ref={maskCanvasRef}
+                                className="pointer-events-none"
+                                style={{ 
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    imageRendering: 'auto',
+                                    opacity: 0.5, // Visual opacity only
+                                    zIndex: 2
+                                }}
+                            />
+                        </div>
                     </div>
 
                     {/* Floating Controls */}
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/90 backdrop-blur shadow-2xl p-3 rounded-2xl border border-gray-200 z-20">
-                        <div className="flex items-center gap-3 text-gray-500 px-2">
-                            <PencilIcon className={`w-5 h-5 ${!isSpacePanning ? 'text-[#4D7CFF]' : ''}`} />
-                            <div className="h-4 w-px bg-gray-300"></div>
-                            <span className="text-xs font-bold uppercase tracking-wider">{isSpacePanning ? 'Pan Mode' : 'Draw Mode'}</span>
-                        </div>
+                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
+                        <div className="flex items-center gap-4 bg-white/90 backdrop-blur shadow-2xl p-3 rounded-2xl border border-gray-200">
+                            <div className="flex items-center gap-3 text-gray-500 px-2">
+                                <PencilIcon className={`w-5 h-5 ${!isSpacePanning ? 'text-[#4D7CFF]' : ''}`} />
+                                <div className="h-4 w-px bg-gray-300"></div>
+                                <span className="text-xs font-bold uppercase tracking-wider">{isSpacePanning ? 'Pan Mode' : 'Draw Mode'}</span>
+                            </div>
 
-                        <div className="w-px h-8 bg-gray-200"></div>
+                            <div className="w-px h-8 bg-gray-200"></div>
 
-                        {/* Zoom Controls */}
-                        <div className="flex items-center gap-2">
-                            <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-5 h-5"/></button>
-                            <span className="text-xs font-mono font-bold text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                            <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
+                            {/* Zoom Controls */}
+                            <div className="flex items-center gap-2">
+                                <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-5 h-5"/></button>
+                                <span className="text-xs font-mono font-bold text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                                <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
+                            </div>
                         </div>
+                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">Hold Spacebar to Pan</span>
                     </div>
 
                     {isProcessing && (

@@ -226,22 +226,19 @@ export const removeElementFromImage = async (
         optimizeImageForEditing(base64ImageData, mimeType)
     ]);
 
-    const prompt = `TASK: Magic Eraser / Object Removal Inpainting.
+    const prompt = `TASK: Strict Inpainting / Magic Eraser.
     
     INPUTS:
     1. Original Image.
-    2. Mask Image (White = Keep, Black = Remove).
+    2. Mask Image (White = Keep Area, Black = Remove/Inpaint Area).
     
-    GOAL:
-    Remove the object marked by the mask and fill the space seamlessly with background.
+    MANDATORY RULES:
+    1. **PIXEL FREEZE**: You MUST preserve the "White" area of the mask 100% identical to the original image. Do not shift colors, do not change lighting, do not move pixels in the unmasked area.
+    2. **INPAINTING**: Only modify the "Black" masked area. Remove the object inside the mask and fill it with the background context.
+    3. **CONTEXT AWARE**: Synthesize the missing background (wall, floor, sky) to be seamless with the surrounding pixels.
+    4. **NO HALLUCINATIONS**: Do not add new objects. Just reveal what would be behind the removed object.
     
-    STRICT INSTRUCTION:
-    - **Analyze Context**: Look at the surrounding pixels (lighting, texture, patterns, depth).
-    - **Synthesize Background**: You must invent what is BEHIND the object. If it's a wall, continue the wall texture. If it's a landscape, continue the horizon.
-    - **Blend Perfectly**: No hard edges, no blurring, no color shifts. The patch must be invisible.
-    - **Do Not Distort**: Keep straight lines straight (e.g. architecture, tables).
-    
-    OUTPUT: The fully restored image.`;
+    OUTPUT: The restored image with the object removed.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
