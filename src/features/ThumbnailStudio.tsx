@@ -260,7 +260,7 @@ export const ThumbnailStudio: React.FC<{
             <FeatureLayout 
                 title="Thumbnail Studio"
                 description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results."
-                icon={<ThumbnailIcon className="w-6 h-6 text-blue-500"/>}
+                icon={<ThumbnailIcon className="w-6 h-6 text-red-600"/>}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={hasRequirements && !isLowCredits}
