@@ -33,8 +33,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
 
     // Zoom Limits
-    const MIN_ZOOM = 0.5;
-    const MAX_ZOOM = 3.0;
+    const MIN_ZOOM = 0.1;
+    const MAX_ZOOM = 5.0;
 
     // Helper to Fit Image to Screen
     const resetView = useCallback((width: number, height: number) => {
@@ -44,6 +44,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             1
         );
         setZoomLevel(fitZoom);
+        
+        // Center scroll
+        if (containerRef.current) {
+            // Slight delay to allow React to render the new dimensions
+            setTimeout(() => {
+                if (containerRef.current) {
+                    const scrollX = (width * fitZoom - containerRef.current.clientWidth) / 2;
+                    const scrollY = (height * fitZoom - containerRef.current.clientHeight) / 2;
+                    containerRef.current.scrollTo(Math.max(0, scrollX), Math.max(0, scrollY));
+                }
+            }, 10);
+        }
     }, []);
 
     // Initialize Canvases
@@ -75,8 +87,10 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     setHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
                 
-                // Initial Auto-Fit
-                resetView(img.width, img.height);
+                // Initial Auto-Fit only if this is the first load (zoomLevel is 1)
+                if (zoomLevel === 1) {
+                    resetView(img.width, img.height);
+                }
             }
         };
     }, [currentImageSrc, resetView]);
@@ -104,30 +118,23 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         };
     }, []);
 
-    // Zoom & Pan on Scroll
+    // Zoom on Scroll
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            // Logic:
-            // If Ctrl key is pressed (or Pinch gesture on trackpad) -> ZOOM
-            // If NO key is pressed -> PAN (Native scroll behavior)
+            // Default behavior: Zoom
+            e.preventDefault();
             
-            if (e.ctrlKey) {
-                e.preventDefault();
-                
-                // Reduced sensitivity for smoother zoom
-                // Using a smaller multiplier (0.005) instead of 10% jumps
-                const zoomSensitivity = 0.005;
-                const delta = -e.deltaY * zoomSensitivity;
+            // Zoom Sensitivity
+            const zoomSensitivity = 0.001; 
+            const delta = -e.deltaY * zoomSensitivity;
 
-                setZoomLevel(prev => {
-                    const newZoom = prev + delta;
-                    return Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
-                });
-            }
-            // Otherwise, let the browser handle native scrolling (Panning)
+            setZoomLevel(prev => {
+                const newZoom = prev + delta;
+                return Math.min(Math.max(newZoom, MIN_ZOOM), MAX_ZOOM);
+            });
         };
 
         container.addEventListener('wheel', handleWheel, { passive: false });
@@ -224,7 +231,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             ctx.arc(x, y, scaledBrush / 2, 0, Math.PI * 2); 
             
             // Draw Solid Red. The opacity is handled by CSS on the canvas element.
-            // This prevents "stacking" opacity where strokes overlap.
             ctx.fillStyle = '#FF0000'; 
             ctx.fill();
         }
@@ -234,15 +240,17 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const handleRemove = async () => {
         if (!imageCanvasRef.current || !maskCanvasRef.current) return;
         
+        // 1. IMMEDIATE UI FEEDBACK: Reset View & Start Loader
+        resetView(imgDims.w, imgDims.h);
         setIsProcessing(true);
+
         try {
             await deductCredit();
 
             const maskCanvas = maskCanvasRef.current;
             const imgCanvas = imageCanvasRef.current;
             
-            // 1. Generate Binary Mask for AI
-            // Create a temp canvas to process the mask data
+            // 2. Generate Binary Mask for AI
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = maskCanvas.width;
             tempCanvas.height = maskCanvas.height;
@@ -279,9 +287,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             
             setCurrentImageSrc(resultUrl);
             
-            // Reset View to Original Size after edit
-            resetView(imgDims.w, imgDims.h);
-
         } catch (e) {
             console.error(e);
             alert("Edit failed. Please try again.");
@@ -311,7 +316,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             <div className="p-2 bg-[#F9D230] rounded-full text-[#1A1A1E]"><MagicWandIcon className="w-5 h-5"/></div>
                             Magic Editor
                         </h2>
-                        <p className="text-xs text-gray-500 mt-1 ml-11">Scroll to Pan • Ctrl + Scroll to Zoom</p>
+                        <p className="text-xs text-gray-500 mt-1 ml-11">Hold Spacebar to Move or Pan</p>
                     </div>
                     
                     <div className="flex items-center gap-4">
@@ -397,7 +402,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                                 <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
                             </div>
                         </div>
-                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">Scroll to Pan • Hold Spacebar or Ctrl+Scroll to Zoom</span>
+                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">Hold Spacebar to Move or Pan</span>
                     </div>
 
                     {isProcessing && (
