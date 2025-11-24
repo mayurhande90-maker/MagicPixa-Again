@@ -25,7 +25,8 @@ import {
     CheckIcon,
     GiftIcon,
     InformationCircleIcon,
-    ApparelIcon
+    ApparelIcon,
+    BrandStylistIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -222,7 +223,7 @@ export const DashboardHome: React.FC<{
     const tools = [
         { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
         { id: 'brand_kit', label: 'BrandKit AI', icon: BrandKitIcon, color: 'bg-green-500' },
-        { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, color: 'bg-yellow-500' },
+        { id: 'brand_stylist', label: 'Brand Stylist AI', icon: BrandStylistIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
