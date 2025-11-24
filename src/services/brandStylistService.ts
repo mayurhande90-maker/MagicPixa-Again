@@ -1,6 +1,6 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
 // Helper: Resize image with customizable width
@@ -87,7 +87,8 @@ export const generateStyledBrandAsset = async (
         "textInstructions": "Specific instructions on font style and color to match reference"
     }`;
 
-    const analysisResponse = await ai.models.generateContent({
+    // Wrapped in callWithRetry to handle 503 Overloaded errors
+    const analysisResponse = await callWithRetry(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: {
             parts: [
@@ -117,7 +118,7 @@ export const generateStyledBrandAsset = async (
                 required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisiblePhone", "hasVisibleAddress"]
             }
         }
-    });
+    }));
 
     let blueprint;
     try {
@@ -206,7 +207,8 @@ export const generateStyledBrandAsset = async (
 
     parts.push({ text: genPrompt });
 
-    const genResponse = await ai.models.generateContent({
+    // Wrapped in callWithRetry to handle 503 Overloaded errors
+    const genResponse = await callWithRetry(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { 
@@ -219,7 +221,7 @@ export const generateStyledBrandAsset = async (
                 { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             ]
         }
-    });
+    }));
 
     const imagePart = genResponse.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
