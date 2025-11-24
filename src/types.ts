@@ -20,7 +20,7 @@ declare global {
 }
 
 export type Page = 'home' | 'dashboard' | 'about';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'product_studio' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission';
 
 export interface User {
   uid: string;

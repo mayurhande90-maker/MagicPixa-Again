@@ -20,7 +20,7 @@ import {
     HomeIcon,
     MockupIcon,
     CaptionIcon,
-    ProductStudioIcon,
+    BrandKitIcon,
     FlagIcon,
     CheckIcon,
     GiftIcon,
@@ -201,7 +201,7 @@ export const DashboardHome: React.FC<{
         const map: Record<string, View> = {
             'Magic Photo Studio': 'studio',
             'Model Shot': 'studio',
-            'Product Studio': 'product_studio',
+            'BrandKit AI': 'brand_kit',
             'Brand Stylist AI': 'brand_stylist',
             'Thumbnail Studio': 'thumbnail_studio',
             'Magic Soul': 'soul',
@@ -221,7 +221,7 @@ export const DashboardHome: React.FC<{
 
     const tools = [
         { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'product_studio', label: 'Product Studio', icon: ProductStudioIcon, color: 'bg-green-500' },
+        { id: 'brand_kit', label: 'BrandKit AI', icon: BrandKitIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Brand Stylist AI', icon: LightbulbIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },

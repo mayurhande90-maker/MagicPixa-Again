@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, ProductStudioIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -22,9 +23,9 @@ const features = [
         disabled: false,
     },
     {
-        id: 'product_studio',
-        icon: <ProductStudioIcon className="w-10 h-10 text-white" />,
-        title: "Product Studio",
+        id: 'brand_kit',
+        icon: <BrandKitIcon className="w-10 h-10 text-white" />,
+        title: "BrandKit AI",
         description: "Automatically create a full product pack from just a photo and product name.",
         color: "bg-green-500",
         disabled: false,

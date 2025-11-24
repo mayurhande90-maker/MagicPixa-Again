@@ -6,7 +6,7 @@ export * from './captionService';
 export * from './photoStudioService';
 export * from './imageToolsService';
 export * from './interiorService';
-export * from './productPackService';
+export * from './brandKitService';
 export * from './videoService';
 export * from './thumbnailService';
 export * from './apparelService';

@@ -774,8 +774,8 @@ export const getAppConfig = async (): Promise<AppConfig> => {
         featureCosts: {
           'Magic Photo Studio': 2,
           'Model Shot': 3,
-          'Thumbnail Studio': 5, // Updated from 2 to 5
-          'Product Studio': 5,
+          'Thumbnail Studio': 5,
+          'BrandKit AI': 5, // Renamed from Product Studio
           'Brand Stylist AI': 4,
           'Magic Soul': 3,
           'Magic Photo Colour': 2,
@@ -790,7 +790,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
         featureToggles: {
           'studio': true,
           'thumbnail_studio': true,
-          'product_studio': true,
+          'brand_kit': true, // Renamed from product_studio
           'brand_stylist': true,
           'soul': true,
           'colour': true,
