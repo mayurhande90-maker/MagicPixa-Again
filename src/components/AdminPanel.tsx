@@ -5,7 +5,7 @@ import {
     getAllUsers, addCreditsToUser, getAppConfig, updateAppConfig, getRecentSignups, getRecentPurchases, getTotalRevenue, getCreditHistory
 } from '../firebase';
 import { 
-    UsersIcon, CreditCardIcon, XIcon, SparklesIcon, InformationCircleIcon, CurrencyDollarIcon, ChartBarIcon, CogIcon, EyeIcon, CheckIcon, PencilIcon
+    UsersIcon, CreditCardIcon, XIcon, SparklesIcon, InformationCircleIcon, CurrencyDollarIcon, ChartBarIcon, CogIcon, EyeIcon, CheckIcon, PencilIcon, AdjustmentsVerticalIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -256,6 +256,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
 };
 
 type AdminTab = 'dashboard' | 'users' | 'settings';
+type SortOption = 'newest' | 'active' | 'credits_high' | 'credits_low' | 'revenue' | 'generations';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propConfig, onConfigUpdate }) => {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -273,6 +274,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
 
     // UI states
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortMode, setSortMode] = useState<SortOption>('newest');
     const [selectedUserForCredits, setSelectedUserForCredits] = useState<User | null>(null);
     const [selectedUserForDetails, setSelectedUserForDetails] = useState<User | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -360,12 +362,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
 
 
     const filteredUsers = useMemo(() => {
-        if (!searchTerm) return users;
-        return users.filter(user =>
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [users, searchTerm]);
+        // 1. Filter by search term
+        let result = users;
+        if (searchTerm) {
+            result = result.filter(user =>
+                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // 2. Sort
+        return result.sort((a, b) => {
+            switch (sortMode) {
+                case 'newest':
+                    // Default: Sign up date descending
+                    const dateA = a.signUpDate?.seconds || 0;
+                    const dateB = b.signUpDate?.seconds || 0;
+                    return dateB - dateA;
+                
+                case 'active':
+                    // Last Active descending
+                    const activeA = a.lastActive?.seconds || 0;
+                    const activeB = b.lastActive?.seconds || 0;
+                    return activeB - activeA;
+
+                case 'credits_high':
+                    // Credits descending
+                    return (b.credits || 0) - (a.credits || 0);
+
+                case 'credits_low':
+                    // Credits ascending (Low balance first)
+                    return (a.credits || 0) - (b.credits || 0);
+
+                case 'revenue':
+                    // Total Spent descending
+                    return (b.totalSpent || 0) - (a.totalSpent || 0);
+
+                case 'generations':
+                    // Lifetime Generations descending
+                    return (b.lifetimeGenerations || 0) - (a.lifetimeGenerations || 0);
+
+                default:
+                    return 0;
+            }
+        });
+    }, [users, searchTerm, sortMode]);
 
     const handleCreditUpdateSuccess = (updatedUser: User) => {
         setUsers(prevUsers => prevUsers.map(u => u.uid === updatedUser.uid ? updatedUser : u));
@@ -471,7 +512,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                     <div className="bg-white rounded-2xl shadow-lg shadow-gray-500/5 border border-gray-200/80 p-6">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
                              <h3 className="text-xl font-bold text-[#1E1E1E]">User Management ({users.length})</h3>
-                             <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-72 px-4 py-2 border border-gray-300 rounded-lg"/>
+                             <div className="flex gap-2 w-full md:w-auto">
+                                <div className="relative flex-1 md:flex-none">
+                                    <select 
+                                        value={sortMode}
+                                        onChange={(e) => setSortMode(e.target.value as SortOption)}
+                                        className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#0079F2] text-sm font-medium text-gray-700 cursor-pointer"
+                                    >
+                                        <option value="newest">Newest Members</option>
+                                        <option value="active">Recently Active</option>
+                                        <option value="credits_high">Highest Credits</option>
+                                        <option value="credits_low">Low Balance</option>
+                                        <option value="revenue">Top Spenders</option>
+                                        <option value="generations">Power Users</option>
+                                    </select>
+                                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                        <AdjustmentsVerticalIcon className="w-4 h-4 text-gray-500" />
+                                    </div>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by name or email..." 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                    className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0079F2]"
+                                />
+                             </div>
                         </div>
                          <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
