@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -94,7 +94,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText(genMode === 'replica' ? "Analyzing Layout & Style..." : "Creating Trendy Remix...");
+        setLoadingText(genMode === 'replica' ? "Analyzing Layout & Style..." : "Reimagining Concept...");
         setResultImage(null);
         
         try {
@@ -153,7 +153,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Smartly replicate ads. Choose 'Exact Replica' to copy a layout 1:1, or 'AI Remix' to let our AI upgrade it with modern trends."
+                description="Smartly replicate ads. Choose 'Exact Replica' to copy a layout 1:1, or 'Reimagine' to let AI upgrade it with modern trends."
                 icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -169,7 +169,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]"
                         : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: genMode === 'remix' ? "Generate Trendy Remix" : "Generate Replica"
+                    label: genMode === 'remix' ? "Reimagine Design" : "Generate Replica"
                 }}
                 scrollRef={scrollRef}
                 // LEFT CONTENT: Canvas
@@ -189,7 +189,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Smart Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">
-                                    {genMode === 'remix' ? 'Your trendy remix will appear here.' : 'Your exact replica will appear here.'}
+                                    {genMode === 'remix' ? 'Your reimagined design will appear here.' : 'Your exact replica will appear here.'}
                                 </p>
                             </div>
                         )}
@@ -246,36 +246,52 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
                             {/* Row 3: Mode Toggle */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">3. Generation Mode</label>
-                                <div className="flex bg-gray-100 p-1 rounded-xl">
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Generation Mode</label>
+                                <div className="grid grid-cols-2 gap-4">
                                     <button
                                         onClick={() => setGenMode('replica')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                                            genMode === 'replica'
-                                                ? 'bg-white text-[#1A1A1E] shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                        className={`relative p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center group hover:-translate-y-0.5 ${
+                                            genMode === 'replica' 
+                                            ? 'border-[#4D7CFF] bg-blue-50/50 text-[#4D7CFF] shadow-sm' 
+                                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50'
                                         }`}
                                     >
-                                        <div className={`w-2 h-2 rounded-full ${genMode === 'replica' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                                        Exact Replica
+                                        <div className={`p-2.5 rounded-full transition-colors ${genMode === 'replica' ? 'bg-blue-100' : 'bg-gray-100 group-hover:bg-white'}`}>
+                                            <CopyIcon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm font-bold">Exact Replica</span>
+                                            <span className="block text-[10px] font-medium mt-1 opacity-80">Copy layout 100%</span>
+                                        </div>
+                                        {genMode === 'replica' && (
+                                            <div className="absolute top-3 right-3 text-[#4D7CFF]">
+                                                <CheckIcon className="w-4 h-4" />
+                                            </div>
+                                        )}
                                     </button>
+
                                     <button
                                         onClick={() => setGenMode('remix')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                                            genMode === 'remix'
-                                                ? 'bg-white text-purple-600 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                        className={`relative p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center group hover:-translate-y-0.5 ${
+                                            genMode === 'remix' 
+                                            ? 'border-purple-500 bg-purple-50/50 text-purple-600 shadow-sm' 
+                                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50'
                                         }`}
                                     >
-                                        <MagicWandIcon className={`w-3 h-3 ${genMode === 'remix' ? 'text-purple-500' : 'text-gray-400'}`} />
-                                        AI Trend Remix
+                                        <div className={`p-2.5 rounded-full transition-colors ${genMode === 'remix' ? 'bg-purple-100' : 'bg-gray-100 group-hover:bg-white'}`}>
+                                            <MagicWandIcon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm font-bold">Reimagine</span>
+                                            <span className="block text-[10px] font-medium mt-1 opacity-80">Creative AI Upgrade</span>
+                                        </div>
+                                        {genMode === 'remix' && (
+                                            <div className="absolute top-3 right-3 text-purple-500">
+                                                <CheckIcon className="w-4 h-4" />
+                                            </div>
+                                        )}
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-gray-400 px-1 mt-2 italic">
-                                    {genMode === 'replica' 
-                                        ? "Copies the reference layout, text positions, and style exactly." 
-                                        : "Uses the reference style but creates a NEW, modern layout based on 2025 trends."}
-                                </p>
                             </div>
 
                             {/* Row 4: Smart Inputs */}
