@@ -6,9 +6,11 @@ import {
     XIcon, 
     UploadTrayIcon,
     CreditCardIcon,
-    SparklesIcon
+    SparklesIcon,
+    MagicWandIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { MagicEditorModal } from '../components/MagicEditorModal';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { saveCreation, deductCredits } from '../firebase';
@@ -81,6 +83,7 @@ export const ThumbnailStudio: React.FC<{
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -88,6 +91,7 @@ export const ThumbnailStudio: React.FC<{
     // Config
     const cost = appConfig?.featureCosts['Thumbnail Studio'] || 5;
     const regenCost = 3;
+    const editCost = 1;
     const userCredits = auth.user?.credits || 0;
     
     // Requirement Check
@@ -238,6 +242,19 @@ export const ThumbnailStudio: React.FC<{
         setCategory('');
     };
 
+    // Logic for Magic Editor
+    const handleEditorSave = (newUrl: string) => {
+        setResult(newUrl);
+        saveCreation(auth.user!.uid, newUrl, 'Thumbnail Studio (Edited)');
+    };
+
+    const handleDeductEditCredit = async () => {
+        if(auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, editCost, 'Magic Eraser');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
+    };
+
     return (
         <>
             <FeatureLayout 
@@ -259,6 +276,17 @@ export const ThumbnailStudio: React.FC<{
                     label: "Generate Thumbnail"
                 }}
                 scrollRef={scrollRef}
+                // Custom Overlay Button for Magic Editor
+                resultOverlay={
+                    result ? (
+                        <button 
+                            onClick={() => setShowMagicEditor(true)}
+                            className="bg-white text-[#1A1A1E] px-4 py-2 rounded-full font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2 border border-gray-200 hover:bg-gray-50"
+                        >
+                            <MagicWandIcon className="w-4 h-4 text-[#F9D230]"/> Magic Edit
+                        </button>
+                    ) : null
+                }
                 // Left Content: Result Canvas
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -399,6 +427,16 @@ export const ThumbnailStudio: React.FC<{
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
+            {showMagicEditor && result && (
+                <MagicEditorModal 
+                    imageUrl={result} 
+                    onClose={() => setShowMagicEditor(false)} 
+                    onSave={handleEditorSave}
+                    deductCredit={handleDeductEditCredit}
+                />
+            )}
         </>
     );
 };

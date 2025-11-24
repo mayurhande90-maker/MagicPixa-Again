@@ -195,11 +195,12 @@ export const FeatureLayout: React.FC<{
     hideGenerateButton?: boolean;
     disableScroll?: boolean;
     scrollRef?: React.RefObject<HTMLDivElement>;
+    resultOverlay?: React.ReactNode; // New prop for Magic Editor button
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
-    disableScroll, scrollRef
+    disableScroll, scrollRef, resultOverlay
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     
@@ -226,7 +227,7 @@ export const FeatureLayout: React.FC<{
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div className={`w-full flex flex-col justify-start ${contentHeightClass}`}>
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner">
+                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner group">
                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
                              <img 
                                 src={resultImage} 
@@ -234,6 +235,13 @@ export const FeatureLayout: React.FC<{
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
+                             
+                             {/* Custom Result Overlay (e.g., Magic Edit Button) */}
+                             {resultOverlay && (
+                                 <div className="absolute top-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                     {resultOverlay}
+                                 </div>
+                             )}
                              
                              {/* Result Actions */}
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">

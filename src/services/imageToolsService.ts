@@ -210,13 +210,28 @@ export const removeElementFromImage = async (
         optimizeImage(base64ImageData, mimeType)
     ]);
 
-    const prompt = "Inpainting Task: Remove the masked object from the image. Fill the area seamlessly with the background texture/content. Ensure no artifacts remain.";
+    // Using simple text prompt for now as Gemini 3 Pro handles "Remove object" well with just the image + instruction
+    // In a real editing API (like Imagen Edit), we would pass the mask explicitly.
+    // For Gemini 3 Pro Image, we pass the mask as a secondary image and instruct it.
+    
+    const prompt = `IMAGE EDITING TASK: Object Removal (Inpainting).
+    
+    INPUT 1: Original Image.
+    INPUT 2: Black & White Mask (White = Keep, Black/Red = Remove).
+    
+    INSTRUCTION:
+    1. Identify the area highlighted in the Mask.
+    2. Completely REMOVE the object/element in that area.
+    3. Fill the empty space seamlessly using the surrounding background texture, lighting, and context (Generative Fill).
+    4. The result must look 100% natural with no artifacts.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
                 { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
+                { text: "MASK:" },
+                { inlineData: { data: maskBase64, mimeType: "image/png" } },
                 { text: prompt } 
             ]
         },
