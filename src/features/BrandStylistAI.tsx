@@ -55,9 +55,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     // Data Inputs
-    const [brandName, setBrandName] = useState('');
+    const [productName, setProductName] = useState('');
     const [website, setWebsite] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
+    const [specialOffer, setSpecialOffer] = useState('');
     const [address, setAddress] = useState('');
     const [description, setDescription] = useState('');
     
@@ -91,7 +91,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText("Analyzing Layout & Brand Identity...");
+        setLoadingText("Analyzing Layout & Style...");
         setResultImage(null);
         
         try {
@@ -102,9 +102,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 referenceImage.base64.mimeType,
                 logoImage?.base64.base64, // Optional Logo
                 logoImage?.base64.mimeType,
-                brandName,
+                productName,
                 website,
-                phoneNumber,
+                specialOffer,
                 address,
                 description
             );
@@ -135,9 +135,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setLogoImage(null);
         setReferenceImage(null);
         setResultImage(null);
-        setBrandName('');
+        setProductName('');
         setWebsite('');
-        setPhoneNumber('');
+        setSpecialOffer('');
         setAddress('');
         setDescription('');
     };
@@ -148,7 +148,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Brand Stylist AI"
-                description="Smartly replicate any ad style. AI detects logo/text spots in the reference and only adds your details if they match the original layout."
+                description="Smartly replicate any ad style. AI detects layout elements (Offers, Titles, Logos) in the reference and only inserts your content if it fits the original design."
                 icon={<LightbulbIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -204,16 +204,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         </div>
                     ) : (
                         <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full">
-                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <SparklesIcon className="w-4 h-4 text-blue-600"/>
-                                    <span className="text-xs font-bold text-blue-800 uppercase">Smart Analysis Mode</span>
-                                </div>
-                                <p className="text-[10px] text-blue-800/80 leading-relaxed">
-                                    We auto-detect layout elements in the reference image. We will <b>only</b> add your contact details/logo if similar elements exist in the reference design.
-                                </p>
-                            </div>
-
                             {/* Row 1: Product & Logo */}
                             <div className="grid grid-cols-2 gap-4">
                                 <CompactUpload
@@ -247,22 +237,22 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
                             {/* Row 3: Smart Inputs */}
                             <div className="space-y-4 pt-2">
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Brand Details (Auto-inserted if detected)</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Product Details (Auto-inserted if detected)</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <InputField
-                                        placeholder="Brand Name"
-                                        value={brandName}
-                                        onChange={(e: any) => setBrandName(e.target.value)}
+                                        placeholder="Product Name"
+                                        value={productName}
+                                        onChange={(e: any) => setProductName(e.target.value)}
+                                    />
+                                    <InputField
+                                        placeholder="Special Offer (e.g. 50% OFF)"
+                                        value={specialOffer}
+                                        onChange={(e: any) => setSpecialOffer(e.target.value)}
                                     />
                                     <InputField
                                         placeholder="Website / URL"
                                         value={website}
                                         onChange={(e: any) => setWebsite(e.target.value)}
-                                    />
-                                    <InputField
-                                        placeholder="Contact Number"
-                                        value={phoneNumber}
-                                        onChange={(e: any) => setPhoneNumber(e.target.value)}
                                     />
                                     <InputField
                                         placeholder="Address"

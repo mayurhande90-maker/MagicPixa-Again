@@ -24,9 +24,9 @@ export const generateStyledBrandAsset = async (
     referenceMime: string,
     logoBase64: string | undefined,
     logoMime: string | undefined,
-    brandName: string,
+    productName: string,
     website: string,
-    phoneNumber: string,
+    specialOffer: string,
     address: string,
     productDescription: string
 ): Promise<string> => {
@@ -65,7 +65,8 @@ export const generateStyledBrandAsset = async (
     2. **Analyze Reference Layout (STRICT CHECK)**:
        - Does the Reference Image contain a **visible Logo**? (Yes/No)
        - Does it contain a **Website URL**? (Yes/No)
-       - Does it contain a **Phone Number**? (Yes/No)
+       - Does it contain a **Product Name** or **Title** text? (Yes/No)
+       - Does it contain a **Special Offer** or **Discount Badge** (e.g. "50% Off", "Sale", "Limited Time")? (Yes/No)
        - Does it contain a **Physical Address**? (Yes/No)
        - Where is the main headline? What font style/size?
        - What is the lighting/environment mood?
@@ -80,10 +81,13 @@ export const generateStyledBrandAsset = async (
         "generatedHeadline": "A creative headline (2-5 words) fitting the product and style",
         "hasVisibleLogo": boolean,
         "hasVisibleWebsite": boolean,
-        "hasVisiblePhone": boolean,
+        "hasVisibleProductName": boolean,
+        "hasVisibleOffer": boolean,
         "hasVisibleAddress": boolean,
         "logoPlacement": "Description of where to place the logo IF it exists in reference",
-        "contactPlacement": "Description of where to place contact info IF it exists in reference",
+        "productNamePlacement": "Description of where to place the Product Name IF it exists in reference",
+        "offerPlacement": "Description of where to place the Offer/Discount IF it exists in reference",
+        "contactPlacement": "Description of where to place contact info (website/address) IF it exists in reference",
         "textInstructions": "Specific instructions on font style and color to match reference"
     }`;
 
@@ -109,13 +113,16 @@ export const generateStyledBrandAsset = async (
                     generatedHeadline: { type: Type.STRING },
                     hasVisibleLogo: { type: Type.BOOLEAN },
                     hasVisibleWebsite: { type: Type.BOOLEAN },
-                    hasVisiblePhone: { type: Type.BOOLEAN },
+                    hasVisibleProductName: { type: Type.BOOLEAN },
+                    hasVisibleOffer: { type: Type.BOOLEAN },
                     hasVisibleAddress: { type: Type.BOOLEAN },
                     logoPlacement: { type: Type.STRING },
+                    productNamePlacement: { type: Type.STRING },
+                    offerPlacement: { type: Type.STRING },
                     contactPlacement: { type: Type.STRING },
                     textInstructions: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisiblePhone", "hasVisibleAddress"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisibleProductName", "hasVisibleOffer"]
             }
         }
     }));
@@ -132,7 +139,8 @@ export const generateStyledBrandAsset = async (
             generatedHeadline: "Premium Quality",
             hasVisibleLogo: true,
             hasVisibleWebsite: false,
-            hasVisiblePhone: false,
+            hasVisibleProductName: false,
+            hasVisibleOffer: false,
             hasVisibleAddress: false,
             logoPlacement: "Top corner",
             textInstructions: "Modern bold font"
@@ -146,32 +154,26 @@ export const generateStyledBrandAsset = async (
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}.
     `;
 
-    if (blueprint.hasVisibleLogo) {
-        if (optLogoHigh) {
-            dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look naturally integrated.\n`;
-        } else if (brandName) {
-            dynamicTextInstructions += `- **LOGO**: Render brand name "${brandName}" at: ${blueprint.logoPlacement} as a text logo.\n`;
-        }
+    if (blueprint.hasVisibleLogo && optLogoHigh) {
+        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look naturally integrated.\n`;
     } else {
-        dynamicTextInstructions += `- **LOGO**: DO NOT add a logo, as the reference image does not have one.\n`;
+        dynamicTextInstructions += `- **LOGO**: DO NOT add a logo.\n`;
+    }
+
+    if (blueprint.hasVisibleProductName && productName) {
+        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at: ${blueprint.productNamePlacement} using the style of the reference title.\n`;
+    }
+
+    if (blueprint.hasVisibleOffer && specialOffer) {
+        dynamicTextInstructions += `- **SPECIAL OFFER**: Render "${specialOffer}" at: ${blueprint.offerPlacement}. Use a badge, sticker, or bold text style matching the reference offer.\n`;
     }
 
     if (blueprint.hasVisibleWebsite && website) {
         dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at: ${blueprint.contactPlacement}.\n`;
-    } else {
-        dynamicTextInstructions += `- **WEBSITE**: Do NOT add a website URL.\n`;
-    }
-
-    if (blueprint.hasVisiblePhone && phoneNumber) {
-        dynamicTextInstructions += `- **PHONE**: Render "${phoneNumber}" near the contact area.\n`;
-    } else {
-        dynamicTextInstructions += `- **PHONE**: Do NOT add a phone number.\n`;
     }
 
     if (blueprint.hasVisibleAddress && address) {
         dynamicTextInstructions += `- **ADDRESS**: Render "${address}" near the bottom/contact area.\n`;
-    } else {
-        dynamicTextInstructions += `- **ADDRESS**: Do NOT add an address.\n`;
     }
 
     const parts: any[] = [];
@@ -195,8 +197,9 @@ export const generateStyledBrandAsset = async (
     ${dynamicTextInstructions}
     
     **CRITICAL CONSTRAINT:**
-    - **DO NOT HALLUCINATE CONTACT INFO.** If the instructions above say "Do NOT add...", then the final image MUST NOT contain that text element.
+    - **DO NOT HALLUCINATE TEXT.** If the instructions above say "Do NOT add...", then the final image MUST NOT contain that text element.
     - Only add text if specifically instructed above based on the Reference Analysis.
+    - The goal is to COPY the reference layout structure, but use the USER's content.
     
     **QUALITY CONTROL:**
     - Text must be spelled correctly.
@@ -213,7 +216,7 @@ export const generateStyledBrandAsset = async (
         contents: { parts },
         config: { 
             responseModalities: [Modality.IMAGE],
-            // CRITICAL: Disable safety blocks to allow generating text like phone numbers/addresses
+            // CRITICAL: Disable safety blocks to allow generating text like phone numbers/addresses/offers
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
