@@ -226,19 +226,21 @@ export const removeElementFromImage = async (
         optimizeImageForEditing(base64ImageData, mimeType)
     ]);
 
-    const prompt = `TASK: High-Precision Object Removal (Inpainting).
+    const prompt = `TASK: Expert Image Manipulation - Object Removal & Inpainting.
     
     INPUTS:
-    1. Image (Source).
-    2. Mask (Black = Remove, White = Keep).
+    1. **Original Image**: The source photograph.
+    2. **Binary Mask**: The second image provided. 
+       - **BLACK PIXELS** indicate the object/area to **REMOVE**.
+       - **WHITE PIXELS** indicate the area to **KEEP** unchanged.
     
-    CRITICAL EXECUTION RULES:
-    1. **ERASURE**: Completely remove the object under the Black mask.
-    2. **CONTEXT SYNTHESIS**: Fill the hole by extending the surrounding background texture, patterns, and lighting.
-    3. **NO ARTIFACTS**: Do not leave a blurry smudge. Do not hallucinate new random objects. The result must look like the object was never there.
-    4. **PIXEL PERFECT**: The unmasked (White) area MUST remain 100% identical to the original.
+    INSTRUCTIONS:
+    1. **REMOVE**: Completely erase the visual content defined by the Black area of the mask.
+    2. **INPAINT**: Fill the erased area by intelligently synthesizing the background. You must extend lines, textures, patterns, and lighting from the surrounding pixels (the White area) to seamlessly cover the hole.
+    3. **CONSISTENCY**: The filled area must match the noise, focus, and lighting of the original photo.
+    4. **STRICT PRESERVATION**: Do NOT modify any part of the image that is White in the mask.
     
-    OUTPUT: The final clean image.`;
+    GOAL: A photorealistic result where it looks like the removed object never existed.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
