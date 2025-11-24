@@ -3,11 +3,11 @@ import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai"
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1280px (HD) for Gemini 3 Pro
-const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+// Helper: Resize image with customizable width
+const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const resizedUri = await resizeImage(dataUri, width, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -32,14 +32,28 @@ export const generateStyledBrandAsset = async (
 ): Promise<string> => {
     const ai = getAiClient();
     
-    // Optimize images concurrently
-    const [optProduct, optRef, optLogo] = await Promise.all([
-        optimizeImage(productBase64, productMime),
-        optimizeImage(referenceBase64, referenceMime),
-        logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime) : Promise.resolve(null)
+    // PERFORMANCE OPTIMIZATION: 
+    // 1. Generate Low-Res versions (512px) for the Analysis step (Fast, low latency).
+    // 2. Generate High-Res versions (1280px) for the final Generation step (High quality).
+    
+    const [
+        // Analysis Assets (Fast)
+        optProductLow, 
+        optRefLow,
+        // Generation Assets (Quality)
+        optProductHigh,
+        optRefHigh,
+        optLogoHigh
+    ] = await Promise.all([
+        optimizeImage(productBase64, productMime, 512),
+        optimizeImage(referenceBase64, referenceMime, 512),
+        optimizeImage(productBase64, productMime, 1280),
+        optimizeImage(referenceBase64, referenceMime, 1280),
+        logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime, 1024) : Promise.resolve(null)
     ]);
 
     // Step 1: Deep Analysis (The "Intelligent Planner")
+    // Uses Low-Res images to speed up the request significantly.
     const analysisPrompt = `You are a Senior Creative Director and AI Layout Expert.
     
     INPUTS:
@@ -78,9 +92,9 @@ export const generateStyledBrandAsset = async (
         contents: {
             parts: [
                 { text: "REFERENCE IMAGE:" },
-                { inlineData: { data: optRef.data, mimeType: optRef.mimeType } },
+                { inlineData: { data: optRefLow.data, mimeType: optRefLow.mimeType } },
                 { text: "PRODUCT IMAGE:" },
-                { inlineData: { data: optProduct.data, mimeType: optProduct.mimeType } },
+                { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
                 { text: analysisPrompt }
             ]
         },
@@ -125,13 +139,14 @@ export const generateStyledBrandAsset = async (
     }
 
     // Step 2: Generation (The "Executor")
-    // Construct Conditional Text Instructions based on Analysis
+    // Uses High-Res images for best quality output.
+    
     let dynamicTextInstructions = `
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}.
     `;
 
     if (blueprint.hasVisibleLogo) {
-        if (optLogo) {
+        if (optLogoHigh) {
             dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement}. It must look naturally integrated.\n`;
         } else if (brandName) {
             dynamicTextInstructions += `- **LOGO**: Render brand name "${brandName}" at: ${blueprint.logoPlacement} as a text logo.\n`;
@@ -161,11 +176,11 @@ export const generateStyledBrandAsset = async (
     const parts: any[] = [];
     
     parts.push({ text: "MAIN PRODUCT:" });
-    parts.push({ inlineData: { data: optProduct.data, mimeType: optProduct.mimeType } });
+    parts.push({ inlineData: { data: optProductHigh.data, mimeType: optProductHigh.mimeType } });
     
-    if (optLogo) {
+    if (optLogoHigh) {
         parts.push({ text: "USER LOGO:" });
-        parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
+        parts.push({ inlineData: { data: optLogoHigh.data, mimeType: optLogoHigh.mimeType } });
     }
 
     const genPrompt = `Task: Create a Final High-End Advertisement.
