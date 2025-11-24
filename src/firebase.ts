@@ -834,11 +834,16 @@ export const updateAppConfig = async (newConfig: Partial<AppConfig>): Promise<vo
     await configRef.set(newConfig, { merge: true });
 };
 
-export const getRecentSignups = async (limit: number = 5): Promise<User[]> => {
+export const getRecentSignups = async (limit: number = 20): Promise<User[]> => {
     if (!db) throw new Error("Firestore is not initialized.");
-    const usersRef = db.collection('users').orderBy('signUpDate', 'desc').limit(limit);
-    const snapshot = await usersRef.get();
-    return snapshot.docs.map(doc => doc.data() as User);
+    try {
+        const usersRef = db.collection('users').orderBy('signUpDate', 'desc').limit(limit);
+        const snapshot = await usersRef.get();
+        return snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id }) as User);
+    } catch (error) {
+        console.error("Error fetching recent signups:", error);
+        return [];
+    }
 };
 
 export const getRecentPurchases = async (limit: number = 5): Promise<Purchase[]> => {
