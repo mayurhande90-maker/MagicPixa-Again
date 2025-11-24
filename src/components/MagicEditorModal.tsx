@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon } from './icons';
+import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon, HandRaisedIcon, PencilIcon } from './icons';
 import { removeElementFromImage } from '../services/imageToolsService';
 
 interface MagicEditorModalProps {
@@ -11,15 +11,21 @@ interface MagicEditorModalProps {
     deductCredit: () => Promise<void>;
 }
 
+type ToolType = 'brush' | 'move';
+
 export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, onClose, onSave, deductCredit }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [activeTool, setActiveTool] = useState<ToolType>('brush');
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isPanning, setIsPanning] = useState(false);
     const [brushSize, setBrushSize] = useState(20);
     const [history, setHistory] = useState<ImageData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
+    const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+    const lastMousePos = useRef({ x: 0, y: 0 });
 
     // Initialize Canvas with Image
     useEffect(() => {
@@ -30,18 +36,15 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const canvas = canvasRef.current;
             const container = containerRef.current;
             if (canvas && container) {
-                // Reset logic for new image
-                // Calculate scale to fit image within container initially, but respect native resolution on canvas
-                // We actually want the canvas to be native resolution for quality, and scaled via CSS for display.
+                // Reset history if loading a fresh/new image source
+                // Only reset if it's the *initial* load or a *processed* result, not a redraw
                 
-                // For simplicity in drawing math, we set canvas dimensions to image dimensions
                 canvas.width = img.width;
                 canvas.height = img.height;
                 
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.drawImage(img, 0, 0);
-                    // Reset history stack when image changes (e.g., after a successful removal)
                     setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
                 }
                 
@@ -50,6 +53,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 const imageAspect = img.width / img.height;
                 let initialZoom = 1;
                 
+                // Add some padding (-40px)
                 if (img.width > container.clientWidth || img.height > container.clientHeight) {
                      if (imageAspect > containerAspect) {
                          initialZoom = (container.clientWidth - 40) / img.width;
@@ -58,6 +62,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                      }
                 }
                 setZoomLevel(initialZoom);
+                setPanPosition({ x: 0, y: 0 }); // Reset pan on new image
             }
         };
     }, [currentImageSrc]);
@@ -86,19 +91,38 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     // Zoom Logic
-    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev * 1.2, 3)); // Max 3x
+    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev * 1.2, 5)); // Max 5x
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev / 1.2, 0.1)); // Min 0.1x
 
-    // Drawing Logic
-    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        setIsDrawing(true);
-        draw(e);
+    // Interaction Handlers
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (activeTool === 'brush') {
+            setIsDrawing(true);
+            draw(e);
+        } else {
+            setIsPanning(true);
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+        }
     };
 
-    const stopDrawing = () => {
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (activeTool === 'brush' && isDrawing) {
+            draw(e);
+        } else if (activeTool === 'move' && isPanning) {
+            const dx = e.clientX - lastMousePos.current.x;
+            const dy = e.clientY - lastMousePos.current.y;
+            setPanPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+        }
+    };
+
+    const handleMouseUp = () => {
         if (isDrawing) {
             setIsDrawing(false);
             saveHistory();
+        }
+        if (isPanning) {
+            setIsPanning(false);
         }
     };
 
@@ -108,15 +132,17 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         const ctx = canvas?.getContext('2d');
         if (canvas && ctx) {
             const rect = canvas.getBoundingClientRect();
-            // Adjust coordinates based on zoom level and position
+            // Calculate relative coordinates considering zoom and pan
+            // rect.left already includes the transform translation and scale offset
             const x = (e.clientX - rect.left) / zoomLevel;
             const y = (e.clientY - rect.top) / zoomLevel;
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.beginPath();
-            ctx.arc(x, y, brushSize / (2 * zoomLevel), 0, Math.PI * 2); // Adjust brush visual size too? No, usually absolute
-            // Let's keep brush size absolute in pixels relative to image
-            ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2); 
+            ctx.arc(x, y, brushSize / (2 * zoomLevel), 0, Math.PI * 2); // Adjust brush size by zoom
+            // Alternative: keep brush consistent size relative to image pixels
+            // ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2); 
+            
             ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
             ctx.fill();
         }
@@ -144,20 +170,21 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 const maskImgData = maskCtx.createImageData(canvas.width, canvas.height);
                 
                 for (let i = 0; i < currentData!.length; i += 4) {
+                    // Simple diff check (red channel change > 5)
                     if (
                         Math.abs(currentData![i] - initialData[i]) > 5 ||
                         Math.abs(currentData![i+1] - initialData[i+1]) > 5 ||
                         Math.abs(currentData![i+2] - initialData[i+2]) > 5
                     ) {
-                        maskImgData.data[i] = 255;
-                        maskImgData.data[i+1] = 255;
-                        maskImgData.data[i+2] = 255;
-                        maskImgData.data[i+3] = 255;
+                        maskImgData.data[i] = 0;     // Black
+                        maskImgData.data[i+1] = 0;   // Black
+                        maskImgData.data[i+2] = 0;   // Black
+                        maskImgData.data[i+3] = 255; // Opaque
                     } else {
-                        maskImgData.data[i] = 0;
-                        maskImgData.data[i+1] = 0;
-                        maskImgData.data[i+2] = 0;
-                        maskImgData.data[i+3] = 255;
+                        maskImgData.data[i] = 255;   // White
+                        maskImgData.data[i+1] = 255; // White
+                        maskImgData.data[i+2] = 255; // White
+                        maskImgData.data[i+3] = 255; // Opaque
                     }
                 }
                 maskCtx.putImageData(maskImgData, 0, 0);
@@ -165,7 +192,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
             const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
             
-            // Get Clean Base
+            // Get Clean Base (Initial Image)
             const exportCanvas = document.createElement('canvas');
             exportCanvas.width = canvas.width;
             exportCanvas.height = canvas.height;
@@ -194,7 +221,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn">
-            {/* Massive Container for Editing */}
             <div className="w-[95vw] h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
                 
                 {/* Header */}
@@ -204,8 +230,25 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             <div className="p-2 bg-[#F9D230] rounded-full text-[#1A1A1E]"><MagicWandIcon className="w-5 h-5"/></div>
                             Magic Editor
                         </h2>
-                        <p className="text-xs text-gray-500 mt-1">Zoom, pan, and highlight objects to remove.</p>
+                        <p className="text-xs text-gray-500 mt-1">Remove objects seamlessly using AI.</p>
                     </div>
+                    
+                    {/* Tool Toggle */}
+                    <div className="bg-gray-100 p-1 rounded-xl flex gap-1">
+                        <button 
+                            onClick={() => setActiveTool('brush')}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${activeTool === 'brush' ? 'bg-white text-[#1A1A1E] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <PencilIcon className="w-4 h-4" /> Draw
+                        </button>
+                        <button 
+                            onClick={() => setActiveTool('move')}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${activeTool === 'move' ? 'bg-white text-[#1A1A1E] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <HandRaisedIcon className="w-4 h-4" /> Move
+                        </button>
+                    </div>
+
                     <div className="flex items-center gap-4">
                         {history.length > 1 && (
                             <button 
@@ -227,23 +270,21 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 </div>
 
                 {/* Main Workspace */}
-                <div className="flex-1 bg-[#f0f0f0] relative overflow-hidden flex items-center justify-center">
-                    {/* Canvas Container with Pan/Zoom */}
+                <div className="flex-1 bg-[#f0f0f0] relative overflow-hidden flex items-center justify-center cursor-crosshair">
                     <div 
                         ref={containerRef} 
-                        className="relative w-full h-full overflow-auto flex items-center justify-center custom-scrollbar"
-                        style={{ cursor: isDrawing ? 'crosshair' : 'default' }}
+                        className="relative w-full h-full overflow-hidden flex items-center justify-center"
+                        style={{ cursor: activeTool === 'move' ? (isPanning ? 'grabbing' : 'grab') : 'crosshair' }}
                     >
                         <canvas
                             ref={canvasRef}
-                            onMouseDown={startDrawing}
-                            onMouseMove={draw}
-                            onMouseUp={stopDrawing}
-                            onMouseLeave={stopDrawing}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
                             className="shadow-2xl transition-transform duration-75 ease-out origin-center"
                             style={{ 
-                                transform: `scale(${zoomLevel})`,
-                                transformOrigin: 'center'
+                                transform: `translate(${panPosition.x}px, ${panPosition.y}px) scale(${zoomLevel})`,
                             }}
                         />
                     </div>
@@ -294,7 +335,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
 
                     <div className="flex gap-3 w-full sm:w-auto">
-                        {/* Done Button (Visible if user made edits) */}
                         <button 
                             onClick={handleDone}
                             className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-2"

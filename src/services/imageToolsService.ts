@@ -17,6 +17,21 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
+// Specific optimizer for High-Res Editing (1536px) to avoid pixelation
+const optimizeImageForEditing = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        // Use 1536px and higher quality for detailed inpainting
+        const resizedUri = await resizeImage(dataUri, 1536, 0.95);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        console.warn("Editing optimization failed, using original", e);
+        return { data: base64, mimeType };
+    }
+};
+
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,
@@ -206,24 +221,25 @@ export const removeElementFromImage = async (
 ): Promise<string> => {
     const ai = getAiClient();
     
+    // Use Higher Resolution Optimizer for Editing
     const [optImg] = await Promise.all([
-        optimizeImage(base64ImageData, mimeType)
+        optimizeImageForEditing(base64ImageData, mimeType)
     ]);
 
-    // Using simple text prompt for now as Gemini 3 Pro handles "Remove object" well with just the image + instruction
-    // In a real editing API (like Imagen Edit), we would pass the mask explicitly.
-    // For Gemini 3 Pro Image, we pass the mask as a secondary image and instruct it.
+    const prompt = `TASK: High-Fidelity Image Inpainting / Object Removal.
     
-    const prompt = `IMAGE EDITING TASK: Object Removal (Inpainting).
+    INPUTS:
+    1. Original Image.
+    2. Mask Image (Where BLACK/COLORED pixels indicate the area to modify).
     
-    INPUT 1: Original Image.
-    INPUT 2: Black & White Mask (White = Keep, Black/Red = Remove).
+    STRICT INSTRUCTION:
+    - **TARGET**: The area defined by the mask (black/colored pixels).
+    - **ACTION**: Completely ERASE the object or person inside the mask.
+    - **RECONSTRUCTION**: Fill the void using "Generative Fill". You must hallucinate the missing background behind the object.
+    - **CONTEXT MATCHING**: The new pixels must perfectly match the surrounding environment's texture, lighting, noise, and depth of field.
+    - **QUALITY**: The final image must look like the object never existed. No blur, no smudges, no artifacts. Seamless blend.
     
-    INSTRUCTION:
-    1. Identify the area highlighted in the Mask.
-    2. Completely REMOVE the object/element in that area.
-    3. Fill the empty space seamlessly using the surrounding background texture, lighting, and context (Generative Fill).
-    4. The result must look 100% natural with no artifacts.`;
+    OUTPUT: The full, edited image with the object removed.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
