@@ -57,6 +57,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     
     // Mode - Changed default to 'replica'
     const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica'); 
+    const [language, setLanguage] = useState('English');
 
     // Data Inputs
     const [productName, setProductName] = useState('');
@@ -92,7 +93,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     };
 
     const handleGenerate = async () => {
-        if (!productImage || !referenceImage || !auth.user) return;
+        if (!productImage || !referenceImage || !auth.user || !description) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -114,7 +115,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 address,
                 description,
                 genMode, 
-                'English', // Default
+                language, // Passed selected language
                 'physical', // Strict Physical Mode
                 undefined, // Default branding
                 'Modern Sans' // Default font
@@ -151,6 +152,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setAddress('');
         setDescription('');
         setGenMode('replica');
+        setLanguage('English');
     };
 
     // Logic for Magic Editor
@@ -166,7 +168,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         }
     };
 
-    const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
+    // Added check for description
+    const canGenerate = !!productImage && !!referenceImage && !isLowCredits && !!description;
 
     return (
         <>
@@ -337,7 +340,27 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
                             {/* Row 4: Text Content */}
                             <div className="space-y-4 pt-2 border-t border-gray-100">
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">4. Ad Copy (Auto-inserted)</label>
+                                {/* Language Selector */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Target Language</label>
+                                    <div className="flex gap-2">
+                                        {['English', 'Hindi', 'Marathi'].map(lang => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => setLanguage(lang)}
+                                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                                    language === lang
+                                                        ? 'bg-blue-600 text-white border-transparent shadow-md'
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                                                }`}
+                                            >
+                                                {lang}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">4. Ad Copy</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <InputField placeholder="Title / Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
                                     <InputField placeholder="CTA / Offer" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
@@ -345,7 +368,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     <InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
                                 </div>
                                 <InputField
-                                    label="Description / Context (Important)"
+                                    label="Description / Context (Required)"
                                     placeholder="e.g. Organic Coffee, morning energy boost"
                                     value={description}
                                     onChange={(e: any) => setDescription(e.target.value)}
