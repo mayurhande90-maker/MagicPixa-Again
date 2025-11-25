@@ -1,8 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, MagicAdsIcon, UsersIcon, ArrowLeftIcon, CubeIcon, MockupIcon, PaletteIcon } from '../components/icons';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -49,22 +49,13 @@ const CompactUpload: React.FC<{
 };
 
 export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    // Campaign Type
-    const [campaignType, setCampaignType] = useState<'physical' | 'digital' | null>(null);
-
     // Assets
     const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Branding Inputs
-    const [brandColor, setBrandColor] = useState('#000000');
-    const [useBrandColor, setUseBrandColor] = useState(false);
-    const [fontStyle, setFontStyle] = useState('Modern Sans');
-
     // Mode
     const [genMode, setGenMode] = useState<'replica' | 'remix'>('remix'); // Default to Remix for better creativity
-    const [language, setLanguage] = useState('English');
 
     // Data Inputs
     const [productName, setProductName] = useState('');
@@ -83,11 +74,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    // Fallback ref for shared layout compliance
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    const fontOptions = ['Modern Sans', 'Bold Impact', 'Editorial Serif', 'Tech/Mono', 'Playful'];
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -100,11 +88,11 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     };
 
     const handleGenerate = async () => {
-        if (!productImage || !referenceImage || !auth.user || !campaignType) return;
+        if (!productImage || !referenceImage || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText(campaignType === 'digital' ? "Analyzing Asset & Mocking Up..." : "Designing Creative Concept...");
+        setLoadingText("Analyzing Composition & Styling...");
         setResultImage(null);
         
         try {
@@ -121,18 +109,17 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 address,
                 description,
                 genMode, 
-                language,
-                campaignType,
-                useBrandColor ? brandColor : undefined,
-                fontStyle
+                'English', // Default
+                'physical', // Strict Physical Mode
+                undefined, // Default branding
+                'Modern Sans' // Default font
             );
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
             setResultImage(finalImageUrl);
             
-            const usageName = campaignType === 'digital' ? 'Magic Ads (Digital)' : 'Magic Ads (Physical)';
-            saveCreation(auth.user.uid, finalImageUrl, usageName);
-            const updatedUser = await deductCredits(auth.user.uid, cost, usageName);
+            saveCreation(auth.user.uid, finalImageUrl, 'Magic Ads');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Ads');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -159,16 +146,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setAddress('');
         setDescription('');
         setGenMode('remix');
-        setLanguage('English');
-        setBrandColor('#000000');
-        setUseBrandColor(false);
-        // Keep campaign type unless explicitly backed out
     };
-
-    const handleBackToCategories = () => {
-        handleNewSession();
-        setCampaignType(null);
-    }
 
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
 
@@ -176,7 +154,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Magic Ads"
-                description="Turn inspiration into high-converting ads instantly. Create professional assets for any business type."
+                description="Turn your product photos into high-converting ad creatives by mimicking successful styles."
                 icon={<MagicAdsIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -185,10 +163,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 resultImage={resultImage}
                 onResetResult={() => setResultImage(null)}
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[950px]"
-                hideGenerateButton={isLowCredits || !campaignType}
+                resultHeightClass="h-[850px]"
+                hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
-                    className: genMode === 'remix' || campaignType === 'digital'
+                    className: genMode === 'remix'
                         ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]"
                         : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
@@ -209,12 +187,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         ) : (
                             <div className="text-center opacity-50 select-none">
                                 <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${genMode === 'remix' ? 'bg-purple-50' : 'bg-blue-50'}`}>
-                                    {campaignType === 'digital' ? <MockupIcon className="w-10 h-10 text-purple-500" /> : <CubeIcon className="w-10 h-10 text-blue-500" />}
+                                    <UploadTrayIcon className={`w-10 h-10 ${genMode === 'remix' ? 'text-purple-500' : 'text-blue-500'}`} />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-1">
-                                    {campaignType ? 'Upload assets to see preview.' : 'Select a campaign type to begin.'}
-                                </p>
+                                <p className="text-sm text-gray-300 mt-1">Upload Product & Reference to preview.</p>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -237,162 +213,80 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             </button>
                         </div>
                     ) : (
-                        <div className="h-full flex flex-col">
+                        <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full relative">
                             
-                            {/* STEP 1: Campaign Type Selection */}
-                            {!campaignType && (
-                                <div className="flex flex-col gap-4 h-full justify-center animate-fadeIn">
-                                    <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">What are you advertising?</p>
-                                    
-                                    <button onClick={() => setCampaignType('physical')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors"><CubeIcon className="w-6 h-6"/></div>
-                                            <span className="text-lg font-bold text-gray-800">Physical Product</span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 pl-[4.5rem]">E-commerce, Retail, CPG. Focus on object placement & shadows.</p>
+                            {/* Row 1: Assets */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3 ml-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Upload Assets</label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CompactUpload
+                                        label="Product Image"
+                                        image={productImage}
+                                        onUpload={handleUpload(setProductImage)}
+                                        onClear={() => setProductImage(null)}
+                                        icon={<UploadTrayIcon className="w-6 h-6 text-blue-400" />}
+                                    />
+                                    <CompactUpload
+                                        label="Brand Logo"
+                                        image={logoImage}
+                                        onUpload={handleUpload(setLogoImage)}
+                                        onClear={() => setLogoImage(null)}
+                                        icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />}
+                                        optional={true}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Reference */}
+                            <div>
+                                <CompactUpload
+                                    label="2. Reference Style (Ad/Design)"
+                                    image={referenceImage}
+                                    onUpload={handleUpload(setReferenceImage)}
+                                    onClear={() => setReferenceImage(null)}
+                                    icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
+                                    heightClass="h-40"
+                                />
+                            </div>
+
+                            {/* Row 3: Mode */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2 ml-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Creativity Level</label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <button onClick={() => setGenMode('replica')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600'}`}>
+                                        <CopyIcon className="w-4 h-4" /> Replica (Safe)
                                     </button>
-                                    
-                                    <button onClick={() => setCampaignType('digital')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors"><MockupIcon className="w-6 h-6"/></div>
-                                            <span className="text-lg font-bold text-gray-800">Digital & Services</span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 pl-[4.5rem]">SaaS, Apps, Coaching, Events. Focus on mockups & typography.</p>
+                                    <button onClick={() => setGenMode('remix')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white text-gray-600'}`}>
+                                        <MagicWandIcon className="w-4 h-4" /> Remix (Creative)
                                     </button>
                                 </div>
-                            )}
+                            </div>
 
-                            {/* STEP 2: Creation Controls */}
-                            {campaignType && (
-                                <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full relative">
-                                    
-                                    <div className="flex items-center mb-4 -ml-2"> 
-                                        <button onClick={handleBackToCategories} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-lg hover:bg-gray-100">
-                                            <ArrowLeftIcon className="w-4 h-4" /> Change Category
-                                        </button>
-                                    </div>
-
-                                    {/* Row 1: Assets */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <CompactUpload
-                                            label={campaignType === 'physical' ? "1. Product Image" : "1. Asset (Logo/Screen/Photo)"}
-                                            image={productImage}
-                                            onUpload={handleUpload(setProductImage)}
-                                            onClear={() => setProductImage(null)}
-                                            icon={campaignType === 'physical' ? <UploadTrayIcon className="w-6 h-6 text-blue-400" /> : <UsersIcon className="w-6 h-6 text-purple-400" />}
-                                        />
-                                        <CompactUpload
-                                            label="Brand Logo (Optional)"
-                                            image={logoImage}
-                                            onUpload={handleUpload(setLogoImage)}
-                                            onClear={() => setLogoImage(null)}
-                                            icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />}
-                                            optional={true}
-                                        />
-                                    </div>
-
-                                    {/* Row 2: Reference */}
-                                    <div>
-                                        <CompactUpload
-                                            label="2. Reference Style (Ad/Design)"
-                                            image={referenceImage}
-                                            onUpload={handleUpload(setReferenceImage)}
-                                            onClear={() => setReferenceImage(null)}
-                                            icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
-                                            heightClass="h-40"
-                                        />
-                                    </div>
-
-                                    {/* Row 3: Brand Identity (NEW) */}
-                                    <div className="pt-2 border-t border-gray-100">
-                                        <div className="flex items-center justify-between mb-3 ml-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Brand Identity</label>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            {/* Color Picker */}
-                                            <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col gap-2 ${useBrandColor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-gray-700">Brand Color</span>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={useBrandColor} 
-                                                        onChange={(e) => setUseBrandColor(e.target.checked)}
-                                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <input 
-                                                        type="color" 
-                                                        value={brandColor}
-                                                        onChange={(e) => { setBrandColor(e.target.value); setUseBrandColor(true); }}
-                                                        className="w-8 h-8 rounded-full border-none p-0 cursor-pointer shadow-sm"
-                                                    />
-                                                    <span className="text-xs font-mono text-gray-500 uppercase">{brandColor}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Language Selector (Simplified) */}
-                                            <div className="p-3 rounded-xl border-2 border-gray-200 bg-white">
-                                                <span className="block text-xs font-bold text-gray-700 mb-2">Language</span>
-                                                <select 
-                                                    value={language} 
-                                                    onChange={(e) => setLanguage(e.target.value)}
-                                                    className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none"
-                                                >
-                                                    <option value="English">English</option>
-                                                    <option value="Hindi">Hindi</option>
-                                                    <option value="Marathi">Marathi</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <SelectionGrid 
-                                            label="Typography Style" 
-                                            options={fontOptions} 
-                                            value={fontStyle} 
-                                            onChange={setFontStyle} 
-                                        />
-                                    </div>
-
-                                    {/* Row 4: Mode */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2 ml-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-4">
-                                            <button onClick={() => setGenMode('replica')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600'}`}>
-                                                <CopyIcon className="w-4 h-4" /> Replica (Safe)
-                                            </button>
-                                            <button onClick={() => setGenMode('remix')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white text-gray-600'}`}>
-                                                <MagicWandIcon className="w-4 h-4" /> Remix (Creative)
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Row 5: Text Content */}
-                                    <div className="space-y-4 pt-2 border-t border-gray-100">
-                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Ad Copy (Auto-inserted)</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <InputField placeholder="Title / Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                                            <InputField placeholder="CTA / Offer" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
-                                            <InputField placeholder="Website" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
-                                            <InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
-                                        </div>
-                                        <InputField
-                                            label="Describe what you uploaded & ad goal (CRITICAL)"
-                                            placeholder={campaignType === 'digital' ? "e.g. Fitness App Screenshot, 'Get Fit in 30 Days'" : "e.g. Organic Coffee, morning energy boost"}
-                                            value={description}
-                                            onChange={(e: any) => setDescription(e.target.value)}
-                                        />
-                                    </div>
+                            {/* Row 4: Text Content */}
+                            <div className="space-y-4 pt-2 border-t border-gray-100">
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">4. Ad Copy (Auto-inserted)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <InputField placeholder="Title / Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                                    <InputField placeholder="CTA / Offer" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
+                                    <InputField placeholder="Website" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
+                                    <InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
                                 </div>
-                            )}
+                                <InputField
+                                    label="Description / Context (Important)"
+                                    placeholder="e.g. Organic Coffee, morning energy boost"
+                                    value={description}
+                                    onChange={(e: any) => setDescription(e.target.value)}
+                                />
+                            </div>
                         </div>
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
     );
