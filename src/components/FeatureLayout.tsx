@@ -11,25 +11,30 @@ import {
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 
-const useSmartTimer = (isGenerating: boolean) => {
-    const [seconds, setSeconds] = useState(20);
+const useLoadingPhases = (isGenerating: boolean) => {
+    const [phase, setPhase] = useState("Initializing...");
 
     useEffect(() => {
         if (isGenerating) {
-            setSeconds(20);
-            const interval = setInterval(() => {
-                setSeconds((s) => {
-                    if (s <= 1) return 0;
-                    return s - 1;
-                });
-            }, 1000);
-            return () => clearInterval(interval);
+            setPhase("Analyzing reference style...");
+            
+            const timeouts: NodeJS.Timeout[] = [];
+            
+            const steps = [
+                { t: "Composing layout...", d: 4000 },
+                { t: "Applying visual effects...", d: 9000 },
+                { t: "Adding final polish...", d: 14000 }
+            ];
+
+            steps.forEach(({ t, d }) => {
+                timeouts.push(setTimeout(() => setPhase(t), d));
+            });
+
+            return () => timeouts.forEach(clearTimeout);
         }
     }, [isGenerating]);
 
-    if (!isGenerating) return "Done";
-    if (seconds === 0) return "Finalizing...";
-    return `Generating... (${seconds}s)`;
+    return phase;
 };
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
@@ -225,7 +230,7 @@ export const FeatureLayout: React.FC<{
     disableScroll, scrollRef, resultOverlay, customActionButtons
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
-    const timerText = useSmartTimer(isGenerating);
+    const loadingPhase = useLoadingPhases(isGenerating);
     
     // Default height if not specified. Used to enforce alignment.
     const contentHeightClass = resultHeightClass || 'h-[560px]';
@@ -295,15 +300,26 @@ export const FeatureLayout: React.FC<{
                             <div className="w-full h-full relative flex flex-col items-center">
                                 {leftContent}
                                 {isGenerating && (
-                                    <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none">
-                                        {/* Floating pill style to avoid corner clipping issues */}
-                                        <div className="bg-black/70 backdrop-blur-md text-white px-5 py-2 rounded-full border border-white/10 shadow-xl flex items-center gap-3 animate-fadeIn">
-                                            <div className="relative">
-                                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping absolute inset-0"/>
-                                                <div className="w-3 h-3 bg-green-400 rounded-full relative"/>
-                                            </div>
-                                            <span className="text-xs font-bold tracking-widest uppercase font-mono">{timerText}</span>
+                                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-3xl animate-fadeIn pointer-events-auto">
+                                        <div className="w-64 h-1.5 bg-gray-800/50 rounded-full overflow-hidden relative mb-6 shadow-inner border border-white/5">
+                                            {/* Indeterminate Gradient Bar */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 w-[200%] h-full animate-[shimmer_2s_infinite_linear]"></div>
                                         </div>
+                                        
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative">
+                                                <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-ping absolute inset-0"></div>
+                                                <div className="w-2.5 h-2.5 bg-blue-400 rounded-full relative shadow-[0_0_10px_#60A5FA]"></div>
+                                            </div>
+                                            <span className="text-xs font-bold text-white tracking-widest uppercase font-mono">{loadingPhase}</span>
+                                        </div>
+                                        
+                                        <style>{`
+                                            @keyframes shimmer {
+                                                0% { transform: translateX(-50%); }
+                                                100% { transform: translateX(0%); }
+                                            }
+                                        `}</style>
                                     </div>
                                 )}
                             </div>
@@ -344,8 +360,8 @@ export const FeatureLayout: React.FC<{
                                 >
                                     {isGenerating ? (
                                         <>
-                                            <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                            <span className="animate-pulse ml-2">{timerText}</span>
+                                            <div className={`w-5 h-5 border-2 border-t-transparent rounded-full animate-spin border-black/20 border-t-black`}></div> 
+                                            <span className="animate-pulse ml-2 font-medium tracking-wide">Processing...</span>
                                         </>
                                     ) : (
                                         <>
