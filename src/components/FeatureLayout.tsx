@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     SparklesIcon, 
     DownloadIcon, 
@@ -10,6 +10,27 @@ import {
     CheckIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
+
+const useSmartTimer = (isGenerating: boolean) => {
+    const [seconds, setSeconds] = useState(20);
+
+    useEffect(() => {
+        if (isGenerating) {
+            setSeconds(20);
+            const interval = setInterval(() => {
+                setSeconds((s) => {
+                    if (s <= 1) return 0;
+                    return s - 1;
+                });
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [isGenerating]);
+
+    if (!isGenerating) return "Done";
+    if (seconds === 0) return "Finalizing...";
+    return `Generating... (${seconds}s)`;
+};
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
@@ -204,6 +225,7 @@ export const FeatureLayout: React.FC<{
     disableScroll, scrollRef, resultOverlay, customActionButtons
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
+    const timerText = useSmartTimer(isGenerating);
     
     // Default height if not specified. Used to enforce alignment.
     const contentHeightClass = resultHeightClass || 'h-[560px]';
@@ -272,6 +294,18 @@ export const FeatureLayout: React.FC<{
                         <div className="w-full h-full flex flex-col items-center justify-start">
                             <div className="w-full h-full relative flex flex-col items-center">
                                 {leftContent}
+                                {isGenerating && (
+                                    <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none">
+                                        {/* Floating pill style to avoid corner clipping issues */}
+                                        <div className="bg-black/70 backdrop-blur-md text-white px-5 py-2 rounded-full border border-white/10 shadow-xl flex items-center gap-3 animate-fadeIn">
+                                            <div className="relative">
+                                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping absolute inset-0"/>
+                                                <div className="w-3 h-3 bg-green-400 rounded-full relative"/>
+                                            </div>
+                                            <span className="text-xs font-bold tracking-widest uppercase font-mono">{timerText}</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -311,7 +345,7 @@ export const FeatureLayout: React.FC<{
                                     {isGenerating ? (
                                         <>
                                             <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                            <span className="animate-pulse">Generating...</span>
+                                            <span className="animate-pulse ml-2">{timerText}</span>
                                         </>
                                     ) : (
                                         <>
