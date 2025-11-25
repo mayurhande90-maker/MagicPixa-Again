@@ -17,6 +17,39 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
     }
 };
 
+// Helper: Detect Aspect Ratio from Image
+const getBestAspectRatio = (base64: string, mimeType: string): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const ratio = img.width / img.height;
+            let bestRatio = "1:1";
+            
+            // Ratios supported by Gemini: "1:1", "3:4", "4:3", "9:16", "16:9"
+            const supportedRatios = [
+                { id: "1:1", value: 1 },
+                { id: "3:4", value: 0.75 },
+                { id: "4:3", value: 1.333 },
+                { id: "9:16", value: 0.5625 },
+                { id: "16:9", value: 1.777 }
+            ];
+
+            let minDiff = Infinity;
+            for (const r of supportedRatios) {
+                const diff = Math.abs(ratio - r.value);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestRatio = r.id;
+                }
+            }
+            // console.log(`Detected Aspect Ratio: ${ratio.toFixed(2)} -> Matched: ${bestRatio}`);
+            resolve(bestRatio);
+        };
+        img.onerror = () => resolve("1:1"); // Fallback
+        img.src = `data:${mimeType};base64,${base64}`;
+    });
+};
+
 export const generateStyledBrandAsset = async (
     productBase64: string,
     productMime: string,
@@ -37,6 +70,9 @@ export const generateStyledBrandAsset = async (
 ): Promise<string> => {
     const ai = getAiClient();
     
+    // 0. Determine Target Aspect Ratio from Reference Image
+    const targetAspectRatio = await getBestAspectRatio(referenceBase64, referenceMime);
+
     // PERFORMANCE OPTIMIZATION: 
     // 1. Generate Low-Res versions (512px) for the Analysis step.
     // 2. Generate Standard HD versions (1024px) for the final Generation step.
@@ -242,6 +278,7 @@ export const generateStyledBrandAsset = async (
     **SCENE**: Recreate this aesthetic: "${blueprint.visualStyle}".
     **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'}.
     **LAYOUT**: ${blueprint.layoutPlan}.
+    **TARGET ASPECT RATIO**: ${targetAspectRatio}.
     `;
     
     genPrompt += `
@@ -258,7 +295,7 @@ export const generateStyledBrandAsset = async (
     **TEXT PLACEMENT RULES (STRICT ADHERENCE):**
     ${dynamicTextInstructions}
     
-    **FINAL QUALITY CHECK**: Output a 4K, highly polished image. Ensure NO random text artifacts. Only render text explicitly requested above.`;
+    **FINAL QUALITY CHECK**: Output a 4K, highly polished image in **${targetAspectRatio}** ratio. Ensure NO random text artifacts. Only render text explicitly requested above.`;
 
     parts.push({ text: genPrompt });
 
@@ -267,6 +304,10 @@ export const generateStyledBrandAsset = async (
         contents: { parts },
         config: { 
             responseModalities: [Modality.IMAGE],
+            imageConfig: {
+                aspectRatio: targetAspectRatio,
+                imageSize: "1K"
+            },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
