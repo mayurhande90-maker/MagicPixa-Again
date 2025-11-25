@@ -90,33 +90,38 @@ export const generateStyledBrandAsset = async (
         3. Plan layout to incorporate ${brandInstruction}.
         `;
     } else {
-        // SMART LOGIC FOR DIGITAL / SERVICES - "SMART CONTEXT ENGINE"
-        analysisPrompt = `You are a World-Class Creative Ad Designer (Digital Specialist).
+        // SMART LOGIC FOR DIGITAL / SERVICES - "SMART CONTEXT ENGINE" & "HARD ANCHOR LAYOUT"
+        analysisPrompt = `You are a World-Class Digital Ad Designer (SaaS & Branding Specialist).
         
         **INPUTS:**
-        - USER ASSET: The core image to feature.
+        - USER ASSET: The core image to feature (Screenshot, Logo, or Person).
         - CONTEXT: "${productDescription}".
         - BRANDING: ${brandInstruction}.
         
-        **MANDATORY ASSET CLASSIFICATION & STRATEGY:**
-        Look at the 'USER ASSET' visually and select the single best technique:
+        **TASK 1: CLASSIFY ASSET & SELECT TECHNIQUE (MANDATORY):**
+        Look at the 'USER ASSET' and choose the single best technique:
         
-        1. **IS IT A SCREENSHOT / UI?** (App, Website, Dashboard)
-           -> **STRATEGY**: "3D MOCKUP". Render a high-quality 3D device (iPhone 15 Titanium or MacBook Pro). **WRAP** the User Asset onto the screen. Float the device in a premium abstract environment.
+        1. **RECTANGULAR UI / SCREENSHOT?** (App, Website)
+           -> **TECHNIQUE**: "3D DEVICE WRAP". Render a photorealistic device (iPhone 15 Pro Titanium or Silver MacBook Pro). The User Asset MUST be mapped perfectly onto the screen.
            
-        2. **IS IT A PERSON?** (Coach, Influencer, Professional)
-           -> **STRATEGY**: "ENVIRONMENTAL COMPOSITE". Remove original background. Place subject in a relevant depth-of-field environment (Modern Office, Stage, or Studio Color). Add **Rim Lighting** to blend them.
+        2. **PERSON / HEADSHOT?** (Coach, Influencer)
+           -> **TECHNIQUE**: "STUDIO COMPOSITE". Remove background. Place subject in a premium depth-of-field environment (Modern Office or Abstract Studio). Add Rim Lighting.
            
-        3. **IS IT A LOGO?** (Symbol, Brand Mark)
-           -> **STRATEGY**: "PHYSICAL MATERIALITY". Do not just paste it. Render it as a 3D object (Glass, Acrylic, Neon, or Embossed) on a premium wall or surface.
+        3. **LOGO / SYMBOL?** (Brand)
+           -> **TECHNIQUE**: "3D MATERIALITY". Extrude the logo into 3D Glass, Neon, or Brushed Metal. Mount it on a textured wall.
            
-        4. **IS IT A TEXTURE / VIBE?** (Abstract)
-           -> **STRATEGY**: "TYPOGRAPHY HERO". Use the asset as a subtle texture/background. Make the Headline the hero in 3D text.
+        4. **GENERIC?**
+           -> **TECHNIQUE**: "FLOATING CARDS". Render the image as a floating 3D card with soft shadows.
+
+        **TASK 2: DEFINE "HARD ANCHOR" LAYOUT:**
+        - You MUST choose a **SPLIT LAYOUT** (e.g., Text Left / Image Right, or Top/Bottom).
+        - **NEVER** overlap the main text and the main visual.
+        - Define a specific "Negative Space Zone" (solid color/gradient) for the Headline.
 
         **OUTPUT JSON REQUIREMENTS:**
-        - "technicalExecution": Write the specific instruction based on the strategy above (e.g., "Render iPhone 15 Mockup with asset on screen").
-        - "visualStyle": Describe the lighting and mood to match the Reference Image.
-        - "generatedHeadline": Catchy hook based on context (2-5 words). ${languageInstruction}.
+        - "technicalExecution": Precise instruction based on Technique & Layout (e.g., "Render iPhone 15 on Right. Left side solid blue for text.").
+        - "visualStyle": Describe the lighting/mood to match Reference.
+        - "generatedHeadline": Punchy, viral hook (2-5 words). ${languageInstruction}.
         `;
     }
 
@@ -194,9 +199,9 @@ export const generateStyledBrandAsset = async (
     // Step 2: Generation (The "Executor")
     
     let dynamicTextInstructions = `
-    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. 
-      **FONT STYLE**: ${fontStyle}. Make it huge, legible, and integrated into the scene.
-      *Ensure correct script rendering (Latin or Devanagari) based on the text.*
+    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the NEGATIVE SPACE ZONE. 
+      **FONT STYLE**: ${fontStyle}. Make it HUGE, BOLD, and 3D.
+      *Ensure correct script rendering (Latin or Devanagari).*
     `;
 
     const isDigital = campaignType === 'digital';
@@ -204,29 +209,42 @@ export const generateStyledBrandAsset = async (
     const shouldShowLogo = (mode === 'remix' && logoBase64) || (blueprint.hasVisibleLogo && logoBase64) || (isDigital && logoBase64);
     const shouldShowProduct = (mode === 'remix' && productName) || (blueprint.hasVisibleProductName && productName);
     const shouldShowOffer = (mode === 'remix' && specialOffer) || (blueprint.hasVisibleOffer && specialOffer);
-    const shouldShowWeb = (mode === 'remix' && website) || (blueprint.hasVisibleWebsite && website) || (isDigital && website);
+    const shouldShowWeb = (mode === 'remix' && website) || (blueprint.hasVisibleWebsite && website);
     const shouldShowAddress = (mode === 'remix' && address) || (blueprint.hasVisibleAddress && address);
 
-    if (shouldShowLogo && optLogoHigh) {
-        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement || 'Top Corner'}. Ensure it contrasts well with the background.\n`;
+    // --- TYPOGRAPHY HIERARCHY ENFORCEMENT ---
+    
+    if (isDigital) {
+        // DIGITAL MODE: CLEAN LOOK (Minimal Text)
+        if (shouldShowLogo && optLogoHigh) {
+            dynamicTextInstructions += `- **LOGO**: Place user logo subtly at Top Left/Right. Keep it small.\n`;
+        }
+        
+        if (specialOffer) {
+            dynamicTextInstructions += `- **CTA BUTTON**: Render a distinct button or pill-shape containing "${specialOffer}". High contrast color.\n`;
+        }
+        
+        // CRITICAL: Explicitly forbid small text for Digital Ads to prevent artifacts
+        dynamicTextInstructions += `
+        - **RESTRICTION**: DO NOT render the website URL, physical address, or long body text. Keep the layout clean and impactful.
+        `;
     } else {
-        dynamicTextInstructions += `- **LOGO**: DO NOT add a logo.\n`;
-    }
-
-    if (shouldShowProduct) {
-        dynamicTextInstructions += `- **TITLE/NAME**: Render "${productName}" near the headline or product.\n`;
-    }
-
-    if (shouldShowOffer) {
-        dynamicTextInstructions += `- **OFFER BADGE**: Render "${specialOffer}" inside a distinct shape (circle/button) or high-contrast text block. Color: ${brandColor || 'Red/Yellow'} for attention.\n`;
-    }
-
-    if (shouldShowWeb) {
-        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at the bottom.\n`;
-    }
-
-    if (shouldShowAddress) {
-        dynamicTextInstructions += `- **ADDRESS**: Render "${address}" small near the bottom.\n`;
+        // PHYSICAL MODE: PACKAGING / RETAIL LOOK (More Text Allowed)
+        if (shouldShowLogo && optLogoHigh) {
+            dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;
+        }
+        if (shouldShowProduct) {
+            dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" near the product.\n`;
+        }
+        if (shouldShowOffer) {
+            dynamicTextInstructions += `- **OFFER**: Render "${specialOffer}" in a badge/sticker.\n`;
+        }
+        if (shouldShowWeb) {
+            dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at the bottom.\n`;
+        }
+        if (shouldShowAddress) {
+            dynamicTextInstructions += `- **ADDRESS**: Render "${address}" small near the bottom.\n`;
+        }
     }
 
     const parts: any[] = [];
@@ -251,23 +269,25 @@ export const generateStyledBrandAsset = async (
         **PRODUCT**: Place the Main Product naturally with realistic physics and shadows.
         `;
     } else {
-        // DIGITAL / SERVICE PROMPT (ENHANCED EXECUTION)
-        genPrompt = `Task: Create a Premium Digital Ad (High-End Commercial Style).
+        // DIGITAL / SERVICE PROMPT (HIGH QUALITY / NO HALLUCINATIONS)
+        genPrompt = `Task: Create a Premium Digital Ad Composition (Gemini 3 Pro).
         
         **EXECUTION BLUEPRINT (STRICT):**
-        "${blueprint.technicalExecution}"
+        ${blueprint.technicalExecution}
         
-        **VISUAL RULES:**
-        1. **NO FLAT IMAGES**: Never just paste the User Asset on a background. It looks cheap.
-        2. **IF MOCKUP**: The device must look photorealistic (reflections, glass shader). The screen content (User Asset) must be perfectly aligned.
-        3. **IF PERSON**: Lighting match is critical. The subject must look like they are really standing there.
-        4. **IF LOGO**: It must interact with the light (e.g., embossed, neon, metallic).
+        *** COMPOSITION RULE: THE SPLIT GRID ***
+        - **Zone A (Negative Space)**: Keep 40-50% of the image CLEAN (Solid color, soft gradient, or minimal texture). NO busy details here. This is for the text.
+        - **Zone B (Visual Hero)**: Place the 3D Asset (Phone/Laptop/Person) here.
+        - **Separation**: Ensure a clear visual separation between Text and Image.
+        
+        *** ASSET HANDLING RULES (ZERO DISTORTION) ***
+        1. **SCREENS**: If the User Asset is a screenshot, you MUST map it onto a photorealistic 3D Device (Phone/Laptop) screen. The screen content must look exactly like the uploaded image (pixel perfect).
+        2. **LOGOS**: If the User Asset is a logo, extrude it into 3D Glass, Neon, or Brushed Metal. Do not just flatten it.
+        3. **PEOPLE**: If the User Asset is a person, fix the lighting to match the scene (Rim Light).
         
         **BRANDING**:
-        - Use ${brandColor || 'the reference palette'} for the environment/background.
-        - Font: ${fontStyle}.
-        
-        **CONTEXT**: ${productDescription}.
+        - Dominant Color: ${brandColor || 'Matches Reference'}.
+        - Vibe: Premium, Clean, Expensive.
         `;
     }
     
@@ -275,7 +295,7 @@ export const generateStyledBrandAsset = async (
     **TEXT PLACEMENT RULES (STRICT):**
     ${dynamicTextInstructions}
     
-    **FINAL QUALITY CHECK**: Output a 4K, highly polished image suitable for a Fortune 500 company's Instagram ad. No hallucinations. Text must be legible.`;
+    **FINAL QUALITY CHECK**: Output a 4K, highly polished image suitable for a Fortune 500 company's Instagram ad. No artifacts. Text must be legible.`;
 
     parts.push({ text: genPrompt });
 
