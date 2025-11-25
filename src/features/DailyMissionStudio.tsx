@@ -32,34 +32,40 @@ const MissionSuccessModal: React.FC<{ reward: number; onClose: () => void }> = (
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-             <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
+             <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white border border-white/10" onClick={e => e.stopPropagation()}>
                  {!isClaimed ? (
                      <div className="animate-fadeIn">
-                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                             <CheckIcon className="w-10 h-10 text-green-600" />
+                         <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                             <CheckIcon className="w-10 h-10 text-white" />
                          </div>
                          
-                         <h2 className="text-2xl font-bold text-[#1A1A1E] mb-2">Mission Complete!</h2>
-                         <p className="text-gray-500 mb-6">You've successfully completed the daily challenge.</p>
+                         <h2 className="text-2xl font-bold mt-4 mb-2">Mission Complete!</h2>
+                         <p className="text-indigo-100 mb-6 text-sm leading-relaxed">You've successfully completed the daily challenge.</p>
                          
-                         <div className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 font-bold text-3xl py-4 rounded-2xl mb-6 border border-amber-200 shadow-sm">
-                             +{reward} Credits
+                         <div className="bg-white/20 backdrop-blur-md text-white font-black text-4xl py-6 rounded-2xl mb-6 border border-white/30 shadow-inner">
+                             +{reward} <span className="text-lg font-bold opacity-80">Credits</span>
                          </div>
                          
-                         <button onClick={handleClaim} className="w-full bg-[#1A1A1E] text-white font-bold py-3 rounded-xl hover:bg-black transition-colors shadow-lg">
+                         <button 
+                            onClick={handleClaim} 
+                            className="w-full bg-white text-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all shadow-lg hover:scale-[1.02] active:scale-95"
+                         >
                              Claim Reward
                          </button>
                      </div>
                  ) : (
-                     <div className="animate-[fadeInUp_0.5s_ease-out] py-8">
+                     <div className="animate-[fadeInUp_0.5s_ease-out] py-4">
                          <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_#22c55e] animate-[bounce_1s_infinite]">
                              <CheckIcon className="w-12 h-12 text-white" />
                          </div>
                          
-                         <h2 className="text-3xl font-bold mb-2 text-[#1A1A1E]">Credited!</h2>
+                         <h2 className="text-3xl font-bold mb-2 text-white">Credited!</h2>
+                         <p className="text-indigo-200 text-sm mb-6">Added to your account balance</p>
                          
                          <div className="scale-110 transition-transform duration-500 mt-4">
-                             <span className="text-4xl font-black text-green-600">+{reward} Credits</span>
+                             <div className="inline-block bg-white/20 backdrop-blur-md text-[#6EFACC] font-black text-5xl px-8 py-4 rounded-2xl border border-[#6EFACC]/50 shadow-[0_0_20px_rgba(110,250,204,0.4)]">
+                                 +{reward}
+                             </div>
                          </div>
                      </div>
                  )}

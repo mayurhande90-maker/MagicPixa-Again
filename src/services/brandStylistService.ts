@@ -1,5 +1,5 @@
 
-import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -117,7 +117,7 @@ export const generateStyledBrandAsset = async (
     }`;
 
     // Wrapped in callWithRetry to handle 503 Overloaded errors
-    const analysisResponse = await callWithRetry(() => ai.models.generateContent({
+    const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: {
             parts: [
@@ -252,7 +252,7 @@ export const generateStyledBrandAsset = async (
     parts.push({ text: genPrompt });
 
     // Wrapped in callWithRetry to handle 503 Overloaded errors
-    const genResponse = await callWithRetry(() => ai.models.generateContent({
+    const genResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { 
