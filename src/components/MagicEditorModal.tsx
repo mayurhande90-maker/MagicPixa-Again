@@ -125,6 +125,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault(); // Always prevent default scroll
             
+            if (isProcessing) return; // Disable zoom during processing
+
             // Direct Zoom with Wheel
             const zoomSensitivity = 0.002; 
             const delta = -e.deltaY * zoomSensitivity;
@@ -137,7 +139,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
         container.addEventListener('wheel', handleWheel, { passive: false });
         return () => container.removeEventListener('wheel', handleWheel);
-    }, []);
+    }, [isProcessing]);
 
     const saveHistory = () => {
         const maskCanvas = maskCanvasRef.current;
@@ -168,6 +170,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     // Interaction Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
+        if (isProcessing) return; // Block interactions
+
         // Pan Trigger: Spacebar held OR Middle Mouse Button
         if (isSpacePanning || e.button === 1) {
             e.preventDefault();
@@ -182,6 +186,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
+        if (isProcessing) return;
+
         if (isPanning && containerRef.current) {
             e.preventDefault();
             const dx = e.clientX - panStart.x;
@@ -195,6 +201,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleMouseUp = () => {
+        if (isProcessing) return;
+
         if (isDrawing) {
             setIsDrawing(false);
             saveHistory();
@@ -294,14 +302,24 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleDone = () => {
-        onSave(currentImageSrc);
+        // Only trigger save if the image actually changed
+        if (currentImageSrc !== imageUrl) {
+            onSave(currentImageSrc);
+        }
         onClose();
     };
 
     // Determine Cursor Style
-    const cursorStyle = isSpacePanning || isPanning ? 'cursor-grab' : 'cursor-crosshair';
-    if (isPanning) document.body.style.cursor = 'grabbing';
-    else document.body.style.cursor = 'default';
+    let cursorStyle = 'cursor-default';
+    if (isProcessing) {
+        cursorStyle = 'cursor-wait';
+    } else if (isSpacePanning || isPanning) {
+        cursorStyle = 'cursor-grab';
+        if (isPanning) document.body.style.cursor = 'grabbing';
+    } else {
+        cursorStyle = 'cursor-crosshair';
+        document.body.style.cursor = 'default';
+    }
 
     return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn">
@@ -318,7 +336,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                     
                     <div className="flex items-center gap-4">
-                        {history.length > 1 && (
+                        {history.length > 1 && !isProcessing && (
                             <button 
                                 onClick={handleUndo} 
                                 className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-[#1A1A1E] transition-colors flex items-center gap-2 text-sm font-medium"
@@ -329,7 +347,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         )}
                         <button 
                             onClick={onClose} 
-                            className="p-2 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            disabled={isProcessing}
+                            className="p-2 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                             title="Close without saving"
                         >
                             <XIcon className="w-6 h-6"/>
@@ -340,7 +359,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 {/* Main Workspace */}
                 <div 
                     ref={containerRef}
-                    className={`flex-1 bg-[#f0f0f0] relative overflow-auto flex items-center justify-center ${cursorStyle}`}
+                    className={`flex-1 bg-[#f0f0f0] relative flex items-center justify-center ${cursorStyle} ${isProcessing ? 'overflow-hidden' : 'overflow-auto'}`}
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -383,30 +402,32 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
 
                     {/* Floating Controls */}
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
-                        <div className="flex items-center gap-4 bg-white/90 backdrop-blur shadow-2xl p-3 rounded-2xl border border-gray-200">
-                            <div className="flex items-center gap-3 text-gray-500 px-2">
-                                <PencilIcon className={`w-5 h-5 ${!isSpacePanning ? 'text-[#4D7CFF]' : ''}`} />
-                                <div className="h-4 w-px bg-gray-300"></div>
-                                <span className="text-xs font-bold uppercase tracking-wider">{isSpacePanning ? 'Pan Mode' : 'Draw Mode'}</span>
-                            </div>
+                    {!isProcessing && (
+                        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
+                            <div className="flex items-center gap-4 bg-white/90 backdrop-blur shadow-2xl p-3 rounded-2xl border border-gray-200">
+                                <div className="flex items-center gap-3 text-gray-500 px-2">
+                                    <PencilIcon className={`w-5 h-5 ${!isSpacePanning ? 'text-[#4D7CFF]' : ''}`} />
+                                    <div className="h-4 w-px bg-gray-300"></div>
+                                    <span className="text-xs font-bold uppercase tracking-wider">{isSpacePanning ? 'Pan Mode' : 'Draw Mode'}</span>
+                                </div>
 
-                            <div className="w-px h-8 bg-gray-200"></div>
+                                <div className="w-px h-8 bg-gray-200"></div>
 
-                            {/* Zoom Controls */}
-                            <div className="flex items-center gap-2">
-                                <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-5 h-5"/></button>
-                                <span className="text-xs font-mono font-bold text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                                <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
+                                {/* Zoom Controls */}
+                                <div className="flex items-center gap-2">
+                                    <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomOutIcon className="w-5 h-5"/></button>
+                                    <span className="text-xs font-mono font-bold text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                                    <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ZoomInIcon className="w-5 h-5"/></button>
+                                </div>
                             </div>
+                            <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">
+                                Scroll to Zoom • Hold Spacebar to Pan
+                            </span>
                         </div>
-                        <span className="text-[10px] font-bold bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full border border-white/10 shadow-sm">
-                            Scroll to Zoom • Hold Spacebar to Pan
-                        </span>
-                    </div>
+                    )}
 
                     {isProcessing && (
-                        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm fixed">
+                        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm fixed cursor-wait">
                             <div className="w-20 h-20 border-4 border-[#F9D230] border-t-transparent rounded-full animate-spin mb-6"></div>
                             <p className="text-[#1A1A1E] font-bold text-2xl tracking-widest animate-pulse">REMOVING...</p>
                             <p className="text-gray-500 text-sm mt-2">AI is synthesizing background texture...</p>
@@ -417,7 +438,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 {/* Footer Controls */}
                 <div className="px-8 py-4 bg-white border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0 z-10">
                     <div className="flex items-center gap-6 w-full sm:w-auto">
-                        <div className={`flex flex-col gap-2 w-full sm:w-64 transition-opacity ${isSpacePanning ? 'opacity-50' : 'opacity-100'}`}>
+                        <div className={`flex flex-col gap-2 w-full sm:w-64 transition-opacity ${isSpacePanning || isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                             <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
                                 <span>Brush Size</span>
                                 <span>{brushSize}px</span>
@@ -445,7 +466,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     <div className="flex gap-3 w-full sm:w-auto">
                         <button 
                             onClick={handleDone}
-                            className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-2"
+                            disabled={isProcessing}
+                            className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-2 disabled:opacity-50"
                         >
                             <CheckIcon className="w-5 h-5"/> Done
                         </button>
@@ -453,7 +475,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         <button 
                             onClick={handleRemove} 
                             disabled={isProcessing}
-                            className="flex-1 sm:flex-none bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:transform-none"
+                            className="flex-1 sm:flex-none bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:transform-none disabled:cursor-wait"
                         >
                             <MagicWandIcon className="w-5 h-5 text-[#F9D230]"/>
                             <span>Remove Selected</span>
