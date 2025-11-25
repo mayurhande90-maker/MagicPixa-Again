@@ -78,56 +78,24 @@ export const generateStyledBrandAsset = async (
     }
 
     // Step 1: Deep Analysis (The "Intelligent Planner")
-    let analysisPrompt = "";
-
-    if (campaignType === 'physical') {
-        // LOGIC FOR PHYSICAL PRODUCTS
-        analysisPrompt = `You are a Senior Creative Director.
+    // Updated Analysis Prompt to be extremely strict about detecting specific text elements
+    const analysisPrompt = `You are a Senior Creative Director specializing in Ad Layout Forensics.
         INPUTS: Reference Image (Target Style), Product Image (User Item).
-        TASK:
-        1. Analyze Reference Layout.
-        2. **TYPOGRAPHY ANALYSIS (CRITICAL):** Look at the text in the Reference Image. Is it **3D/Extruded** (with depth, shadows, materials) OR **Flat/2D** (vector, clean, minimal)? You must classify this strictly.
-        3. Create Transfer Plan: Write a headline for "${productDescription}". ${languageInstruction}. 
-        4. Plan layout to incorporate ${brandInstruction}.
-        `;
-    } else {
-        // SMART LOGIC FOR DIGITAL / SERVICES - "SMART CONTEXT ENGINE" & "HARD ANCHOR LAYOUT"
-        analysisPrompt = `You are a World-Class Digital Ad Designer (SaaS & Branding Specialist).
         
-        **INPUTS:**
-        - USER ASSET: The core image to feature (Screenshot, Logo, or Person).
-        - CONTEXT: "${productDescription}".
-        - BRANDING: ${brandInstruction}.
+        **CRITICAL ANALYSIS TASK:**
+        You must deeply study the **Reference Image** and detect exactly which text elements are present.
         
-        **TASK 1: CLASSIFY ASSET & SELECT TECHNIQUE (MANDATORY):**
-        Look at the 'USER ASSET' and choose the single best technique:
+        1. **Typography Depth**: Is the text in the reference **3D/Extruded** (with physical depth/shadows) OR **Flat/2D** (clean vector style)?
+        2. **Product Name Detection**: Does the reference image explicitly display a Product Name or Title text?
+        3. **Offer/Badge Detection**: Does the reference image explicitly display a Discount, Offer, "50% Off", or a CTA Button/Badge?
+        4. **Website/Address Detection**: Does the reference image explicitly display a Website URL or Physical Address/Location text?
         
-        1. **RECTANGULAR UI / SCREENSHOT?** (App, Website)
-           -> **TECHNIQUE**: "3D DEVICE WRAP". Render a photorealistic device (iPhone 15 Pro Titanium or Silver MacBook Pro). The User Asset MUST be mapped perfectly onto the screen.
-           
-        2. **PERSON / HEADSHOT?** (Coach, Influencer)
-           -> **TECHNIQUE**: "STUDIO COMPOSITE". Remove background. Place subject in a premium depth-of-field environment (Modern Office or Abstract Studio). Add Rim Lighting.
-           
-        3. **LOGO / SYMBOL?** (Brand)
-           -> **TECHNIQUE**: "3D MATERIALITY". Extrude the logo into 3D Glass, Neon, or Brushed Metal. Mount it on a textured wall.
-           
-        4. **GENERIC?**
-           -> **TECHNIQUE**: "FLOATING CARDS". Render the image as a floating 3D card with soft shadows.
-
-        **TASK 2: DEFINE "HARD ANCHOR" LAYOUT:**
-        - You MUST choose a **SPLIT LAYOUT** (e.g., Text Left / Image Right, or Top/Bottom).
-        - **NEVER** overlap the main text and the main visual.
-        - Define a specific "Negative Space Zone" (solid color/gradient) for the Headline.
-
-        **TASK 3: TYPOGRAPHY ANALYSIS:**
-        - Analyze the REFERENCE IMAGE text. Is it **3D/Extruded** or **Flat/2D**? Use this to guide the 'detectedTypographyType'.
-
-        **OUTPUT JSON REQUIREMENTS:**
-        - "technicalExecution": Precise instruction based on Technique & Layout (e.g., "Render iPhone 15 on Right. Left side solid blue for text.").
-        - "visualStyle": Describe the lighting/mood to match Reference.
-        - "generatedHeadline": Punchy, viral hook (2-5 words). ${languageInstruction}.
-        `;
-    }
+        **HEADLINE GENERATION:**
+        Write a catchy, viral, marketing-ready headline (2-5 words) for "${productDescription}". ${languageInstruction}.
+        
+        **LAYOUT PLAN:**
+        Plan where the User's Product should go to match the reference composition.
+    `;
 
     const jsonSchemaPart = `
     OUTPUT JSON:
@@ -136,17 +104,16 @@ export const generateStyledBrandAsset = async (
         "layoutPlan": "Instructions on where to place the asset/product...",
         "generatedHeadline": "A creative headline (2-5 words) fitting the product and style in the requested language",
         "detectedTypographyType": "Either '3D' or '2D' based on the Reference Image style",
-        "hasVisibleLogo": boolean,
-        "hasVisibleWebsite": boolean,
-        "hasVisibleProductName": boolean,
-        "hasVisibleOffer": boolean,
-        "hasVisibleAddress": boolean,
-        "logoPlacement": "Description of where to place the logo",
-        "productNamePlacement": "Description of where to place the Product Name",
-        "offerPlacement": "Description of where to place the Offer/Discount",
-        "contactPlacement": "Description of where to place contact info",
+        "referenceHasProductName": boolean, 
+        "referenceHasOfferBadge": boolean, 
+        "referenceHasWebsite": boolean, 
+        "referenceHasAddress": boolean,
+        "logoPlacement": "Description of where to place the logo (if applicable)",
+        "productNamePlacement": "Description of where to place the Product Name (if applicable)",
+        "offerPlacement": "Description of where to place the Offer/Discount (if applicable)",
+        "contactPlacement": "Description of where to place contact info (if applicable)",
         "textInstructions": "Specific instructions on font style and color",
-        "technicalExecution": "Specific instruction for the renderer (e.g., 'Wrap screenshot on iPhone 15', 'Extrude logo 3D')"
+        "technicalExecution": "Specific instruction for the renderer"
     }`;
 
     const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
@@ -169,11 +136,10 @@ export const generateStyledBrandAsset = async (
                     layoutPlan: { type: Type.STRING },
                     generatedHeadline: { type: Type.STRING },
                     detectedTypographyType: { type: Type.STRING, enum: ["3D", "2D"] },
-                    hasVisibleLogo: { type: Type.BOOLEAN },
-                    hasVisibleWebsite: { type: Type.BOOLEAN },
-                    hasVisibleProductName: { type: Type.BOOLEAN },
-                    hasVisibleOffer: { type: Type.BOOLEAN },
-                    hasVisibleAddress: { type: Type.BOOLEAN },
+                    referenceHasProductName: { type: Type.BOOLEAN },
+                    referenceHasOfferBadge: { type: Type.BOOLEAN },
+                    referenceHasWebsite: { type: Type.BOOLEAN },
+                    referenceHasAddress: { type: Type.BOOLEAN },
                     logoPlacement: { type: Type.STRING },
                     productNamePlacement: { type: Type.STRING },
                     offerPlacement: { type: Type.STRING },
@@ -181,7 +147,7 @@ export const generateStyledBrandAsset = async (
                     textInstructions: { type: Type.STRING },
                     technicalExecution: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType", "referenceHasProductName", "referenceHasOfferBadge"]
             }
         }
     }));
@@ -196,8 +162,10 @@ export const generateStyledBrandAsset = async (
             layoutPlan: "Center subject",
             generatedHeadline: "Discover More",
             detectedTypographyType: "2D",
-            hasVisibleLogo: true,
-            hasVisibleWebsite: true,
+            referenceHasProductName: true,
+            referenceHasOfferBadge: false,
+            referenceHasWebsite: true,
+            referenceHasAddress: false,
             textInstructions: "Bold sans-serif",
             technicalExecution: "Clean composite"
         };
@@ -213,6 +181,14 @@ export const generateStyledBrandAsset = async (
         typographyInstruction = `**2D TYPOGRAPHY**: The text MUST be FLAT, clean, and vector-style. DO NOT use 3D extrusion or heavy bevels on the text. Keep it minimal, sharp, and graphic design focused.`;
     }
 
+    // STRICT TEXT FILTERING LOGIC
+    // Only render if User Provided Input AND Reference Image has that element.
+    
+    const showProduct = productName && blueprint.referenceHasProductName;
+    const showOffer = specialOffer && blueprint.referenceHasOfferBadge;
+    const showWebsite = website && blueprint.referenceHasWebsite;
+    const showAddress = address && blueprint.referenceHasAddress;
+
     let dynamicTextInstructions = `
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the NEGATIVE SPACE ZONE. 
       **STYLE**: ${fontStyle}. 
@@ -220,47 +196,32 @@ export const generateStyledBrandAsset = async (
       *Ensure correct script rendering (Latin or Devanagari).*
     `;
 
-    const isDigital = campaignType === 'digital';
-    
-    const shouldShowLogo = (mode === 'remix' && logoBase64) || (blueprint.hasVisibleLogo && logoBase64) || (isDigital && logoBase64);
-    const shouldShowProduct = (mode === 'remix' && productName) || (blueprint.hasVisibleProductName && productName);
-    const shouldShowOffer = (mode === 'remix' && specialOffer) || (blueprint.hasVisibleOffer && specialOffer);
-    const shouldShowWeb = (mode === 'remix' && website) || (blueprint.hasVisibleWebsite && website);
-    const shouldShowAddress = (mode === 'remix' && address) || (blueprint.hasVisibleAddress && address);
-
-    // --- TYPOGRAPHY HIERARCHY ENFORCEMENT ---
-    
-    if (isDigital) {
-        // DIGITAL MODE: CLEAN LOOK (Minimal Text)
-        if (shouldShowLogo && optLogoHigh) {
-            dynamicTextInstructions += `- **LOGO**: Place user logo subtly at Top Left/Right. Keep it small.\n`;
-        }
-        
-        if (specialOffer) {
-            dynamicTextInstructions += `- **CTA BUTTON**: Render a distinct button or pill-shape containing "${specialOffer}". High contrast color.\n`;
-        }
-        
-        // CRITICAL: Explicitly forbid small text for Digital Ads to prevent artifacts
-        dynamicTextInstructions += `
-        - **RESTRICTION**: DO NOT render the website URL, physical address, or long body text. Keep the layout clean and impactful.
-        `;
+    if (showProduct) {
+        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at location: ${blueprint.productNamePlacement}. Use a style matching the reference.\n`;
     } else {
-        // PHYSICAL MODE: PACKAGING / RETAIL LOOK (More Text Allowed)
-        if (shouldShowLogo && optLogoHigh) {
-            dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;
-        }
-        if (shouldShowProduct) {
-            dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" near the product.\n`;
-        }
-        if (shouldShowOffer) {
-            dynamicTextInstructions += `- **OFFER**: Render "${specialOffer}" in a badge/sticker.\n`;
-        }
-        if (shouldShowWeb) {
-            dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at the bottom.\n`;
-        }
-        if (shouldShowAddress) {
-            dynamicTextInstructions += `- **ADDRESS**: Render "${address}" small near the bottom.\n`;
-        }
+        dynamicTextInstructions += `- **NO PRODUCT NAME**: Do NOT render any product name text. The reference does not use it, or the user didn't provide it.\n`;
+    }
+
+    if (showOffer) {
+        dynamicTextInstructions += `- **OFFER/CTA**: Render "${specialOffer}" at location: ${blueprint.offerPlacement}. Make it look like a badge/sticker/button as seen in reference.\n`;
+    } else {
+        dynamicTextInstructions += `- **NO OFFER**: Do NOT render any "50% Off" or discount badges. Even if the reference has one, ignore it if the user didn't provide specific offer text.\n`;
+    }
+
+    if (showWebsite) {
+        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at location: ${blueprint.contactPlacement}.\n`;
+    } else {
+        dynamicTextInstructions += `- **NO WEBSITE**: Do NOT render any URL.\n`;
+    }
+
+    if (showAddress) {
+        dynamicTextInstructions += `- **ADDRESS**: Render "${address}" at location: ${blueprint.contactPlacement}.\n`;
+    } else {
+        dynamicTextInstructions += `- **NO ADDRESS**: Do NOT render any physical address.\n`;
+    }
+
+    if (optLogoHigh && logoBase64) {
+         dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;
     }
 
     const parts: any[] = [];
@@ -273,45 +234,19 @@ export const generateStyledBrandAsset = async (
         parts.push({ inlineData: { data: optLogoHigh.data, mimeType: optLogoHigh.mimeType } });
     }
 
-    let genPrompt = "";
-
-    if (campaignType === 'physical') {
-        // PHYSICAL PROMPT
-        genPrompt = `Task: Create a High-End Physical Product Ad.
-        
-        **SCENE**: Recreate this aesthetic: "${blueprint.visualStyle}".
-        **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'}.
-        **LAYOUT**: ${blueprint.layoutPlan}.
-        **PRODUCT**: Place the Main Product naturally with realistic physics and shadows.
-        `;
-    } else {
-        // DIGITAL / SERVICE PROMPT (HIGH QUALITY / NO HALLUCINATIONS)
-        genPrompt = `Task: Create a Premium Digital Ad Composition (Gemini 3 Pro).
-        
-        **EXECUTION BLUEPRINT (STRICT):**
-        ${blueprint.technicalExecution}
-        
-        *** COMPOSITION RULE: THE SPLIT GRID ***
-        - **Zone A (Negative Space)**: Keep 40-50% of the image CLEAN (Solid color, soft gradient, or minimal texture). NO busy details here. This is for the text.
-        - **Zone B (Visual Hero)**: Place the 3D Asset (Phone/Laptop/Person) here.
-        - **Separation**: Ensure a clear visual separation between Text and Image.
-        
-        *** ASSET HANDLING RULES (ZERO DISTORTION) ***
-        1. **SCREENS**: If the User Asset is a screenshot, you MUST map it onto a photorealistic 3D Device (Phone/Laptop) screen. The screen content must look exactly like the uploaded image (pixel perfect).
-        2. **LOGOS**: If the User Asset is a logo, extrude it into 3D Glass, Neon, or Brushed Metal. Do not just flatten it.
-        3. **PEOPLE**: If the User Asset is a person, fix the lighting to match the scene (Rim Light).
-        
-        **BRANDING**:
-        - Dominant Color: ${brandColor || 'Matches Reference'}.
-        - Vibe: Premium, Clean, Expensive.
-        `;
-    }
+    let genPrompt = `Task: Create a High-End Product Ad Replica.
+    
+    **SCENE**: Recreate this aesthetic: "${blueprint.visualStyle}".
+    **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'}.
+    **LAYOUT**: ${blueprint.layoutPlan}.
+    **PRODUCT**: Place the Main Product naturally with realistic physics and shadows.
+    `;
     
     genPrompt += `
-    **TEXT PLACEMENT RULES (STRICT):**
+    **TEXT PLACEMENT RULES (STRICT ADHERENCE):**
     ${dynamicTextInstructions}
     
-    **FINAL QUALITY CHECK**: Output a 4K, highly polished image suitable for a Fortune 500 company's Instagram ad. No artifacts. Text must be legible.`;
+    **FINAL QUALITY CHECK**: Output a 4K, highly polished image. Ensure NO random text artifacts. Only render text explicitly requested above.`;
 
     parts.push({ text: genPrompt });
 
