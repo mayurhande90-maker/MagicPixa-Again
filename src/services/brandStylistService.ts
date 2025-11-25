@@ -86,8 +86,9 @@ export const generateStyledBrandAsset = async (
         INPUTS: Reference Image (Target Style), Product Image (User Item).
         TASK:
         1. Analyze Reference Layout.
-        2. Create Transfer Plan: Write a headline for "${productDescription}". ${languageInstruction}. 
-        3. Plan layout to incorporate ${brandInstruction}.
+        2. **TYPOGRAPHY ANALYSIS (CRITICAL):** Look at the text in the Reference Image. Is it **3D/Extruded** (with depth, shadows, materials) OR **Flat/2D** (vector, clean, minimal)? You must classify this strictly.
+        3. Create Transfer Plan: Write a headline for "${productDescription}". ${languageInstruction}. 
+        4. Plan layout to incorporate ${brandInstruction}.
         `;
     } else {
         // SMART LOGIC FOR DIGITAL / SERVICES - "SMART CONTEXT ENGINE" & "HARD ANCHOR LAYOUT"
@@ -118,6 +119,9 @@ export const generateStyledBrandAsset = async (
         - **NEVER** overlap the main text and the main visual.
         - Define a specific "Negative Space Zone" (solid color/gradient) for the Headline.
 
+        **TASK 3: TYPOGRAPHY ANALYSIS:**
+        - Analyze the REFERENCE IMAGE text. Is it **3D/Extruded** or **Flat/2D**? Use this to guide the 'detectedTypographyType'.
+
         **OUTPUT JSON REQUIREMENTS:**
         - "technicalExecution": Precise instruction based on Technique & Layout (e.g., "Render iPhone 15 on Right. Left side solid blue for text.").
         - "visualStyle": Describe the lighting/mood to match Reference.
@@ -131,6 +135,7 @@ export const generateStyledBrandAsset = async (
         "visualStyle": "Detailed description of lighting, colors, and composition...",
         "layoutPlan": "Instructions on where to place the asset/product...",
         "generatedHeadline": "A creative headline (2-5 words) fitting the product and style in the requested language",
+        "detectedTypographyType": "Either '3D' or '2D' based on the Reference Image style",
         "hasVisibleLogo": boolean,
         "hasVisibleWebsite": boolean,
         "hasVisibleProductName": boolean,
@@ -163,6 +168,7 @@ export const generateStyledBrandAsset = async (
                     visualStyle: { type: Type.STRING },
                     layoutPlan: { type: Type.STRING },
                     generatedHeadline: { type: Type.STRING },
+                    detectedTypographyType: { type: Type.STRING, enum: ["3D", "2D"] },
                     hasVisibleLogo: { type: Type.BOOLEAN },
                     hasVisibleWebsite: { type: Type.BOOLEAN },
                     hasVisibleProductName: { type: Type.BOOLEAN },
@@ -175,7 +181,7 @@ export const generateStyledBrandAsset = async (
                     textInstructions: { type: Type.STRING },
                     technicalExecution: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType"]
             }
         }
     }));
@@ -189,6 +195,7 @@ export const generateStyledBrandAsset = async (
             visualStyle: "Professional modern design",
             layoutPlan: "Center subject",
             generatedHeadline: "Discover More",
+            detectedTypographyType: "2D",
             hasVisibleLogo: true,
             hasVisibleWebsite: true,
             textInstructions: "Bold sans-serif",
@@ -198,9 +205,18 @@ export const generateStyledBrandAsset = async (
 
     // Step 2: Generation (The "Executor")
     
+    // Dynamic Typography Logic based on Analysis
+    let typographyInstruction = "";
+    if (blueprint.detectedTypographyType === "3D") {
+        typographyInstruction = `**3D TYPOGRAPHY**: The text MUST be 3D, extruded, and have physical depth/shadows to match the reference style. Use a bold, heavy font that looks like an object in the scene.`;
+    } else {
+        typographyInstruction = `**2D TYPOGRAPHY**: The text MUST be FLAT, clean, and vector-style. DO NOT use 3D extrusion or heavy bevels on the text. Keep it minimal, sharp, and graphic design focused.`;
+    }
+
     let dynamicTextInstructions = `
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the NEGATIVE SPACE ZONE. 
-      **FONT STYLE**: ${fontStyle}. Make it HUGE, BOLD, and 3D.
+      **STYLE**: ${fontStyle}. 
+      ${typographyInstruction}
       *Ensure correct script rendering (Latin or Devanagari).*
     `;
 
