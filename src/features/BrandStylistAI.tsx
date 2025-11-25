@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, MagicAdsIcon, UsersIcon, ArrowLeftIcon, CubeIcon, MockupIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, MagicAdsIcon, UsersIcon, ArrowLeftIcon, CubeIcon, MockupIcon, PaletteIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -57,8 +57,13 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
+    // Branding Inputs
+    const [brandColor, setBrandColor] = useState('#000000');
+    const [useBrandColor, setUseBrandColor] = useState(false);
+    const [fontStyle, setFontStyle] = useState('Modern Sans');
+
     // Mode
-    const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica');
+    const [genMode, setGenMode] = useState<'replica' | 'remix'>('remix'); // Default to Remix for better creativity
     const [language, setLanguage] = useState('English');
 
     // Data Inputs
@@ -82,6 +87,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    const fontOptions = ['Modern Sans', 'Bold Impact', 'Editorial Serif', 'Tech/Mono', 'Playful'];
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -97,7 +104,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText(genMode === 'replica' ? "Analyzing Reference..." : "Creating New Concept...");
+        setLoadingText("Designing Creative Concept...");
         setResultImage(null);
         
         try {
@@ -115,7 +122,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 description,
                 genMode, 
                 language,
-                campaignType
+                campaignType,
+                useBrandColor ? brandColor : undefined,
+                fontStyle
             );
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -149,8 +158,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setSpecialOffer('');
         setAddress('');
         setDescription('');
-        setGenMode('replica');
+        setGenMode('remix');
         setLanguage('English');
+        setBrandColor('#000000');
+        setUseBrandColor(false);
         // Keep campaign type unless explicitly backed out
     };
 
@@ -292,28 +303,74 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         />
                                     </div>
 
-                                    {/* Row 3: Mode & Language */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2 ml-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Generation Settings</label>
+                                    {/* Row 3: Brand Identity (NEW) */}
+                                    <div className="pt-2 border-t border-gray-100">
+                                        <div className="flex items-center justify-between mb-3 ml-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Brand Identity</label>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-4">
-                                            <button onClick={() => setGenMode('replica')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600'}`}>
-                                                <CopyIcon className="w-4 h-4" /> Replica
-                                            </button>
-                                            <button onClick={() => setGenMode('remix')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white text-gray-600'}`}>
-                                                <MagicWandIcon className="w-4 h-4" /> Remix
-                                            </button>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            {/* Color Picker */}
+                                            <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col gap-2 ${useBrandColor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold text-gray-700">Brand Color</span>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={useBrandColor} 
+                                                        onChange={(e) => setUseBrandColor(e.target.checked)}
+                                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <input 
+                                                        type="color" 
+                                                        value={brandColor}
+                                                        onChange={(e) => { setBrandColor(e.target.value); setUseBrandColor(true); }}
+                                                        className="w-8 h-8 rounded-full border-none p-0 cursor-pointer shadow-sm"
+                                                    />
+                                                    <span className="text-xs font-mono text-gray-500 uppercase">{brandColor}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Language Selector (Simplified) */}
+                                            <div className="p-3 rounded-xl border-2 border-gray-200 bg-white">
+                                                <span className="block text-xs font-bold text-gray-700 mb-2">Language</span>
+                                                <select 
+                                                    value={language} 
+                                                    onChange={(e) => setLanguage(e.target.value)}
+                                                    className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none"
+                                                >
+                                                    <option value="English">English</option>
+                                                    <option value="Hindi">Hindi</option>
+                                                    <option value="Marathi">Marathi</option>
+                                                </select>
+                                            </div>
                                         </div>
+
                                         <SelectionGrid 
-                                            label="Ad Language" 
-                                            options={['English', 'Hindi', 'Marathi']} 
-                                            value={language} 
-                                            onChange={setLanguage} 
+                                            label="Typography Style" 
+                                            options={fontOptions} 
+                                            value={fontStyle} 
+                                            onChange={setFontStyle} 
                                         />
                                     </div>
 
-                                    {/* Row 4: Text Content */}
+                                    {/* Row 4: Mode */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2 ml-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                            <button onClick={() => setGenMode('replica')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600'}`}>
+                                                <CopyIcon className="w-4 h-4" /> Replica (Safe)
+                                            </button>
+                                            <button onClick={() => setGenMode('remix')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white text-gray-600'}`}>
+                                                <MagicWandIcon className="w-4 h-4" /> Remix (Creative)
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 5: Text Content */}
                                     <div className="space-y-4 pt-2 border-t border-gray-100">
                                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Ad Copy (Auto-inserted)</label>
                                         <div className="grid grid-cols-2 gap-3">
