@@ -104,7 +104,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText("Designing Creative Concept...");
+        setLoadingText(campaignType === 'digital' ? "Analyzing Asset & Mocking Up..." : "Designing Creative Concept...");
         setResultImage(null);
         
         try {
@@ -380,8 +380,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
                                         </div>
                                         <InputField
-                                            label="Ad Context / Description (CRITICAL)"
-                                            placeholder={campaignType === 'digital' ? "e.g. SaaS Dashboard, 'Project Mgmt Tool', Tech Vibe" : "e.g. Organic Coffee, morning energy boost"}
+                                            label="Describe what you uploaded & ad goal (CRITICAL)"
+                                            placeholder={campaignType === 'digital' ? "e.g. Fitness App Screenshot, 'Get Fit in 30 Days'" : "e.g. Organic Coffee, morning energy boost"}
                                             value={description}
                                             onChange={(e: any) => setDescription(e.target.value)}
                                         />

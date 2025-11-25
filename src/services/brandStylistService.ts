@@ -90,29 +90,33 @@ export const generateStyledBrandAsset = async (
         3. Plan layout to incorporate ${brandInstruction}.
         `;
     } else {
-        // SMART LOGIC FOR DIGITAL / SERVICES - "OUT OF THE BOX" CREATIVITY
-        analysisPrompt = `You are a World-Class Creative Agency AI (e.g., Ogilvy, Pentagram).
+        // SMART LOGIC FOR DIGITAL / SERVICES - "SMART CONTEXT ENGINE"
+        analysisPrompt = `You are a World-Class Creative Ad Designer (Digital Specialist).
         
-        **YOUR MISSION:** Create a "Scroll-Stopping" Digital Ad.
-        **CONTEXT**: "${productDescription}".
-        **BRANDING**: ${brandInstruction}. Font Style: ${fontStyle}.
+        **INPUTS:**
+        - USER ASSET: The core image to feature.
+        - CONTEXT: "${productDescription}".
+        - BRANDING: ${brandInstruction}.
         
-        **CRITICAL ANALYSIS & CREATIVE STRATEGY:**
-        1. **Reference Image Analysis**: 
-           - Treat the reference as a **MOOD BOARD** only. Do NOT copy it blindly if it doesn't fit the asset.
-           - Extract the *vibe* (e.g., Minimalist, Cyberpunk, Corporate, Luxury).
+        **MANDATORY ASSET CLASSIFICATION & STRATEGY:**
+        Look at the 'USER ASSET' visually and select the single best technique:
         
-        2. **User Asset Analysis**:
-           - Identify: Is it a UI Screenshot? A Logo? A Headshot?
-           - Strategy: How do we make this boring asset look amazing? (e.g., Wrap screenshot in 3D glass? Put person on a TED stage? Extrude logo?)
+        1. **IS IT A SCREENSHOT / UI?** (App, Website, Dashboard)
+           -> **STRATEGY**: "3D MOCKUP". Render a high-quality 3D device (iPhone 15 Titanium or MacBook Pro). **WRAP** the User Asset onto the screen. Float the device in a premium abstract environment.
            
-        3. **"OUT OF THE BOX" IDEATION**:
-           - Propose a layout that is **catchy, high-contrast, and professional**.
-           - Use techniques like: Glassmorphism, Floating 3D Elements, Bold Typography Masks, Asymmetric Grids, or Neon Glows.
-           - Ensure the Headline is the visual hook.
+        2. **IS IT A PERSON?** (Coach, Influencer, Professional)
+           -> **STRATEGY**: "ENVIRONMENTAL COMPOSITE". Remove original background. Place subject in a relevant depth-of-field environment (Modern Office, Stage, or Studio Color). Add **Rim Lighting** to blend them.
            
-        4. **Copywriting**:
-           - Write a high-converting, punchy headline based on "${productDescription}". ${languageInstruction}.
+        3. **IS IT A LOGO?** (Symbol, Brand Mark)
+           -> **STRATEGY**: "PHYSICAL MATERIALITY". Do not just paste it. Render it as a 3D object (Glass, Acrylic, Neon, or Embossed) on a premium wall or surface.
+           
+        4. **IS IT A TEXTURE / VIBE?** (Abstract)
+           -> **STRATEGY**: "TYPOGRAPHY HERO". Use the asset as a subtle texture/background. Make the Headline the hero in 3D text.
+
+        **OUTPUT JSON REQUIREMENTS:**
+        - "technicalExecution": Write the specific instruction based on the strategy above (e.g., "Render iPhone 15 Mockup with asset on screen").
+        - "visualStyle": Describe the lighting and mood to match the Reference Image.
+        - "generatedHeadline": Catchy hook based on context (2-5 words). ${languageInstruction}.
         `;
     }
 
@@ -247,29 +251,23 @@ export const generateStyledBrandAsset = async (
         **PRODUCT**: Place the Main Product naturally with realistic physics and shadows.
         `;
     } else {
-        // DIGITAL / SERVICE PROMPT (ENHANCED CREATIVITY)
-        genPrompt = `Task: Design a Viral Social Media Ad (Digital/Service).
+        // DIGITAL / SERVICE PROMPT (ENHANCED EXECUTION)
+        genPrompt = `Task: Create a Premium Digital Ad (High-End Commercial Style).
         
-        **CONTEXT**: ${productDescription}.
-        **DESIGN DIRECTIVE**: "Make it catchy, out-of-the-box, and high-end."
-        
-        **VISUAL STRATEGY (EXECUTE THIS):**
+        **EXECUTION BLUEPRINT (STRICT):**
         "${blueprint.technicalExecution}"
         
-        **CREATIVE RULES:**
-        1. **ASSET MAGIC**: Transform the boring User Asset into something exciting.
-           - If Screenshot: Wrap it in a sleek 3D Device (iPhone/Laptop) floating in a ${brandColor || 'colorful'} void.
-           - If Person: Give them a 'Hero' glow, remove background, place them in a ${brandColor || 'studio'} environment.
-           - If Logo: Extrude it, give it glass texture, or put it on a premium wall.
+        **VISUAL RULES:**
+        1. **NO FLAT IMAGES**: Never just paste the User Asset on a background. It looks cheap.
+        2. **IF MOCKUP**: The device must look photorealistic (reflections, glass shader). The screen content (User Asset) must be perfectly aligned.
+        3. **IF PERSON**: Lighting match is critical. The subject must look like they are really standing there.
+        4. **IF LOGO**: It must interact with the light (e.g., embossed, neon, metallic).
         
-        2. **BRANDING**:
-           - **Primary Color**: ${brandColor || 'Use Reference Palette'}. Use this for backgrounds, shapes, or text.
-           - **Font**: ${fontStyle}. Use hierarchy (Big Headline > Small Details).
+        **BRANDING**:
+        - Use ${brandColor || 'the reference palette'} for the environment/background.
+        - Font: ${fontStyle}.
         
-        3. **COMPOSITION**:
-           - Use negative space effectively.
-           - Add depth (foreground elements, blurred background).
-           - Ensure the ad looks like it was designed by a human expert in Adobe Photoshop.
+        **CONTEXT**: ${productDescription}.
         `;
     }
     
@@ -277,7 +275,7 @@ export const generateStyledBrandAsset = async (
     **TEXT PLACEMENT RULES (STRICT):**
     ${dynamicTextInstructions}
     
-    **FINAL OUTPUT**: A single, high-resolution marketing image. No hallucinations. Text must be legible.`;
+    **FINAL QUALITY CHECK**: Output a 4K, highly polished image suitable for a Fortune 500 company's Instagram ad. No hallucinations. Text must be legible.`;
 
     parts.push({ text: genPrompt });
 
