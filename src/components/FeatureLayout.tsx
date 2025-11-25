@@ -297,21 +297,42 @@ export const FeatureLayout: React.FC<{
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-start">
-                            <div className="w-full h-full relative flex flex-col items-center">
+                            <div className="w-full h-full relative flex flex-col items-center rounded-3xl overflow-hidden">
                                 {leftContent}
                                 {isGenerating && (
-                                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-3xl animate-fadeIn pointer-events-auto">
-                                        <div className="w-64 h-1.5 bg-gray-800/50 rounded-full overflow-hidden relative mb-6 shadow-inner border border-white/5">
-                                            {/* Indeterminate Gradient Bar */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 w-[200%] h-full animate-[shimmer_2s_infinite_linear]"></div>
+                                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center rounded-3xl animate-fadeIn pointer-events-auto overflow-hidden">
+                                        {/* Background Base - Deep Charcoal */}
+                                        <div className="absolute inset-0 bg-[#111827]"></div>
+                                        
+                                        {/* Grid Pattern Overlay */}
+                                        <div className="absolute inset-0 opacity-20" 
+                                             style={{ backgroundImage: 'radial-gradient(#4B5563 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
                                         </div>
                                         
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative">
-                                                <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-ping absolute inset-0"></div>
-                                                <div className="w-2.5 h-2.5 bg-blue-400 rounded-full relative shadow-[0_0_10px_#60A5FA]"></div>
+                                        {/* Center Spotlight */}
+                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(55,65,81,0.5)_0%,rgba(17,24,39,1)_70%)]"></div>
+
+                                        {/* Premium Loading Card */}
+                                        <div className="relative z-10 flex flex-col items-center justify-center p-8 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl">
+                                            
+                                            {/* Soft Ambient Glow */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 blur-2xl animate-pulse rounded-3xl"></div>
+
+                                            {/* Slim Progress Bar */}
+                                            <div className="w-48 h-1 bg-gray-800/80 rounded-full overflow-hidden relative mb-6 shadow-inner border border-white/5">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 w-[200%] h-full animate-[shimmer_1.5s_infinite_linear]"></div>
                                             </div>
-                                            <span className="text-xs font-bold text-white tracking-widest uppercase font-mono">{loadingPhase}</span>
+                                            
+                                            {/* Phase Text */}
+                                            <div className="flex items-center gap-3 relative">
+                                                <div className="relative flex h-3 w-3">
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 shadow-[0_0_10px_#3B82F6]"></span>
+                                                </div>
+                                                <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-[0.2em] uppercase font-mono">
+                                                    {loadingPhase}
+                                                </span>
+                                            </div>
                                         </div>
                                         
                                         <style>{`
