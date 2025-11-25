@@ -6,6 +6,7 @@ import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, Bra
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
+import { MagicEditorModal } from '../components/MagicEditorModal';
 
 // Compact Upload Component (Reused)
 const CompactUpload: React.FC<{
@@ -69,6 +70,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
 
     const cost = appConfig?.featureCosts['Brand Stylist AI'] || 4;
     const userCredits = auth.user?.credits || 0;
@@ -150,6 +153,19 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setGenMode('replica');
     };
 
+    // Logic for Magic Editor
+    const handleEditorSave = (newUrl: string) => {
+        setResultImage(newUrl);
+        saveCreation(auth.user!.uid, newUrl, 'Magic Ads (Edited)');
+    };
+
+    const handleDeductEditCredit = async () => {
+        if(auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
+    };
+
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
 
     return (
@@ -179,6 +195,19 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 }}
                 scrollRef={scrollRef}
                 
+                // Add Magic Editor button
+                customActionButtons={
+                    resultImage ? (
+                        <button 
+                            onClick={() => setShowMagicEditor(true)}
+                            className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"
+                        >
+                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> 
+                            <span>Magic Editor</span>
+                        </button>
+                    ) : null
+                }
+
                 // Place New Project button in the top corner of result image
                 resultOverlay={
                     <button 
@@ -328,6 +357,16 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
+            {showMagicEditor && resultImage && (
+                <MagicEditorModal 
+                    imageUrl={resultImage} 
+                    onClose={() => setShowMagicEditor(false)} 
+                    onSave={handleEditorSave}
+                    deductCredit={handleDeductEditCredit}
+                />
+            )}
         </>
     );
 };
