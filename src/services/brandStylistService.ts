@@ -29,7 +29,8 @@ export const generateStyledBrandAsset = async (
     specialOffer: string,
     address: string,
     productDescription: string,
-    mode: 'replica' | 'remix' = 'replica'
+    mode: 'replica' | 'remix' = 'replica',
+    language: string = 'English'
 ): Promise<string> => {
     const ai = getAiClient();
     
@@ -53,6 +54,24 @@ export const generateStyledBrandAsset = async (
         logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime, 1024) : Promise.resolve(null)
     ]);
 
+    // Language-Specific Instruction Construction
+    let languageInstruction = "";
+    if (language === 'Hindi' || language === 'Marathi') {
+        languageInstruction = `
+        **CRITICAL LANGUAGE REQUIREMENT (${language}):**
+        - **Generated Headline**: Must be in strictly native ${language} (using Devanagari script).
+        - **TRANSLATION RULE**: Do NOT use literal word-for-word translation. Understand the context and write a natural, catchy, marketing-friendly headline in ${language}.
+        - **Grammar**: Must be perfect and sound like a native speaker wrote it.
+        
+        **ENGLISH CONSTRAINTS (DO NOT TRANSLATE):**
+        1. **Website URLs**: Must remain in English (Latin script).
+        2. **Phone Numbers**: Must remain in English (Latin script).
+        3. **DIGITS & SYMBOLS**: All numbers (0-9) and symbols like '%' must remain in standard English format (e.g., "50% Off" NOT "५०%").
+        `;
+    } else {
+        languageInstruction = `Generate the 'generatedHeadline' in professional marketing English.`;
+    }
+
     // Step 1: Deep Analysis (The "Intelligent Planner")
     let analysisPrompt = "";
 
@@ -75,6 +94,7 @@ export const generateStyledBrandAsset = async (
            - What is the lighting/environment mood?
         3. **Create a Transfer Plan**:
            - Write a new headline based on: "${productDescription}".
+           - ${languageInstruction}
            - Determine exact placements for text/logo based *only* on what exists in the Reference.
            - The goal is to DUPLICATE the reference layout structure exactly.
         
@@ -91,6 +111,8 @@ export const generateStyledBrandAsset = async (
         3. **Trend Search**: Apply top 2025 advertising design trends for this product category.
         4. **Create a Remix Plan**:
            - Create a NEW, superior layout.
+           - Write a new headline based on: "${productDescription}".
+           - ${languageInstruction}
            - Determine where text/logos *should* go for maximum impact, regardless of where they are in the reference.
            - Suggest placements for Product Name, Offer, etc. that look professional.
            - Focus on "High CTR", "Modern Minimalist", or "Dynamic" aesthetics.
@@ -103,7 +125,7 @@ export const generateStyledBrandAsset = async (
     {
         "visualStyle": "Detailed description of lighting, colors, and composition...",
         "layoutPlan": "Instructions on where to place the product...",
-        "generatedHeadline": "A creative headline (2-5 words) fitting the product and style",
+        "generatedHeadline": "A creative headline (2-5 words) fitting the product and style in the requested language",
         "hasVisibleLogo": boolean,
         "hasVisibleWebsite": boolean,
         "hasVisibleProductName": boolean,
@@ -174,7 +196,8 @@ export const generateStyledBrandAsset = async (
     // Step 2: Generation (The "Executor")
     
     let dynamicTextInstructions = `
-    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}.
+    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the main text area. Style: ${blueprint.textInstructions}. 
+      *Ensure correct script rendering (Latin or Devanagari) based on the text.*
     `;
 
     // Logic to respect user inputs even if "hasVisible..." is false in Remix mode if sensible
@@ -243,7 +266,7 @@ export const generateStyledBrandAsset = async (
     - Only add text if specifically instructed above.
     
     **QUALITY CONTROL:**
-    - Text must be legible and spelled correctly.
+    - Text must be legible and spelled correctly in the appropriate language script.
     - Lighting on the product must match the new environment.
     - The final image should look like a finished graphic design piece.
     

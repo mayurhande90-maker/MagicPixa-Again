@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, BrandStylistIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
@@ -56,6 +56,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     
     // Mode
     const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica');
+    const [language, setLanguage] = useState('English');
 
     // Data Inputs
     const [productName, setProductName] = useState('');
@@ -110,7 +111,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 specialOffer,
                 address,
                 description,
-                genMode // Pass the selected mode
+                genMode, // Pass the selected mode
+                language // Pass selected language
             );
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -145,6 +147,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setAddress('');
         setDescription('');
         setGenMode('replica');
+        setLanguage('English');
     };
 
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
@@ -162,7 +165,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 resultImage={resultImage}
                 onResetResult={() => setResultImage(null)}
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[850px]"
+                resultHeightClass="h-[950px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: genMode === 'remix' 
@@ -286,7 +289,17 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 </div>
                             </div>
 
-                            {/* Row 4: Smart Inputs */}
+                            {/* Row 4: Language Selection */}
+                            <div>
+                                <SelectionGrid 
+                                    label="4. Ad Language" 
+                                    options={['English', 'Hindi', 'Marathi']} 
+                                    value={language} 
+                                    onChange={setLanguage} 
+                                />
+                            </div>
+
+                            {/* Row 5: Smart Inputs */}
                             <div className="space-y-4 pt-2">
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Product Details (Auto-inserted if detected)</label>
                                 <div className="grid grid-cols-2 gap-3">
