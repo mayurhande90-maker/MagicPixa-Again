@@ -220,6 +220,9 @@ export const generateStyledBrandAsset = async (
         dynamicTextInstructions += `- **NO ADDRESS**: Do NOT render any physical address.\n`;
     }
 
+    // STRICT PHONE NUMBER BAN
+    dynamicTextInstructions += `- **NO PHONE NUMBER**: You are STRICTLY FORBIDDEN from rendering any phone numbers (e.g. +1-234...). Even if the reference image has one, you must IGNORE it. Do not invent a phone number.\n`;
+
     if (optLogoHigh && logoBase64) {
          dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;
     }

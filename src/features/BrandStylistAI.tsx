@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, TrashIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -54,8 +54,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Mode
-    const [genMode, setGenMode] = useState<'replica' | 'remix'>('remix'); // Default to Remix for better creativity
+    // Mode - Changed default to 'replica'
+    const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica'); 
 
     // Data Inputs
     const [productName, setProductName] = useState('');
@@ -93,6 +93,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
         setLoading(true);
         setLoadingText("Analyzing Composition & Styling...");
+        // Clear result image to show loading state on the canvas
         setResultImage(null);
         
         try {
@@ -145,7 +146,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setSpecialOffer('');
         setAddress('');
         setDescription('');
-        setGenMode('remix');
+        setGenMode('replica');
     };
 
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
@@ -161,8 +162,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={resultImage}
-                onResetResult={() => setResultImage(null)}
-                onNewSession={handleNewSession}
+                // Hooking up Regenerate to handleGenerate re-runs the process with same inputs
+                onResetResult={handleGenerate}
+                // Remove standard New Project button from bottom bar
+                onNewSession={undefined}
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -173,6 +176,17 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     label: "Generate Ad Creative"
                 }}
                 scrollRef={scrollRef}
+                
+                // Place New Project button in the top corner of result image
+                resultOverlay={
+                    <button 
+                        onClick={handleNewSession}
+                        className="bg-white/90 p-2 rounded-full shadow-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all border border-gray-200"
+                        title="New Project"
+                    >
+                        <TrashIcon className="w-5 h-5"/>
+                    </button>
+                }
                 
                 // LEFT CONTENT: Canvas
                 leftContent={
@@ -213,7 +227,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             </button>
                         </div>
                     ) : (
-                        <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full relative">
+                        // Disable controls while generating
+                        <div className={`space-y-6 p-1 animate-fadeIn flex flex-col h-full relative ${loading ? 'opacity-50 pointer-events-none cursor-not-allowed grayscale-[0.5]' : ''}`}>
                             
                             {/* Row 1: Assets */}
                             <div>
