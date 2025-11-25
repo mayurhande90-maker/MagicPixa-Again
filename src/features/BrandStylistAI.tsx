@@ -257,11 +257,34 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Creativity Level</label>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <button onClick={() => setGenMode('replica')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600'}`}>
-                                        <CopyIcon className="w-4 h-4" /> Replica (Safe)
+                                    <button 
+                                        onClick={() => setGenMode('replica')} 
+                                        className={`flex flex-col items-start gap-1.5 p-4 rounded-xl border transition-all ${genMode === 'replica' ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-full ${genMode === 'replica' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                <CopyIcon className="w-3.5 h-3.5" />
+                                            </div>
+                                            <span className={`text-xs font-bold ${genMode === 'replica' ? 'text-blue-700' : 'text-gray-700'}`}>Replica</span>
+                                        </div>
+                                        <p className={`text-[10px] font-medium leading-tight ml-1 ${genMode === 'replica' ? 'text-blue-600/80' : 'text-gray-400'}`}>
+                                            Copy exact layout & lighting structure.
+                                        </p>
                                     </button>
-                                    <button onClick={() => setGenMode('remix')} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white text-gray-600'}`}>
-                                        <MagicWandIcon className="w-4 h-4" /> Remix (Creative)
+
+                                    <button 
+                                        onClick={() => setGenMode('remix')} 
+                                        className={`flex flex-col items-start gap-1.5 p-4 rounded-xl border transition-all ${genMode === 'remix' ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-200' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-full ${genMode === 'remix' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                <MagicWandIcon className="w-3.5 h-3.5" />
+                                            </div>
+                                            <span className={`text-xs font-bold ${genMode === 'remix' ? 'text-purple-700' : 'text-gray-700'}`}>Reimagine</span>
+                                        </div>
+                                        <p className={`text-[10px] font-medium leading-tight ml-1 ${genMode === 'remix' ? 'text-purple-600/80' : 'text-gray-400'}`}>
+                                            Use style but invent a new layout.
+                                        </p>
                                     </button>
                                 </div>
                             </div>
