@@ -31,8 +31,7 @@ export const generateStyledBrandAsset = async (
     productDescription: string,
     mode: 'replica' | 'remix' = 'replica',
     language: string = 'English',
-    campaignType: 'physical' | 'digital' = 'physical',
-    presentationStyle: string = 'Standard'
+    campaignType: 'physical' | 'digital' = 'physical'
 ): Promise<string> => {
     const ai = getAiClient();
     
@@ -72,7 +71,7 @@ export const generateStyledBrandAsset = async (
     let analysisPrompt = "";
 
     if (campaignType === 'physical') {
-        // EXISTING LOGIC FOR PHYSICAL PRODUCTS
+        // LOGIC FOR PHYSICAL PRODUCTS
         if (mode === 'replica') {
             analysisPrompt = `You are a Senior Creative Director and AI Layout Expert.
             INPUTS: Reference Image (Target Style), Product Image (User Item).
@@ -87,23 +86,31 @@ export const generateStyledBrandAsset = async (
             2. Create Remix Plan: Create a NEW, superior layout using 2025 trends. Write a headline for "${productDescription}". ${languageInstruction}. Suggest high-impact placements.`;
         }
     } else {
-        // NEW LOGIC FOR DIGITAL / SERVICE ADS
-        analysisPrompt = `You are a World-Class "Ad Guru" specializing in SaaS, Coaching, and Service Marketing.
+        // SMART LOGIC FOR DIGITAL / SERVICES
+        // The AI must deduce the technique from the images themselves.
+        analysisPrompt = `You are a World-Class Marketing Design AI.
         
-        INPUTS:
-        1. **Asset Image**: This is likely a Screenshot, a Logo, or a Person's Headshot.
-        2. **Reference Image**: The visual style target.
-        3. **Presentation Style**: ${presentationStyle}.
+        **YOUR INPUTS:**
+        1. **Main Asset Image**: The user's raw upload (e.g., Screenshot, Logo, or Headshot).
+        2. **Reference Image**: The "North Star" for style and composition.
+        3. **Context**: "${productDescription}".
         
-        TASK:
-        1. **Analyze Asset**: Is it a flat UI screenshot? A headshot? A logo?
-        2. **Analyze Reference Vibe**: Extract the color palette, typography hierarchy, and "Trust Signals" (cleanliness, whitespace).
-        3. **Develop Digital Strategy**:
-           - If Screenshot: Plan to wrap it in a realistic device mockup (Laptop/Phone) or float it in 3D space.
-           - If Headshot: Plan to place the person in a professional, authoritative environment (Stage, Studio, Modern Office) with perfect lighting.
-           - If Logo: Plan a minimal, high-trust corporate background.
-           - **Typography**: Plan for BOLD, sans-serif, high-contrast headlines that are easy to read on mobile.
-           - Write a compelling, benefit-driven headline for "${productDescription}". ${languageInstruction}.
+        **CRITICAL ANALYSIS TASK (DO NOT FAIL):**
+        1. **Analyze the Reference Image**:
+           - Does it show a device (Laptop, Phone, Tablet)? -> If yes, you MUST create a realistic device mockup for the User Asset.
+           - Does it show a person in a specific setting (Stage, Office, Studio)? -> If yes, you MUST place the User Asset (if it's a person) in that exact setting.
+           - Is it an abstract, typographic, or 3D glass background? -> If yes, adapt the User Asset (e.g., Logo) to match that material/style.
+        
+        2. **Analyze the User Asset**:
+           - Is it a flat UI/Website screenshot? -> Prepare to warp it onto a screen.
+           - Is it a transparent logo? -> Prepare to extrude or place it.
+           - Is it a photo of a person? -> Prepare to relight and composite them.
+           
+        3. **Determined Strategy**:
+           - Combine the Reference Style + User Asset Type + Context to create a unified visual plan.
+           
+        4. **Copywriting**:
+           - Write a high-converting headline based on "${productDescription}". ${languageInstruction}.
         `;
     }
 
@@ -122,16 +129,17 @@ export const generateStyledBrandAsset = async (
         "productNamePlacement": "Description of where to place the Product Name",
         "offerPlacement": "Description of where to place the Offer/Discount",
         "contactPlacement": "Description of where to place contact info",
-        "textInstructions": "Specific instructions on font style and color"
+        "textInstructions": "Specific instructions on font style and color",
+        "technicalExecution": "Specific instruction for the renderer (e.g., 'Wrap screenshot on iPhone 15', 'Extrude logo 3D')"
     }`;
 
     const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: {
             parts: [
-                { text: "REFERENCE IMAGE:" },
+                { text: "REFERENCE IMAGE (Style Guide):" },
                 { inlineData: { data: optRefLow.data, mimeType: optRefLow.mimeType } },
-                { text: "USER ASSET / PRODUCT:" },
+                { text: "USER ASSET (To be placed):" },
                 { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
                 { text: analysisPrompt + jsonSchemaPart }
             ]
@@ -153,9 +161,10 @@ export const generateStyledBrandAsset = async (
                     productNamePlacement: { type: Type.STRING },
                     offerPlacement: { type: Type.STRING },
                     contactPlacement: { type: Type.STRING },
-                    textInstructions: { type: Type.STRING }
+                    textInstructions: { type: Type.STRING },
+                    technicalExecution: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisibleProductName", "hasVisibleOffer"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "hasVisibleLogo", "hasVisibleWebsite", "hasVisibleProductName", "hasVisibleOffer", "technicalExecution"]
             }
         }
     }));
@@ -175,7 +184,8 @@ export const generateStyledBrandAsset = async (
             hasVisibleOffer: false,
             hasVisibleAddress: false,
             logoPlacement: "Top corner",
-            textInstructions: "Modern bold font"
+            textInstructions: "Modern bold font",
+            technicalExecution: "Standard composite"
         };
     }
 
@@ -186,7 +196,7 @@ export const generateStyledBrandAsset = async (
       *Ensure correct script rendering (Latin or Devanagari) based on the text.*
     `;
 
-    // For Digital/Service, we force certain text elements more aggressively
+    // For Digital/Service, we force certain text elements more aggressively if they are present in inputs
     const isDigital = campaignType === 'digital';
     
     const shouldShowLogo = (mode === 'remix' && logoBase64) || (blueprint.hasVisibleLogo && logoBase64) || (isDigital && logoBase64);
@@ -196,7 +206,7 @@ export const generateStyledBrandAsset = async (
     const shouldShowAddress = (mode === 'remix' && address) || (blueprint.hasVisibleAddress && address);
 
     if (shouldShowLogo && optLogoHigh) {
-        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement || 'Top Corner'}. It must look naturally integrated.\n`;
+        dynamicTextInstructions += `- **LOGO**: Place the provided USER LOGO at: ${blueprint.logoPlacement || 'Top Corner'}. It must look naturally integrated and legible.\n`;
     } else {
         dynamicTextInstructions += `- **LOGO**: DO NOT add a logo.\n`;
     }
@@ -219,7 +229,7 @@ export const generateStyledBrandAsset = async (
 
     const parts: any[] = [];
     
-    parts.push({ text: "MAIN ASSET (Product/Screenshot/Photo):" });
+    parts.push({ text: "MAIN USER ASSET:" });
     parts.push({ inlineData: { data: optProductHigh.data, mimeType: optProductHigh.mimeType } });
     
     if (optLogoHigh) {
@@ -230,7 +240,7 @@ export const generateStyledBrandAsset = async (
     let genPrompt = "";
 
     if (campaignType === 'physical') {
-        // STANDARD PHYSICAL PRODUCT PROMPT
+        // PHYSICAL PROMPT
         genPrompt = `Task: Create a High-End Advertisement.
         
         **EXECUTION PLAN:**
@@ -239,38 +249,41 @@ export const generateStyledBrandAsset = async (
         3. **PRODUCT**: Place the Main Product naturally. Maintain physical scale and shadows.
         `;
     } else {
-        // NEW DIGITAL / SERVICE PROMPT
-        genPrompt = `Task: Design a World-Class Service/Digital Ad Post.
+        // DIGITAL / SERVICE PROMPT (INTELLIGENT RECONSTRUCTION)
+        genPrompt = `Task: Design a Marketing-Ready Social Media Ad.
         
-        **CONTEXT**: The user is selling a Service, App, or Personal Brand.
-        **STYLE**: ${presentationStyle}.
-        **VIBE**: "${blueprint.visualStyle}".
+        **CONTEXT**: ${productDescription}.
+        **MODE**: ${mode === 'replica' ? 'REPLICA (Copy Reference Layout Exactly)' : 'REMIX (Use Reference Mood Only)'}.
         
-        **EXECUTION RULES (The Ad Guru Method):**
-        1. **THE ASSET TRANSFORMATION**:
-           - IF the Main Asset is a UI SCREENSHOT: You MUST wrap it onto a realistic 3D device mockup (iPhone 15 Titanium or MacBook Pro) based on the aspect ratio. Do not just paste it flat. Angle it dynamically.
-           - IF the Main Asset is a PERSON (Headshot): Relight them. Remove the original background and place them in a "${blueprint.visualStyle}" environment (e.g., Blurred Office, Abstract Studio, Ted-Talk Stage). They must look authoritative.
-           - IF the Main Asset is a LOGO: Create a 3D Glass or Metallic version of it on a premium background.
+        **VISUAL STRATEGY (Deduced from Analysis):**
+        "${blueprint.technicalExecution}"
         
-        2. **COMPOSITION**:
-           - Use "Rule of Thirds". Place the Subject (Device/Person) on one side or center, and the Headline in the negative space.
-           - Create depth. Foreground blur (bokeh) or abstract tech elements (data streams, glass shapes) if appropriate.
+        **EXECUTION RULES:**
+        1. **ASSET TRANSFORMATION**:
+           - You identified the necessary technique in the analysis. EXECUTE IT NOW. 
+           - If mocking up a screen: The perspective, glare, and bezel must be photorealistic.
+           - If placing a person: The lighting on the person must match the background scene perfectly.
+           - If logo placement: It must look like a premium brand asset.
         
-        3. **TYPOGRAPHY**:
-           - Use Modern, Sans-Serif fonts (like Inter, Roboto, Helvetica).
-           - High Contrast. White text on dark backgrounds or Black on light.
-           - Text must be LEADING the eye.
+        2. **COMPOSITION & BACKGROUND**:
+           - ${blueprint.visualStyle}.
+           - Use professional spacing, whitespace, and hierarchy.
+           - Make it look like a paid ad from a top-tier agency.
+        
+        3. **TYPOGRAPHY & COPY**:
+           - Use modern, readable fonts.
+           - Text hierarchy: Headline > Offer > Details.
         `;
     }
     
     genPrompt += `
-    **SMART TEXT PLACEMENT RULES (STRICT):**
+    **TEXT PLACEMENT RULES (STRICT):**
     ${dynamicTextInstructions}
     
     **CRITICAL CONSTRAINT:**
-    - **DO NOT HALLUCINATE TEXT.** If instructions say "Do NOT add...", then the final image MUST NOT contain that text.
-    - **QUALITY**: Text must be legible and spelled correctly. Lighting must match. 
-    - **OUTPUT**: A single, high-resolution image ready for Social Media.`;
+    - **DO NOT HALLUCINATE TEXT.** Only render the text explicitly provided above.
+    - **QUALITY**: Text must be crisp, legible, and spelled correctly. 
+    - **OUTPUT**: A single, high-resolution image.`;
 
     parts.push({ text: genPrompt });
 

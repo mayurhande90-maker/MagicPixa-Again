@@ -60,7 +60,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     // Mode
     const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica');
     const [language, setLanguage] = useState('English');
-    const [presentationStyle, setPresentationStyle] = useState('');
 
     // Data Inputs
     const [productName, setProductName] = useState('');
@@ -83,9 +82,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Options for Digital
-    const digitalStyles = ['Floating Device Mockup', 'Modern Laptop Desk', 'Abstract Tech Background', 'Professional Headshot', 'Glassmorphism', 'Dark Mode Aesthetic'];
-
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -100,13 +96,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (!productImage || !referenceImage || !auth.user || !campaignType) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
-        // Safety check for presentation style in digital mode
-        if (campaignType === 'digital' && !presentationStyle) {
-            setPresentationStyle('Floating Device Mockup'); // Default
-        }
-
         setLoading(true);
-        setLoadingText(genMode === 'replica' ? "Analyzing Layout & Style..." : "Designing Ad Campaign...");
+        setLoadingText(genMode === 'replica' ? "Analyzing Reference..." : "Creating New Concept...");
         setResultImage(null);
         
         try {
@@ -124,8 +115,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 description,
                 genMode, 
                 language,
-                campaignType,
-                presentationStyle || 'Standard'
+                campaignType
             );
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -161,7 +151,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setDescription('');
         setGenMode('replica');
         setLanguage('English');
-        setPresentationStyle('');
         // Keep campaign type unless explicitly backed out
     };
 
@@ -170,7 +159,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setCampaignType(null);
     }
 
-    const canGenerate = !!productImage && !!referenceImage && !isLowCredits && (campaignType === 'physical' || !!presentationStyle);
+    const canGenerate = !!productImage && !!referenceImage && !isLowCredits;
 
     return (
         <>
@@ -303,19 +292,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         />
                                     </div>
 
-                                    {/* Row 3: Presentation Style (Digital Only) */}
-                                    {campaignType === 'digital' && (
-                                        <div className="animate-fadeIn">
-                                            <SelectionGrid 
-                                                label="3. Presentation Style" 
-                                                options={digitalStyles} 
-                                                value={presentationStyle} 
-                                                onChange={setPresentationStyle} 
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Row 4: Mode & Language */}
+                                    {/* Row 3: Mode & Language */}
                                     <div>
                                         <div className="flex items-center justify-between mb-2 ml-1">
                                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Generation Settings</label>
@@ -336,7 +313,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         />
                                     </div>
 
-                                    {/* Row 5: Text Content */}
+                                    {/* Row 4: Text Content */}
                                     <div className="space-y-4 pt-2 border-t border-gray-100">
                                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">Ad Copy (Auto-inserted)</label>
                                         <div className="grid grid-cols-2 gap-3">
@@ -346,8 +323,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
                                         </div>
                                         <InputField
-                                            label="Ad Context / Description"
-                                            placeholder={campaignType === 'digital' ? "e.g. Freelance Coding Course, 'Master Python in 30 Days'" : "e.g. Organic Coffee, morning energy boost"}
+                                            label="Ad Context / Description (CRITICAL)"
+                                            placeholder={campaignType === 'digital' ? "e.g. SaaS Dashboard, 'Project Mgmt Tool', Tech Vibe" : "e.g. Organic Coffee, morning energy boost"}
                                             value={description}
                                             onChange={(e: any) => setDescription(e.target.value)}
                                         />
