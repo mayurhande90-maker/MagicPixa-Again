@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, BrandStylistIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, PhotoStudioIcon, BrandKitIcon, MagicWandIcon, CopyIcon, CheckIcon, MagicAdsIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -119,8 +119,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             setResultImage(finalImageUrl);
             
             // Deduct Credits & Save
-            saveCreation(auth.user.uid, finalImageUrl, `Brand Stylist (${genMode})`);
-            const updatedUser = await deductCredits(auth.user.uid, cost, `Brand Stylist (${genMode})`);
+            // Changed usage name to "Magic Ads"
+            saveCreation(auth.user.uid, finalImageUrl, `Magic Ads (${genMode})`);
+            const updatedUser = await deductCredits(auth.user.uid, cost, `Magic Ads (${genMode})`);
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -155,9 +156,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     return (
         <>
             <FeatureLayout
-                title="Brand Stylist AI"
+                title="Magic Ads"
                 description="Turn inspiration into high-converting ads instantly. Replicate a proven style exactly or let AI reimagine it with modern design trends."
-                icon={<BrandStylistIcon className="w-6 h-6 text-blue-500" />}
+                icon={<MagicAdsIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}

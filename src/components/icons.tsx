@@ -172,8 +172,8 @@ export const LightbulbIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.311a14.994 14.994 0 01-4.5 0M9 10.5a3 3 0 116 0 3 3 0 01-6 0zm3.75 4.875c0-1.036.095-2.07.27-3.075M9.25 10.5c.175 1.005.27 2.04.27 3.075M12 3v1.5m0 15V21" />} />
 );
 
-// New Brand Stylist Icon with custom SVG
-export const BrandStylistIcon: React.FC<IconProps> = ({ className }) => (
+// New Magic Ads Icon (Renamed from Brand Stylist) with custom SVG
+export const MagicAdsIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" xmlSpace="preserve">
         <g>
             <circle fill="#382B73" cx="500" cy="500" r="398"/>
@@ -203,6 +203,9 @@ export const BrandStylistIcon: React.FC<IconProps> = ({ className }) => (
         </g>
     </svg>
 );
+
+// Alias for backward compatibility
+export const BrandStylistIcon = MagicAdsIcon;
 
 export const PencilIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />} />

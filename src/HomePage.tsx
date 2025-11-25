@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, BrandStylistIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -32,9 +32,9 @@ const features = [
     },
     {
         id: 'brand_stylist',
-        icon: <BrandStylistIcon className="w-10 h-10 text-white" />,
-        title: "Brand Stylist AI",
-        description: "Generate on-brand photos or graphics in the exact style of any reference image.",
+        icon: <MagicAdsIcon className="w-10 h-10 text-white" />,
+        title: "Magic Ads",
+        description: "Generate high-converting ad creatives instantly by replicating or reimagining successful designs.",
         color: "bg-yellow-500",
         disabled: false,
     },
