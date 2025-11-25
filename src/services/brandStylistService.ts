@@ -242,10 +242,19 @@ export const generateStyledBrandAsset = async (
     **SCENE**: Recreate this aesthetic: "${blueprint.visualStyle}".
     **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'}.
     **LAYOUT**: ${blueprint.layoutPlan}.
-    **PRODUCT**: Place the Main Product naturally with realistic physics and shadows.
     `;
     
     genPrompt += `
+    *** RAW IMAGE ENHANCEMENT PROTOCOL (CRITICAL) ***
+    1. **DEEP ANALYSIS**: Examine the "USER ASSET" carefully. If it looks like a raw phone photo with bad lighting or flat flash, you MUST fix it.
+    2. **RELIGHTING**: You must **RELIGHT** the product to match the new environment. 
+       - If the Reference scene is sunny, the product must have warm highlights.
+       - If the Reference scene is moody/dark, the product must have deep contrast.
+    3. **INTEGRATION**: Eliminate the "cutout" look. 
+       - Generate realistic **contact shadows** (ambient occlusion) where the product touches the surface.
+       - Add slight environmental reflections to the product surface.
+    4. **COLOR GRADING**: Match the white balance and saturation of the product to the background. Do NOT leave the product looking washed out or different from the scene.
+    
     **TEXT PLACEMENT RULES (STRICT ADHERENCE):**
     ${dynamicTextInstructions}
     
