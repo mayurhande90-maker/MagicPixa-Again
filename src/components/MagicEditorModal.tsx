@@ -267,16 +267,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 if (maskData) {
                     const pixels = maskData.data;
                     for (let i = 0; i < pixels.length; i += 4) {
-                        // Alpha channel check. If drawn (alpha > 0), make it BLACK (Remove). Else WHITE (Keep).
+                        // FIXED MASK LOGIC:
+                        // Drawn (Alpha > 0) = WHITE (Removal Zone)
+                        // Not Drawn (Alpha == 0) = BLACK (Safe Zone)
                         if (pixels[i + 3] > 0) {
-                            pixels[i] = 0;     // R
-                            pixels[i + 1] = 0; // G
-                            pixels[i + 2] = 0; // B
-                            pixels[i + 3] = 255; // Alpha full
-                        } else {
-                            pixels[i] = 255;   // R
+                            pixels[i] = 255;     // R
                             pixels[i + 1] = 255; // G
                             pixels[i + 2] = 255; // B
+                            pixels[i + 3] = 255; // Alpha full
+                        } else {
+                            pixels[i] = 0;   // R
+                            pixels[i + 1] = 0; // G
+                            pixels[i + 2] = 0; // B
                             pixels[i + 3] = 255; // Alpha full
                         }
                     }

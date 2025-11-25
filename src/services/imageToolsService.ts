@@ -193,37 +193,48 @@ export const removeElementFromImage = async (
 ): Promise<string> => {
     const ai = getAiClient();
     
-    // Use Higher Resolution Optimizer for Editing
-    const [optImg] = await Promise.all([
-        optimizeImageForEditing(base64ImageData, mimeType)
+    // Use Higher Resolution Optimizer for BOTH Source and Mask to ensure alignment
+    // If we optimize one but not the other, the coordinate systems mismatch.
+    const [optImg, optMask] = await Promise.all([
+        optimizeImageForEditing(base64ImageData, mimeType),
+        optimizeImageForEditing(maskBase64, "image/png")
     ]);
 
-    // REVISED PROMPT: EXPLICIT MASK INTERPRETATION
-    const prompt = `You are an expert Photo Retoucher using Gemini 3 Pro.
+    const prompt = `You are an advanced AI Photo Editor using Gemini 3 Pro.
     
-    **TASK: ERASE & INPAINT (Magic Eraser)**
+    TASK: MAGIC ERASER / INPAINTING.
     
-    **INPUTS:**
-    1. **IMAGE 1 (Source)**: The photo that needs editing.
-    2. **IMAGE 2 (Instruction Mask)**: A binary mask layer.
-       - **BLACK** pixels = THE REMOVAL ZONE (The object to erase).
-       - **WHITE** pixels = THE SAFE ZONE (Keep exactly as is).
+    INPUTS:
+    1. Source Image.
+    2. Mask Image (Black & White).
     
-    **EXECUTION INSTRUCTIONS:**
-    1. **ERASE:** Identify the pixels in IMAGE 1 that correspond to the BLACK areas in IMAGE 2. Delete them completely.
-    2. **INPAINT:** Hallucinate a realistic background to fill the empty space. You MUST analyze the surrounding textures (walls, floor, patterns) in the WHITE area and extend them seamlessly into the gap.
-    3. **BLEND:** Ensure perfect lighting, noise, and focus consistency. The removed object should vanish without a trace.
-    4. **PROTECT:** Do NOT alter any part of the image covered by the WHITE mask.
+    **STRICT MASK DEFINITION:**
+    - **WHITE AREA** (Pixel value 255) = **THE OBJECT TO REMOVE**.
+    - **BLACK AREA** (Pixel value 0) = **THE REFERENCE BACKGROUND (KEEP)**.
     
-    Output ONLY the final edited image.`;
+    **INSTRUCTIONS:**
+    1. **IDENTIFY**: Look at the WHITE area in the Mask. Find the corresponding object in the Source Image.
+    2. **DELETE**: Completely erase everything inside the White Mask area.
+    3. **SYNTHESIZE**: Fill the erased hole by analyzing the patterns, lighting, and textures of the surrounding BLACK area.
+       - If the background is a wall, extend the wall.
+       - If it's a floor, continue the floor texture.
+       - If it's complex, hallucinate a plausible background that fits seamlessly.
+    4. **BLEND**: The edges must be invisible. No blurry patches. No artifacts.
+    
+    **NEGATIVE CONSTRAINTS:**
+    - Do NOT just blur the object. REMOVE IT.
+    - Do NOT leave a ghost or silhouette.
+    - Do NOT alter the Black (Safe) area.
+    
+    Output ONLY the final clean image.`;
     
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: {
             parts: [
                 { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
-                { text: "MASK LAYER (Black=Remove, White=Keep):" },
-                { inlineData: { data: maskBase64, mimeType: "image/png" } },
+                { text: "MASK LAYER (White=Remove, Black=Keep):" },
+                { inlineData: { data: optMask.data, mimeType: "image/png" } },
                 { text: prompt } 
             ]
         },
