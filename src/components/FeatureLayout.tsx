@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
     SparklesIcon, 
     DownloadIcon, 
@@ -10,32 +10,6 @@ import {
     CheckIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
-
-const useLoadingPhases = (isGenerating: boolean) => {
-    const [phase, setPhase] = useState("Initializing...");
-
-    useEffect(() => {
-        if (isGenerating) {
-            setPhase("Analyzing reference style...");
-            
-            const timeouts: NodeJS.Timeout[] = [];
-            
-            const steps = [
-                { t: "Composing layout...", d: 4000 },
-                { t: "Applying visual effects...", d: 9000 },
-                { t: "Adding final polish...", d: 14000 }
-            ];
-
-            steps.forEach(({ t, d }) => {
-                timeouts.push(setTimeout(() => setPhase(t), d));
-            });
-
-            return () => timeouts.forEach(clearTimeout);
-        }
-    }, [isGenerating]);
-
-    return phase;
-};
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
@@ -230,7 +204,6 @@ export const FeatureLayout: React.FC<{
     disableScroll, scrollRef, resultOverlay, customActionButtons
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
-    const loadingPhase = useLoadingPhases(isGenerating);
     
     // Default height if not specified. Used to enforce alignment.
     const contentHeightClass = resultHeightClass || 'h-[560px]';
@@ -297,52 +270,8 @@ export const FeatureLayout: React.FC<{
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-start">
-                            <div className="w-full h-full relative flex flex-col items-center rounded-3xl overflow-hidden">
+                            <div className="w-full h-full relative flex flex-col items-center">
                                 {leftContent}
-                                {isGenerating && (
-                                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center rounded-3xl animate-fadeIn pointer-events-auto overflow-hidden">
-                                        {/* Background Base - Deep Charcoal */}
-                                        <div className="absolute inset-0 bg-[#111827]"></div>
-                                        
-                                        {/* Grid Pattern Overlay */}
-                                        <div className="absolute inset-0 opacity-20" 
-                                             style={{ backgroundImage: 'radial-gradient(#4B5563 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
-                                        </div>
-                                        
-                                        {/* Center Spotlight */}
-                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(55,65,81,0.5)_0%,rgba(17,24,39,1)_70%)]"></div>
-
-                                        {/* Premium Loading Card */}
-                                        <div className="relative z-10 flex flex-col items-center justify-center p-8 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl">
-                                            
-                                            {/* Soft Ambient Glow */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 blur-2xl animate-pulse rounded-3xl"></div>
-
-                                            {/* Slim Progress Bar */}
-                                            <div className="w-48 h-1 bg-gray-800/80 rounded-full overflow-hidden relative mb-6 shadow-inner border border-white/5">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 w-[200%] h-full animate-[shimmer_1.5s_infinite_linear]"></div>
-                                            </div>
-                                            
-                                            {/* Phase Text */}
-                                            <div className="flex items-center gap-3 relative">
-                                                <div className="relative flex h-3 w-3">
-                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 shadow-[0_0_10px_#3B82F6]"></span>
-                                                </div>
-                                                <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-[0.2em] uppercase font-mono">
-                                                    {loadingPhase}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <style>{`
-                                            @keyframes shimmer {
-                                                0% { transform: translateX(-50%); }
-                                                100% { transform: translateX(0%); }
-                                            }
-                                        `}</style>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )}
@@ -381,8 +310,8 @@ export const FeatureLayout: React.FC<{
                                 >
                                     {isGenerating ? (
                                         <>
-                                            <div className={`w-5 h-5 border-2 border-t-transparent rounded-full animate-spin border-black/20 border-t-black`}></div> 
-                                            <span className="animate-pulse ml-2 font-medium tracking-wide">Processing...</span>
+                                            <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
+                                            <span className="animate-pulse">Generating...</span>
                                         </>
                                     ) : (
                                         <>
