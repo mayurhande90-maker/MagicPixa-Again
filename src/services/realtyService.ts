@@ -41,6 +41,7 @@ interface RealtyInputs {
     propertyImage?: { base64: string; mimeType: string } | null;
     referenceImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
+    amenities?: string[];
     texts: {
         projectName: string;
         unitType: string;
@@ -141,6 +142,11 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
         modelPrompt = "No model. Focus purely on the architecture and interior/exterior design.";
     }
 
+    // Check if amenities list is long, we might need more negative space
+    const extraSpacePrompt = inputs.amenities && inputs.amenities.length > 3 
+        ? "Ensure there is a clean, uncluttered area (e.g., plain wall or sky) suitable for listing multiple amenities." 
+        : "";
+
     const pass1Prompt = `You are a World-Class Architectural Photographer.
     
     TASK: Create a pristine, high-resolution real estate photograph.
@@ -151,6 +157,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     
     *** COMPOSITION RULES FOR TEXT OVERLAY (CRITICAL) ***
     - **Negative Space**: You MUST leave clear, uncluttered space (e.g., sky, pavement, or plain wall) at the TOP (20%) and BOTTOM (20%) of the frame. This is where text will go in the next step.
+    - ${extraSpacePrompt}
     - **Framing**: Use a wide-angle lens (24mm). Ensure the building is the HERO but does not crowd the edges. 
     - **Balance**: The composition must be 1:1 (Square). Center the visual weight.
     
@@ -216,25 +223,38 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
       - *Constraint*: Font size approx 10-15% of image height. Bold/Heavy weight.
     - **PROJECT NAME**: "${inputs.texts.projectName}". 
       - *Constraint*: Font size approx 6-8% of image height. Distinct font.
-    - **SUBTITLE**: "${inputs.texts.unitType} • ${inputs.texts.location}".
+    - **UNIT TYPE**: "${inputs.texts.unitType}".
       - *Constraint*: Smaller, legible, clean.
     
-    *** 3. VISUAL AESTHETICS & CONTRAST ***
-    - **Legibility**: Text MUST be readable. 
-      - If background is bright -> Use Dark Text.
-      - If background is busy -> Add a subtle 'Scrim' (Gradient Shadow) or a solid Shape behind text blocks (mimic Reference).
-    - **Colors**: Extract the primary accent color from the Reference (e.g., Gold, Royal Blue). Use it for CTAs or Highlights.
+    *** 3. AMENITIES & FEATURES (DYNAMIC LIST) ***
+    ${inputs.amenities && inputs.amenities.length > 0 ? `
+    - **AMENITIES LIST**: Create a clean, aligned list for: ${inputs.amenities.join(', ')}.
+    - **Style**: Use modern icons + text OR a neat bulleted list.
+    - **Background**: If placing on top of the image, use a **Frosted Glass** effect (semi-transparent white/black rectangle with blur) or a solid shape to ensure 100% legibility.
+    - **Placement**: Find a balanced spot (middle-left or middle-right) that doesn't cover the main subject.
+    ` : '- No amenities list provided. Focus on the main visuals.'}
+
+    *** 4. FOOTER & CONTACT (CONDITIONAL) ***
+    ${(inputs.texts.contact || inputs.texts.rera || inputs.texts.location) ? `
+    - **FOOTER BAR**: Create a professional footer strip at the bottom (approx 10-15% height).
+    - **CONTENT**:
+      ${inputs.texts.location ? `- Location: "${inputs.texts.location}"` : ''}
+      ${inputs.texts.contact ? `- Contact/Web: "${inputs.texts.contact}"` : ''}
+      ${inputs.texts.rera ? `- Legal/RERA: "${inputs.texts.rera}" (Small print)` : ''}
+    ` : '- No contact footer required. Keep the bottom clean or mimic the reference if it has decorative elements.'}
     
-    *** 4. CONDITIONAL ELEMENTS (ONLY IF PROVIDED) ***
-    ${inputs.texts.price ? `- **PRICE BADGE**: Render "${inputs.texts.price}" clearly. If reference uses a circle/box badge, copy it.` : ''}
-    ${inputs.texts.contact ? `- **CONTACT**: Render "${inputs.texts.contact}" in the footer area.` : ''}
-    ${inputs.texts.rera ? `- **LEGAL**: Render "${inputs.texts.rera}" in very small print (bottom edge).` : ''}
+    *** 5. PRICE BADGE ***
+    ${inputs.texts.price ? `- **PRICE**: Render "${inputs.texts.price}" inside a high-contrast shape (Circle or Rectangle) to act as a visual stopper.` : ''}
     
-    *** 5. LOGO PLACEMENT ***
+    *** 6. LOGO PLACEMENT ***
     - Find the logo position in the Reference.
     - Place the PROVIDED USER LOGO in that exact spot.
     - **Mode**: "Sticker Mode" (100% Opacity). Do not blend it into the sky/wall.
     
+    *** VISUAL AESTHETICS ***
+    - **Legibility**: Text MUST be readable. Use drop shadows or background scrims if needed.
+    - **Colors**: Extract the primary accent color from the Reference (e.g., Gold, Royal Blue). Use it for CTAs/Highlights.
+
     OUTPUT: A final, social-media ready ad post (1080x1080).`;
 
     pass2Parts.push({ text: pass2Prompt });

@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon } from '../components/icons';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -120,11 +120,17 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         projectName: '',
         unitType: '', // e.g. 3BHK
         marketingContext: '', // e.g. Ready to move, Luxury
-        location: '',
         price: '',
+        // Moved to dynamic sections below
+        location: '',
         rera: '',
         contact: ''
     });
+
+    // New Dynamic Sections State
+    const [amenities, setAmenities] = useState<string[]>([]); // Initially empty
+    const [showAmenities, setShowAmenities] = useState(false);
+    const [showContact, setShowContact] = useState(false);
 
     // Result
     const [resultImage, setResultImage] = useState<string | null>(null);
@@ -140,7 +146,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const autoScroll = () => {
         if (scrollRef.current) {
-            // Slightly increased delay to allow DOM expansion animation to start
             setTimeout(() => {
                 const element = scrollRef.current;
                 if (element) {
@@ -170,6 +175,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             try {
                 const analysis = await analyzeRealtyReference(base64.base64, base64.mimeType);
                 setDetectedFields(analysis);
+                
+                // Auto-open sections if detected
+                if (analysis.hasContact || analysis.hasRera || analysis.hasLocation) {
+                    setShowContact(true);
+                }
+                // Note: amenities hard to detect via OCR without complex logic, so we leave that manual.
             } catch (err) {
                 console.error("Ref analysis failed", err);
             } finally {
@@ -178,6 +189,34 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
         e.target.value = '';
     }
+
+    const handleToggleAmenities = () => {
+        if (!showAmenities) {
+            // When enabling, add 3 empty rows if list is empty
+            if (amenities.length === 0) {
+                setAmenities(['', '', '']);
+            }
+            setShowAmenities(true);
+        } else {
+            setShowAmenities(false);
+        }
+        autoScroll();
+    };
+
+    const updateAmenity = (index: number, value: string) => {
+        const newAmenities = [...amenities];
+        newAmenities[index] = value;
+        setAmenities(newAmenities);
+    };
+
+    const addAmenity = () => {
+        setAmenities([...amenities, '']);
+    };
+
+    const removeAmenity = (index: number) => {
+        const newAmenities = amenities.filter((_, i) => i !== index);
+        setAmenities(newAmenities);
+    };
 
     const handleGenerate = async () => {
         if (!referenceImage || !auth.user || !texts.projectName) return;
@@ -189,7 +228,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const mode = propertyChoice === 'generate' ? 'new_property' : 'lifestyle_fusion';
             
-            // Construct generation params if generating model
+            // Construct generation params
             const modelGenerationParams = modelChoice === 'generate' ? {
                 modelType,
                 region: modelRegion,
@@ -199,6 +238,18 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 framing: modelFraming
             } : undefined;
 
+            // Filter out empty amenities strings
+            const validAmenities = showAmenities ? amenities.filter(a => a.trim() !== '') : [];
+
+            // Pass text context based on toggle state. 
+            // If toggle is closed, we send empty strings so the AI doesn't generate them.
+            const finalTexts = {
+                ...texts,
+                contact: showContact ? texts.contact : '',
+                rera: showContact ? texts.rera : '',
+                location: showContact ? texts.location : ''
+            };
+
             const assetUrl = await generateRealtyAd({
                 mode,
                 modelImage: modelChoice === 'upload' ? modelImage?.base64 : null, 
@@ -206,7 +257,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 propertyImage: propertyChoice === 'upload' ? propertyImage?.base64 : null, 
                 referenceImage: referenceImage.base64,
                 logoImage: logoImage?.base64,
-                texts
+                amenities: validAmenities,
+                texts: finalTexts
             });
 
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -237,6 +289,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelChoice(null);
         setPropertyChoice(null);
         setTexts({ projectName: '', unitType: '', marketingContext: '', location: '', price: '', rera: '', contact: '' });
+        setAmenities([]);
+        setShowAmenities(false);
+        setShowContact(false);
         
         // Reset Model Gen Params
         setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
@@ -470,35 +525,88 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         rows={3}
                                     />
                                     
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 gap-3">
                                         <InputField 
-                                            label={<LabelWithBadge label="Location" detected={detectedFields?.hasLocation} />} 
-                                            placeholder="e.g. Mumbai" 
-                                            value={texts.location} 
-                                            onChange={(e: any) => setTexts({...texts, location: e.target.value})} 
-                                        />
-                                        <InputField 
-                                            label={<LabelWithBadge label="Price (Opt)" detected={detectedFields?.hasPrice} />} 
+                                            label={<LabelWithBadge label="Price (Optional)" detected={detectedFields?.hasPrice} />} 
                                             placeholder="e.g. ₹1.5 Cr+" 
                                             value={texts.price} 
                                             onChange={(e: any) => setTexts({...texts, price: e.target.value})} 
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                </div>
+                            </div>
+
+                            {/* Amenities Toggle */}
+                            <div className="border-t border-gray-100 pt-4">
+                                <button 
+                                    onClick={handleToggleAmenities}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showAmenities ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CheckIcon className={`w-4 h-4 ${showAmenities ? 'text-blue-600' : 'text-gray-400'}`}/>
+                                        <span className="text-xs font-bold uppercase tracking-wider">Add Amenities / Features?</span>
+                                    </div>
+                                    {showAmenities ? <ChevronUpIcon className="w-4 h-4"/> : <ChevronDownIcon className="w-4 h-4"/>}
+                                </button>
+
+                                {showAmenities && (
+                                    <div className="mt-4 space-y-3 animate-fadeIn bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        {amenities.map((amenity, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 animate-fadeIn">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={`Amenity ${idx + 1} (e.g. Gym, Pool)`}
+                                                    value={amenity}
+                                                    onChange={(e) => updateAmenity(idx, e.target.value)}
+                                                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                                                />
+                                                <button onClick={() => removeAmenity(idx)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                                                    <TrashIcon className="w-4 h-4"/>
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button onClick={addAmenity} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:text-blue-800 transition-colors mt-2">
+                                            <PlusCircleIcon className="w-4 h-4"/> Add Amenity
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Contact Footer Toggle */}
+                            <div className="border-t border-gray-100 pt-4">
+                                <button 
+                                    onClick={() => { setShowContact(!showContact); autoScroll(); }}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showContact ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CheckIcon className={`w-4 h-4 ${showContact ? 'text-blue-600' : 'text-gray-400'}`}/>
+                                        <span className="text-xs font-bold uppercase tracking-wider">Add Footer & Contact Info?</span>
+                                    </div>
+                                    {showContact ? <ChevronUpIcon className="w-4 h-4"/> : <ChevronDownIcon className="w-4 h-4"/>}
+                                </button>
+
+                                {showContact && (
+                                    <div className="mt-4 grid grid-cols-1 gap-3 animate-fadeIn bg-gray-50 p-4 rounded-xl border border-gray-100">
                                         <InputField 
-                                            label={<LabelWithBadge label="RERA (Opt)" detected={detectedFields?.hasRera} />} 
+                                            label={<LabelWithBadge label="Location (Full Address)" detected={detectedFields?.hasLocation} />} 
+                                            placeholder="e.g. Near Airport, Sector 42" 
+                                            value={texts.location} 
+                                            onChange={(e: any) => setTexts({...texts, location: e.target.value})} 
+                                        />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Contact / Website" detected={detectedFields?.hasContact} />} 
+                                            placeholder="e.g. www.skyline.com" 
+                                            value={texts.contact} 
+                                            onChange={(e: any) => setTexts({...texts, contact: e.target.value})} 
+                                        />
+                                        <InputField 
+                                            label={<LabelWithBadge label="RERA ID (Legal)" detected={detectedFields?.hasRera} />} 
                                             placeholder="e.g. P518000..." 
                                             value={texts.rera} 
                                             onChange={(e: any) => setTexts({...texts, rera: e.target.value})} 
                                         />
-                                        <InputField 
-                                            label={<LabelWithBadge label="Contact/Web (Opt)" detected={detectedFields?.hasContact} />} 
-                                            placeholder="e.g. www.site.com" 
-                                            value={texts.contact} 
-                                            onChange={(e: any) => setTexts({...texts, contact: e.target.value})} 
-                                        />
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                         </div>
