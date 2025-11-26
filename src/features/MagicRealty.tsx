@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateRealtyAd } from '../services/realtyService';
@@ -73,9 +73,6 @@ const CompactUpload: React.FC<{
 };
 
 export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    // Workflow State
-    const [step, setStep] = useState<number>(1);
-    
     // Assets
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [propertyImage, setPropertyImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -83,8 +80,24 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
 
     // Decisions
-    const [modelChoice, setModelChoice] = useState<'upload' | 'skip' | null>(null);
+    const [modelChoice, setModelChoice] = useState<'upload' | 'generate' | 'skip' | null>(null);
     const [propertyChoice, setPropertyChoice] = useState<'upload' | 'generate' | null>(null);
+
+    // Model Generation State
+    const [modelType, setModelType] = useState('');
+    const [modelRegion, setModelRegion] = useState('');
+    const [skinTone, setSkinTone] = useState('');
+    const [bodyType, setBodyType] = useState('');
+    const [modelComposition, setModelComposition] = useState('');
+    const [modelFraming, setModelFraming] = useState('');
+
+    // Model Options
+    const modelTypes = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
+    const modelRegions = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
+    const skinTones = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
+    const bodyTypes = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
+    const compositionTypes = ['Single Model', 'Group Shot'];
+    const shotTypes = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
 
     // Details
     const [texts, setTexts] = useState({
@@ -108,6 +121,17 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    const autoScroll = () => {
+        if (scrollRef.current) {
+            setTimeout(() => {
+                const element = scrollRef.current;
+                if (element) {
+                    element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+                }
+            }, 100);
+        }
+    };
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -127,10 +151,21 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const mode = propertyChoice === 'generate' ? 'new_property' : 'lifestyle_fusion';
             
+            // Construct generation params if generating model
+            const modelGenerationParams = modelChoice === 'generate' ? {
+                modelType,
+                region: modelRegion,
+                skinTone,
+                bodyType,
+                composition: modelComposition,
+                framing: modelFraming
+            } : undefined;
+
             const assetUrl = await generateRealtyAd({
                 mode,
-                modelImage: modelChoice === 'upload' ? modelImage?.base64 : null, // Only send if uploaded
-                propertyImage: propertyChoice === 'upload' ? propertyImage?.base64 : null, // Only send if uploaded
+                modelImage: modelChoice === 'upload' ? modelImage?.base64 : null, 
+                modelGenerationParams,
+                propertyImage: propertyChoice === 'upload' ? propertyImage?.base64 : null, 
                 referenceImage: referenceImage.base64,
                 logoImage: logoImage?.base64,
                 texts
@@ -157,7 +192,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleNewSession = () => {
-        setStep(1);
         setModelImage(null);
         setPropertyImage(null);
         setReferenceImage(null);
@@ -165,6 +199,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelChoice(null);
         setPropertyChoice(null);
         setTexts({ headline: '', subHeadline: '', location: '', price: '', rera: '', contact: '' });
+        
+        // Reset Model Gen Params
+        setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
+        setModelComposition(''); setModelFraming('');
+        
         setResultImage(null);
     };
 
@@ -180,11 +219,18 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // Validation for Generate Button
+    // Validation
+    const isModelReady = 
+        modelChoice === 'skip' || 
+        (modelChoice === 'upload' && !!modelImage) || 
+        (modelChoice === 'generate' && !!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming);
+
     const canGenerate = 
         !!referenceImage && 
         !!texts.headline && 
         (propertyChoice === 'generate' || !!propertyImage) && 
+        !!modelChoice &&
+        isModelReady &&
         !isLowCredits;
 
     return (
@@ -262,24 +308,45 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">1</span>
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lifestyle Model</label>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="grid grid-cols-3 gap-2 mb-3">
                                     <StepCard 
-                                        title="Upload Model" 
-                                        description="Use a specific person photo." 
-                                        icon={<UserIcon className="w-5 h-5"/>} 
+                                        title="Upload" 
+                                        description="Use own photo" 
+                                        icon={<UserIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'upload'}
                                         onClick={() => setModelChoice('upload')}
                                     />
                                     <StepCard 
-                                        title="Skip / No Model" 
-                                        description="Focus only on property." 
-                                        icon={<XIcon className="w-5 h-5"/>} 
+                                        title="Generate" 
+                                        description="Create with AI" 
+                                        icon={<SparklesIcon className="w-4 h-4"/>} 
+                                        selected={modelChoice === 'generate'}
+                                        onClick={() => setModelChoice('generate')}
+                                    />
+                                    <StepCard 
+                                        title="Skip" 
+                                        description="Focus on house" 
+                                        icon={<XIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'skip'}
                                         onClick={() => { setModelChoice('skip'); setModelImage(null); }}
                                     />
                                 </div>
+                                
                                 {modelChoice === 'upload' && (
-                                    <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />
+                                    <div className="animate-fadeIn">
+                                        <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />
+                                    </div>
+                                )}
+
+                                {modelChoice === 'generate' && (
+                                    <div className="animate-fadeIn space-y-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                                        <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
+                                        {modelComposition && <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />}
+                                        {modelType && <SelectionGrid label="Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
+                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
+                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); autoScroll(); }} />}
+                                        {bodyType && <SelectionGrid label="Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
+                                    </div>
                                 )}
                             </div>
 
@@ -306,7 +373,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     />
                                 </div>
                                 {propertyChoice === 'upload' && (
-                                    <CompactUpload label="Site/Interior Photo" image={propertyImage} onUpload={handleUpload(setPropertyImage)} onClear={() => setPropertyImage(null)} icon={<BuildingIcon className="w-6 h-6 text-indigo-400"/>} />
+                                    <div className="animate-fadeIn">
+                                        <CompactUpload label="Site/Interior Photo" image={propertyImage} onUpload={handleUpload(setPropertyImage)} onClear={() => setPropertyImage(null)} icon={<BuildingIcon className="w-6 h-6 text-indigo-400"/>} />
+                                    </div>
                                 )}
                             </div>
 

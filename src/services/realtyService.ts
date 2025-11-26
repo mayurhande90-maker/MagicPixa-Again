@@ -17,9 +17,19 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
+export interface ModelGenerationParams {
+    modelType: string;
+    region: string;
+    skinTone: string;
+    bodyType: string;
+    composition: string;
+    framing: string;
+}
+
 interface RealtyInputs {
     mode: 'lifestyle_fusion' | 'new_property';
     modelImage?: { base64: string; mimeType: string } | null;
+    modelGenerationParams?: ModelGenerationParams;
     propertyImage?: { base64: string; mimeType: string } | null;
     referenceImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
@@ -60,11 +70,27 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
         parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
-    // 2. Build Prompt with Design Logic from PDF
+    // 2. Construct Model Instruction
+    let modelInstruction = "";
+    if (inputs.modelImage) {
+        modelInstruction = "**Lifestyle Fusion**: Seamlessly integrate the provided LIFESTYLE MODEL. Match lighting direction. They represent the 'Outcome' (Living there).";
+    } else if (inputs.modelGenerationParams) {
+        const p = inputs.modelGenerationParams;
+        modelInstruction = `**GENERATE LIFESTYLE MODEL**:
+        - Subject: Photorealistic ${p.composition} of a ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}).
+        - Framing: ${p.framing}.
+        - Action: Integrate them naturally into the scene (e.g., relaxing on sofa, walking in garden, admiring view).
+        - Lighting: Must match the property's lighting perfectly (Shadows, Color Temp).
+        - Emotion: Desire, Comfort, Status.`;
+    } else {
+        modelInstruction = "**No Model**: Focus purely on the architecture and interior/exterior design.";
+    }
+
+    // 3. Build Prompt with Design Logic from PDF
     let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro, trained on the **"3% Design Rule"**.
     
     TASK: Create a high-conversion luxury real estate advertisement.
-    MODE: ${inputs.mode === 'lifestyle_fusion' ? 'Lifestyle Fusion (Blend Model + Property)' : 'New Property Generation (Visualize Concept)'}.
+    MODE: ${inputs.mode === 'lifestyle_fusion' ? 'Lifestyle Fusion (Blend/Generate Model + Property)' : 'New Property Generation (Visualize Concept)'}.
     
     *** DESIGN LOGIC (The 3% Rule) ***
     1. **Visual Hierarchy**: The Property is the undisputed Hero. Sequence of attention must be: **Image (Desire) -> Headline (Hook) -> Price/Value -> CTA**.
@@ -74,7 +100,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     *** INPUTS & EXECUTION ***
     - **Reference**: Copy the color palette, font weight, and layout structure.
     - ${inputs.propertyImage ? '**Property**: Enhance clarity. Fix sky. Ensure vertical lines are straight (Architectural Photography).' : '**Generation**: Hallucinate a photorealistic property matching the Reference vibe.'}
-    - ${inputs.modelImage ? '**Lifestyle Fusion**: Seamlessly integrate the model. Match lighting direction. They represent the "Outcome" (Living there).' : ''}
+    - ${modelInstruction}
     
     *** TYPOGRAPHY RULES ***
     - **HEADLINE**: "${inputs.texts.headline}" -> Big, High Contrast, Easy to read in < 2 seconds.
@@ -88,7 +114,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     parts.push({ text: prompt });
 
-    // 3. Call API
+    // 4. Call API
     const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
