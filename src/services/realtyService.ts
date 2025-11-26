@@ -51,29 +51,30 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     // 1. Process Images
     const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
     // Explicit instruction to extract Design DNA from reference
-    parts.push({ text: `*** CRITICAL REFERENCE IMAGE ***
-    Perform a "Design DNA Audit" on this image.
-    - Extract the Layout Structure (Grid system, Margin usage).
-    - Extract the Typography Hierarchy (Font weights, Case, Letter spacing).
-    - Extract the Color Hierarchy (Primary, Secondary, Accent colors).
-    - IGNORE any text content in this image. ONLY copy the visual style.` });
+    parts.push({ text: `*** CRITICAL: VISUAL TEMPLATE SOURCE ***
+    TREAT THIS IMAGE AS A RIGID CSS LAYOUT.
+    - You must CLONE the exact layout structure (Grid, Margins, Text positioning).
+    - You must CLONE the exact typography hierarchy (Font weight, Case, Spacing).
+    - You must CLONE the exact color blocks/overlays.
+    - IGNORE the actual text content (e.g., if it says "Villa", but user wants "Apartment", use the layout of "Villa" but write "Apartment").
+    - DO NOT INVENT NEW LAYOUTS. COPY-PASTE THIS DESIGN STRUCTURE.` });
     parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
 
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        parts.push({ text: "LOGO (Branding):" });
+        parts.push({ text: "USER LOGO (Replace reference logo with this):" });
         parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
     if (inputs.modelImage) {
         const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
-        parts.push({ text: "LIFESTYLE MODEL (Social Proof - Must be integrated):" });
+        parts.push({ text: "LIFESTYLE MODEL (Must be integrated seamlessly):" });
         parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
     }
 
     if (inputs.propertyImage) {
         const optProperty = await optimizeImage(inputs.propertyImage.base64, inputs.propertyImage.mimeType);
-        parts.push({ text: "PROPERTY IMAGE (Hero Subject - Enhance clarity):" });
+        parts.push({ text: "PROPERTY IMAGE (The Hero Subject):" });
         parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
@@ -94,47 +95,36 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }
 
     // 3. Build Prompt with Design Logic from PDF & Copywriting
-    let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro.
+    let prompt = `You are an advanced AI Designer executing a "Pixel-Perfect Design Transfer".
     
-    TASK: Create a high-conversion luxury real estate advertisement.
+    TASK: Recreate the Reference Image's design using the User's Assets.
     
-    *** COPYWRITING ENGINE (The "2-Second Rule") ***
-    Analyze the User Context: "${inputs.texts.marketingContext}".
-    GENERATE A HEADLINE HOOK based on this context.
-    - If context suggests "Investment", use "High ROI" or "Smart Choice".
-    - If context suggests "Luxury/Lifestyle", use "Live Above It All" or "Pure Opulence".
-    - If context suggests "Urgency", use "Last Few Units" or "Move In Now".
-    - **Constraint**: Headline must be < 5 words. High Impact. Sans-Serif Bold.
+    *** STRICT LAYOUT CLONING PROTOCOL ***
+    1. **Grid Match**: If the reference has a text box on the bottom-left, put the user's text on the bottom-left. If the headline is centered, center the user's headline.
+    2. **Font Match**: Match the visual weight (Bold/Light) and style (Serif/Sans) of the reference text.
+    3. **Color Match**: Use the exact color palette for backgrounds/overlays found in the reference.
+    4. **Asset Swap**:
+       - Replace Reference Property -> User Property Image.
+       - Replace Reference Model -> User Model (if provided).
+       - Replace Reference Logo -> User Logo (if provided).
+       - Replace Reference Text -> Generated Copy (below).
+
+    *** COPYWRITING ENGINE (Context-Aware) ***
+    User Context: "${inputs.texts.marketingContext}"
+    Generate a high-impact Headline (max 5 words) based on this context that fits the reference layout.
     
-    *** DESIGN EXECUTION (The "3% Design Rule") ***
-    Apply these specific rules to the output image:
+    *** CONTENT MAPPING ***
+    - **Headline**: Generated Hook (e.g., "Luxury Redefined").
+    - **Project Name**: "${inputs.texts.projectName}"
+    - **Unit Type**: "${inputs.texts.unitType}"
+    - **Footer/Details**: "${inputs.texts.location}"${inputs.texts.price ? `, "${inputs.texts.price}"` : ''}.
+    - **Contact**: "${inputs.texts.contact || ''}".
+    - **RERA**: "${inputs.texts.rera || ''}".
     
-    1. **Visual Hierarchy (Eye Flow)**:
-       - **Primary Focal Point**: The Property Image (Hero). Maximize size.
-       - **Secondary**: The Generated Headline Hook (High Contrast, Top or Center-Left).
-       - **Tertiary**: Project Name ("${inputs.texts.projectName}") & Unit Type ("${inputs.texts.unitType}").
-       - **Action**: Footer/Contact Info (Low friction).
-       
-    2. **Cognitive Load Reduction**:
-       - Remove visual clutter.
-       - Use "Generous White Space" (or negative space) around text elements to signal premium quality.
-       - Ensure text is legible against the background (Add subtle drop shadows or gradients if needed).
-       
-    3. **Color Psychology**:
-       - Extract the color palette from the Reference Image.
-       - Apply "Luxury" cues (Black/Gold) or "Trust" cues (Blue/White) depending on the Reference Vibe.
-       
-    4. **The Footer Bar**:
-       - Create a distinct, clean footer bar at the bottom.
-       - Group the technical details here: "${inputs.texts.unitType}", "${inputs.texts.location}"${inputs.texts.price ? `, Price: "${inputs.texts.price}"` : ''}.
-       - If provided, place RERA ("${inputs.texts.rera}") and Contact ("${inputs.texts.contact}") clearly in the footer.
-       
-    *** FINAL ASSEMBLY INSTRUCTIONS ***
-    - **Layout**: Strictly follow the Reference Image's layout structure.
+    *** EXECUTION INSTRUCTIONS ***
+    - **Enhancement**: Apply "Golden Hour" lighting to the Property Image to make it pop.
     - **Fusion**: ${modelInstruction}
-    - **Enhancement**: Apply "Golden Hour" lighting to the property to trigger emotional desire.
-    
-    OUTPUT: A single, high-resolution marketing image. Photorealistic quality.
+    - **Output**: A single, high-resolution marketing image that looks exactly like the Reference design but with new content.
     `;
 
     parts.push({ text: prompt });
