@@ -16,6 +16,7 @@ import { DailyMissionStudio } from './features/DailyMissionStudio';
 import { ThumbnailStudio } from './features/ThumbnailStudio';
 import { BrandKitAI } from './features/BrandKitAI';
 import { BrandStylistAI } from './features/BrandStylistAI';
+import { MagicRealty } from './features/MagicRealty';
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -185,6 +186,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
                  return <BrandStylistAI auth={auth} appConfig={appConfig} />;
+            case 'magic_realty':
+                 return <MagicRealty auth={auth} appConfig={appConfig} />;
             case 'soul':
                  return <StandardFeature title="Magic Soul" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
             case 'colour':

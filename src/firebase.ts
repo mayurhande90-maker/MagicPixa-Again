@@ -786,6 +786,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Eraser': 1,
           'Magic Scanner': 1,
           'Magic Notes': 2,
+          'Magic Realty': 4,
         },
         featureToggles: {
           'studio': true,
@@ -800,6 +801,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'scanner': false,
           'mockup': true,
           'notes': false,
+          'magic_realty': true,
         },
         creditPacks: [
             { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
