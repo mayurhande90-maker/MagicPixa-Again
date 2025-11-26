@@ -1,4 +1,3 @@
-
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -110,111 +109,139 @@ export const analyzeRealtyReference = async (base64: string, mimeType: string): 
 
 export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> => {
     const ai = getAiClient();
-    const parts: any[] = [];
 
-    // 1. Process Images
-    const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    // Explicit instruction to extract Design DNA from reference
-    parts.push({ text: `*** CRITICAL: VISUAL TEMPLATE SOURCE ***
-    TREAT THIS IMAGE AS A RIGID CSS LAYOUT.
-    - You must CLONE the exact layout structure (Grid, Margins, Text positioning).
-    - You must CLONE the exact typography hierarchy (Font weight, Case, Spacing).
-    - You must CLONE the exact color blocks/overlays.
-    - IGNORE the actual text content (e.g., if it says "Villa", but user wants "Apartment", use the layout of "Villa" but write "Apartment").
-    - DO NOT INVENT NEW LAYOUTS. COPY-PASTE THIS DESIGN STRUCTURE.` });
-    parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
+    // ==============================================================================================
+    // PASS 1: THE PHOTOGRAPHER (Clean Scene Generation)
+    // Goal: Create the perfect "clean" background image. No text. No logos. Just the scene.
+    // ==============================================================================================
+    
+    const pass1Parts: any[] = [];
 
-    if (inputs.logoImage) {
-        const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        parts.push({ text: "USER LOGO (Replace reference logo with this):" });
-        parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    }
-
-    if (inputs.modelImage) {
-        const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
-        parts.push({ text: "LIFESTYLE MODEL (Must be integrated seamlessly):" });
-        parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
-    }
-
+    // 1. Property Image (The Stage)
     if (inputs.propertyImage) {
         const optProperty = await optimizeImage(inputs.propertyImage.base64, inputs.propertyImage.mimeType);
-        parts.push({ text: "PROPERTY IMAGE (The Hero Subject):" });
-        parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
+        pass1Parts.push({ text: "BASE PROPERTY IMAGE:" });
+        pass1Parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
-    // 2. Construct Model Instruction
-    let modelInstruction = "";
+    // 2. Model Integration (The Actor)
+    let modelPrompt = "";
     if (inputs.modelImage) {
-        modelInstruction = "**Lifestyle Fusion**: Seamlessly integrate the provided LIFESTYLE MODEL. Match lighting direction (Sun position). They represent the 'Outcome' (Living there).";
+        const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
+        pass1Parts.push({ text: "MODEL TO INTEGRATE:" });
+        pass1Parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+        modelPrompt = "Integrate the provided model into the property scene naturally.";
     } else if (inputs.modelGenerationParams) {
         const p = inputs.modelGenerationParams;
-        modelInstruction = `**GENERATE LIFESTYLE MODEL**:
-        - Subject: Photorealistic ${p.composition} of a ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}).
-        - Framing: ${p.framing}.
-        - Action: Integrate them naturally into the scene (e.g., relaxing on sofa, walking in garden, admiring view).
-        - Lighting: Must match the property's lighting perfectly (Shadows, Color Temp).
-        - Emotion: Desire, Comfort, Status.`;
+        modelPrompt = `Generate a photorealistic model: ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}). 
+        Action: ${p.composition}, ${p.framing}. 
+        Lighting: Match the property's lighting exactly.
+        Interaction: The model should look comfortable and engaged with the environment.`;
     } else {
-        modelInstruction = "**No Model**: Focus purely on the architecture and interior/exterior design.";
+        modelPrompt = "No model. Focus purely on the architecture and interior/exterior design.";
     }
 
-    // 3. Build Prompt with Design Logic from PDF & Copywriting
-    let prompt = `You are an advanced AI Designer executing a "Pixel-Perfect Design Transfer".
+    const pass1Prompt = `You are a World-Class Architectural Photographer.
     
-    TASK: Recreate the Reference Image's design using the User's Assets.
+    TASK: Create a pristine, high-resolution real estate photograph.
     
-    *** VISUAL HIERARCHY RULES (CRITICAL) ***
-    1. **HEADLINE (Dominant)**: The Main Marketing Line generated below must be the most prominent text element (Size/Weight).
-    2. **PROJECT NAME (Prominent)**: "${inputs.texts.projectName}" must be HIGHLY VISIBLE and distinct, secondary only to the Headline. It should not be hidden in small text.
-    3. **LOGO PLACEMENT**: Detect the exact position of the logo in the Reference Image (e.g. Top Right, Bottom Center). Place the **User's Uploaded Logo** in that EXACT same position and relative size.
+    INPUTS:
+    - Property Image (Enhance lighting to 'Golden Hour' if appropriate for the context).
+    - ${modelPrompt}
     
-    *** STRICT LAYOUT CLONING PROTOCOL ***
-    1. **Grid Match**: Clone the exact text box positions from the reference.
-    2. **Font Match**: Match the visual weight (Bold/Light) and style (Serif/Sans) of the reference text.
-    3. **Color Match**: Use the exact color palette for backgrounds/overlays found in the reference.
-    4. **Asset Swap**:
-       - Replace Reference Property -> User Property Image.
-       - Replace Reference Model -> User Model (if provided).
-       - Replace Reference Logo -> User Logo (if provided).
-       - Replace Reference Text -> Generated Copy (below).
+    CRITICAL RULES:
+    1. **NO TEXT**: Do not generate any text, watermarks, or logos. Clean image only.
+    2. **NO GRAPHICS**: No overlays, no badges.
+    3. **PHOTOREALISM**: Output must look like a RAW photo from a DSLR (85mm lens).
+    4. **COMPOSITION**: Ensure there is sufficient 'negative space' (sky, pavement, or wall) suitable for placing text layers in the next step, but keep the composition balanced and professional.
+    
+    OUTPUT: A single clean photograph.`;
 
-    *** COPYWRITING ENGINE (Context-Aware) ***
-    User Context: "${inputs.texts.marketingContext}"
-    Generate a high-impact Headline (max 5 words) based on this context that fits the reference layout.
-    
-    *** CONTENT MAPPING (STRICTLY CONDITIONAL) ***
-    Include ONLY the following fields. If a value is missing below, DO NOT RENDER IT or create a placeholder.
-    
-    - **Headline**: [Generated Hook]
-    - **Project Name**: "${inputs.texts.projectName}"
-    - **Unit Type**: "${inputs.texts.unitType}"
-    - **Location**: "${inputs.texts.location}"
-    ${inputs.texts.price ? `- **Price**: "${inputs.texts.price}"` : ''}
-    ${inputs.texts.contact ? `- **Contact**: "${inputs.texts.contact}"` : ''}
-    ${inputs.texts.rera ? `- **RERA**: "${inputs.texts.rera}"` : ''}
-    
-    *** EXECUTION INSTRUCTIONS ***
-    - **Enhancement**: Apply "Golden Hour" lighting to the Property Image to make it pop.
-    - **Fusion**: ${modelInstruction}
-    - **Output**: A single, high-resolution marketing image that looks exactly like the Reference design but with new content.
-    `;
+    pass1Parts.push({ text: pass1Prompt });
 
-    parts.push({ text: prompt });
-
-    // 4. Call API
-    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+    // Execute Pass 1
+    const pass1Response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
-        contents: { parts },
+        contents: { parts: pass1Parts },
         config: { 
             responseModalities: [Modality.IMAGE],
-            imageConfig: {
-                aspectRatio: "1:1", 
-                imageSize: "1K"
-            }
+            imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
         },
     }));
 
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+    const cleanImageBase64 = pass1Response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
+    if (!cleanImageBase64) throw new Error("Pass 1 (Photography) failed to generate image.");
+
+
+    // ==============================================================================================
+    // PASS 2: THE GRAPHIC DESIGNER (Layout & Typography)
+    // Goal: Apply the reference layout, text, and logo onto the clean image.
+    // ==============================================================================================
+
+    const pass2Parts: any[] = [];
+
+    // 1. The Canvas (Result from Pass 1)
+    pass2Parts.push({ text: "BACKGROUND CANVAS (Do not alter the scene, only add graphics):" });
+    pass2Parts.push({ inlineData: { data: cleanImageBase64, mimeType: "image/jpeg" } });
+
+    // 2. The Template (Reference Image)
+    const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+    pass2Parts.push({ text: "DESIGN REFERENCE (Copy layout, font style, and color palette EXACTLY):" });
+    pass2Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
+
+    // 3. The Brand Asset (Logo)
+    if (inputs.logoImage) {
+        const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
+        pass2Parts.push({ text: "USER LOGO (Place this 'sticker' exactly where the logo is in the reference):" });
+        pass2Parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
+    }
+
+    // 4. Design & Copy Instructions
+    const pass2Prompt = `You are an Expert Graphic Designer & Copywriter.
+    
+    TASK: Apply the layout design from the REFERENCE IMAGE onto the BACKGROUND CANVAS.
+    
+    *** 1. LAYOUT TRANSFER (The "Template" Logic) ***
+    - Analyze the Reference Image. Identify:
+      - Text Block Positions (Headline, Price, Footer).
+      - Shape Overlays (Rectangles, Gradients).
+      - Font Weights & Styles.
+    - **COPY-PASTE**: Recreate these exact graphic elements on the Canvas.
+    - **SAFE ZONE**: Keep all text/logos 10% away from the absolute edges.
+    
+    *** 2. CONTENT POPULATION (The "Sticker" Logic) ***
+    - **HEADLINE**: ${inputs.texts.marketingContext ? `Generate a punchy 3-5 word headline based on: "${inputs.texts.marketingContext}"` : "Generate a high-converting Real Estate headline"}. Render this in the largest font slot.
+    - **PROJECT NAME**: Render "${inputs.texts.projectName}" clearly. Second largest font.
+    - **UNIT & LOC**: Render "${inputs.texts.unitType} • ${inputs.texts.location}" in the subtitle slot.
+    ${inputs.texts.price ? `- **PRICE**: Render "${inputs.texts.price}" in the price slot/badge.` : ''}
+    ${inputs.texts.contact ? `- **FOOTER**: Render "${inputs.texts.contact}" in the bottom bar.` : ''}
+    ${inputs.texts.rera ? `- **LEGAL**: Render "${inputs.texts.rera}" in small print at the bottom.` : ''}
+    
+    *** 3. LOGO PLACEMENT ***
+    - Find the logo position in the Reference.
+    - Place the PROVIDED USER LOGO in that exact spot.
+    - **MODE**: "Sticker Mode". The logo must be 100% opaque, sharp, and floating above the image. Do not blend it into the sky/wall.
+    
+    *** 4. STYLE DNA ***
+    - Extract the Primary Font Color from the Reference (e.g., Gold, White, Navy). Use it.
+    - Extract the Font Style (e.g., Serif, Sans-Serif). Use it.
+    - Ensure text legibility by adding subtle drop shadows or shape overlays if the background is busy (mimic Reference).
+    
+    OUTPUT: Final high-resolution marketing image.`;
+
+    pass2Parts.push({ text: pass2Prompt });
+
+    const pass2Response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-3-pro-image-preview',
+        contents: { parts: pass2Parts },
+        config: { 
+            responseModalities: [Modality.IMAGE],
+            imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
+        },
+    }));
+
+    const finalImageBase64 = pass2Response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
+    if (!finalImageBase64) throw new Error("Pass 2 (Design) failed to generate image.");
+
+    return finalImageBase64;
 };
