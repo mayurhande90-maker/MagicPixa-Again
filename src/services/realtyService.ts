@@ -99,8 +99,13 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     
     TASK: Recreate the Reference Image's design using the User's Assets.
     
+    *** VISUAL HIERARCHY RULES (CRITICAL) ***
+    1. **HEADLINE (Dominant)**: The Main Marketing Line generated below must be the most prominent text element (Size/Weight).
+    2. **PROJECT NAME (Prominent)**: "${inputs.texts.projectName}" must be HIGHLY VISIBLE and distinct, secondary only to the Headline. It should not be hidden in small text.
+    3. **LOGO PLACEMENT**: Detect the exact position of the logo in the Reference Image (e.g. Top Right, Bottom Center). Place the **User's Uploaded Logo** in that EXACT same position and relative size.
+    
     *** STRICT LAYOUT CLONING PROTOCOL ***
-    1. **Grid Match**: If the reference has a text box on the bottom-left, put the user's text on the bottom-left. If the headline is centered, center the user's headline.
+    1. **Grid Match**: Clone the exact text box positions from the reference.
     2. **Font Match**: Match the visual weight (Bold/Light) and style (Serif/Sans) of the reference text.
     3. **Color Match**: Use the exact color palette for backgrounds/overlays found in the reference.
     4. **Asset Swap**:
@@ -113,13 +118,16 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     User Context: "${inputs.texts.marketingContext}"
     Generate a high-impact Headline (max 5 words) based on this context that fits the reference layout.
     
-    *** CONTENT MAPPING ***
-    - **Headline**: Generated Hook (e.g., "Luxury Redefined").
+    *** CONTENT MAPPING (STRICTLY CONDITIONAL) ***
+    Include ONLY the following fields. If a value is missing below, DO NOT RENDER IT or create a placeholder.
+    
+    - **Headline**: [Generated Hook]
     - **Project Name**: "${inputs.texts.projectName}"
     - **Unit Type**: "${inputs.texts.unitType}"
-    - **Footer/Details**: "${inputs.texts.location}"${inputs.texts.price ? `, "${inputs.texts.price}"` : ''}.
-    - **Contact**: "${inputs.texts.contact || ''}".
-    - **RERA**: "${inputs.texts.rera || ''}".
+    - **Location**: "${inputs.texts.location}"
+    ${inputs.texts.price ? `- **Price**: "${inputs.texts.price}"` : ''}
+    ${inputs.texts.contact ? `- **Contact**: "${inputs.texts.contact}"` : ''}
+    ${inputs.texts.rera ? `- **RERA**: "${inputs.texts.rera}"` : ''}
     
     *** EXECUTION INSTRUCTIONS ***
     - **Enhancement**: Apply "Golden Hour" lighting to the Property Image to make it pop.
