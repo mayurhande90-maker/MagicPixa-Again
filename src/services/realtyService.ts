@@ -39,54 +39,51 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     // 1. Process Images
     const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    parts.push({ text: "REFERENCE STYLE (Vibe, Lighting, Layout):" });
+    parts.push({ text: "REFERENCE STYLE (Visual Hierarchy & Vibe):" });
     parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
 
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        parts.push({ text: "LOGO (Place in top corner or bottom footer):" });
+        parts.push({ text: "LOGO (Branding):" });
         parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
     if (inputs.modelImage) {
         const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
-        parts.push({ text: "LIFESTYLE MODEL (Fuse into scene):" });
+        parts.push({ text: "LIFESTYLE MODEL (Social Proof):" });
         parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
     }
 
     if (inputs.propertyImage) {
         const optProperty = await optimizeImage(inputs.propertyImage.base64, inputs.propertyImage.mimeType);
-        parts.push({ text: "PROPERTY IMAGE (Main Subject):" });
+        parts.push({ text: "PROPERTY IMAGE (Hero Subject):" });
         parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
-    // 2. Build Prompt
-    let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro.
+    // 2. Build Prompt with Design Logic from PDF
+    let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro, trained on the **"3% Design Rule"**.
     
-    TASK: Create a luxury real estate advertisement/flyer.
+    TASK: Create a high-conversion luxury real estate advertisement.
     MODE: ${inputs.mode === 'lifestyle_fusion' ? 'Lifestyle Fusion (Blend Model + Property)' : 'New Property Generation (Visualize Concept)'}.
     
-    *** INPUTS ***
-    - Reference Image: Copy the color grading (e.g., Golden Hour, Blue Hour), layout structure, and font style.
-    - ${inputs.propertyImage ? 'Property Image: Enhance this photo. Fix sky, lighting, and clarity.' : 'NO PROPERTY PHOTO: Generate a photorealistic building/interior matching the Reference Vibe.'}
-    - ${inputs.modelImage ? 'Model Photo: Seamlessly integrate this person into the foreground/midground.' : 'No specific model provided.'}
+    *** DESIGN LOGIC (The 3% Rule) ***
+    1. **Visual Hierarchy**: The Property is the undisputed Hero. Sequence of attention must be: **Image (Desire) -> Headline (Hook) -> Price/Value -> CTA**.
+    2. **Cognitive Load**: Remove visual friction. Do not clutter the image with floating text. Group related info (Contact, RERA, Logo) into a structured **Footer Bar** or clean negative space.
+    3. **Emotional Trigger**: We are selling a 'Dream', not just walls. Use lighting (Golden Hour, Blue Hour) to trigger the emotion of **"Status"** or **"Comfort"**.
     
-    *** LAYOUT & TEXT RULES (STRICT) ***
-    - **FLYER COMPOSITION**: Reserve the BOTTOM 20% of the image as a clean, solid/gradient "Footer Bar" or negative space for contact details.
-    - **TEXT PLACEMENT**:
-      1. **HEADLINE**: "${inputs.texts.headline}" -> Big, Bold, Elegant Serif or Sans-Serif (Match Reference).
-      2. **SUBHEAD**: "${inputs.texts.subHeadline}" -> Smaller, near headline.
-      3. **LOCATION**: "${inputs.texts.location}" -> Clear, readable.
-      ${inputs.texts.price ? `4. **PRICE**: "${inputs.texts.price}" -> Highlighted badge or text.` : ''}
-      ${inputs.texts.contact ? `5. **CONTACT**: "${inputs.texts.contact}" -> In Footer Bar.` : ''}
-      ${inputs.texts.rera ? `6. **RERA**: "${inputs.texts.rera}" -> Small legal text in Footer.` : ''}
+    *** INPUTS & EXECUTION ***
+    - **Reference**: Copy the color palette, font weight, and layout structure.
+    - ${inputs.propertyImage ? '**Property**: Enhance clarity. Fix sky. Ensure vertical lines are straight (Architectural Photography).' : '**Generation**: Hallucinate a photorealistic property matching the Reference vibe.'}
+    - ${inputs.modelImage ? '**Lifestyle Fusion**: Seamlessly integrate the model. Match lighting direction. They represent the "Outcome" (Living there).' : ''}
     
-    *** VISUAL ENHANCEMENT ***
-    - **SKY REPLACEMENT**: If the property photo has a dull sky, replace it with a vibrant Blue Sky or Golden Sunset (match Reference).
-    - **CONSTRUCTION CLEANUP**: Remove construction debris, unfinished cement, or wires. Make it look finished and premium.
-    - **LIFESTYLE BLEND**: If a model is provided, do NOT paste them like a sticker. Match the lighting direction and shadows. They should look like they are enjoying the property.
+    *** TYPOGRAPHY RULES ***
+    - **HEADLINE**: "${inputs.texts.headline}" -> Big, High Contrast, Easy to read in < 2 seconds.
+    - **SUBHEAD**: "${inputs.texts.subHeadline}" -> Smaller, supporting the headline.
+    - **LOCATION**: "${inputs.texts.location}" -> Clear legibility.
+    ${inputs.texts.price ? `- **PRICE**: "${inputs.texts.price}" -> Use a high-contrast badge or bold text (Value Anchor).` : ''}
+    - **FOOTER AREA**: Place Contact ("${inputs.texts.contact}"), Logo, and RERA ("${inputs.texts.rera}") in a clean bottom bar to reduce noise.
     
-    OUTPUT: A single, high-resolution 4:5 or 1:1 marketing image.
+    OUTPUT: A single, high-resolution 4:5 or 1:1 marketing image. Photorealistic quality.
     `;
 
     parts.push({ text: prompt });
@@ -98,9 +95,6 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
         config: { 
             responseModalities: [Modality.IMAGE],
             imageConfig: {
-                // Force portrait for flyers if reference suggests, otherwise square. 
-                // For simplicity in this version, we default to 4:5 (common for RE) or 1:1.
-                // Let's stick to 1:1 for social media consistency unless we detect otherwise.
                 aspectRatio: "1:1", 
                 imageSize: "1K"
             }
