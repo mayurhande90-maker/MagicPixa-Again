@@ -111,8 +111,8 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     const ai = getAiClient();
 
     // ==============================================================================================
-    // PASS 1: THE PHOTOGRAPHER (Clean Scene Generation)
-    // Goal: Create the perfect "clean" background image. No text. No logos. Just the scene.
+    // PASS 1: THE ARCHITECTURAL PHOTOGRAPHER (Clean Scene Generation)
+    // Goal: Create the perfect "clean" background image with space for text.
     // ==============================================================================================
     
     const pass1Parts: any[] = [];
@@ -130,7 +130,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
         const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
         pass1Parts.push({ text: "MODEL TO INTEGRATE:" });
         pass1Parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
-        modelPrompt = "Integrate the provided model into the property scene naturally.";
+        modelPrompt = "Integrate the provided model into the property scene naturally. Scale the person realistically relative to the building.";
     } else if (inputs.modelGenerationParams) {
         const p = inputs.modelGenerationParams;
         modelPrompt = `Generate a photorealistic model: ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}). 
@@ -146,14 +146,18 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     TASK: Create a pristine, high-resolution real estate photograph.
     
     INPUTS:
-    - Property Image (Enhance lighting to 'Golden Hour' if appropriate for the context).
+    - Property Image (Enhance lighting to 'Golden Hour' or 'Premium Daylight').
     - ${modelPrompt}
     
-    CRITICAL RULES:
+    *** COMPOSITION RULES FOR TEXT OVERLAY (CRITICAL) ***
+    - **Negative Space**: You MUST leave clear, uncluttered space (e.g., sky, pavement, or plain wall) at the TOP (20%) and BOTTOM (20%) of the frame. This is where text will go in the next step.
+    - **Framing**: Use a wide-angle lens (24mm). Ensure the building is the HERO but does not crowd the edges. 
+    - **Balance**: The composition must be 1:1 (Square). Center the visual weight.
+    
+    *** QUALITY PROTOCOL ***
     1. **NO TEXT**: Do not generate any text, watermarks, or logos. Clean image only.
     2. **NO GRAPHICS**: No overlays, no badges.
     3. **PHOTOREALISM**: Output must look like a RAW photo from a DSLR (85mm lens).
-    4. **COMPOSITION**: Ensure there is sufficient 'negative space' (sky, pavement, or wall) suitable for placing text layers in the next step, but keep the composition balanced and professional.
     
     OUTPUT: A single clean photograph.`;
 
@@ -174,7 +178,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
 
     // ==============================================================================================
-    // PASS 2: THE GRAPHIC DESIGNER (Layout & Typography)
+    // PASS 2: THE SENIOR ART DIRECTOR (Layout, Typography, & Brand)
     // Goal: Apply the reference layout, text, and logo onto the clean image.
     // ==============================================================================================
 
@@ -186,7 +190,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     // 2. The Template (Reference Image)
     const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    pass2Parts.push({ text: "DESIGN REFERENCE (Copy layout, font style, and color palette EXACTLY):" });
+    pass2Parts.push({ text: "DESIGN REFERENCE (Strictly Copy Layout, Fonts, and Colors):" });
     pass2Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
 
     // 3. The Brand Asset (Logo)
@@ -197,37 +201,41 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }
 
     // 4. Design & Copy Instructions
-    const pass2Prompt = `You are an Expert Graphic Designer & Copywriter.
+    const pass2Prompt = `You are an Expert Senior Art Director.
     
-    TASK: Apply the layout design from the REFERENCE IMAGE onto the BACKGROUND CANVAS.
+    TASK: Apply the "Ad-Ready" design layout from the REFERENCE IMAGE onto the BACKGROUND CANVAS.
     
-    *** 1. LAYOUT TRANSFER (The "Template" Logic) ***
-    - Analyze the Reference Image. Identify:
-      - Text Block Positions (Headline, Price, Footer).
-      - Shape Overlays (Rectangles, Gradients).
-      - Font Weights & Styles.
-    - **COPY-PASTE**: Recreate these exact graphic elements on the Canvas.
-    - **SAFE ZONE**: Keep all text/logos 10% away from the absolute edges.
+    *** 1. GRID MAPPING & LAYOUT (PIXEL PERFECT) ***
+    - Imagine a 10x10 grid over the Reference Image. Locate every element.
+    - **Headline Position**: Where is it? (e.g., Top Left). Copy coordinates.
+    - **Project Name Position**: Where is it? Copy coordinates.
+    - **Footer Bar**: Does the reference have a solid color bar at the bottom? If yes, RECREATE IT exactly (color, height).
     
-    *** 2. CONTENT POPULATION (The "Sticker" Logic) ***
-    - **HEADLINE**: ${inputs.texts.marketingContext ? `Generate a punchy 3-5 word headline based on: "${inputs.texts.marketingContext}"` : "Generate a high-converting Real Estate headline"}. Render this in the largest font slot.
-    - **PROJECT NAME**: Render "${inputs.texts.projectName}" clearly. Second largest font.
-    - **UNIT & LOC**: Render "${inputs.texts.unitType} • ${inputs.texts.location}" in the subtitle slot.
-    ${inputs.texts.price ? `- **PRICE**: Render "${inputs.texts.price}" in the price slot/badge.` : ''}
-    ${inputs.texts.contact ? `- **FOOTER**: Render "${inputs.texts.contact}" in the bottom bar.` : ''}
-    ${inputs.texts.rera ? `- **LEGAL**: Render "${inputs.texts.rera}" in small print at the bottom.` : ''}
+    *** 2. TYPOGRAPHY HIERARCHY (SIZE MATTERS) ***
+    - **HEADLINE**: Must be the LARGEST text. Use the prompt: "${inputs.texts.marketingContext ? `Generate a punchy, 3-5 word hook based on: '${inputs.texts.marketingContext}'` : "Generate a Luxury Real Estate Hook"}". 
+      - *Constraint*: Font size approx 10-15% of image height. Bold/Heavy weight.
+    - **PROJECT NAME**: "${inputs.texts.projectName}". 
+      - *Constraint*: Font size approx 6-8% of image height. Distinct font.
+    - **SUBTITLE**: "${inputs.texts.unitType} • ${inputs.texts.location}".
+      - *Constraint*: Smaller, legible, clean.
     
-    *** 3. LOGO PLACEMENT ***
+    *** 3. VISUAL AESTHETICS & CONTRAST ***
+    - **Legibility**: Text MUST be readable. 
+      - If background is bright -> Use Dark Text.
+      - If background is busy -> Add a subtle 'Scrim' (Gradient Shadow) or a solid Shape behind text blocks (mimic Reference).
+    - **Colors**: Extract the primary accent color from the Reference (e.g., Gold, Royal Blue). Use it for CTAs or Highlights.
+    
+    *** 4. CONDITIONAL ELEMENTS (ONLY IF PROVIDED) ***
+    ${inputs.texts.price ? `- **PRICE BADGE**: Render "${inputs.texts.price}" clearly. If reference uses a circle/box badge, copy it.` : ''}
+    ${inputs.texts.contact ? `- **CONTACT**: Render "${inputs.texts.contact}" in the footer area.` : ''}
+    ${inputs.texts.rera ? `- **LEGAL**: Render "${inputs.texts.rera}" in very small print (bottom edge).` : ''}
+    
+    *** 5. LOGO PLACEMENT ***
     - Find the logo position in the Reference.
     - Place the PROVIDED USER LOGO in that exact spot.
-    - **MODE**: "Sticker Mode". The logo must be 100% opaque, sharp, and floating above the image. Do not blend it into the sky/wall.
+    - **Mode**: "Sticker Mode" (100% Opacity). Do not blend it into the sky/wall.
     
-    *** 4. STYLE DNA ***
-    - Extract the Primary Font Color from the Reference (e.g., Gold, White, Navy). Use it.
-    - Extract the Font Style (e.g., Serif, Sans-Serif). Use it.
-    - Ensure text legibility by adding subtle drop shadows or shape overlays if the background is busy (mimic Reference).
-    
-    OUTPUT: Final high-resolution marketing image.`;
+    OUTPUT: A final, social-media ready ad post (1080x1080).`;
 
     pass2Parts.push({ text: pass2Prompt });
 
