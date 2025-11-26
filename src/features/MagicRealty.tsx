@@ -2,9 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon } from '../components/icons';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
-import { generateRealtyAd } from '../services/realtyService';
+import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 
@@ -72,6 +72,18 @@ const CompactUpload: React.FC<{
     );
 };
 
+// Label Helper Component with Badge
+const LabelWithBadge: React.FC<{ label: string; detected?: boolean }> = ({ label, detected }) => (
+    <div className="flex justify-between items-center w-full">
+        <span>{label}</span>
+        {detected && (
+            <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 animate-pulse shadow-sm border border-blue-200">
+                <SparklesIcon className="w-2.5 h-2.5"/> Found in Ref
+            </span>
+        )}
+    </div>
+);
+
 export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     // Assets
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -82,6 +94,10 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Decisions
     const [modelChoice, setModelChoice] = useState<'upload' | 'generate' | 'skip' | null>(null);
     const [propertyChoice, setPropertyChoice] = useState<'upload' | 'generate' | null>(null);
+
+    // Analysis State
+    const [analyzingRef, setAnalyzingRef] = useState(false);
+    const [detectedFields, setDetectedFields] = useState<ReferenceAnalysis | null>(null);
 
     // Model Generation State
     const [modelType, setModelType] = useState('');
@@ -139,10 +155,29 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
-            // Removed autoScroll here to prevent jumping to bottom
         }
         e.target.value = '';
     };
+
+    const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setReferenceImage({ url: URL.createObjectURL(file), base64 });
+            
+            // Trigger Auto-Detect
+            setAnalyzingRef(true);
+            try {
+                const analysis = await analyzeRealtyReference(base64.base64, base64.mimeType);
+                setDetectedFields(analysis);
+            } catch (err) {
+                console.error("Ref analysis failed", err);
+            } finally {
+                setAnalyzingRef(false);
+            }
+        }
+        e.target.value = '';
+    }
 
     const handleGenerate = async () => {
         if (!referenceImage || !auth.user || !texts.projectName) return;
@@ -208,6 +243,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelComposition(''); setModelFraming('');
         
         setResultImage(null);
+        setDetectedFields(null);
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -317,21 +353,21 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         description="Use own photo" 
                                         icon={<UserIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'upload'}
-                                        onClick={() => { setModelChoice('upload'); }} // Removed autoScroll
+                                        onClick={() => { setModelChoice('upload'); }} 
                                     />
                                     <StepCard 
                                         title="Generate" 
                                         description="Create with AI" 
                                         icon={<SparklesIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'generate'}
-                                        onClick={() => { setModelChoice('generate'); }} // Removed autoScroll
+                                        onClick={() => { setModelChoice('generate'); }} 
                                     />
                                     <StepCard 
                                         title="Skip" 
                                         description="Focus on house" 
                                         icon={<XIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'skip'}
-                                        onClick={() => { setModelChoice('skip'); setModelImage(null); }} // Removed autoScroll
+                                        onClick={() => { setModelChoice('skip'); setModelImage(null); }} 
                                     />
                                 </div>
                                 
@@ -365,14 +401,14 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         description="Enhance existing photo." 
                                         icon={<UploadTrayIcon className="w-5 h-5"/>} 
                                         selected={propertyChoice === 'upload'}
-                                        onClick={() => { setPropertyChoice('upload'); }} // Removed autoScroll
+                                        onClick={() => { setPropertyChoice('upload'); }} 
                                     />
                                     <StepCard 
                                         title="Generate New" 
                                         description="Create from Reference vibe." 
                                         icon={<SparklesIcon className="w-5 h-5"/>} 
                                         selected={propertyChoice === 'generate'}
-                                        onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); }} // Removed autoScroll
+                                        onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); }} 
                                     />
                                 </div>
                                 {propertyChoice === 'upload' && (
@@ -382,13 +418,21 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 )}
                             </div>
 
-                            {/* Step 3: Reference */}
+                            {/* Step 3: Reference (with Auto-Detect) */}
                             <div className="border-t border-gray-100 pt-6">
-                                <div className="flex items-center gap-2 mb-3 ml-1">
-                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Reference Style</label>
+                                <div className="flex items-center justify-between mb-3 ml-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Reference Style</label>
+                                    </div>
+                                    {analyzingRef && (
+                                        <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                            <span className="text-[10px] text-blue-600 font-bold animate-pulse">Scanning Layout...</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <CompactUpload label="Reference Image (Required)" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} heightClass="h-40" />
+                                <CompactUpload label="Reference Image (Required)" image={referenceImage} onUpload={handleRefUpload} onClear={() => { setReferenceImage(null); setDetectedFields(null); }} icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} heightClass="h-40" />
                             </div>
 
                             {/* Step 4: Details */}
@@ -404,8 +448,18 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
-                                        <InputField label="Unit Size" placeholder="e.g. 2 BHK / 3 BHK" value={texts.unitType} onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Project Name" detected={detectedFields?.hasProjectName} />} 
+                                            placeholder="e.g. Skyline Towers" 
+                                            value={texts.projectName} 
+                                            onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} 
+                                        />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Unit Size" detected={detectedFields?.hasUnitType} />} 
+                                            placeholder="e.g. 2 BHK / 3 BHK" 
+                                            value={texts.unitType} 
+                                            onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} 
+                                        />
                                     </div>
                                     
                                     <TextAreaField 
@@ -417,12 +471,32 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     />
                                     
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="Location" placeholder="e.g. Mumbai" value={texts.location} onChange={(e: any) => setTexts({...texts, location: e.target.value})} />
-                                        <InputField label="Price (Opt)" placeholder="e.g. ₹1.5 Cr+" value={texts.price} onChange={(e: any) => setTexts({...texts, price: e.target.value})} />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Location" detected={detectedFields?.hasLocation} />} 
+                                            placeholder="e.g. Mumbai" 
+                                            value={texts.location} 
+                                            onChange={(e: any) => setTexts({...texts, location: e.target.value})} 
+                                        />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Price (Opt)" detected={detectedFields?.hasPrice} />} 
+                                            placeholder="e.g. ₹1.5 Cr+" 
+                                            value={texts.price} 
+                                            onChange={(e: any) => setTexts({...texts, price: e.target.value})} 
+                                        />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="RERA (Opt)" placeholder="e.g. P518000..." value={texts.rera} onChange={(e: any) => setTexts({...texts, rera: e.target.value})} />
-                                        <InputField label="Contact/Web (Opt)" placeholder="e.g. www.site.com" value={texts.contact} onChange={(e: any) => setTexts({...texts, contact: e.target.value})} />
+                                        <InputField 
+                                            label={<LabelWithBadge label="RERA (Opt)" detected={detectedFields?.hasRera} />} 
+                                            placeholder="e.g. P518000..." 
+                                            value={texts.rera} 
+                                            onChange={(e: any) => setTexts({...texts, rera: e.target.value})} 
+                                        />
+                                        <InputField 
+                                            label={<LabelWithBadge label="Contact/Web (Opt)" detected={detectedFields?.hasContact} />} 
+                                            placeholder="e.g. www.site.com" 
+                                            value={texts.contact} 
+                                            onChange={(e: any) => setTexts({...texts, contact: e.target.value})} 
+                                        />
                                     </div>
                                 </div>
                             </div>

@@ -1,5 +1,5 @@
 
-import { Modality, GenerateContentResponse } from "@google/genai";
+import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -26,6 +26,15 @@ export interface ModelGenerationParams {
     framing: string;
 }
 
+export interface ReferenceAnalysis {
+    hasPrice: boolean;
+    hasRera: boolean;
+    hasContact: boolean;
+    hasLocation: boolean;
+    hasUnitType: boolean;
+    hasProjectName: boolean;
+}
+
 interface RealtyInputs {
     mode: 'lifestyle_fusion' | 'new_property';
     modelImage?: { base64: string; mimeType: string } | null;
@@ -43,6 +52,61 @@ interface RealtyInputs {
         contact?: string;
     };
 }
+
+/**
+ * Analyzes the reference image to detect what information fields are present in the design.
+ * Uses Gemini 3 Pro for high-accuracy layout understanding.
+ */
+export const analyzeRealtyReference = async (base64: string, mimeType: string): Promise<ReferenceAnalysis> => {
+    const ai = getAiClient();
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64, mimeType);
+
+    const prompt = `Analyze this Real Estate Ad Design.
+    
+    Your task is to identify which specific data fields are visually present in the design layout.
+    Scan the text and layout to detect placeholders or actual values for:
+    - **Price**: e.g., "₹1.5 Cr", "$500k", "Starting from...".
+    - **RERA / Legal ID**: e.g., "RERA No:...", small legal text at bottom.
+    - **Contact Details**: e.g., Phone number, Website URL, QR code area.
+    - **Location**: e.g., City name, Address, "Near Airport".
+    - **Unit Type**: e.g., "2 BHK", "3 Bed Residences", "Villa".
+    - **Project Name**: Large distinct title text.
+
+    Return a JSON object indicating true/false for each field if you see a designated space or text for it.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: data, mimeType: optimizedMime } },
+                    { text: prompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        hasPrice: { type: Type.BOOLEAN },
+                        hasRera: { type: Type.BOOLEAN },
+                        hasContact: { type: Type.BOOLEAN },
+                        hasLocation: { type: Type.BOOLEAN },
+                        hasUnitType: { type: Type.BOOLEAN },
+                        hasProjectName: { type: Type.BOOLEAN },
+                    }
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) return { hasPrice: false, hasRera: false, hasContact: true, hasLocation: true, hasUnitType: true, hasProjectName: true }; // Fallback
+        return JSON.parse(text);
+    } catch (error) {
+        console.error("Reference analysis failed:", error);
+        return { hasPrice: false, hasRera: false, hasContact: false, hasLocation: false, hasUnitType: false, hasProjectName: true };
+    }
+};
 
 export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> => {
     const ai = getAiClient();
