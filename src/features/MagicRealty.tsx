@@ -520,8 +520,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     </div>
                                     
                                     <TextAreaField 
-                                        label="Context / Description (Important)" 
-                                        placeholder="e.g. Ready to move in, sea view apartments, luxury amenities, booking open..." 
+                                        label="Context / Description (AI will generate a title from this)" 
+                                        placeholder="e.g. 'Ready to move', 'Sea facing'. AI will generate a catchy title from this." 
                                         value={texts.marketingContext} 
                                         onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})}
                                         rows={3}

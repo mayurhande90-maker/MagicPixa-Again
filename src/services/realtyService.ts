@@ -1,4 +1,3 @@
-
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -204,43 +203,47 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }
 
     // 4. Design Instructions
-    const pass2Prompt = `You are a Layout Engine. Your goal is **PIXEL-PERFECT REPLICATION** of the Design Template's layout.
+    const pass2Prompt = `You are a Layout Engine & Expert Real Estate Copywriter.
     
-    *** 1. GRID MAPPING STRATEGY (10x10 Grid) ***
-    - Visualize a 10x10 grid over the "DESIGN TEMPLATE".
-    - Identify the exact grid coordinates of: The Headline, The Project Name, The Footer, The Price Badge.
-    - **FORCE** the new text elements into those **EXACT SAME COORDINATES** on the Canvas.
+    *** 1. COPYWRITING (The "Hook") ***
+    - **Input Context**: "${inputs.texts.marketingContext || 'Luxury Lifestyle'}"
+    - **TASK**: Create a **NEW**, high-converting Marketing Title (3-6 words) based on the context.
+    - **CRITICAL**: Do NOT just copy-paste the context. Turn it into an ad headline.
+      - Input: "2bhk available" -> Output: "Your Dream 2BHK Awaits"
+      - Input: "Near airport" -> Output: "Connect to the World"
     
-    *** 2. ELEMENT MAPPING ***
-    - **Headline**: "${inputs.texts.marketingContext ? `Write a 3-5 word hook about: '${inputs.texts.marketingContext}'` : "Write a Luxury Hook"}" 
-      -> Place exactly where the Template's headline is. Match Font Weight (Bold/Light) and Scale.
+    *** 2. VISUAL HIERARCHY (Strict Order) ***
+    You must map the text elements to the Reference Layout based on visual prominence:
     
-    - **Project Name**: "${inputs.texts.projectName}" 
-      -> Place exactly where the Template's project name is.
+    1. **TOP PRIORITY (H1 - Largest Text)**:
+       - Content: The **GENERATED MARKETING TITLE**.
+       - Placement: Most prominent text slot (usually top or center).
     
-    - **Unit Type**: "${inputs.texts.unitType}" 
-      -> Place near Project Name (Subtitle).
-
-    *** 3. DYNAMIC ZONES (Amenities & Contact) ***
+    2. **SECONDARY (H2 - Medium Text)**:
+       - Content: **PROJECT NAME** ("${inputs.texts.projectName}").
+       - Placement: Below or near the title, slightly smaller.
+    
+    3. **TERTIARY (H3 - Small Text)**:
+       - Content: **UNIT TYPE** ("${inputs.texts.unitType}").
+    
+    *** 3. LAYOUT & COMPOSITION ***
+    - **Grid Mapping**: Visualize the Reference Layout. Place your new H1, H2, and H3 texts in the exact same grid positions as the Reference's text blocks.
+    - **Subject Visibility**: Ensure the building/model (Background) is clearly visible. Do not let text cover the main subject.
+    
+    *** 4. FOOTER & DETAILS ***
     ${inputs.amenities && inputs.amenities.length > 0 ? `
-    - **AMENITIES**: Create a vertical or horizontal list (Icons + Text) for: ${inputs.amenities.join(', ')}.
-    - **Placement**: Look for a list or empty zone in the Template. If none, place in a 'Frosted Glass' box in a corner.
+    - **AMENITIES**: Render a clean list for: ${inputs.amenities.join(', ')}.
     ` : ''}
 
     ${(inputs.texts.contact || inputs.texts.rera || inputs.texts.location) ? `
-    - **FOOTER**: If Template has a footer bar, recreate it. If not, create a clean strip at the bottom (Grid Rows 9-10).
-    - Content: ${inputs.texts.location} | ${inputs.texts.contact} | ${inputs.texts.rera}
+    - **FOOTER BAR**: Create a distinct footer strip at the very bottom.
+    - Content: ${inputs.texts.location} ${inputs.texts.contact ? '| ' + inputs.texts.contact : ''} ${inputs.texts.rera ? '| ' + inputs.texts.rera : ''}
     ` : ''}
     
-    *** 4. STYLE TRANSFER ***
-    - **Colors**: Extract the EXACT accent color (Hex code) from the Template. Use it for the Footer background or Text highlights.
-    - **Logo**: Place the User Logo exactly where the Template's logo is.
-    - **Price**: If user provided price "${inputs.texts.price}", place it in a high-contrast badge/sticker.
-    
-    *** FINAL CHECK ***
-    - Does the output look like the Template but with the new House?
-    - Is the text legible? (Add shadows if background is bright).
-    - **Ad Ready**: High resolution, sharp text, no spelling errors.
+    *** 5. STYLE MATCHING ***
+    - Match the Reference's font styles (Serif/Sans), weights, and color palette.
+    - **Logo**: Place the User Logo exactly where the Reference Logo is.
+    - **Price**: If "${inputs.texts.price}" exists, place it in a high-visibility badge/sticker.
 
     OUTPUT: The final composite image.`;
 
