@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
 import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateRealtyAd } from '../services/realtyService';
@@ -101,8 +101,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // Details
     const [texts, setTexts] = useState({
-        headline: '', // Project Name
-        subHeadline: '', // Config (2 BHK)
+        projectName: '',
+        unitType: '', // e.g. 3BHK
+        marketingContext: '', // e.g. Ready to move, Luxury
         location: '',
         price: '',
         rera: '',
@@ -142,7 +143,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!referenceImage || !auth.user || !texts.headline) return;
+        if (!referenceImage || !auth.user || !texts.projectName) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -198,7 +199,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setLogoImage(null);
         setModelChoice(null);
         setPropertyChoice(null);
-        setTexts({ headline: '', subHeadline: '', location: '', price: '', rera: '', contact: '' });
+        setTexts({ projectName: '', unitType: '', marketingContext: '', location: '', price: '', rera: '', contact: '' });
         
         // Reset Model Gen Params
         setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
@@ -227,7 +228,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const canGenerate = 
         !!referenceImage && 
-        !!texts.headline && 
+        !!texts.projectName && 
         (propertyChoice === 'generate' || !!propertyImage) && 
         !!modelChoice &&
         isModelReady &&
@@ -273,7 +274,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-indigo-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">Constructing Ad...</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">Copywriting & Designing...</p>
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
@@ -334,17 +335,18 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 
                                 {modelChoice === 'upload' && (
                                     <div className="animate-fadeIn">
-                                        <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />
+                                        <CompactUpload label="Upload Model Photo (Required for Fusion)" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />
                                     </div>
                                 )}
 
                                 {modelChoice === 'generate' && (
                                     <div className="animate-fadeIn space-y-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                                        <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
-                                        {modelComposition && <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />}
-                                        {modelType && <SelectionGrid label="Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
-                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
-                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); autoScroll(); }} />}
+                                        {/* Removed autoScroll from granular steps to improve UX */}
+                                        <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />
+                                        {modelComposition && <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={setModelType} />}
+                                        {modelType && <SelectionGrid label="Region" options={modelRegions} value={modelRegion} onChange={setModelRegion} />}
+                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={setSkinTone} />}
+                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />}
                                         {bodyType && <SelectionGrid label="Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
                                     </div>
                                 )}
@@ -400,16 +402,27 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">
-                                    <InputField label="Headline / Project Name" placeholder="e.g. Luxury 3BHK Homes" value={texts.headline} onChange={(e: any) => setTexts({...texts, headline: e.target.value})} />
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="Sub-Headline" placeholder="e.g. Move-in Ready" value={texts.subHeadline} onChange={(e: any) => setTexts({...texts, subHeadline: e.target.value})} />
-                                        <InputField label="Location" placeholder="e.g. Downtown, Mumbai" value={texts.location} onChange={(e: any) => setTexts({...texts, location: e.target.value})} />
+                                        <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
+                                        <InputField label="Unit Size" placeholder="e.g. 2 BHK / 3 BHK" value={texts.unitType} onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} />
+                                    </div>
+                                    
+                                    <TextAreaField 
+                                        label="Context / Description (Important)" 
+                                        placeholder="e.g. Ready to move in, sea view apartments, luxury amenities, booking open..." 
+                                        value={texts.marketingContext} 
+                                        onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})}
+                                        rows={3}
+                                    />
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputField label="Location" placeholder="e.g. Mumbai" value={texts.location} onChange={(e: any) => setTexts({...texts, location: e.target.value})} />
+                                        <InputField label="Price (Opt)" placeholder="e.g. ₹1.5 Cr+" value={texts.price} onChange={(e: any) => setTexts({...texts, price: e.target.value})} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="Price (Opt)" placeholder="e.g. Starts ₹1.5 Cr" value={texts.price} onChange={(e: any) => setTexts({...texts, price: e.target.value})} />
                                         <InputField label="RERA (Opt)" placeholder="e.g. P518000..." value={texts.rera} onChange={(e: any) => setTexts({...texts, rera: e.target.value})} />
+                                        <InputField label="Contact/Web (Opt)" placeholder="e.g. www.site.com" value={texts.contact} onChange={(e: any) => setTexts({...texts, contact: e.target.value})} />
                                     </div>
-                                    <InputField label="Contact / Website (Opt)" placeholder="e.g. Call 9899... or www.site.com" value={texts.contact} onChange={(e: any) => setTexts({...texts, contact: e.target.value})} />
                                 </div>
                             </div>
 

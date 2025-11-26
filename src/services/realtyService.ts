@@ -34,8 +34,9 @@ interface RealtyInputs {
     referenceImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
     texts: {
-        headline: string;
-        subHeadline: string;
+        projectName: string;
+        unitType: string;
+        marketingContext: string;
         location: string;
         price?: string;
         rera?: string;
@@ -49,7 +50,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     // 1. Process Images
     const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    parts.push({ text: "REFERENCE STYLE (Visual Hierarchy & Vibe):" });
+    parts.push({ text: "REFERENCE STYLE (Visual Hierarchy & Vibe ONLY - DO NOT READ TEXT):" });
     parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
 
     if (inputs.logoImage) {
@@ -86,28 +87,48 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
         modelInstruction = "**No Model**: Focus purely on the architecture and interior/exterior design.";
     }
 
-    // 3. Build Prompt with Design Logic from PDF
-    let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro, trained on the **"3% Design Rule"**.
+    // 3. Build Prompt with Design Logic from PDF & Copywriting
+    let prompt = `You are a High-End Real Estate Marketing AI using Gemini 3 Pro, acting as both **Senior Copywriter** and **Visual Designer**.
     
     TASK: Create a high-conversion luxury real estate advertisement.
     MODE: ${inputs.mode === 'lifestyle_fusion' ? 'Lifestyle Fusion (Blend/Generate Model + Property)' : 'New Property Generation (Visualize Concept)'}.
     
-    *** DESIGN LOGIC (The 3% Rule) ***
-    1. **Visual Hierarchy**: The Property is the undisputed Hero. Sequence of attention must be: **Image (Desire) -> Headline (Hook) -> Price/Value -> CTA**.
-    2. **Cognitive Load**: Remove visual friction. Do not clutter the image with floating text. Group related info (Contact, RERA, Logo) into a structured **Footer Bar** or clean negative space.
-    3. **Emotional Trigger**: We are selling a 'Dream', not just walls. Use lighting (Golden Hour, Blue Hour) to trigger the emotion of **"Status"** or **"Comfort"**.
+    *** STRICT NEGATIVE CONSTRAINTS ***
+    1. **NO REFERENCE TEXT**: Do NOT extract, OCR, or copy ANY text from the Reference Style image. Use ONLY the user-provided text below.
+    2. **NO HALLUCINATED DETAILS**: Do not invent amenities or features not implied by the property image or context.
     
-    *** INPUTS & EXECUTION ***
+    *** COPYWRITING STRATEGY (The "Copywriter" Persona) ***
+    You must analyze the user's input to write the ad content.
+    - **Project Name**: "${inputs.texts.projectName}" (This is the Brand).
+    - **Configuration**: "${inputs.texts.unitType}" (e.g., 2BHK, Villa).
+    - **User Context**: "${inputs.texts.marketingContext}".
+    
+    **ACTION**: Based on the "User Context" and real estate trends, generate a short, punchy **HEADLINE HOOK**.
+    - Example if context is "Ready to move": Headline = "Move In Today".
+    - Example if context is "Luxury": Headline = "Live The High Life".
+    - *Constraint*: Keep it under 5 words. High Impact.
+    
+    *** DESIGN LOGIC (The "3% Design Rule") ***
+    1. **Visual Hierarchy**: The Property is the Hero. Sequence: Image -> Generated Headline -> Project Name -> Unit Type -> Footer.
+    2. **Cognitive Load**: Clean layout. Use negative space.
+    3. **Emotional Trigger**: Use lighting (Golden Hour, Blue Hour) to trigger "Status" or "Comfort".
+    
+    *** EXECUTION INSTRUCTIONS ***
     - **Reference**: Copy the color palette, font weight, and layout structure.
-    - ${inputs.propertyImage ? '**Property**: Enhance clarity. Fix sky. Ensure vertical lines are straight (Architectural Photography).' : '**Generation**: Hallucinate a photorealistic property matching the Reference vibe.'}
+    - ${inputs.propertyImage ? '**Property**: Enhance clarity. Fix sky. Ensure vertical lines are straight.' : '**Generation**: Hallucinate a photorealistic property matching the Reference vibe.'}
     - ${modelInstruction}
     
-    *** TYPOGRAPHY RULES ***
-    - **HEADLINE**: "${inputs.texts.headline}" -> Big, High Contrast, Easy to read in < 2 seconds.
-    - **SUBHEAD**: "${inputs.texts.subHeadline}" -> Smaller, supporting the headline.
-    - **LOCATION**: "${inputs.texts.location}" -> Clear legibility.
-    ${inputs.texts.price ? `- **PRICE**: "${inputs.texts.price}" -> Use a high-contrast badge or bold text (Value Anchor).` : ''}
-    - **FOOTER AREA**: Place Contact ("${inputs.texts.contact}"), Logo, and RERA ("${inputs.texts.rera}") in a clean bottom bar to reduce noise.
+    *** TYPOGRAPHY PLACEMENT ***
+    - **HERO HEADLINE**: Place the AI-Generated Hook (based on context) in the most visible area. Big, Bold font.
+    - **PROJECT NAME**: "${inputs.texts.projectName}" -> Elegant font, distinct from headline.
+    - **SUB-DETAILS**: "${inputs.texts.unitType}" & "${inputs.texts.location}" -> Clear legibility.
+    ${inputs.texts.price ? `- **PRICE**: "${inputs.texts.price}" -> Use a high-contrast badge or bold text.` : ''}
+    
+    *** FOOTER LOGIC (Conditional) ***
+    Create a clean bottom bar/footer ONLY for the following provided details. If a field is missing, DO NOT render a placeholder.
+    ${inputs.texts.contact ? `- Contact: "${inputs.texts.contact}"` : ''}
+    ${inputs.texts.rera ? `- RERA: "${inputs.texts.rera}"` : ''}
+    ${inputs.logoImage ? `- Logo: Place provided logo clearly.` : ''}
     
     OUTPUT: A single, high-resolution 4:5 or 1:1 marketing image. Photorealistic quality.
     `;
