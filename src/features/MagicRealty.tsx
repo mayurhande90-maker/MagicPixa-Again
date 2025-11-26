@@ -124,12 +124,13 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const autoScroll = () => {
         if (scrollRef.current) {
+            // Slightly increased delay to allow DOM expansion animation to start
             setTimeout(() => {
                 const element = scrollRef.current;
                 if (element) {
                     element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
                 }
-            }, 100);
+            }, 150);
         }
     };
 
@@ -138,6 +139,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
+            autoScroll();
         }
         e.target.value = '';
     };
@@ -315,21 +317,21 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         description="Use own photo" 
                                         icon={<UserIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'upload'}
-                                        onClick={() => setModelChoice('upload')}
+                                        onClick={() => { setModelChoice('upload'); autoScroll(); }}
                                     />
                                     <StepCard 
                                         title="Generate" 
                                         description="Create with AI" 
                                         icon={<SparklesIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'generate'}
-                                        onClick={() => setModelChoice('generate')}
+                                        onClick={() => { setModelChoice('generate'); autoScroll(); }}
                                     />
                                     <StepCard 
                                         title="Skip" 
                                         description="Focus on house" 
                                         icon={<XIcon className="w-4 h-4"/>} 
                                         selected={modelChoice === 'skip'}
-                                        onClick={() => { setModelChoice('skip'); setModelImage(null); }}
+                                        onClick={() => { setModelChoice('skip'); setModelImage(null); autoScroll(); }}
                                     />
                                 </div>
                                 
@@ -341,12 +343,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                 {modelChoice === 'generate' && (
                                     <div className="animate-fadeIn space-y-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                                        {/* Removed autoScroll from granular steps to improve UX */}
-                                        <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />
-                                        {modelComposition && <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={setModelType} />}
-                                        {modelType && <SelectionGrid label="Region" options={modelRegions} value={modelRegion} onChange={setModelRegion} />}
-                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={setSkinTone} />}
-                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />}
+                                        <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
+                                        {modelComposition && <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />}
+                                        {modelType && <SelectionGrid label="Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
+                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
+                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); autoScroll(); }} />}
                                         {bodyType && <SelectionGrid label="Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
                                     </div>
                                 )}
@@ -364,14 +365,14 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         description="Enhance existing photo." 
                                         icon={<UploadTrayIcon className="w-5 h-5"/>} 
                                         selected={propertyChoice === 'upload'}
-                                        onClick={() => setPropertyChoice('upload')}
+                                        onClick={() => { setPropertyChoice('upload'); autoScroll(); }}
                                     />
                                     <StepCard 
                                         title="Generate New" 
                                         description="Create from Reference vibe." 
                                         icon={<SparklesIcon className="w-5 h-5"/>} 
                                         selected={propertyChoice === 'generate'}
-                                        onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); }}
+                                        onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); autoScroll(); }}
                                     />
                                 </div>
                                 {propertyChoice === 'upload' && (
