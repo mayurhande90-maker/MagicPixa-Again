@@ -198,7 +198,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     // 3. The Brand Asset (Logo)
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        pass2Parts.push({ text: "USER LOGO:" });
+        pass2Parts.push({ text: "USER LOGO (This image MUST appear exactly as is in the final output):" });
         pass2Parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
@@ -240,9 +240,14 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     - Content: ${inputs.texts.location} ${inputs.texts.contact ? '| ' + inputs.texts.contact : ''} ${inputs.texts.rera ? '| ' + inputs.texts.rera : ''}
     ` : ''}
     
-    *** 5. STYLE MATCHING ***
+    *** 5. LOGO PLACEMENT (CRITICAL) ***
+    - **Source**: Use the exact pixel data from the "USER LOGO" input.
+    - **Action**: Superimpose the User Logo onto the canvas.
+    - **Position**: Match the X,Y position of the logo found in the "DESIGN TEMPLATE".
+    - **Fidelity**: Do NOT change the logo's color, font, or shape. It must be an exact replica of the uploaded logo file.
+    
+    *** 6. STYLE MATCHING ***
     - Match the Reference's font styles (Serif/Sans), weights, and color palette.
-    - **Logo**: Place the User Logo exactly where the Reference Logo is.
     - **Price**: If "${inputs.texts.price}" exists, place it in a high-visibility badge/sticker.
 
     OUTPUT: The final composite image.`;
