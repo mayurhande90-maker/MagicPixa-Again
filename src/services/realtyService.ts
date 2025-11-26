@@ -1,3 +1,4 @@
+
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -112,61 +113,57 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     const ai = getAiClient();
 
     // ==============================================================================================
-    // PASS 1: THE ARCHITECTURAL PHOTOGRAPHER (Clean Scene Generation)
-    // Goal: Create the perfect "clean" background image with space for text.
+    // PASS 1: THE LAYOUT-AWARE PHOTOGRAPHER
+    // Goal: Generate the scene (House + Model) but FORCE it to match the Reference's composition structure.
     // ==============================================================================================
     
     const pass1Parts: any[] = [];
 
-    // 1. Property Image (The Stage)
+    // 1. The "Template" (Reference Image) - Now crucial for Pass 1
+    const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+    pass1Parts.push({ text: "LAYOUT REFERENCE (Mimic this camera angle, zoom, and negative space):" });
+    pass1Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
+
+    // 2. Property Image (The Subject)
     if (inputs.propertyImage) {
         const optProperty = await optimizeImage(inputs.propertyImage.base64, inputs.propertyImage.mimeType);
-        pass1Parts.push({ text: "BASE PROPERTY IMAGE:" });
+        pass1Parts.push({ text: "PROPERTY TO FEATURE (Use this architecture):" });
         pass1Parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
-    // 2. Model Integration (The Actor)
+    // 3. Model Integration
     let modelPrompt = "";
     if (inputs.modelImage) {
         const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
         pass1Parts.push({ text: "MODEL TO INTEGRATE:" });
         pass1Parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
-        modelPrompt = "Integrate the provided model into the property scene naturally. Scale the person realistically relative to the building.";
+        modelPrompt = "Integrate the provided model into the scene.";
     } else if (inputs.modelGenerationParams) {
         const p = inputs.modelGenerationParams;
         modelPrompt = `Generate a photorealistic model: ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}). 
         Action: ${p.composition}, ${p.framing}. 
-        Lighting: Match the property's lighting exactly.
-        Interaction: The model should look comfortable and engaged with the environment.`;
+        Lighting: Match the property's lighting.`;
     } else {
-        modelPrompt = "No model. Focus purely on the architecture and interior/exterior design.";
+        modelPrompt = "No model. Focus purely on architecture.";
     }
-
-    // Check if amenities list is long, we might need more negative space
-    const extraSpacePrompt = inputs.amenities && inputs.amenities.length > 3 
-        ? "Ensure there is a clean, uncluttered area (e.g., plain wall or sky) suitable for listing multiple amenities." 
-        : "";
 
     const pass1Prompt = `You are a World-Class Architectural Photographer.
     
-    TASK: Create a pristine, high-resolution real estate photograph.
+    TASK: Re-shoot the "PROPERTY" to match the "LAYOUT REFERENCE" composition exactly.
     
-    INPUTS:
-    - Property Image (Enhance lighting to 'Golden Hour' or 'Premium Daylight').
+    *** COMPOSITION CLONING (CRITICAL) ***
+    - Look at the **LAYOUT REFERENCE**. Where is the building? Where is the sky? Where is the ground?
+    - **COPY THAT EXACT FRAMING**.
+    - If the Reference has 40% sky at the top, your output MUST have 40% sky at the top.
+    - If the Reference has the building in the bottom-right corner, place the Property in the bottom-right corner.
+    - **WHY?**: We need to place text overlays later. If you fill the frame with the building, the text will cover it.
+    
+    *** AESTHETICS ***
+    - Lighting: Golden Hour / Premium Daylight (unless Reference is Night).
     - ${modelPrompt}
+    - **NO TEXT**: Do not generate text yet. Just the clean background image.
     
-    *** COMPOSITION RULES FOR TEXT OVERLAY (CRITICAL) ***
-    - **Negative Space**: You MUST leave clear, uncluttered space (e.g., sky, pavement, or plain wall) at the TOP (20%) and BOTTOM (20%) of the frame. This is where text will go in the next step.
-    - ${extraSpacePrompt}
-    - **Framing**: Use a wide-angle lens (24mm). Ensure the building is the HERO but does not crowd the edges. 
-    - **Balance**: The composition must be 1:1 (Square). Center the visual weight.
-    
-    *** QUALITY PROTOCOL ***
-    1. **NO TEXT**: Do not generate any text, watermarks, or logos. Clean image only.
-    2. **NO GRAPHICS**: No overlays, no badges.
-    3. **PHOTOREALISM**: Output must look like a RAW photo from a DSLR (85mm lens).
-    
-    OUTPUT: A single clean photograph.`;
+    OUTPUT: A single clean photograph matching the spatial arrangement of the Reference.`;
 
     pass1Parts.push({ text: pass1Prompt });
 
@@ -181,81 +178,71 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }));
 
     const cleanImageBase64 = pass1Response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
-    if (!cleanImageBase64) throw new Error("Pass 1 (Photography) failed to generate image.");
+    if (!cleanImageBase64) throw new Error("Pass 1 (Composition) failed to generate image.");
 
 
     // ==============================================================================================
-    // PASS 2: THE SENIOR ART DIRECTOR (Layout, Typography, & Brand)
-    // Goal: Apply the reference layout, text, and logo onto the clean image.
+    // PASS 2: THE GRID-BASED DESIGNER (Strict Layout Engine)
+    // Goal: Map pixels from Reference to Canvas. 
     // ==============================================================================================
 
     const pass2Parts: any[] = [];
 
     // 1. The Canvas (Result from Pass 1)
-    pass2Parts.push({ text: "BACKGROUND CANVAS (Do not alter the scene, only add graphics):" });
+    pass2Parts.push({ text: "CANVAS (Background):" });
     pass2Parts.push({ inlineData: { data: cleanImageBase64, mimeType: "image/jpeg" } });
 
-    // 2. The Template (Reference Image)
-    const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    pass2Parts.push({ text: "DESIGN REFERENCE (Strictly Copy Layout, Fonts, and Colors):" });
+    // 2. The Template (Reference)
+    pass2Parts.push({ text: "DESIGN TEMPLATE (Copy layout grid exactly):" });
     pass2Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
 
     // 3. The Brand Asset (Logo)
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        pass2Parts.push({ text: "USER LOGO (Place this 'sticker' exactly where the logo is in the reference):" });
+        pass2Parts.push({ text: "USER LOGO:" });
         pass2Parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
-    // 4. Design & Copy Instructions
-    const pass2Prompt = `You are an Expert Senior Art Director.
+    // 4. Design Instructions
+    const pass2Prompt = `You are a Layout Engine. Your goal is **PIXEL-PERFECT REPLICATION** of the Design Template's layout.
     
-    TASK: Apply the "Ad-Ready" design layout from the REFERENCE IMAGE onto the BACKGROUND CANVAS.
+    *** 1. GRID MAPPING STRATEGY (10x10 Grid) ***
+    - Visualize a 10x10 grid over the "DESIGN TEMPLATE".
+    - Identify the exact grid coordinates of: The Headline, The Project Name, The Footer, The Price Badge.
+    - **FORCE** the new text elements into those **EXACT SAME COORDINATES** on the Canvas.
     
-    *** 1. GRID MAPPING & LAYOUT (PIXEL PERFECT) ***
-    - Imagine a 10x10 grid over the Reference Image. Locate every element.
-    - **Headline Position**: Where is it? (e.g., Top Left). Copy coordinates.
-    - **Project Name Position**: Where is it? Copy coordinates.
-    - **Footer Bar**: Does the reference have a solid color bar at the bottom? If yes, RECREATE IT exactly (color, height).
+    *** 2. ELEMENT MAPPING ***
+    - **Headline**: "${inputs.texts.marketingContext ? `Write a 3-5 word hook about: '${inputs.texts.marketingContext}'` : "Write a Luxury Hook"}" 
+      -> Place exactly where the Template's headline is. Match Font Weight (Bold/Light) and Scale.
     
-    *** 2. TYPOGRAPHY HIERARCHY (SIZE MATTERS) ***
-    - **HEADLINE**: Must be the LARGEST text. Use the prompt: "${inputs.texts.marketingContext ? `Generate a punchy, 3-5 word hook based on: '${inputs.texts.marketingContext}'` : "Generate a Luxury Real Estate Hook"}". 
-      - *Constraint*: Font size approx 10-15% of image height. Bold/Heavy weight.
-    - **PROJECT NAME**: "${inputs.texts.projectName}". 
-      - *Constraint*: Font size approx 6-8% of image height. Distinct font.
-    - **UNIT TYPE**: "${inputs.texts.unitType}".
-      - *Constraint*: Smaller, legible, clean.
+    - **Project Name**: "${inputs.texts.projectName}" 
+      -> Place exactly where the Template's project name is.
     
-    *** 3. AMENITIES & FEATURES (DYNAMIC LIST) ***
+    - **Unit Type**: "${inputs.texts.unitType}" 
+      -> Place near Project Name (Subtitle).
+
+    *** 3. DYNAMIC ZONES (Amenities & Contact) ***
     ${inputs.amenities && inputs.amenities.length > 0 ? `
-    - **AMENITIES LIST**: Create a clean, aligned list for: ${inputs.amenities.join(', ')}.
-    - **Style**: Use modern icons + text OR a neat bulleted list.
-    - **Background**: If placing on top of the image, use a **Frosted Glass** effect (semi-transparent white/black rectangle with blur) or a solid shape to ensure 100% legibility.
-    - **Placement**: Find a balanced spot (middle-left or middle-right) that doesn't cover the main subject.
-    ` : '- No amenities list provided. Focus on the main visuals.'}
+    - **AMENITIES**: Create a vertical or horizontal list (Icons + Text) for: ${inputs.amenities.join(', ')}.
+    - **Placement**: Look for a list or empty zone in the Template. If none, place in a 'Frosted Glass' box in a corner.
+    ` : ''}
 
-    *** 4. FOOTER & CONTACT (CONDITIONAL) ***
     ${(inputs.texts.contact || inputs.texts.rera || inputs.texts.location) ? `
-    - **FOOTER BAR**: Create a professional footer strip at the bottom (approx 10-15% height).
-    - **CONTENT**:
-      ${inputs.texts.location ? `- Location: "${inputs.texts.location}"` : ''}
-      ${inputs.texts.contact ? `- Contact/Web: "${inputs.texts.contact}"` : ''}
-      ${inputs.texts.rera ? `- Legal/RERA: "${inputs.texts.rera}" (Small print)` : ''}
-    ` : '- No contact footer required. Keep the bottom clean or mimic the reference if it has decorative elements.'}
+    - **FOOTER**: If Template has a footer bar, recreate it. If not, create a clean strip at the bottom (Grid Rows 9-10).
+    - Content: ${inputs.texts.location} | ${inputs.texts.contact} | ${inputs.texts.rera}
+    ` : ''}
     
-    *** 5. PRICE BADGE ***
-    ${inputs.texts.price ? `- **PRICE**: Render "${inputs.texts.price}" inside a high-contrast shape (Circle or Rectangle) to act as a visual stopper.` : ''}
+    *** 4. STYLE TRANSFER ***
+    - **Colors**: Extract the EXACT accent color (Hex code) from the Template. Use it for the Footer background or Text highlights.
+    - **Logo**: Place the User Logo exactly where the Template's logo is.
+    - **Price**: If user provided price "${inputs.texts.price}", place it in a high-contrast badge/sticker.
     
-    *** 6. LOGO PLACEMENT ***
-    - Find the logo position in the Reference.
-    - Place the PROVIDED USER LOGO in that exact spot.
-    - **Mode**: "Sticker Mode" (100% Opacity). Do not blend it into the sky/wall.
-    
-    *** VISUAL AESTHETICS ***
-    - **Legibility**: Text MUST be readable. Use drop shadows or background scrims if needed.
-    - **Colors**: Extract the primary accent color from the Reference (e.g., Gold, Royal Blue). Use it for CTAs/Highlights.
+    *** FINAL CHECK ***
+    - Does the output look like the Template but with the new House?
+    - Is the text legible? (Add shadows if background is bright).
+    - **Ad Ready**: High resolution, sharp text, no spelling errors.
 
-    OUTPUT: A final, social-media ready ad post (1080x1080).`;
+    OUTPUT: The final composite image.`;
 
     pass2Parts.push({ text: pass2Prompt });
 

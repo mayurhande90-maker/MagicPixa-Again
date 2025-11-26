@@ -211,6 +211,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const addAmenity = () => {
         setAmenities([...amenities, '']);
+        // UX Fix: Scroll to the new input
+        autoScroll();
     };
 
     const removeAmenity = (index: number) => {
