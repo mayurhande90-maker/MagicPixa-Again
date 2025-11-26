@@ -25,6 +25,7 @@ export interface AdStrategy {
 
 /**
  * Analyzes the product and audience to generate 4 distinct ad strategies.
+ * INTEGRATED LOGIC: "The 3% Rule" - Design in Advertising.
  */
 export const analyzeAdStrategy = async (
     base64ImageData: string,
@@ -35,27 +36,33 @@ export const analyzeAdStrategy = async (
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    const prompt = `You are a World-Class Performance Marketing Strategist.
+    const prompt = `You are an Elite Performance Marketing Strategist trained on the "3% Design Rule".
 
     INPUTS:
     - Product Image (attached).
     - Product Name: "${productName}".
     - Target Audience: "${targetAudience}".
 
-    TASK:
-    Analyze the product and audience. Develop 4 distinct visual strategies (Psychological Hooks) for an ad campaign.
+    **THE 3% DESIGN FRAMEWORK (Apply these principles):**
+    1. **The 2-Second Rule**: You must win attention instantly. The visual hierarchy must guide the eye immediately to the focal point.
+    2. **Emotional Logic**: "People decide emotionally and justify logically." The visual hook must trigger a feeling (Trust, Urgency, Desire, or Status) before the brain reads the text.
+    3. **Friction Removal**: Eliminate visual clutter. Use white space to reduce cognitive load. One page, one goal.
+    4. **Color Psychology**: Match the palette to the emotion (e.g., Blue=Trust, Red=Urgency/Food, Black=Luxury).
 
-    1. **Pain/Solution**: A visual showing the product solving a specific problem or pain point for this audience.
-    2. **Social Proof**: A lifestyle/UGC-style shot that looks authentic, showing the product being used happily by a person matching the audience.
-    3. **Luxury/Authority**: A high-end, clean, premium studio shot that builds trust and perceived value.
-    4. **Urgency/Impact**: A high-contrast, bold, creative composition designed to stop the scroll immediately.
+    TASK:
+    Develop 4 distinct visual strategies (Psychological Hooks) for an ad campaign based on the framework above.
+
+    1. **Pain/Solution (Friction Removal)**: A clear visual showing the product solving a specific problem. High contrast, immediate clarity.
+    2. **Social Proof (Authenticity)**: A lifestyle/UGC-style shot. Focus on human emotion and outcome. Use "Immersive Visuals" (Instagram style).
+    3. **Luxury/Authority (Status)**: High-end studio shot. Generous white space, centered composition, dramatic lighting to signal premium value.
+    4. **Urgency/Impact (The 2-Second Win)**: A bold, high-contrast, "ruthless simplicity" composition designed to stop the scroll. Uses the "Golden Ratio" or "Rule of Thirds" aggressively.
 
     OUTPUT JSON ARRAY:
     [
       {
         "type": "Pain/Solution",
         "visualPrompt": "Detailed image generation prompt describing the scene...",
-        "reasoning": "Why this works..."
+        "reasoning": "Why this works (citing specific design principles like hierarchy, color, or cognitive load)..."
       },
       ... (for all 4 types)
     ]`;
@@ -105,11 +112,11 @@ export const generateAdVariantImage = async (
 
     SCENE DESCRIPTION: ${visualPrompt}
 
-    CRITICAL GUIDELINES:
-    1. **Identity Preservation**: The product must look EXACTLY like the input image. Do not alter logos or text on the product.
-    2. **Realism**: Photorealistic output. High-end commercial lighting. 85mm lens.
-    3. **Scale**: Ensure the product is sized correctly relative to the props or models.
-    4. **Aspect Ratio**: 1:1 (Square) for social media feed.
+    **DESIGN EXECUTION RULES (The 3% Rule):**
+    1. **Visual Hierarchy**: Make the eye obey. Sequence: Hero Image -> Value -> Action. Ensure the product is the undisputed focal point.
+    2. **Cognitive Load**: Reduce visual noise. Keep the background complementary but simple to ensure the product pops.
+    3. **Scale & Physics**: Ensure photorealistic scale. The product must feel grounded and real.
+    4. **Identity**: Preserve the product's exact logo and text.
 
     Output only the image.`;
 

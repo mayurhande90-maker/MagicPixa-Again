@@ -23,16 +23,18 @@ export const analyzeProductImage = async (
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
-        // Optimized image for analysis
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-        const prompt = `Analyse the uploaded product image in depth. Identify the exact product type, its visible design, shape, packaging material, printed text, logos, colors, proportions, surface details, and category.
+        const prompt = `Analyse the uploaded product image. 
+        Based on the "3% Design Rule" (Small tweaks driving results), generate 4 conversational requests that focus on **Visual Hierarchy** and **Context**.
         
-        Based on this analysis, generate exactly 4 short, conversational requests that a user would ask an AI editor. 
-        These should sound natural and spoken, not like a robotic description.
-        Example: "Put this on a sleek marble table with some soft sunlight."
-        Example: "Show this floating in the air with fresh water splashes around it."
-        Example: "Place it on a wooden desk next to a laptop and coffee."
+        The prompts should place the product in a setting that:
+        1. Reduces cognitive load (clean backgrounds).
+        2. Establishes a clear focal point.
+        3. Uses color psychology relevant to the object.
+        
+        Example: "Put this on a clean white table with soft shadows to emphasize the shape."
+        Example: "Place it on a wooden desk to add warmth and trust."
         
         Return ONLY a JSON array of strings.`;
 
@@ -79,21 +81,15 @@ export const analyzeProductForModelPrompts = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-        const prompt = `Analyse the uploaded product in depth.
-        Generate 4 distinct, creative, and highly specific model scenarios.
+        const prompt = `Analyse the product. Generate 4 model scenarios based on **Visual Storytelling**.
         
-        **CRITICAL INSTRUCTION:** 
-        You MUST vary the **SHOT TYPE** (Close-up, Wide, Mid) and **COMPOSITION** (Single Model vs Group) in your suggestions. 
+        The scenarios should use "Single Frame Storytelling": Subject + Tension/Context + Resolution (Product).
         
-        Return a JSON array of objects with two keys:
-        1. "display": A natural, conversational question requesting this specific shot. It must sound like a human asking an editor. 
-           Examples: 
-           - "Can you create a wide group shot of friends wearing this?"
-           - "Show me a close-up of a model holding this near their face."
-           - "Generate a professional studio shot of a man using this product."
-        2. "prompt": The detailed, descriptive prompt for the image generator. e.g., "Wide angle street style shot of a young woman..."
+        1. **Tight Close Shot (Intimacy/Texture)**: Focus on the tactile experience.
+        2. **Mid Shot (Trust/Identity)**: Focus on the model's expression connecting with the product.
+        3. **Wide/Lifestyle (Context)**: Show the product fitting into a real life (Social Proof).
         
-        Return ONLY the JSON array.`;
+        Return a JSON array of objects with "display" (natural question) and "prompt" (detailed technical description).`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
@@ -146,29 +142,25 @@ export const editImageWithPrompt = async (
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    // "World Class" System Prompt Construction
+    // "World Class" System Prompt with Design Logic Injection
     let prompt = `TASK: Professional Product Photography Generation.
     
     INSTRUCTIONS:
-    1. Analyse the uploaded product image in depth. Identify the exact product type, visible design, shape, packaging, logos, text, and colors.
-    2. **CRITICAL RULE**: Do not modify or alter any part of the product itself. The product’s design, color accuracy, text, logo placement, and identity must remain EXACTLY as in the original image.
-    3. Build a new photorealistic environment around the product based on this direction: "${styleInstructions}".
+    1. **Identity Lock**: Preserve product design, logo, text, and colors EXACTLY.
+    2. **Environment**: Build a scene based on: "${styleInstructions}".
     
-    *** PHYSICAL SCALE & REALISM PROTOCOL ***
-    - You MUST analyze the real-world size of the product (e.g., a perfume bottle is 10cm, a sofa is 2m).
-    - The environment MUST be scaled proportionally. Do NOT place a small product in a giant world or vice versa.
-    - Example: A pair of headphones on a table should look like headphones, not the size of a car.
-    - Use realistic camera focal lengths (e.g., 50mm, 85mm) suitable for the product size.
+    *** VISUAL HIERARCHY & COGNITIVE LOAD ***
+    - **Rule of Focal Point**: The product is the single most important element. Ensure the background leads the eye TO the product, not away from it.
+    - **Reduce Friction**: Avoid clutter. Use negative space effectively (The 3% Rule).
+    - **Lighting**: Use lighting to create depth and separation between the product and the background.
+    
+    *** PHYSICAL SCALE & REALISM ***
+    - Analyze real-world size (e.g., perfume = 10cm, sofa = 2m). Scale environment proportionally.
+    - Use realistic camera focal lengths (e.g., 50mm, 85mm).
+    - Generate physically accurate shadows and reflections.
 
-    EXECUTION GUIDELINES:
-    - Use lighting, reflections, shadows, props, and composition that match the chosen direction.
-    - Ensure no AI artifacts, distortions, incorrect text, or warped shapes on the product.
-    - Make the final output look like a real commercial photo shoot, not AI-generated.
-    - Use physically accurate shadows, depth, reflections, and color grading.
-    - Maintain high-resolution, polished, social-media-ready quality.
-    
     OUTPUT:
-    Generate a final marketing-ready image that feels real, premium, and professionally photographed, while preserving the product exactly as it appears and in correct scale.`;
+    A polished, marketing-ready image that feels like a high-end commercial shoot.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -198,8 +190,8 @@ export const generateModelShot = async (
         region?: string;
         skinTone?: string;
         bodyType?: string;
-        composition?: string; // 'Single Model' or 'Group Shot'
-        framing?: string; // 'Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'
+        composition?: string; 
+        framing?: string; 
         freeformPrompt?: string;
     }
   ): Promise<string> => {
@@ -207,12 +199,9 @@ export const generateModelShot = async (
     try {
       const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-      // Detailed Model Shot System Prompt with HYPER-REALISM and INTELLIGENT FRAMING
       let userSelectionPart = "";
-      
       if (inputs.freeformPrompt) {
-          userSelectionPart = `USER PROMPT: "${inputs.freeformPrompt}". 
-          IGNORE specific dropdown selections if they conflict with this prompt. Follow this instruction for the model's appearance and interaction.`;
+          userSelectionPart = `USER PROMPT: "${inputs.freeformPrompt}".`;
       } else {
           userSelectionPart = `
           Composition: ${inputs.composition || 'Single Model'}
@@ -224,77 +213,27 @@ export const generateModelShot = async (
       }
 
       let prompt = `System instruction for AI:
-  Create a HYPER-REALISTIC marketing image that places the user’s uploaded product naturally with a model. 
+  Create a HYPER-REALISTIC marketing image.
   
+  *** VISUAL STORYTELLING (Design Principle) ***
+  - **Single Frame Story**: The image must imply a moment of tension or resolution (e.g., the joy of using the product, the confidence it gives).
+  - **Emotion**: The model's expression must match the product category (e.g., Calm for skincare, Dynamic for sport).
+  - **Eye Contact**: If applicable, use eye contact to engage the viewer (Psychological trigger).
+
   *** HYPER-REALISM & QUALITY PROTOCOL ***
   - OUTPUT STYLE: RAW Photography, 85mm Lens, f/1.8 Aperture.
-  - SKIN TEXTURE: Must show pores, micro-details, natural imperfections, and subsurface scattering. NO PLASTIC SMOOTH SKIN.
-  - LIGHTING: Cinematic studio lighting with realistic falloff. 
-  - PHYSICS: The product must have weight. Fingers must press against it slightly. Clothing must drape with gravity.
-  - FILM GRAIN: Add subtle film grain to match high-end editorial photography.
+  - SKIN TEXTURE: Must show pores, micro-details, imperfections. NO PLASTIC SKIN.
+  - PHYSICS: The product must have weight. Clothing must drape with gravity.
 
-  *** STRICT USER FRAMING PRIORITY ***
-  The user has explicitly selected a Framing Preference: "${inputs.framing}".
-  YOU MUST FOLLOW THIS ABOVE ALL ELSE.
-  - IF 'Tight Close Shot': MACRO view. Only Hands, Product, and maybe Lips/Chin. Product is HUGE in frame.
-  - IF 'Close-Up Shot': Head and Shoulders portrait. Product near face or held high.
-  - IF 'Mid Shot': Waist up. Standard catalog pose.
-  - IF 'Wide Shot': Full body in environment. Product might be smaller relative to scene.
-  
-  *** FALLBACK PRODUCT ANALYSIS & FRAMING LOGIC (ONLY use if User Framing is NOT specified) ***
-  1. **DETECT PRODUCT TYPE**:
-     - IF 'FOOTWEAR/SHOES': Camera MUST be **LOW ANGLE** or focus on **LEGS/FEET**. Do NOT show full body if it makes the shoes tiny. The shoes are the HERO.
-     - IF 'TROUSERS/JEANS/PANTS': Camera MUST capture **WAIST-DOWN** or **FULL BODY**. Ensure the pants are fully visible and fitting well. Do NOT crop the pants.
-     - IF 'SMALL ITEM' (Jewelry, Jar, Bottle, Watch): Camera MUST be **MACRO / CLOSE-UP** or **PORTRAIT**. Focus on the Hand/Face interaction. Do NOT do a wide full-body shot where the product is invisible.
-     - IF 'APPAREL TOP': Focus on **TORSO/UPPER BODY**.
-  
-  *** PHYSICAL SCALE PROTOCOL ***
-  - **MANDATORY**: Estimate the real-world size of the uploaded object (e.g., a 5cm jar vs a 30cm bag).
-  - Scale the object perfectly relative to the human model's hands/body.
-  - A 50ml jar must fit in the palm. A tote bag must hang from the shoulder at the correct size.
-
-  *** COMPOSITION LOGIC ***
-  - Composition Mode: ${inputs.composition}
-  - If 'Group Shot': Generate 2-3 models interacting socially with the product or in the background. Main model holds product.
+  *** FRAMING & SCALE ***
+  - Follow User Framing: "${inputs.framing}".
+  - **Scale**: Estimate real-world size of the object. A 50ml jar fits in a palm. A tote bag hangs from a shoulder.
   
   INPUTS:
   ${userSelectionPart}
   
-  DETAILED GENERATION RULES:
-  
-  1. Analyze the product
-  Understand the uploaded product: material, shape, label position, reflective surface, size, orientation.
-  Decide the best possible interaction pose for the model (e.g., Beauty -> near face; Food -> held).
-  
-  2. Generate the model
-  - If 'Young': Age 18-25. Fresh skin, youthful features.
-  - If 'Adult': Age 30-45. Mature features, confident look.
-  - If 'Senior': Age 60+. Visible wrinkles, realistic aging details (CRITICAL for realism).
-  - If 'Kid': Age 6-10.
-  - Match the specified Ethnicity/Region accurately.
-  
-  3. Place the product correctly
-  Position and scale product naturally relative to the model’s selected body type.
-  Maintain realistic contact (Fingers wrap around correctly, Clothing bends around wearable items).
-  Add correct occlusion (Fingers partially covering product, Hair or clothing overlapping).
-  
-  4. Lighting, shadows, and realism
-  Match product lighting to model lighting direction.
-  Create contact shadows under the product.
-  Ensure the model and product look like they were photographed together, not pasted.
-  
-  5. Background & styling
-  Choose a background that fits the product category (e.g., Beauty -> soft studio, Fitness -> gym).
-  Background must be slightly out of focus (Bokeh) to keep attention on the product/model.
-  
-  6. Label & detail preservation
-  Keep all product text sharp and readable. Do not distort brand logo.
-  
-  FINAL AI PROMPT:
-  “Generate a photorealistic RAW photograph using the uploaded product. Create a model matching: ${inputs.freeformPrompt || `${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}`}. 
-  STRICTLY FOLLOW USER FRAMING: ${inputs.framing}. If unspecified, use logic based on product type (Shoes=Low Angle, Pants=Waist Down, Small=Close Up). 
-  COMPOSITION: ${inputs.composition}.
-  Place the product naturally with correct PHYSICAL SCALE and interaction. Add realistic occlusion. Match lighting, shadows, and color temperature. Skin texture must be highly detailed and realistic. The result should look like a high-end billboard advertisement.”`;
+  FINAL OUTPUT:
+  Generate a photorealistic RAW photograph. Place the product naturally with correct PHYSICAL SCALE and interaction. Add realistic occlusion. The result should look like a high-end billboard advertisement designed to win attention in 2 seconds.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',

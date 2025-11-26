@@ -42,7 +42,6 @@ const getBestAspectRatio = (base64: string, mimeType: string): Promise<string> =
                     bestRatio = r.id;
                 }
             }
-            // console.log(`Detected Aspect Ratio: ${ratio.toFixed(2)} -> Matched: ${bestRatio}`);
             resolve(bestRatio);
         };
         img.onerror = () => resolve("1:1"); // Fallback
@@ -73,10 +72,6 @@ export const generateStyledBrandAsset = async (
     // 0. Determine Target Aspect Ratio from Reference Image
     const targetAspectRatio = await getBestAspectRatio(referenceBase64, referenceMime);
 
-    // PERFORMANCE OPTIMIZATION: 
-    // 1. Generate Low-Res versions (512px) for the Analysis step.
-    // 2. Generate Standard HD versions (1024px) for the final Generation step.
-    
     const [
         optProductLow, 
         optRefLow,
@@ -91,65 +86,39 @@ export const generateStyledBrandAsset = async (
         logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime, 1024) : Promise.resolve(null)
     ]);
 
-    // Language-Specific Instruction
-    let languageInstruction = "";
-    if (language === 'Hindi' || language === 'Marathi') {
-        languageInstruction = `
-        **CRITICAL LANGUAGE REQUIREMENT (${language}):**
-        - **Generated Headline**: Must be in strictly native ${language} (using Devanagari script).
-        - **TRANSLATION RULE**: Do NOT use literal word-for-word translation. Understand the context and write a natural, catchy, marketing-friendly headline in ${language}.
-        - **Grammar**: Must be perfect and sound like a native speaker wrote it.
-        - **English Constraints**: URLs, Phone numbers, and Symbols (%) must remain in English.
-        `;
-    } else {
-        languageInstruction = `Generate the 'generatedHeadline' in professional marketing English.`;
-    }
-
-    // Brand Identity Instruction
-    let brandInstruction = "";
-    if (brandColor) {
-        brandInstruction = `STRICT BRANDING: The primary brand color is ${brandColor}. You MUST use this color effectively (as a background, overlay, text accent, or UI element) to ensure brand consistency.`;
-    } else {
-        brandInstruction = "Extract the best color palette from the Reference Image or the User Asset itself.";
-    }
-
-    // Step 1: Deep Analysis (The "Intelligent Planner")
-    // Updated Analysis Prompt to be extremely strict about detecting specific text elements
-    const analysisPrompt = `You are a Senior Creative Director specializing in Ad Layout Forensics.
+    // Step 1: Deep Analysis & "3% Rule" Layout Strategy
+    const analysisPrompt = `You are a Creative Director applying the "3% Design Rule" for High-Conversion Ads.
         INPUTS: Reference Image (Target Style), Product Image (User Item).
         
-        **CRITICAL ANALYSIS TASK:**
-        You must deeply study the **Reference Image** and detect exactly which text elements are present.
+        **DESIGN SCIENCE AUDIT (Analyze the Reference):**
+        1. **Visual Hierarchy**: How does the reference guide the eye? (e.g., Headline -> Value -> Proof -> CTA).
+        2. **Typography**: Is the text 3D/Extruded (Physical) or 2D/Flat? Does it use specific weights for hierarchy?
+        3. **White Space**: Analyze the "breathing room". Is it generous (Luxury) or tight (Retail)?
+        4. **Color Psychology**: What emotion does the palette convey? (Trust, Urgency, Authenticity)?
         
-        1. **Typography Depth**: Is the text in the reference **3D/Extruded** (with physical depth/shadows) OR **Flat/2D** (clean vector style)?
-        2. **Product Name Detection**: Does the reference image explicitly display a Product Name or Title text?
-        3. **Offer/Badge Detection**: Does the reference image explicitly display a Discount, Offer, "50% Off", or a CTA Button/Badge?
-        4. **Website/Address Detection**: Does the reference image explicitly display a Website URL or Physical Address/Location text?
-        
-        **HEADLINE GENERATION:**
-        Write a catchy, viral, marketing-ready headline (2-5 words) for "${productDescription}". ${languageInstruction}.
-        
-        **LAYOUT PLAN:**
-        Plan where the User's Product should go to match the reference composition.
+        **TASK**: 
+        Plan a new layout for the User's Product that mimics this success formula.
+        - **Headline**: Write a catchy, verb-led headline (2-5 words) for "${productDescription}" in ${language}.
+        - **Conversion**: Ensure the "Offer/CTA" placement is obvious and high-contrast.
     `;
 
     const jsonSchemaPart = `
     OUTPUT JSON:
     {
         "visualStyle": "Detailed description of lighting, colors, and composition...",
-        "layoutPlan": "Instructions on where to place the asset/product...",
-        "generatedHeadline": "A creative headline (2-5 words) fitting the product and style in the requested language",
-        "detectedTypographyType": "Either '3D' or '2D' based on the Reference Image style",
+        "layoutPlan": "Instructions for 'One Focal Point' composition...",
+        "generatedHeadline": "Verb-led, high-impact headline",
+        "detectedTypographyType": "Either '3D' or '2D'",
         "referenceHasProductName": boolean, 
         "referenceHasOfferBadge": boolean, 
         "referenceHasWebsite": boolean, 
         "referenceHasAddress": boolean,
-        "logoPlacement": "Description of where to place the logo (if applicable)",
-        "productNamePlacement": "Description of where to place the Product Name (if applicable)",
-        "offerPlacement": "Description of where to place the Offer/Discount (if applicable)",
-        "contactPlacement": "Description of where to place contact info (if applicable)",
-        "textInstructions": "Specific instructions on font style and color",
-        "technicalExecution": "Specific instruction for the renderer"
+        "logoPlacement": "Where to place logo for brand consistency",
+        "productNamePlacement": "Location for product name",
+        "offerPlacement": "High-visibility location for offer",
+        "contactPlacement": "Low-friction location for contact info",
+        "textInstructions": "Font weights and contrast rules",
+        "technicalExecution": "Lighting and blending notes"
     }`;
 
     const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
@@ -208,56 +177,34 @@ export const generateStyledBrandAsset = async (
     }
 
     // Step 2: Generation (The "Executor")
-    
-    // Dynamic Typography Logic based on Analysis
     let typographyInstruction = "";
     if (blueprint.detectedTypographyType === "3D") {
-        typographyInstruction = `**3D TYPOGRAPHY**: The text MUST be 3D, extruded, and have physical depth/shadows to match the reference style. Use a bold, heavy font that looks like an object in the scene.`;
+        typographyInstruction = `**3D TYPOGRAPHY**: The text MUST be 3D, extruded, and have physical depth/shadows. High contrast for legibility.`;
     } else {
-        typographyInstruction = `**2D TYPOGRAPHY**: The text MUST be FLAT, clean, and vector-style. DO NOT use 3D extrusion or heavy bevels on the text. Keep it minimal, sharp, and graphic design focused.`;
+        typographyInstruction = `**2D TYPOGRAPHY**: Flat, clean, vector-style text. Use weights (Bold vs Light) to create hierarchy.`;
     }
 
-    // STRICT TEXT FILTERING LOGIC
-    // Only render if User Provided Input AND Reference Image has that element.
-    
     const showProduct = productName && blueprint.referenceHasProductName;
     const showOffer = specialOffer && blueprint.referenceHasOfferBadge;
     const showWebsite = website && blueprint.referenceHasWebsite;
     const showAddress = address && blueprint.referenceHasAddress;
 
     let dynamicTextInstructions = `
-    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the NEGATIVE SPACE ZONE. 
-      **STYLE**: ${fontStyle}. 
-      ${typographyInstruction}
-      *Ensure correct script rendering (Latin or Devanagari).*
+    - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the PRIMARY OPTICAL ZONE (Top or Center Left). 
+      **STYLE**: ${fontStyle}. ${typographyInstruction}
     `;
 
     if (showProduct) {
-        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at location: ${blueprint.productNamePlacement}. Use a style matching the reference.\n`;
-    } else {
-        dynamicTextInstructions += `- **NO PRODUCT NAME**: Do NOT render any product name text. The reference does not use it, or the user didn't provide it.\n`;
+        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at ${blueprint.productNamePlacement}.\n`;
     }
 
     if (showOffer) {
-        dynamicTextInstructions += `- **OFFER/CTA**: Render "${specialOffer}" at location: ${blueprint.offerPlacement}. Make it look like a badge/sticker/button as seen in reference.\n`;
-    } else {
-        dynamicTextInstructions += `- **NO OFFER**: Do NOT render any "50% Off" or discount badges. Even if the reference has one, ignore it if the user didn't provide specific offer text.\n`;
+        dynamicTextInstructions += `- **OFFER (The Hook)**: Render "${specialOffer}" as a High-Contrast Element (Badge/Sticker) at ${blueprint.offerPlacement}. Must trigger the "Fear of Missing Out" or "Value" emotion.\n`;
     }
 
-    if (showWebsite) {
-        dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at location: ${blueprint.contactPlacement}.\n`;
-    } else {
-        dynamicTextInstructions += `- **NO WEBSITE**: Do NOT render any URL.\n`;
-    }
-
-    if (showAddress) {
-        dynamicTextInstructions += `- **ADDRESS**: Render "${address}" at location: ${blueprint.contactPlacement}.\n`;
-    } else {
-        dynamicTextInstructions += `- **NO ADDRESS**: Do NOT render any physical address.\n`;
-    }
-
-    // STRICT PHONE NUMBER BAN
-    dynamicTextInstructions += `- **NO PHONE NUMBER**: You are STRICTLY FORBIDDEN from rendering any phone numbers (e.g. +1-234...). Even if the reference image has one, you must IGNORE it. Do not invent a phone number.\n`;
+    if (showWebsite) dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at ${blueprint.contactPlacement}.\n`;
+    if (showAddress) dynamicTextInstructions += `- **ADDRESS**: Render "${address}" at ${blueprint.contactPlacement}.\n`;
+    dynamicTextInstructions += `- **NO PHONE NUMBER**: Do not render phone numbers.\n`;
 
     if (optLogoHigh && logoBase64) {
          dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;
@@ -273,29 +220,25 @@ export const generateStyledBrandAsset = async (
         parts.push({ inlineData: { data: optLogoHigh.data, mimeType: optLogoHigh.mimeType } });
     }
 
-    let genPrompt = `Task: Create a High-End Product Ad Replica.
+    let genPrompt = `Task: Create a High-Conversion Ad Creative.
     
-    **SCENE**: Recreate this aesthetic: "${blueprint.visualStyle}".
-    **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'}.
-    **LAYOUT**: ${blueprint.layoutPlan}.
-    **TARGET ASPECT RATIO**: ${targetAspectRatio}.
+    **VISUAL STRATEGY**: Recreate this aesthetic: "${blueprint.visualStyle}".
+    **BRANDING**: Use ${brandColor ? `Color ${brandColor}` : 'matching palette'} to evoke emotion.
+    **LAYOUT**: ${blueprint.layoutPlan}. Apply the "Rule of Thirds".
+    **ASPECT RATIO**: ${targetAspectRatio}.
     `;
     
     genPrompt += `
-    *** RAW IMAGE ENHANCEMENT PROTOCOL (CRITICAL) ***
-    1. **DEEP ANALYSIS**: Examine the "USER ASSET" carefully. If it looks like a raw phone photo with bad lighting or flat flash, you MUST fix it.
-    2. **RELIGHTING**: You must **RELIGHT** the product to match the new environment. 
-       - If the Reference scene is sunny, the product must have warm highlights.
-       - If the Reference scene is moody/dark, the product must have deep contrast.
-    3. **INTEGRATION**: Eliminate the "cutout" look. 
-       - Generate realistic **contact shadows** (ambient occlusion) where the product touches the surface.
-       - Add slight environmental reflections to the product surface.
-    4. **COLOR GRADING**: Match the white balance and saturation of the product to the background. Do NOT leave the product looking washed out or different from the scene.
+    *** CONVERSION DESIGN PROTOCOL ***
+    1. **Focal Point**: The User Product is the HERO. It must be the first thing the eye sees. Relight it to pop against the background.
+    2. **Visual Flow**: Ensure the eye travels from Image -> Headline -> Offer/CTA.
+    3. **Reduce Friction**: Keep the background clean and supportive (Generous White Space rules apply). No visual clutter.
+    4. **Realism**: Add realistic contact shadows and reflections so the product feels tangible ("Touch effect").
     
-    **TEXT PLACEMENT RULES (STRICT ADHERENCE):**
+    **TEXT EXECUTION (STRICT):**
     ${dynamicTextInstructions}
     
-    **FINAL QUALITY CHECK**: Output a 4K, highly polished image in **${targetAspectRatio}** ratio. Ensure NO random text artifacts. Only render text explicitly requested above.`;
+    **FINAL OUTPUT**: A high-resolution marketing asset designed to stop the scroll within 2 seconds.`;
 
     parts.push({ text: genPrompt });
 

@@ -7,7 +7,6 @@ import { resizeImage } from "../utils/imageUtils";
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Reduced to 1024px to ensure 3 images fit within the API payload limit reliably
         const resizedUri = await resizeImage(dataUri, 1024, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -21,11 +20,11 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 interface ThumbnailInputs {
     category: string;
     title: string;
-    customText?: string; // Optional: User specific text override
-    referenceImage?: { base64: string; mimeType: string } | null; // Now Optional
-    subjectImage?: { base64: string; mimeType: string } | null; // Optional for standard
-    hostImage?: { base64: string; mimeType: string } | null; // Podcast only
-    guestImage?: { base64: string; mimeType: string } | null; // Podcast only
+    customText?: string; 
+    referenceImage?: { base64: string; mimeType: string } | null; 
+    subjectImage?: { base64: string; mimeType: string } | null; 
+    hostImage?: { base64: string; mimeType: string } | null; 
+    guestImage?: { base64: string; mimeType: string } | null; 
 }
 
 export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string> => {
@@ -34,14 +33,12 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         const parts: any[] = [];
         const isPodcast = inputs.category === 'Podcast';
 
-        // 1. Handle Reference Image (Optional)
         if (inputs.referenceImage) {
             const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-            parts.push({ text: "REFERENCE THUMBNAIL STYLE (Analyze this for composition, font style, and color ONLY):" });
+            parts.push({ text: "REFERENCE VISUAL HIERARCHY (Analyze contrast and composition):" });
             parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
         }
 
-        // 2. Handle Subjects based on Category
         if (isPodcast) {
             if (inputs.hostImage) {
                 const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
@@ -61,71 +58,51 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             }
         }
 
-        // 3. Construct Highly Specific System Prompt
-        let prompt = `You are an Elite YouTube Thumbnail Designer and Graphic Artist using Gemini 3 Pro.
+        // Construct Highly Specific System Prompt with Design Logic
+        let prompt = `You are an Elite YouTube Thumbnail Designer using the "3% Design Rule".
         
-        TASK: Create a viral, high-CTR (Click Through Rate) YouTube thumbnail for the category: "${inputs.category}".
-        CONTEXT: The video is about: "${inputs.title}".
+        TASK: Create a viral, high-CTR YouTube thumbnail.
+        CATEGORY: "${inputs.category}".
+        CONTEXT: "${inputs.title}".
         
-        *** PHASE 1: VISUAL STRATEGY & RESEARCH ***
+        *** DESIGN SCIENCE FOR THUMBNAILS ***
+        1. **The 2-Second Rule**: The image must be understood instantly.
+        2. **High Contrast**: Use high-contrast focal points. The Subject vs Background separation must be extreme.
+        3. **Narrative-First**: The image must imply a story or tension ("Open Loop").
+        4. **Emotion Trigger**: Use the subject's facial expression or the scene's drama to trigger curiosity immediately.
         `;
 
         if (inputs.referenceImage) {
             prompt += `
-            - **REFERENCE ANALYSIS**: Analyze the provided "REFERENCE THUMBNAIL STYLE". Extract the color palette, font style (bold/sans-serif), text placement, and energy.
-            - **ABSOLUTE PROHIBITION:** You are strictly FORBIDDEN from reading or extracting text from the Reference Image. IGNORE reference text completely. Use it only for visual vibe.
-            `;
-        } else {
-            prompt += `
-            - **DEEP TREND RESEARCH**: Use your internal knowledge of high-performing YouTube trends (2024-2025) for the "${inputs.category}" niche.
-            - **DESIGN GENERATION**: Act as a Professional Graphic Designer. Invent a world-class, high-contrast, eye-catching composition from scratch based on what currently works best on the platform.
+            - **REFERENCE ANALYSIS**: Copy the visual hierarchy, color boldness, and font weight from the reference. IGNORE the text content, copy the VIBE.
             `;
         }
         
         prompt += `
-        *** PHASE 2: PROFESSIONAL PHOTO ENHANCEMENT (CRITICAL) ***
-        - **INPUT PHOTOS**: Take the uploaded HOST, GUEST, or MAIN SUBJECT photos.
-        - **ACTION**: You must act as a high-end photo retoucher.
-          1. **RELIGHTING**: Fix any bad lighting. Add rim lights, match the subject lighting to your new background.
-          2. **COLOR GRADING**: Fix skin tones (make them healthy and vibrant), adjust contrast, and remove noise/blur.
-          3. **INTEGRATION**: Cut the subjects out perfectly and blend them into the scene so they don't look like cheap stickers.
+        *** COMPOSITION & EXECUTION ***
+        - **Layout**: Use the "Rule of Thirds". Place the main subject's eyes on a power point.
+        - **Retouching**: Relight the subjects to pop. Fix skin tones. Add rim lighting to separate from background.
+        - **Integration**: Perfect cutout and blending. No sticker look.
         `;
 
         if (inputs.customText) {
              prompt += `
-             *** PHASE 3: TEXT RENDERING (USER OVERRIDE) ***
-             - **MANDATORY**: The user has provided specific text. You MUST render exactly this text: "${inputs.customText}".
-             - **RULE**: Do NOT invent a new title. Do NOT change the wording. Just render "${inputs.customText}" in a high-impact, legible font styled for YouTube.
+             *** TEXT RENDERING ***
+             - Render exactly: "${inputs.customText}".
+             - Style: Big, Bold, Sans-Serif. Maximum legibility on small mobile screens.
              `;
         } else {
              prompt += `
-             *** PHASE 3: AI COPYWRITING (TEXT GENERATION) ***
-             - **GOAL**: Invent a **NEW**, short, punchy, viral clickbait title (2-5 words max) based on the Context: "${inputs.title}".
-             - **EXAMPLES**: "IPHONE 15 FAIL?", "DO NOT WATCH", "GET RICH FAST", "THE TRUTH".
-             - **RULE**: Render this text BIG, BOLD, and LEGIBLE on the image. Use high-impact fonts.
+             *** AI COPYWRITING ***
+             - Invent a short, punchy hook (2-4 words) like "IT'S OVER", "THE TRUTH", "CRAZY WIN".
+             - Style: Big, Bold, Sans-Serif. High contrast color (Yellow/White/Red).
              `;
         }
 
         prompt += `
-        *** PHASE 4: COMPOSITION & RENDERING ***
-        `;
-
-        if (isPodcast) {
-            prompt += `- **Podcast Layout**: Place HOST and GUEST side-by-side or facing each other. Add a studio background or relevant environment.`;
-        } else {
-            prompt += `- **Standard Layout**: Place the Subject prominently in the foreground. Create a compelling background that tells a story.`;
-        }
-
-        prompt += `
-        *** CRITICAL IDENTITY PRESERVATION RULES (ZERO TOLERANCE) ***
-        - You MUST use the faces/bodies from the uploaded photos.
-        - **DO NOT REGENERATE THEIR FACES.** Do not change their ethnicity, age, hair, or facial features.
-        - Keep the identity 100% exact, just make the photo quality *better*.
-        
-        *** HYPER-REALISM & QUALITY ***
-        - The final image must look like a 4K polished design.
-        - Text must be legible, spelled correctly, and professional.
-        - Add depth of field (blur) to the background to make subjects pop.
+        *** IDENTITY LOCK ***
+        - You MUST use the faces/bodies from the uploaded photos. DO NOT regenerate new people.
+        - Keep the identity 100% exact.
         
         OUTPUT: A single high-resolution thumbnail image (16:9).`;
 
@@ -136,8 +113,6 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                // Disabled search tool to prevent conflicts with image generation endpoint
-                // tools: [{ googleSearch: {} }] 
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
