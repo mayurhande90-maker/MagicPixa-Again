@@ -114,8 +114,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         
         try {
             const base64Data = await fileToBase64(file);
+            
+            // FIX: Construct proper Data URI for uploadBrandAsset which expects it to parse mime type
+            const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+            
             // 1. Upload to Storage
-            const url = await uploadBrandAsset(auth.user.uid, base64Data.base64, key);
+            const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
             // 2. Update Local State
             setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
