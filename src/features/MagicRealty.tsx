@@ -1,9 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '../components/icons';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, BrandKitIcon } from '../components/icons';
+import { fileToBase64, Base64File, urlToBase64 } from '../utils/imageUtils';
 import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -91,6 +91,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
 
+    // Brand Kit Integration State
+    const [usingBrandKit, setUsingBrandKit] = useState(false);
+
     // Decisions
     const [modelChoice, setModelChoice] = useState<'upload' | 'generate' | 'skip' | null>(null);
     const [propertyChoice, setPropertyChoice] = useState<'upload' | 'generate' | null>(null);
@@ -154,6 +157,31 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }, 150);
         }
     };
+
+    // --- BRAND KIT AUTO-LOADER ---
+    useEffect(() => {
+        const loadBrandAssets = async () => {
+            if (auth.user?.brandKit && !logoImage) {
+                console.log("Found Brand Kit, auto-loading assets...");
+                // Auto-fill context fields if empty
+                if (!texts.contact && auth.user.brandKit.website) {
+                    setTexts(prev => ({ ...prev, contact: auth.user!.brandKit!.website }));
+                }
+                
+                // Attempt to load logo
+                if (auth.user.brandKit.logos.primary) {
+                    try {
+                        const base64Data = await urlToBase64(auth.user.brandKit.logos.primary);
+                        setLogoImage({ url: auth.user.brandKit.logos.primary, base64: base64Data });
+                        setUsingBrandKit(true);
+                    } catch (e) {
+                        console.warn("Failed to auto-load Brand Kit logo:", e);
+                    }
+                }
+            }
+        };
+        loadBrandAssets();
+    }, [auth.user?.brandKit]); // Run when brandKit data is available
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -260,7 +288,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 referenceImage: referenceImage.base64,
                 logoImage: logoImage?.base64,
                 amenities: validAmenities,
-                texts: finalTexts
+                texts: finalTexts,
+                // Inject Brand Kit Data if available
+                brandIdentity: auth.user.brandKit ? {
+                    colors: auth.user.brandKit.colors,
+                    fonts: auth.user.brandKit.fonts
+                } : undefined
             });
 
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -287,7 +320,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelImage(null);
         setPropertyImage(null);
         setReferenceImage(null);
-        setLogoImage(null);
+        // Only clear logo if we are NOT using brand kit auto-load. 
+        // If brand kit is active, we keep it for convenience.
+        if (!usingBrandKit) {
+            setLogoImage(null);
+        }
+        
         setModelChoice(null);
         setPropertyChoice(null);
         setTexts({ projectName: '', unitType: '', marketingContext: '', location: '', price: '', rera: '', contact: '' });
@@ -494,13 +532,21 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                             {/* Step 4: Details */}
                             <div className="border-t border-gray-100 pt-6">
-                                <div className="flex items-center gap-2 mb-3 ml-1">
-                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Details</label>
+                                <div className="flex items-center justify-between gap-2 mb-3 ml-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Details</label>
+                                    </div>
+                                    {usingBrandKit && (
+                                        <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 shadow-sm animate-fadeIn">
+                                            <BrandKitIcon className="w-3 h-3" />
+                                            <span className="text-[9px] font-bold uppercase">Brand Kit Active</span>
+                                        </div>
+                                    )}
                                 </div>
                                 
                                 <div className="mb-4">
-                                    <CompactUpload label="Brand Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<SparklesIcon className="w-6 h-6 text-purple-400"/>} optional={true} heightClass="h-24" />
+                                    <CompactUpload label="Brand Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => { setLogoImage(null); setUsingBrandKit(false); }} icon={<SparklesIcon className="w-6 h-6 text-purple-400"/>} optional={true} heightClass="h-24" />
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">

@@ -1,3 +1,4 @@
+
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -42,6 +43,11 @@ interface RealtyInputs {
     referenceImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
     amenities?: string[];
+    // New Brand Identity Data
+    brandIdentity?: {
+        colors: { primary: string; secondary: string; accent: string; };
+        fonts: { heading: string; body: string; };
+    };
     texts: {
         projectName: string;
         unitType: string;
@@ -247,7 +253,15 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     - **Fidelity**: Do NOT change the logo's color, font, or shape. It must be an exact replica of the uploaded logo file.
     
     *** 6. STYLE MATCHING ***
+    ${inputs.brandIdentity ? `
+    - **BRAND IDENTITY ENFORCEMENT (STRICT)**:
+      - **Primary Color**: Use ${inputs.brandIdentity.colors.primary} for major graphical elements (shapes, footer bar background, or headline text).
+      - **Secondary Color**: Use ${inputs.brandIdentity.colors.secondary} for accents or sub-text.
+      - **Fonts**: Emulate a "${inputs.brandIdentity.fonts.heading}" style for the H1 Headline. Use "${inputs.brandIdentity.fonts.body}" style for details.
+    ` : `
     - Match the Reference's font styles (Serif/Sans), weights, and color palette.
+    `}
+    
     - **Price**: If "${inputs.texts.price}" exists, place it in a high-visibility badge/sticker.
 
     OUTPUT: The final composite image.`;

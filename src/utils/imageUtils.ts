@@ -68,6 +68,33 @@ export const fileToBase64 = (file: File): Promise<Base64File> => {
 };
 
 /**
+ * Fetches an image from a URL (e.g., Firebase Storage) and converts it to Base64.
+ * Used for Brand Kit integration.
+ */
+export const urlToBase64 = async (url: string): Promise<Base64File> => {
+    try {
+        const response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+        
+        const blob = await response.blob();
+        
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                const base64 = result.split(',')[1];
+                resolve({ base64, mimeType: blob.type });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("urlToBase64 error:", error);
+        throw error;
+    }
+};
+
+/**
  * Resizes a base64 image string to a specific max width, returning a new base64 string.
  * Used for creating lightweight thumbnails.
  */
