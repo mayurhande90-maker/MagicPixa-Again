@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -248,7 +249,9 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
             <div className="relative z-10">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-xl">Credit Overview</h3>
-                    <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{user.plan || 'Free'} Plan</span>
+                    <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        {(user.plan && user.plan.toLowerCase().includes('plan')) ? user.plan : `${user.plan || 'Free'} Plan`}
+                    </span>
                 </div>
                 <div>
                     <p className="text-7xl font-black">{currentCredits}</p>

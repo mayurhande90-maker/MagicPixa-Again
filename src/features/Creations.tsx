@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
 import { getCreations, deleteCreation } from '../firebase';
 import { downloadImage } from '../utils/imageUtils';
 import { ImageModal } from '../components/FeatureLayout';
+import ToastNotification from '../components/ToastNotification';
 import { 
     AdjustmentsVerticalIcon, 
     ProjectsIcon, 
@@ -28,16 +29,82 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+    // Notification State
+    const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+    // Cleanup Ref to ensure it runs once per mount
+    const cleanupRan = useRef(false);
+
     const isUnlimitedStorage = auth.user?.storageTier === 'unlimited';
 
     useEffect(() => {
-        if (auth.user) {
-            getCreations(auth.user.uid).then(data => {
-                setCreations(data as Creation[]);
-                setLoading(false);
-            });
-        }
-    }, [auth.user]);
+        let isMounted = true;
+
+        const loadAndCleanup = async () => {
+            if (!auth.user) return;
+
+            try {
+                const data = await getCreations(auth.user.uid);
+                const allCreations = data as Creation[];
+                
+                // --- LAZY CLEANUP LOGIC ---
+                // Only run if user is Limited tier and we haven't run it yet this session
+                if (!isUnlimitedStorage && !cleanupRan.current) {
+                    cleanupRan.current = true;
+                    
+                    const now = new Date();
+                    const expiredCreations: Creation[] = [];
+                    const validCreations: Creation[] = [];
+
+                    allCreations.forEach(c => {
+                        const cDate = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt as any);
+                        const diffTime = Math.abs(now.getTime() - cDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        
+                        if (diffDays > 30) {
+                            expiredCreations.push(c);
+                        } else {
+                            validCreations.push(c);
+                        }
+                    });
+
+                    if (expiredCreations.length > 0) {
+                        console.log(`Auto-cleaning ${expiredCreations.length} expired images...`);
+                        
+                        // Execute deletions in background
+                        // We don't await this to block the UI render, but we update local state immediately
+                        Promise.all(expiredCreations.map(c => deleteCreation(auth.user!.uid, c)))
+                            .then(() => {
+                                console.log("Auto-cleanup complete");
+                            })
+                            .catch(err => console.error("Auto-cleanup error", err));
+
+                        // Show notification
+                        setToastMsg(`Cleaned up ${expiredCreations.length} expired images (older than 30 days).`);
+                        
+                        if (isMounted) {
+                            setCreations(validCreations);
+                            setLoading(false);
+                        }
+                        return; // Exit early as we set state above
+                    }
+                }
+                // ---------------------------
+
+                if (isMounted) {
+                    setCreations(allCreations);
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error("Failed to load creations", error);
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        loadAndCleanup();
+
+        return () => { isMounted = false; };
+    }, [auth.user, isUnlimitedStorage]);
 
     const uniqueFeatures = useMemo(() => Array.from(new Set(creations.map(c => c.feature))).sort(), [creations]);
 
@@ -409,6 +476,14 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     onClose={() => setViewCreation(null)}
                     onDownload={() => handleDownload(viewCreation.imageUrl)}
                     onDelete={() => handleDelete(viewCreation)}
+                />
+            )}
+
+            {toastMsg && (
+                <ToastNotification 
+                    message={toastMsg} 
+                    type="info" 
+                    onClose={() => setToastMsg(null)} 
                 />
             )}
         </div>
