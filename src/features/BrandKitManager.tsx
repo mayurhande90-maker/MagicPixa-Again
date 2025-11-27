@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, User } from '../types';
 import { 
@@ -136,10 +137,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             console.error("Upload failed", e);
             // Provide better error feedback
             let errorMsg = "Failed to upload asset.";
-            if (e.message.includes('permission')) {
-                errorMsg = "Permission denied. Check storage rules.";
-            } else if (e.code === 'storage/unauthorized') {
-                errorMsg = "Storage unauthorized. Please enable Firebase Storage.";
+            if (e.message.includes('permission') || e.code === 'storage/unauthorized') {
+                errorMsg = "Permission Denied. Please update Firebase Storage Rules (see Admin Panel).";
             }
             setToast({ msg: errorMsg, type: "error" });
         } finally {

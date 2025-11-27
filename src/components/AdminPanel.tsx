@@ -15,78 +15,89 @@ interface AdminPanelProps {
 }
 
 const PermissionsGuide: React.FC<{ auth: AuthProps }> = ({ auth }) => (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6 space-y-6">
+        {/* FIRESTORE RULES */}
         <div className="flex">
             <div className="flex-shrink-0">
                 <InformationCircleIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
             </div>
-            <div className="ml-3">
-                <h3 className="text-lg font-bold text-red-800">Action Required: Update Security Rules</h3>
-                <div className="mt-2 text-sm text-red-700 space-y-4">
-                    <p>
-                        To enable the <strong>Referral System</strong> (where User A credits User B), you must update your Firestore Security Rules to allow specific cross-user updates.
-                    </p>
-                    <ol className="list-decimal list-inside space-y-2">
-                        <li>Go to your Firebase project &gt; Firestore Database &gt; <strong>Rules</strong> tab.</li>
-                        <li><strong>Delete existing rules</strong> and paste the code below.</li>
-                        <li>Click <strong>Publish</strong>.</li>
-                    </ol>
-                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto mt-4 select-all">
+            <div className="ml-3 w-full">
+                <h3 className="text-lg font-bold text-red-800">1. Firestore Database Rules</h3>
+                <div className="mt-2 text-sm text-red-700 space-y-2">
+                    <p>Required for **Referrals** and **User Management**.</p>
+                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto select-all">
                         <code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper to check admin status
     function isAdmin() {
       return request.auth.token.email == '${auth.user?.email}';
     }
 
-    // --- USERS COLLECTION ---
     match /users/{userId} {
-      // Admin: Full Access
       allow read, write: if isAdmin();
-      
-      // User: Create/Delete/Read own profile
       allow create, delete: if request.auth.uid == userId;
-      
-      // User: Allow reading OTHER users (Required to lookup Referral Codes & Check Caps)
       allow read: if request.auth != null;
-
-      // User: Update Access
-      // 1. Allow user to update their own profile
-      // 2. [CRITICAL FOR REFERRALS] Allow updating OTHER users ONLY if adding credits/referrals
       allow update: if request.auth.uid == userId 
-                    || (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy']));
+                    || (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'brandKit']));
     }
 
-    // --- TRANSACTIONS SUBCOLLECTION ---
     match /users/{userId}/transactions/{transactionId} {
       allow read: if request.auth.uid == userId || isAdmin();
-      
-      // [CRITICAL FOR REFERRALS] Allow creating a transaction if:
-      // 1. It's your own account
-      // 2. It's an admin
-      // 3. It's a Referral Bonus being credited to someone else
       allow create: if request.auth.uid == userId || isAdmin()
                     || (request.auth != null && request.resource.data.feature == 'Referral Bonus (Referrer)');
     }
 
-    // --- CREATIONS SUBCOLLECTION ---
     match /users/{userId}/creations/{creationId} {
       allow read, write: if request.auth.uid == userId || isAdmin();
     }
     
-    // --- CONFIGURATION ---
     match /config/main {
         allow write: if isAdmin();
         allow read: if request.auth != null;
     }
     
-    // --- PURCHASES ---
     match /purchases/{purchaseId} {
         allow list, read: if isAdmin();
         allow create: if request.auth.uid == request.resource.data.userId;
+    }
+  }
+}`}
+                        </code>
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        {/* STORAGE RULES */}
+        <div className="flex border-t border-red-200 pt-6">
+            <div className="flex-shrink-0">
+                <InformationCircleIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
+            </div>
+            <div className="ml-3 w-full">
+                <h3 className="text-lg font-bold text-red-800">2. Storage Rules</h3>
+                <div className="mt-2 text-sm text-red-700 space-y-2">
+                    <p>Required for **Brand Kit Logo Uploads** and **Image Generation**.</p>
+                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs overflow-x-auto select-all">
+                        <code>
+{`rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 1. Allow users to upload their own Brand Kit assets (Logos)
+    match /users/{userId}/brand_assets/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. Allow users to upload and manage their creations
+    match /creations/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default Deny
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }`}
