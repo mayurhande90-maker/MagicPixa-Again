@@ -35,6 +35,9 @@ export interface User {
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
   
+  // Storage Logic
+  storageTier?: 'limited' | 'unlimited'; // 'limited' = 30 days, 'unlimited' = forever
+
   // Engagement Features
   lifetimeGenerations?: number; // Track total generations for milestones
   lastAttendanceClaim?: Timestamp; // Track daily check-in

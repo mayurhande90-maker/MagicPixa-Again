@@ -10,10 +10,12 @@ import {
     DownloadIcon, 
     TrashIcon,
     CheckIcon,
-    XIcon
+    XIcon,
+    InformationCircleIcon,
+    CreditCardIcon
 } from '../components/icons';
 
-export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth }) => {
+export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navigateTo }) => {
     const [creations, setCreations] = useState<Creation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedFeature, setSelectedFeature] = useState<string>('');
@@ -25,6 +27,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     // Selection Mode State
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    const isUnlimitedStorage = auth.user?.storageTier === 'unlimited';
 
     useEffect(() => {
         if (auth.user) {
@@ -82,6 +86,14 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         });
         return groups;
     }, [filteredCreations]);
+
+    const getDaysOld = (creation: Creation): number => {
+        const cDate = creation.createdAt?.toDate ? creation.createdAt.toDate() : new Date(creation.createdAt as any);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - cDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays;
+    };
 
     const handleDelete = async (creation: Creation) => {
         if (confirm('Delete this creation? This action cannot be undone.')) {
@@ -239,6 +251,27 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             </div>
 
+            {/* Storage Policy Banner (Only for Limited Tier) */}
+            {!isUnlimitedStorage && (
+                <div className="mb-8 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-full text-orange-500 shadow-sm">
+                            <InformationCircleIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-gray-800">Limited Storage (30 Days)</p>
+                            <p className="text-xs text-gray-600">Your free storage retains images for 30 days. Upgrade for unlimited history.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigateTo('dashboard', 'billing')}
+                        className="bg-white text-[#1A1A1E] px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <CreditCardIcon className="w-4 h-4 text-blue-600"/> Upgrade to Studio/Agency
+                    </button>
+                </div>
+            )}
+
             {loading ? (
                 <div className="flex justify-center py-20">
                     <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-[#4D7CFF] rounded-full"></div>
@@ -254,6 +287,10 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                                 {group.items.map(c => {
                                     const isSelected = selectedIds.has(c.id);
+                                    const daysOld = getDaysOld(c);
+                                    const daysRemaining = 30 - daysOld;
+                                    const isExpiringSoon = !isUnlimitedStorage && daysRemaining <= 5;
+
                                     return (
                                         <div 
                                             key={c.id} 
@@ -262,7 +299,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                     ? isSelected 
                                                         ? 'ring-4 ring-[#4D7CFF] scale-95' 
                                                         : 'ring-2 ring-transparent hover:ring-gray-200 scale-95 opacity-80 hover:opacity-100'
-                                                    : 'hover:shadow-md border border-gray-200'
+                                                    : isExpiringSoon 
+                                                        ? 'hover:shadow-md ring-2 ring-red-400' 
+                                                        : 'hover:shadow-md border border-gray-200'
                                             }`}
                                             onClick={() => {
                                                 if (isSelectMode) {
@@ -279,6 +318,13 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                 loading="lazy"
                                             />
                                             
+                                            {/* Expiration Badge */}
+                                            {isExpiringSoon && (
+                                                <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-[9px] font-bold text-center py-1 z-20">
+                                                    EXPIRES IN {daysRemaining} DAYS
+                                                </div>
+                                            )}
+
                                             {/* SELECT MODE: Checkbox Overlay */}
                                             {isSelectMode && (
                                                 <div className="absolute top-3 right-3 z-20">

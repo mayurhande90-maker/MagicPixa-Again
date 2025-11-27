@@ -156,6 +156,11 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             updatePayload.referralCount = 0;
             needsUpdate = true;
         }
+        // Default Storage Tier for existing users
+        if (!userData.storageTier) {
+            updatePayload.storageTier = 'limited';
+            needsUpdate = true;
+        }
 
         if (needsUpdate) {
              userRef.set(updatePayload, { merge: true }).catch(e => console.error("Failed to patch legacy user", e));
@@ -181,6 +186,7 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       credits: initialCredits,
       totalCreditsAcquired: initialCredits,
       plan: 'Free',
+      storageTier: 'limited', // Default to 30-day retention
       signUpDate: firebase.firestore.FieldValue.serverTimestamp(),
       totalSpent: 0,
       lifetimeGenerations: 0,
@@ -506,14 +512,7 @@ export const claimDailyAttendance = async (uid: string) => {
 
 /**
  * DEFINITIVE FIX: Atomically adds purchased credits using a corrected and robust transaction pattern.
- * Like the `deductCredits` function, this now creates the new transaction document reference *before*
- * the transaction begins to prevent failures. It also includes a read operation to ensure the user exists
- * before attempting to add credits, making the entire process more resilient.
- * @param uid The user's unique ID.
- * @param packName The name of the purchased credit pack.
- * @param creditsToAdd The number of credits to add.
- * @param amountPaid The amount in INR paid for the pack.
- * @returns The updated user profile.
+ * Updated to handle Storage Tier upgrades for Studio/Agency packs.
  */
 export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
     if (!db) throw new Error("Firestore is not initialized.");
@@ -529,11 +528,23 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
       }
       const userData = userDoc.data();
 
-      transaction.update(userRef, {
+      // Determine if this pack grants unlimited storage
+      const lowerPackName = packName.toLowerCase();
+      const grantsUnlimitedStorage = lowerPackName.includes("studio") || lowerPackName.includes("agency");
+      
+      const updates: any = {
         credits: firebase.firestore.FieldValue.increment(creditsToAdd),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(creditsToAdd),
         totalSpent: firebase.firestore.FieldValue.increment(amountPaid),
-      });
+      };
+
+      // Only upgrade storage if necessary, never downgrade
+      if (grantsUnlimitedStorage) {
+          updates.storageTier = 'unlimited';
+          updates.plan = packName.split(' ')[0] + ' Plan'; // e.g., "Studio Plan"
+      }
+
+      transaction.update(userRef, updates);
 
       transaction.set(newTransactionRef, {
         feature: `Purchased: ${packName}`,
