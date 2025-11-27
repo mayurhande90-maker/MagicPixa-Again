@@ -391,12 +391,31 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
 export const uploadBrandAsset = async (uid: string, base64: string, type: string): Promise<string> => {
     if (!storage) throw new Error("Storage is not initialized.");
     
-    // Convert base64 to blob
-    const [header, data] = base64.split(',');
-    const mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
-    const blob = base64ToBlob(data, mimeType);
+    // Robust Base64 parsing to handle cases with/without data header
+    let data = base64;
+    let mimeType = 'image/png';
+
+    if (base64.includes(',')) {
+        const parts = base64.split(',');
+        const header = parts[0];
+        data = parts[1];
+        mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
+    }
+
+    if (!data) throw new Error("Invalid base64 data for brand asset.");
+
+    // Clean data just in case of whitespace
+    data = data.trim();
+
+    let blob;
+    try {
+        blob = base64ToBlob(data, mimeType);
+    } catch (e) {
+        console.error("base64ToBlob failed inside uploadBrandAsset", e);
+        throw new Error("Failed to process image data. File might be corrupted or format unsupported.");
+    }
     
-    // Create a stable path: users/{uid}/brand_assets/{type}.png
+    // Create a stable path: users/{uid}/brand_assets/${type}.png
     // This overwrites previous files of the same type, which is desired behavior for a single Brand Kit.
     const path = `users/${uid}/brand_assets/${type}.png`;
     const ref = storage.ref(path);
@@ -404,6 +423,7 @@ export const uploadBrandAsset = async (uid: string, base64: string, type: string
     // Upload
     await ref.put(blob, {
         cacheControl: 'public, max-age=31536000', // Cache for 1 year
+        contentType: mimeType
     });
     
     return await ref.getDownloadURL();
