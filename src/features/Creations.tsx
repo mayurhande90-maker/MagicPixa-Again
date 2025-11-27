@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, Creation } from '../types';
 import { getCreations, deleteCreation } from '../firebase';
 import { downloadImage } from '../utils/imageUtils';
+import { ImageModal } from '../components/FeatureLayout';
 import { 
     AdjustmentsVerticalIcon, 
     ProjectsIcon, 
@@ -15,6 +16,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     const [loading, setLoading] = useState(true);
     const [selectedFeature, setSelectedFeature] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>('');
+    const [viewImage, setViewImage] = useState<string | null>(null);
 
     useEffect(() => {
         if (auth.user) {
@@ -150,9 +152,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                 {group.items.map(c => (
                                     <div 
                                         key={c.id} 
-                                        className="group relative aspect-square bg-gray-100 rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
-                                        onClick={() => window.open(c.imageUrl, '_blank')}
-                                        title="Click to open full resolution in new tab"
+                                        className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
+                                        onClick={() => setViewImage(c.imageUrl)}
                                     >
                                         <img 
                                             src={c.thumbnailUrl || c.imageUrl} 
@@ -160,28 +161,29 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                             alt={c.feature} 
                                             loading="lazy"
                                         />
-                                        {/* Overlay Actions */}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[1px]">
+                                        
+                                        {/* Actions - Always Visible at Top Right */}
+                                        <div className="absolute top-2 right-2 flex gap-2 z-10">
                                             <button 
                                                 onClick={(e) => handleDownload(e, c.imageUrl)} 
-                                                className="p-2.5 bg-white/90 rounded-full hover:bg-white text-gray-700 hover:text-[#1A1A1E] transform hover:scale-110 transition-all shadow-lg"
+                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:text-[#1A1A1E] hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
                                                 title="Download"
                                             >
-                                                <DownloadIcon className="w-5 h-5"/>
+                                                <DownloadIcon className="w-4 h-4"/>
                                             </button>
                                             <button 
                                                 onClick={(e) => handleDelete(e, c)} 
-                                                className="p-2.5 bg-white/90 rounded-full hover:bg-red-50 text-red-500 hover:text-red-600 transform hover:scale-110 transition-all shadow-lg"
+                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-500 hover:text-red-600 hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
                                                 title="Delete"
                                             >
-                                                <TrashIcon className="w-5 h-5"/>
+                                                <TrashIcon className="w-4 h-4"/>
                                             </button>
                                         </div>
                                         
-                                        {/* Info Tag */}
-                                        <div className="absolute bottom-3 left-3 right-3">
-                                            <div className="bg-white/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg transform translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider truncate">{c.feature}</p>
+                                        {/* Info Tag - Always Visible at Bottom Left */}
+                                        <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
+                                            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
+                                                <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -199,6 +201,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     <p className="text-gray-500 text-sm mt-1">Try adjusting your filters or generate something new!</p>
                 </div>
             )}
+            
+            {viewImage && <ImageModal imageUrl={viewImage} onClose={() => setViewImage(null)} />}
         </div>
     );
 };
