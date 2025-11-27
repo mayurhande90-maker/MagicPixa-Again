@@ -16,7 +16,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     const [loading, setLoading] = useState(true);
     const [selectedFeature, setSelectedFeature] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>('');
-    const [viewImage, setViewImage] = useState<string | null>(null);
+    
+    // Changed state to hold full creation object
+    const [viewCreation, setViewCreation] = useState<Creation | null>(null);
 
     useEffect(() => {
         if (auth.user) {
@@ -75,18 +77,17 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         return groups;
     }, [filteredCreations]);
 
-    const handleDelete = async (e: React.MouseEvent, creation: Creation) => {
-        e.stopPropagation();
-        if (confirm('Delete this creation?')) {
+    const handleDelete = async (creation: Creation) => {
+        if (confirm('Delete this creation? This action cannot be undone.')) {
             if (auth.user) {
                 await deleteCreation(auth.user.uid, creation);
                 setCreations(prev => prev.filter(c => c.id !== creation.id));
+                setViewCreation(null); // Close modal if open
             }
         }
     };
 
-    const handleDownload = (e: React.MouseEvent, url: string) => {
-        e.stopPropagation();
+    const handleDownload = (url: string) => {
         downloadImage(url, 'creation.png');
     };
 
@@ -153,7 +154,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                     <div 
                                         key={c.id} 
                                         className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
-                                        onClick={() => setViewImage(c.imageUrl)}
+                                        onClick={() => setViewCreation(c)}
                                     >
                                         <img 
                                             src={c.thumbnailUrl || c.imageUrl} 
@@ -162,25 +163,21 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                             loading="lazy"
                                         />
                                         
-                                        {/* Actions - Always Visible at Top Right */}
-                                        <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                        {/* Top Right Download Button */}
+                                        <div className="absolute top-2 right-2 z-10 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                             <button 
-                                                onClick={(e) => handleDownload(e, c.imageUrl)} 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownload(c.imageUrl);
+                                                }}
                                                 className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:text-[#1A1A1E] hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
                                                 title="Download"
                                             >
                                                 <DownloadIcon className="w-4 h-4"/>
                                             </button>
-                                            <button 
-                                                onClick={(e) => handleDelete(e, c)} 
-                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-500 hover:text-red-600 hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
-                                                title="Delete"
-                                            >
-                                                <TrashIcon className="w-4 h-4"/>
-                                            </button>
                                         </div>
                                         
-                                        {/* Info Tag - Always Visible at Bottom Left */}
+                                        {/* Bottom Info Tag */}
                                         <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
                                             <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
                                                 <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
@@ -202,7 +199,14 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             )}
             
-            {viewImage && <ImageModal imageUrl={viewImage} onClose={() => setViewImage(null)} />}
+            {viewCreation && (
+                <ImageModal 
+                    imageUrl={viewCreation.imageUrl} 
+                    onClose={() => setViewCreation(null)}
+                    onDownload={() => handleDownload(viewCreation.imageUrl)}
+                    onDelete={() => handleDelete(viewCreation)}
+                />
+            )}
         </div>
     );
 };

@@ -92,11 +92,32 @@ export const SelectionGrid: React.FC<{ label: string; options: string[]; value: 
     </div>
 );
 
-export const ImageModal: React.FC<{ imageUrl: string; onClose: () => void }> = ({ imageUrl, onClose }) => (
+export const ImageModal: React.FC<{ 
+    imageUrl: string; 
+    onClose: () => void;
+    onDownload?: () => void;
+    onDelete?: () => void;
+}> = ({ imageUrl, onClose, onDownload, onDelete }) => (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
         <div className="relative w-full h-full flex items-center justify-center">
-            <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"><XIcon className="w-8 h-8" /></button>
-            <img src={imageUrl} alt="Full view" className="max-w-full max-h-full rounded-lg shadow-2xl object-contain" />
+            <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-50"><XIcon className="w-8 h-8" /></button>
+            <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+            
+            {/* Bottom Action Bar */}
+            {(onDownload || onDelete) && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50" onClick={(e) => e.stopPropagation()}>
+                    {onDownload && (
+                        <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">
+                            <DownloadIcon className="w-5 h-5"/> Download
+                        </button>
+                    )}
+                    {onDelete && (
+                        <button onClick={onDelete} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50 px-6 py-3 rounded-full font-bold transition-colors flex items-center gap-2 backdrop-blur-md hover:scale-105 transform">
+                            <TrashIcon className="w-5 h-5"/> Delete
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     </div>
 );
