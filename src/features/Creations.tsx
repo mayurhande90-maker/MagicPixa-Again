@@ -8,7 +8,9 @@ import {
     AdjustmentsVerticalIcon, 
     ProjectsIcon, 
     DownloadIcon, 
-    TrashIcon 
+    TrashIcon,
+    CheckIcon,
+    XIcon
 } from '../components/icons';
 
 export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth }) => {
@@ -17,8 +19,12 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     const [selectedFeature, setSelectedFeature] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>('');
     
-    // Changed state to hold full creation object
+    // View State
     const [viewCreation, setViewCreation] = useState<Creation | null>(null);
+
+    // Selection Mode State
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (auth.user) {
@@ -82,7 +88,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
             if (auth.user) {
                 await deleteCreation(auth.user.uid, creation);
                 setCreations(prev => prev.filter(c => c.id !== creation.id));
-                setViewCreation(null); // Close modal if open
+                setViewCreation(null); 
             }
         }
     };
@@ -91,16 +97,112 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         downloadImage(url, 'creation.png');
     };
 
+    // --- Bulk Selection Logic ---
+
+    const toggleSelectMode = () => {
+        if (isSelectMode) {
+            // Exit select mode: clear selections
+            setIsSelectMode(false);
+            setSelectedIds(new Set());
+        } else {
+            // Enter select mode
+            setIsSelectMode(true);
+        }
+    };
+
+    const toggleSelection = (id: string) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
+    const handleBulkDownload = async () => {
+        const total = selectedIds.size;
+        if (total === 0) return;
+
+        // Convert Set to Array to iterate
+        const idsToDownload = Array.from(selectedIds);
+        
+        // User feedback (optional toast could go here)
+        console.log(`Downloading ${total} files...`);
+
+        for (let i = 0; i < idsToDownload.length; i++) {
+            const id = idsToDownload[i];
+            const creation = creations.find(c => c.id === id);
+            if (creation) {
+                // Add index to filename to avoid conflicts
+                downloadImage(creation.imageUrl, `magicpixa-${creation.feature.replace(/\s+/g, '-').toLowerCase()}-${i + 1}.png`);
+                // Small delay to prevent browser from blocking multiple popups
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
+        // Optional: Exit select mode after download
+        setIsSelectMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const handleBulkDelete = async () => {
+        const total = selectedIds.size;
+        if (total === 0) return;
+
+        if (confirm(`Are you sure you want to delete these ${total} items? This cannot be undone.`)) {
+            const idsToDelete = Array.from(selectedIds);
+            
+            if (auth.user) {
+                for (const id of idsToDelete) {
+                    const creation = creations.find(c => c.id === id);
+                    if (creation) {
+                        // Fire and forget deletion to speed up UI, or await if strict consistency needed
+                        await deleteCreation(auth.user.uid, creation);
+                    }
+                }
+                // Update UI
+                setCreations(prev => prev.filter(c => !selectedIds.has(c.id)));
+                setIsSelectMode(false);
+                setSelectedIds(new Set());
+            }
+        }
+    };
+
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto min-h-screen pb-32">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-[#1A1A1E]">My Creations</h2>
                     <p className="text-gray-500 mt-1">Manage and view your generated masterpieces.</p>
                 </div>
                 
-                {/* Filters */}
+                {/* Toolbar */}
                 <div className="flex flex-wrap items-center gap-3">
+                    
+                    {/* Select Toggle */}
+                    <button
+                        onClick={toggleSelectMode}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                            isSelectMode 
+                            ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        {isSelectMode ? (
+                            <>
+                                <XIcon className="w-4 h-4"/> Cancel
+                            </>
+                        ) : (
+                            <>
+                                <CheckIcon className="w-4 h-4"/> Select
+                            </>
+                        )}
+                    </button>
+
+                    <div className="h-6 w-px bg-gray-300 mx-1"></div>
+
+                    {/* Filters */}
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                              <AdjustmentsVerticalIcon className="w-4 h-4 text-gray-400" />
@@ -150,41 +252,71 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                 <div className="h-px bg-gray-200 w-full"></div>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                                {group.items.map(c => (
-                                    <div 
-                                        key={c.id} 
-                                        className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
-                                        onClick={() => setViewCreation(c)}
-                                    >
-                                        <img 
-                                            src={c.thumbnailUrl || c.imageUrl} 
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                                            alt={c.feature} 
-                                            loading="lazy"
-                                        />
-                                        
-                                        {/* Top Right Download Button */}
-                                        <div className="absolute top-2 right-2 z-10 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDownload(c.imageUrl);
-                                                }}
-                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:text-[#1A1A1E] hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
-                                                title="Download"
-                                            >
-                                                <DownloadIcon className="w-4 h-4"/>
-                                            </button>
-                                        </div>
-                                        
-                                        {/* Bottom Info Tag */}
-                                        <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
-                                            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
-                                                <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
+                                {group.items.map(c => {
+                                    const isSelected = selectedIds.has(c.id);
+                                    return (
+                                        <div 
+                                            key={c.id} 
+                                            className={`group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer shadow-sm transition-all duration-200 ${
+                                                isSelectMode 
+                                                    ? isSelected 
+                                                        ? 'ring-4 ring-[#4D7CFF] scale-95' 
+                                                        : 'ring-2 ring-transparent hover:ring-gray-200 scale-95 opacity-80 hover:opacity-100'
+                                                    : 'hover:shadow-md border border-gray-200'
+                                            }`}
+                                            onClick={() => {
+                                                if (isSelectMode) {
+                                                    toggleSelection(c.id);
+                                                } else {
+                                                    setViewCreation(c);
+                                                }
+                                            }}
+                                        >
+                                            <img 
+                                                src={c.thumbnailUrl || c.imageUrl} 
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                                alt={c.feature} 
+                                                loading="lazy"
+                                            />
+                                            
+                                            {/* SELECT MODE: Checkbox Overlay */}
+                                            {isSelectMode && (
+                                                <div className="absolute top-3 right-3 z-20">
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                        isSelected 
+                                                        ? 'bg-[#4D7CFF] border-[#4D7CFF]' 
+                                                        : 'bg-black/20 border-white backdrop-blur-sm'
+                                                    }`}>
+                                                        {isSelected && <CheckIcon className="w-4 h-4 text-white" />}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* NORMAL MODE: Download Button Overlay */}
+                                            {!isSelectMode && (
+                                                <div className="absolute top-2 right-2 z-10 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDownload(c.imageUrl);
+                                                        }}
+                                                        className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:text-[#1A1A1E] hover:bg-white shadow-sm border border-gray-100 transition-all hover:scale-105"
+                                                        title="Download"
+                                                    >
+                                                        <DownloadIcon className="w-4 h-4"/>
+                                                    </button>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Bottom Info Tag */}
+                                            <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
+                                                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
+                                                    <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}
@@ -199,6 +331,32 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             )}
             
+            {/* Floating Action Bar for Bulk Actions */}
+            {isSelectMode && selectedIds.size > 0 && (
+                <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-[fadeInUp_0.3s_ease-out]">
+                    <div className="bg-[#1A1A1E] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-gray-800">
+                        <span className="text-sm font-bold text-gray-300">{selectedIds.size} Selected</span>
+                        
+                        <div className="h-6 w-px bg-gray-700"></div>
+                        
+                        <button 
+                            onClick={handleBulkDownload}
+                            className="flex items-center gap-2 text-sm font-bold hover:text-[#F9D230] transition-colors"
+                        >
+                            <DownloadIcon className="w-4 h-4"/> Download All
+                        </button>
+                        
+                        <button 
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 text-sm font-bold text-red-400 hover:text-red-300 transition-colors"
+                        >
+                            <TrashIcon className="w-4 h-4"/> Delete
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Full Screen View Modal */}
             {viewCreation && (
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl} 
