@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Transaction, AppConfig, CreditPack } from '../types';
+import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
@@ -10,6 +10,7 @@ interface BillingProps {
   user: User;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   appConfig: AppConfig | null;
+  setActiveView: (view: View) => void;
 }
 
 const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => void; }> = ({ creditsAdded, onClose }) => {
@@ -35,14 +36,14 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
                     onClick={onClose}
                     className="w-full bg-[#F9D230] text-[#1A1A1E] font-semibold py-3 rounded-lg hover:bg-[#dfbc2b] transition-colors"
                 >
-                    Continue Creating
+                    Start Creating
                 </button>
             </div>
         </div>
     );
 };
 
-const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
+const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveView }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -428,7 +429,10 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig }) => {
       {showConfirmation && confirmedPurchase && (
         <PaymentConfirmationModal
             creditsAdded={confirmedPurchase.totalCredits}
-            onClose={() => setShowConfirmation(false)}
+            onClose={() => {
+                setShowConfirmation(false);
+                setActiveView('home_dashboard');
+            }}
         />
       )}
     </>

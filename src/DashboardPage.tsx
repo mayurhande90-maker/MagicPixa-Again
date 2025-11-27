@@ -204,7 +204,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <DailyMissionStudio auth={auth} navigateTo={navigateTo} />;
             case 'billing':
                 if (auth.user) {
-                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} />;
+                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveView} />;
                 }
                 return null;
             case 'admin':
