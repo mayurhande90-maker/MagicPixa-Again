@@ -380,64 +380,6 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
     await userRef.set(data, { merge: true });
 };
 
-// --- BRAND KIT FUNCTIONS ---
-
-/**
- * Uploads a logo or brand asset to Firebase Storage and returns the public URL.
- * @param uid User ID
- * @param base64 Base64 string of the image
- * @param type 'primary' | 'secondary' | 'mark'
- */
-export const uploadBrandAsset = async (uid: string, base64: string, type: string): Promise<string> => {
-    if (!storage) throw new Error("Storage is not initialized.");
-    
-    // Robust Base64 parsing to handle cases with/without data header
-    let data = base64;
-    let mimeType = 'image/png';
-
-    if (base64.includes(',')) {
-        const parts = base64.split(',');
-        const header = parts[0];
-        data = parts[1];
-        mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
-    }
-
-    if (!data) throw new Error("Invalid base64 data for brand asset.");
-
-    // Clean data just in case of whitespace
-    data = data.trim();
-
-    let blob;
-    try {
-        blob = base64ToBlob(data, mimeType);
-    } catch (e) {
-        console.error("base64ToBlob failed inside uploadBrandAsset", e);
-        throw new Error("Failed to process image data. File might be corrupted or format unsupported.");
-    }
-    
-    // Create a stable path: users/{uid}/brand_assets/${type}.png
-    // This overwrites previous files of the same type, which is desired behavior for a single Brand Kit.
-    const path = `users/${uid}/brand_assets/${type}.png`;
-    const ref = storage.ref(path);
-    
-    // Upload
-    await ref.put(blob, {
-        cacheControl: 'public, max-age=31536000', // Cache for 1 year
-        contentType: mimeType
-    });
-    
-    return await ref.getDownloadURL();
-};
-
-/**
- * Saves the entire Brand Kit object to the user's Firestore profile.
- */
-export const saveUserBrandKit = async (uid: string, brandKit: BrandKit): Promise<void> => {
-    if (!db) throw new Error("Firestore is not initialized.");
-    const userRef = db.collection("users").doc(uid);
-    await userRef.update({ brandKit });
-};
-
 /**
  * DEFINITIVE FIX: Atomically deducts credits using a more robust transaction pattern.
  * Also handles the "Loyalty Loop" with specific milestones (10, 25, 50, 75, 100, 200...).
@@ -1075,6 +1017,64 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         throw new Error("Failed to retrieve updated user profile after adding credits.");
     }
     return updatedDoc.data();
+};
+
+// --- BRAND KIT FUNCTIONS ---
+
+/**
+ * Uploads a logo or brand asset to Firebase Storage and returns the public URL.
+ * @param uid User ID
+ * @param base64 Base64 string of the image
+ * @param type 'primary' | 'secondary' | 'mark'
+ */
+export const uploadBrandAsset = async (uid: string, base64: string, type: string): Promise<string> => {
+    if (!storage) throw new Error("Storage is not initialized.");
+    
+    // Robust Base64 parsing to handle cases with/without data header
+    let data = base64;
+    let mimeType = 'image/png';
+
+    if (base64.includes(',')) {
+        const parts = base64.split(',');
+        const header = parts[0];
+        data = parts[1];
+        mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
+    }
+
+    if (!data) throw new Error("Invalid base64 data for brand asset.");
+
+    // Clean data just in case of whitespace
+    data = data.trim();
+
+    let blob;
+    try {
+        blob = base64ToBlob(data, mimeType);
+    } catch (e) {
+        console.error("base64ToBlob failed inside uploadBrandAsset", e);
+        throw new Error("Failed to process image data. File might be corrupted or format unsupported.");
+    }
+    
+    // Create a stable path: users/{uid}/brand_assets/${type}.png
+    // This overwrites previous files of the same type, which is desired behavior for a single Brand Kit.
+    const path = `users/${uid}/brand_assets/${type}.png`;
+    const ref = storage.ref(path);
+    
+    // Upload
+    await ref.put(blob, {
+        cacheControl: 'public, max-age=31536000', // Cache for 1 year
+        contentType: mimeType
+    });
+    
+    return await ref.getDownloadURL();
+};
+
+/**
+ * Saves the entire Brand Kit object to the user's Firestore profile.
+ */
+export const saveUserBrandKit = async (uid: string, brandKit: BrandKit): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const userRef = db.collection("users").doc(uid);
+    await userRef.update({ brandKit });
 };
 
 export { app, auth };

@@ -132,9 +132,16 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 setIsExtractingColors(false);
                 setToast({ msg: "Brand colors extracted from logo!", type: "success" });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Upload failed", e);
-            setToast({ msg: "Failed to upload asset.", type: "error" });
+            // Provide better error feedback
+            let errorMsg = "Failed to upload asset.";
+            if (e.message.includes('permission')) {
+                errorMsg = "Permission denied. Check storage rules.";
+            } else if (e.code === 'storage/unauthorized') {
+                errorMsg = "Storage unauthorized. Please enable Firebase Storage.";
+            }
+            setToast({ msg: errorMsg, type: "error" });
         } finally {
             setUploadingState(prev => ({ ...prev, [key]: false }));
         }
