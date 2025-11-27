@@ -236,12 +236,10 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
   // Safe Plan Display Logic: Handles "Plan Plan" duplication and new "Top-up" format
   const displayPlanName = (() => {
       const planName = user.plan || 'Free';
-      // If plan name already contains "Plan" or special characters (like |), display as is.
-      // Otherwise, append "Plan".
-      if (planName.toLowerCase().includes('plan') || planName.includes('|')) {
-          return planName;
-      }
-      return `${planName} Plan`;
+      // Only append "Plan" if it's the default Free tier
+      if (planName === 'Free') return 'Free Plan';
+      // Otherwise return as is (e.g., "Starter Pack", "Studio Pack | Top-up")
+      return planName;
   })();
 
   return (
