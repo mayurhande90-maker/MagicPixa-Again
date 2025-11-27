@@ -17,6 +17,7 @@ import { ThumbnailStudio } from './features/ThumbnailStudio';
 import { BrandKitAI } from './features/BrandKitAI';
 import { BrandStylistAI } from './features/BrandStylistAI';
 import { MagicRealty } from './features/MagicRealty';
+import { BrandKitManager } from './features/BrandKitManager'; // Import the new manager
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -178,6 +179,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                         />;
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
+            case 'brand_manager': // New View for My Brand Kit
+                return <BrandKitManager auth={auth} />;
             case 'studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':

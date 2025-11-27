@@ -49,11 +49,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGridIcon, disabled: false },
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
+    // NEW: Brand Kit Manager
+    { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, disabled: false },
     { id: 'magic_realty', label: 'Magic Realty', icon: BuildingIcon, disabled: false },
-    { id: 'brand_kit', label: 'BrandKit AI', icon: BrandKitIcon, disabled: false },
+    { id: 'brand_kit', label: 'BrandKit AI', icon: LightbulbIcon, disabled: false }, // Swapped icon for Ad Variant to Lightbulb
     { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },
     { id: 'colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: false },

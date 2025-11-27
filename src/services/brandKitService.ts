@@ -1,4 +1,3 @@
-
 import { Type, Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -22,6 +21,52 @@ export interface AdStrategy {
     visualPrompt: string;
     reasoning: string;
 }
+
+export const extractBrandColors = async (base64: string, mimeType: string): Promise<{ primary: string; secondary: string; accent: string }> => {
+    const ai = getAiClient();
+    try {
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64, mimeType);
+        
+        const prompt = `Analyze this logo image.
+        Extract the 3 dominant colors in HEX format.
+        
+        Rules:
+        1. Primary: The most dominant color (background or main text).
+        2. Secondary: The second most used color.
+        3. Accent: A contrasting or highlight color found in the logo. If only 2 colors exist, generate a complementary accent color that fits the brand vibe.
+        
+        Return ONLY a JSON object: { "primary": "#RRGGBB", "secondary": "#RRGGBB", "accent": "#RRGGBB" }`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data, mimeType: optimizedMime } },
+                    { text: prompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        primary: { type: Type.STRING },
+                        secondary: { type: Type.STRING },
+                        accent: { type: Type.STRING }
+                    },
+                    required: ['primary', 'secondary', 'accent']
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) return { primary: '#000000', secondary: '#ffffff', accent: '#007bff' };
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Color extraction failed:", e);
+        return { primary: '#000000', secondary: '#ffffff', accent: '#007bff' };
+    }
+};
 
 /**
  * Analyzes the product and audience to generate 4 distinct ad strategies.

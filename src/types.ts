@@ -19,7 +19,27 @@ declare global {
 }
 
 export type Page = 'home' | 'dashboard' | 'about';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager';
+
+export interface BrandKit {
+    companyName: string;
+    website: string;
+    toneOfVoice: string;
+    colors: {
+        primary: string;
+        secondary: string;
+        accent: string;
+    };
+    fonts: {
+        heading: string;
+        body: string;
+    };
+    logos: {
+        primary: string | null; // URL
+        secondary: string | null; // URL
+        mark: string | null; // URL
+    };
+}
 
 export interface User {
   uid: string;
@@ -55,6 +75,9 @@ export interface User {
   referralCode?: string;
   referredBy?: string;
   referralCount?: number;
+
+  // Brand Kit
+  brandKit?: BrandKit;
 }
 
 export interface AuthProps {

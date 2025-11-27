@@ -6,7 +6,7 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
-import { AppConfig, Purchase, User } from './types';
+import { AppConfig, Purchase, User, BrandKit } from './types';
 import { resizeImage } from './utils/imageUtils';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -378,6 +378,44 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
     // DEFINITIVE FIX: Switched to 'compat' API for document reference and update.
     const userRef = db.collection("users").doc(uid);
     await userRef.set(data, { merge: true });
+};
+
+// --- BRAND KIT FUNCTIONS ---
+
+/**
+ * Uploads a logo or brand asset to Firebase Storage and returns the public URL.
+ * @param uid User ID
+ * @param base64 Base64 string of the image
+ * @param type 'primary' | 'secondary' | 'mark'
+ */
+export const uploadBrandAsset = async (uid: string, base64: string, type: string): Promise<string> => {
+    if (!storage) throw new Error("Storage is not initialized.");
+    
+    // Convert base64 to blob
+    const [header, data] = base64.split(',');
+    const mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
+    const blob = base64ToBlob(data, mimeType);
+    
+    // Create a stable path: users/{uid}/brand_assets/{type}.png
+    // This overwrites previous files of the same type, which is desired behavior for a single Brand Kit.
+    const path = `users/${uid}/brand_assets/${type}.png`;
+    const ref = storage.ref(path);
+    
+    // Upload
+    await ref.put(blob, {
+        cacheControl: 'public, max-age=31536000', // Cache for 1 year
+    });
+    
+    return await ref.getDownloadURL();
+};
+
+/**
+ * Saves the entire Brand Kit object to the user's Firestore profile.
+ */
+export const saveUserBrandKit = async (uid: string, brandKit: BrandKit): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const userRef = db.collection("users").doc(uid);
+    await userRef.update({ brandKit });
 };
 
 /**
