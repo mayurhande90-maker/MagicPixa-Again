@@ -14,28 +14,50 @@ export const getAiClient = (): GoogleGenAI => {
 };
 
 /**
- * Executes an async operation with automatic retries for 503 (Service Unavailable/Overloaded) errors.
- * Uses exponential backoff.
+ * Executes an async operation with Smart Retries (Exponential Backoff + Jitter).
  * @param fn The async function to execute
  * @param retries Number of retries (default 3)
- * @param delay Initial delay in ms (default 1000)
+ * @param baseDelay Initial delay in ms (default 2000)
  */
-export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
+export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> => {
     try {
         return await fn();
     } catch (error: any) {
-        // Check for specific 503 or "overloaded" error messages
-        const isOverloaded = 
-            error.status === 503 || 
-            error.code === 503 || 
-            (error.message && error.message.toLowerCase().includes('overloaded')) ||
-            (error.message && error.message.includes('503'));
+        // Classify Error Type
+        const status = error.status || error.code;
+        const message = (error.message || "").toLowerCase();
 
-        if (retries > 0 && isOverloaded) {
-            console.warn(`Gemini API overloaded. Retrying in ${delay}ms... (${retries} attempts left)`);
+        // Retry Conditions:
+        // 1. 503 (Service Unavailable / Overloaded)
+        // 2. 429 (Too Many Requests / Rate Limit)
+        // 3. "Overloaded" text in message
+        // 4. "Fetch failed" (Network blip)
+        const isTransientError = 
+            status === 503 || 
+            status === 429 || 
+            message.includes('overloaded') || 
+            message.includes('503') ||
+            message.includes('fetch failed') ||
+            message.includes('network error');
+
+        if (retries > 0 && isTransientError) {
+            // Smart Delay: Exponential Backoff + Jitter
+            // Delay = (Base * 2^attempt) + Random(0-1000ms)
+            // Attempt 1: ~2000ms + jitter
+            // Attempt 2: ~4000ms + jitter
+            // Attempt 3: ~8000ms + jitter
+            const jitter = Math.random() * 1000;
+            const delay = baseDelay + jitter;
+            
+            console.warn(`Gemini API Busy/Error (${status}). Retrying in ${Math.round(delay)}ms... (${retries} attempts left)`);
+            
             await new Promise(resolve => setTimeout(resolve, delay));
-            return callWithRetry(fn, retries - 1, delay * 2);
+            
+            // Recursive call with doubled base delay for next attempt
+            return callWithRetry(fn, retries - 1, baseDelay * 2);
         }
+        
+        // If not transient (e.g. 400 Bad Request, Safety Filter) or no retries left, throw immediately.
         throw error;
     }
 };
