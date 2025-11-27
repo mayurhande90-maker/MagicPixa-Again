@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -30,14 +29,17 @@ export interface User {
   credits: number;
   totalCreditsAcquired?: number;
   signUpDate?: { seconds: number; nanoseconds: number };
-  plan?: string;
+  plan?: string; // Display Name (e.g. "Studio Pack | Top-up")
+  
+  // Storage & Tier Logic
+  basePlan?: string | null; // The underlying high-tier plan (e.g. "Studio Pack")
+  lastTierPurchaseDate?: Timestamp | null; // When the high-tier plan was bought
+  storageTier?: 'limited' | 'unlimited'; // 'limited' = 30 days, 'unlimited' = forever
+
   isAdmin?: boolean; // Added for admin access control
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
   
-  // Storage Logic
-  storageTier?: 'limited' | 'unlimited'; // 'limited' = 30 days, 'unlimited' = forever
-
   // Engagement Features
   lifetimeGenerations?: number; // Track total generations for milestones
   lastAttendanceClaim?: Timestamp; // Track daily check-in

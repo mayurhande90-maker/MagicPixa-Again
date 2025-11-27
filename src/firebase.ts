@@ -156,19 +156,44 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             needsUpdate = true;
         }
         
-        // --- STORAGE TIER SELF-HEALING ---
-        // 1. Check if plan name implies high tier (Studio/Agency) but storageTier is restricted/missing.
-        const currentPlan = (userData.plan || '').toLowerCase();
-        const impliesUnlimited = currentPlan.includes('studio') || currentPlan.includes('agency');
+        // --- STORAGE TIER SELF-HEALING (6-MONTH RULE) ---
+        // Logic:
+        // 1. If user has 'lastTierPurchaseDate', check if it's within 6 months.
+        // 2. If valid, set 'unlimited'. If expired, set 'limited'.
+        // 3. Fallback for legacy "Studio" plans without date: Assume Unlimited for now (or reset).
         
-        if (impliesUnlimited && userData.storageTier !== 'unlimited') {
-            // Fix: User bought Studio pack before storageTier logic existed. Restore their privilege.
-            updatePayload.storageTier = 'unlimited';
-            needsUpdate = true;
-        } else if (!userData.storageTier && !impliesUnlimited) {
-            // Fix: Default everyone else to limited
-            updatePayload.storageTier = 'limited';
-            needsUpdate = true;
+        const now = new Date();
+        const sixMonthsMs = 1000 * 60 * 60 * 24 * 30 * 6; // Approx 6 months
+        
+        if (userData.lastTierPurchaseDate) {
+            const purchaseDate = userData.lastTierPurchaseDate.toDate();
+            const timeDiff = now.getTime() - purchaseDate.getTime();
+            
+            if (timeDiff > sixMonthsMs) {
+                // EXPIRED
+                if (userData.storageTier !== 'limited') {
+                    updatePayload.storageTier = 'limited';
+                    needsUpdate = true;
+                }
+            } else {
+                // VALID
+                if (userData.storageTier !== 'unlimited') {
+                    updatePayload.storageTier = 'unlimited';
+                    needsUpdate = true;
+                }
+            }
+        } else {
+            // Legacy handling for users who bought Studio before we tracked dates
+            const currentPlan = (userData.plan || '').toLowerCase();
+            const impliesUnlimited = currentPlan.includes('studio') || currentPlan.includes('agency');
+            
+            if (impliesUnlimited && userData.storageTier !== 'unlimited') {
+                updatePayload.storageTier = 'unlimited';
+                needsUpdate = true;
+            } else if (!impliesUnlimited && !userData.storageTier) {
+                updatePayload.storageTier = 'limited';
+                needsUpdate = true;
+            }
         }
 
         if (needsUpdate) {
@@ -203,6 +228,8 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       referralCode: myReferralCode,
       referralCount: 0,
       referredBy: null,
+      basePlan: null,
+      lastTierPurchaseDate: null,
       dailyMission: {
           completedAt: new Date(0).toISOString(),
           nextUnlock: new Date(0).toISOString(),
@@ -521,7 +548,7 @@ export const claimDailyAttendance = async (uid: string) => {
 
 /**
  * DEFINITIVE FIX: Atomically adds purchased credits using a corrected and robust transaction pattern.
- * Updated to handle Storage Tier upgrades for Studio/Agency packs.
+ * Updated to handle Storage Tier upgrades AND 6-month rule Top-ups.
  */
 export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd: number, amountPaid: number) => {
     if (!db) throw new Error("Firestore is not initialized.");
@@ -537,9 +564,9 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
       }
       const userData = userDoc.data();
 
-      // Determine if this pack grants unlimited storage
+      // LOGIC: Check if this is a "Tier Upgrade" or "Top-up"
       const lowerPackName = packName.toLowerCase();
-      const grantsUnlimitedStorage = lowerPackName.includes("studio") || lowerPackName.includes("agency");
+      const isHighTier = lowerPackName.includes("studio") || lowerPackName.includes("agency");
       
       const updates: any = {
         credits: firebase.firestore.FieldValue.increment(creditsToAdd),
@@ -547,14 +574,48 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
         totalSpent: firebase.firestore.FieldValue.increment(amountPaid),
       };
 
-      // Only upgrade storage if necessary, never downgrade
-      if (grantsUnlimitedStorage) {
+      // 6-MONTH RULE LOGIC
+      if (isHighTier) {
+          // Case 1: Buying High Tier (Studio/Agency)
+          // -> Always upgrades storage
+          // -> Resets 6-month timer
+          // -> Updates Base Plan Name
           updates.storageTier = 'unlimited';
-          // Sanitize "Plan Plan" issue if packName already contains "Plan"
-          const cleanPackName = packName.toLowerCase().endsWith('plan') 
-            ? packName 
-            : packName.split(' ')[0] + ' Plan';
-          updates.plan = cleanPackName;
+          updates.lastTierPurchaseDate = firebase.firestore.FieldValue.serverTimestamp();
+          updates.basePlan = packName;
+          updates.plan = packName;
+      } else {
+          // Case 2: Buying Low Tier (Starter/Creator)
+          // -> Check if user ALREADY has valid High Tier access (within 6 months)
+          const now = new Date();
+          const sixMonthsMs = 1000 * 60 * 60 * 24 * 30 * 6;
+          
+          let hasValidHighTier = false;
+          if (userData?.lastTierPurchaseDate) {
+              const lastDate = userData.lastTierPurchaseDate.toDate();
+              if ((now.getTime() - lastDate.getTime()) < sixMonthsMs) {
+                  hasValidHighTier = true;
+              }
+          }
+
+          if (hasValidHighTier) {
+              // TOP-UP SCENARIO
+              // -> Keep Unlimited Storage
+              // -> Keep Base Plan Name stored
+              // -> Update Display Name to "Base Plan | Top-up"
+              const baseName = userData?.basePlan || 'Studio Pack'; // Fallback if missing
+              updates.plan = `${baseName} | Top-up`;
+              // Do NOT update storageTier (remains unlimited)
+              // Do NOT update lastTierPurchaseDate (timer keeps running from original purchase)
+          } else {
+              // DOWNGRADE SCENARIO
+              // -> No valid high tier history or expired
+              // -> Storage becomes Limited
+              // -> Plan becomes new low tier name
+              updates.storageTier = 'limited';
+              updates.basePlan = null;
+              updates.plan = packName;
+          }
       }
 
       transaction.update(userRef, updates);
