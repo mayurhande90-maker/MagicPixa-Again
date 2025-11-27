@@ -1,4 +1,3 @@
-
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -156,8 +155,18 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             updatePayload.referralCount = 0;
             needsUpdate = true;
         }
-        // Default Storage Tier for existing users
-        if (!userData.storageTier) {
+        
+        // --- STORAGE TIER SELF-HEALING ---
+        // 1. Check if plan name implies high tier (Studio/Agency) but storageTier is restricted/missing.
+        const currentPlan = (userData.plan || '').toLowerCase();
+        const impliesUnlimited = currentPlan.includes('studio') || currentPlan.includes('agency');
+        
+        if (impliesUnlimited && userData.storageTier !== 'unlimited') {
+            // Fix: User bought Studio pack before storageTier logic existed. Restore their privilege.
+            updatePayload.storageTier = 'unlimited';
+            needsUpdate = true;
+        } else if (!userData.storageTier && !impliesUnlimited) {
+            // Fix: Default everyone else to limited
             updatePayload.storageTier = 'limited';
             needsUpdate = true;
         }
@@ -541,7 +550,11 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
       // Only upgrade storage if necessary, never downgrade
       if (grantsUnlimitedStorage) {
           updates.storageTier = 'unlimited';
-          updates.plan = packName.split(' ')[0] + ' Plan'; // e.g., "Studio Plan"
+          // Sanitize "Plan Plan" issue if packName already contains "Plan"
+          const cleanPackName = packName.toLowerCase().endsWith('plan') 
+            ? packName 
+            : packName.split(' ')[0] + ' Plan';
+          updates.plan = cleanPackName;
       }
 
       transaction.update(userRef, updates);
