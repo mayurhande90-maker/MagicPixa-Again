@@ -14,7 +14,8 @@ import {
     ArrowUpCircleIcon,
     CheckIcon,
     MagicWandIcon,
-    TicketIcon
+    TicketIcon,
+    StarIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
@@ -47,6 +48,54 @@ const ModeCard: React.FC<{
         {selected && (
             <div className={`absolute top-2 right-2 bg-${color}-500 text-white p-0.5 rounded-full`}>
                 <CheckIcon className="w-3 h-3" />
+            </div>
+        )}
+    </button>
+);
+
+// New Pack Selection Card
+const PackCard: React.FC<{
+    size: 5 | 7 | 10;
+    label: string;
+    subLabel: string;
+    cost: number;
+    selected: boolean;
+    onClick: () => void;
+    isPopular?: boolean;
+}> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
+    <button
+        onClick={onClick}
+        className={`relative flex flex-col items-start p-3 rounded-xl border-2 transition-all w-full text-left h-full ${
+            selected
+                ? 'border-indigo-500 bg-indigo-50/50 shadow-sm'
+                : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
+        }`}
+    >
+        {isPopular && (
+            <div className="absolute -top-2.5 right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                <StarIcon className="w-2.5 h-2.5 fill-current"/> POPULAR
+            </div>
+        )}
+        
+        <div className="flex justify-between items-start w-full mb-1">
+            <span className={`text-xs font-bold uppercase tracking-wider ${selected ? 'text-indigo-700' : 'text-gray-500'}`}>
+                {label}
+            </span>
+            <div className={`flex items-center gap-1 text-xs font-bold ${selected ? 'text-indigo-900' : 'text-gray-700'}`}>
+                <TicketIcon className="w-3 h-3 opacity-50"/> {cost}
+            </div>
+        </div>
+        
+        <div className="mt-auto">
+            <span className="text-2xl font-black text-gray-800">{size}</span>
+            <span className="text-[10px] text-gray-400 font-bold ml-1">ASSETS</span>
+        </div>
+        
+        <p className="text-[9px] text-gray-400 mt-1 leading-tight">{subLabel}</p>
+        
+        {selected && (
+            <div className="absolute bottom-2 right-2 text-indigo-500">
+                <CheckIcon className="w-4 h-4"/>
             </div>
         )}
     </button>
@@ -299,7 +348,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-400">Ready to Create</h3>
                                 <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                                    Select a mode on the right and upload your product to generate a full listing pack.
+                                    Select a mode and pack size on the right to generate your assets.
                                 </p>
                             </div>
                         )}
@@ -420,34 +469,38 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         </span>
                                     </div>
 
-                                    {/* PACK SIZE SELECTOR */}
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <div className="flex items-center justify-between mb-3">
+                                    {/* ENHANCED PACK SIZE SELECTOR */}
+                                    <div className="bg-gradient-to-b from-gray-50 to-white p-4 rounded-xl border border-gray-100">
+                                        <div className="flex items-center justify-between mb-4">
                                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Pack Size</label>
-                                            <div className="flex items-center gap-1 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">
-                                                <TicketIcon className="w-3 h-3"/> {cost} Credits
-                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {[5, 7, 10].map(size => (
-                                                <button
-                                                    key={size}
-                                                    onClick={() => setPackSize(size as 5 | 7 | 10)}
-                                                    className={`py-2 rounded-lg text-xs font-bold border-2 transition-all ${
-                                                        packSize === size 
-                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
-                                                        : 'border-transparent bg-white text-gray-500 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {size === 5 ? 'Standard (5)' : size === 7 ? 'Extended (7)' : 'Ultimate (10)'}
-                                                </button>
-                                            ))}
+                                        <div className="grid grid-cols-3 gap-3 h-28">
+                                            <PackCard 
+                                                size={5} 
+                                                label="Standard" 
+                                                subLabel="Essentials (Hero, Side, Back)"
+                                                cost={15} 
+                                                selected={packSize === 5} 
+                                                onClick={() => setPackSize(5)} 
+                                            />
+                                            <PackCard 
+                                                size={7} 
+                                                label="Extended" 
+                                                subLabel="+ Creative & Lifestyle"
+                                                cost={21} 
+                                                selected={packSize === 7} 
+                                                onClick={() => setPackSize(7)} 
+                                            />
+                                            <PackCard 
+                                                size={10} 
+                                                label="Ultimate" 
+                                                subLabel="+ Golden Hour, Action & More"
+                                                cost={30} 
+                                                selected={packSize === 10} 
+                                                onClick={() => setPackSize(10)} 
+                                                isPopular={true}
+                                            />
                                         </div>
-                                        <p className="text-[10px] text-gray-400 mt-2 text-center">
-                                            {packSize === 5 && "Includes: Hero, Back, Side, Lifestyle, Detail."}
-                                            {packSize === 7 && "Adds: Alternative Lifestyle & Creative Shot."}
-                                            {packSize === 10 && "Adds: Golden Hour, Motion/Action & Minimalist."}
-                                        </p>
                                     </div>
 
                                     {/* MAIN UPLOAD */}
