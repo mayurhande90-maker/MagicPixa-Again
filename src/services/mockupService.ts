@@ -1,5 +1,5 @@
 
-import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -34,6 +34,78 @@ const VIBE_SETTINGS: Record<string, string> = {
     'Cinematic': 'dramatic side lighting, moody atmosphere, high contrast, dark tones, neon accents or rim lighting.',
     'Nature': 'sunlight dappled through leaves (gobo), organic textures (wood, stone) in background, fresh outdoor feel.',
     'Urban': 'street style, concrete textures, hard city light, gritty but premium aesthetic.'
+};
+
+export interface MockupSuggestion {
+    title: string;
+    reasoning: string;
+    targetObject: string;
+    material: string;
+    sceneVibe: string;
+    objectColor: string;
+}
+
+export const analyzeMockupSuggestions = async (
+    base64ImageData: string,
+    mimeType: string
+): Promise<MockupSuggestion[]> => {
+    const ai = getAiClient();
+    try {
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+
+        const prompt = `Analyze this design/logo. Suggest 3 distinct, high-quality product mockup scenarios that would best showcase this specific design.
+        
+        Consider the design's style (Corporate, Streetwear, Vintage, Tech, Organic) and colors.
+        
+        For each suggestion, pick:
+        1. A specific **Target Object** (e.g. Hoodie, Mug, Business Card, Sign).
+        2. A suitable **Material** (e.g. Embroidery for logos, Gold Foil for luxury).
+        3. A matching **Vibe** (e.g. Urban, Studio, Nature).
+        4. A complimentary **Object Color** that makes the design pop.
+        
+        Return exactly 3 suggestions in JSON format.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: data, mimeType: optimizedMime } },
+                    { text: prompt },
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING, description: "Short catchy name for this vibe (e.g. 'Streetwear', 'Corporate')" },
+                            reasoning: { type: Type.STRING, description: "Why this fits the design (1 sentence)" },
+                            targetObject: { type: Type.STRING },
+                            material: { type: Type.STRING, enum: Object.keys(MATERIAL_PHYSICS) },
+                            sceneVibe: { type: Type.STRING, enum: Object.keys(VIBE_SETTINGS) },
+                            objectColor: { type: Type.STRING }
+                        },
+                        required: ['title', 'reasoning', 'targetObject', 'material', 'sceneVibe', 'objectColor']
+                    }
+                }
+            }
+        });
+
+        const text = response.text || "";
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(jsonStr);
+
+    } catch (e) {
+        console.error("Error analyzing mockup suggestions:", e);
+        // Fallback defaults
+        return [
+            { title: "Classic Merch", reasoning: "Safe and professional look.", targetObject: "T-Shirt", material: "Standard Ink", sceneVibe: "Studio Clean", objectColor: "White" },
+            { title: "Premium Brand", reasoning: "High-end feel.", targetObject: "Packaging Box", material: "Gold Foil", sceneVibe: "Cinematic", objectColor: "Black" },
+            { title: "Everyday Use", reasoning: "Relatable context.", targetObject: "Coffee Mug", material: "Standard Ink", sceneVibe: "Lifestyle", objectColor: "White" }
+        ];
+    }
 };
 
 export const generateMagicMockup = async (
