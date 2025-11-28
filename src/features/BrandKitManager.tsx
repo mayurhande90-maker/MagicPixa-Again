@@ -2,19 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, SparklesIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, RefreshIcon // Assuming RefreshIcon exists or use a generic one
+    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
 } from '../components/icons';
 import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit } from '../firebase';
 import { extractBrandColors } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 
-// Elegant Color Input Component
+// Elegant Color Input Component with onBlur support
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
-    onChange: (val: string) => void 
-}> = ({ label, value, onChange }) => (
+    onChange: (val: string) => void;
+    onBlur: () => void;
+}> = ({ label, value, onChange, onBlur }) => (
     <div className="group">
         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block group-hover:text-gray-600 transition-colors">{label}</label>
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm group-hover:border-blue-300 group-hover:shadow-md transition-all">
@@ -23,6 +24,7 @@ const ColorInput: React.FC<{
                     type="color" 
                     value={value} 
                     onChange={(e) => onChange(e.target.value)}
+                    onBlur={onBlur}
                     className="absolute -top-2 -left-2 w-16 h-16 cursor-pointer border-none p-0" 
                 />
             </div>
@@ -30,6 +32,7 @@ const ColorInput: React.FC<{
                 type="text" 
                 value={value} 
                 onChange={(e) => onChange(e.target.value)}
+                onBlur={onBlur}
                 className="text-sm font-mono font-medium text-gray-700 bg-transparent border-none focus:ring-0 w-full uppercase outline-none"
             />
         </div>
@@ -142,6 +145,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     }, [auth.user]);
 
+    // Perform the actual save to Firebase and update global context
     const performSave = async (updatedKit: BrandKit) => {
         if (!auth.user) return;
         setIsSaving(true);
@@ -157,23 +161,36 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    // Auto-save on text field blur or select change (debounced manually by user action)
-    const handleFieldChange = (field: keyof BrandKit, value: any) => {
+    // --- HANDLERS ---
+
+    // 1. Text/Color Fields (Local Update Only)
+    const handleTextChange = (field: keyof BrandKit, value: string) => {
+        setKit(prev => ({ ...prev, [field]: value }));
+    };
+
+    const updateDeepLocal = (section: keyof BrandKit, key: string, value: any) => {
+        setKit(prev => ({ ...prev, [section]: { ...(prev[section] as any), [key]: value } }));
+    };
+
+    // 2. Commit Changes (Save on Blur)
+    const handleSave = () => {
+        performSave(kit);
+    };
+
+    // 3. Select Fields (Immediate Save)
+    const handleSelectChange = (field: keyof BrandKit, value: string) => {
         const updated = { ...kit, [field]: value };
         setKit(updated);
-        // We trigger save immediately for Selects/Colors, but for text inputs usually onBlur is better. 
-        // For simplicity in this unified handler, we'll save.
-        // In a real high-traffic app, debounce this.
-        performSave(updated); 
+        performSave(updated);
     };
-    
-    // Deep update helper
-    const updateDeep = (section: keyof BrandKit, key: string, value: any) => {
+
+    const updateDeepImmediate = (section: keyof BrandKit, key: string, value: any) => {
         const updated = { ...kit, [section]: { ...(kit[section] as any), [key]: value } };
         setKit(updated);
         performSave(updated);
     };
 
+    // 4. Asset Upload (Immediate Save + Feedback)
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
         if (!auth.user) return;
         setUploadingState(prev => ({ ...prev, [key]: true }));
@@ -347,17 +364,20 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     <ColorInput 
                                         label="Primary (Brand Color)" 
                                         value={kit.colors.primary} 
-                                        onChange={(v) => updateDeep('colors', 'primary', v)} 
+                                        onChange={(v) => updateDeepLocal('colors', 'primary', v)}
+                                        onBlur={handleSave}
                                     />
                                     <ColorInput 
                                         label="Secondary (Backgrounds)" 
                                         value={kit.colors.secondary} 
-                                        onChange={(v) => updateDeep('colors', 'secondary', v)} 
+                                        onChange={(v) => updateDeepLocal('colors', 'secondary', v)} 
+                                        onBlur={handleSave}
                                     />
                                     <ColorInput 
                                         label="Accent (CTAs / Highlights)" 
                                         value={kit.colors.accent} 
-                                        onChange={(v) => updateDeep('colors', 'accent', v)} 
+                                        onChange={(v) => updateDeepLocal('colors', 'accent', v)} 
+                                        onBlur={handleSave}
                                     />
                                 </div>
                             </div>
@@ -372,7 +392,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         <label className="text-xs text-gray-500 font-medium block mb-2">Heading Style</label>
                                         <select 
                                             value={kit.fonts.heading}
-                                            onChange={(e) => updateDeep('fonts', 'heading', e.target.value)}
+                                            onChange={(e) => updateDeepImmediate('fonts', 'heading', e.target.value)}
                                             className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
                                         >
                                             <option>Modern Sans (Clean)</option>
@@ -386,7 +406,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         <label className="text-xs text-gray-500 font-medium block mb-2">Body Text Style</label>
                                         <select 
                                             value={kit.fonts.body}
-                                            onChange={(e) => updateDeep('fonts', 'body', e.target.value)}
+                                            onChange={(e) => updateDeepImmediate('fonts', 'body', e.target.value)}
                                             className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
                                         >
                                             <option>Clean Sans (Readable)</option>
@@ -421,7 +441,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 <input 
                                     type="text" 
                                     value={kit.companyName}
-                                    onChange={(e) => handleFieldChange('companyName', e.target.value)}
+                                    onChange={(e) => handleTextChange('companyName', e.target.value)}
+                                    onBlur={handleSave}
                                     placeholder="e.g. Skyline Realty"
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
                                 />
@@ -431,7 +452,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 <input 
                                     type="text" 
                                     value={kit.website}
-                                    onChange={(e) => handleFieldChange('website', e.target.value)}
+                                    onChange={(e) => handleTextChange('website', e.target.value)}
+                                    onBlur={handleSave}
                                     placeholder="e.g. www.skyline.com"
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
                                 />
@@ -440,7 +462,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Tone of Voice</label>
                                 <select 
                                     value={kit.toneOfVoice}
-                                    onChange={(e) => handleFieldChange('toneOfVoice', e.target.value)}
+                                    onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all cursor-pointer"
                                 >
                                     <option>Professional</option>
