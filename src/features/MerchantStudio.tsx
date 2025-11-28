@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField, ImageModal } from '../components/FeatureLayout';
 import { 
     ApparelIcon, 
     CubeIcon, 
@@ -119,6 +119,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [loadingText, setLoadingText] = useState("");
     const [results, setResults] = useState<string[]>([]); // Array of 5 data URLs
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    
+    // View Modal State
+    const [viewImage, setViewImage] = useState<string | null>(null);
 
     // Cost: 15 Credits for 5 Images
     const cost = 15;
@@ -223,7 +226,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => {
         if (currentMode === 'apparel') {
-            return ['Full Body', 'Lifestyle', 'Side Profile', 'Back View', 'Fabric Detail'][index];
+            return ['Full Body (Hero)', 'Lifestyle', 'Side Profile', 'Back View', 'Fabric Detail'][index];
         }
         return ['Hero Shot (45°)', 'Hero Shot (Front)', 'Lifestyle Context', 'Creative Ad', 'Macro Detail'][index];
     };
@@ -282,13 +285,19 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         {!loading && results.length > 0 && mode && (
                             <div className="flex flex-col lg:flex-row h-full">
                                 {/* Left: Sticky Hero (2/3 width on desktop) */}
-                                <div className="lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200">
+                                <div 
+                                    className="lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero"
+                                    onClick={() => setViewImage(results[0])}
+                                >
                                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider">
                                         {getLabel(0, mode)}
                                     </div>
-                                    <img src={results[0]} className="w-full h-full object-contain p-6" alt="Hero" />
-                                    <div className="absolute bottom-6 right-6">
-                                        <button onClick={() => downloadImage(results[0], 'merchant-hero.png')} className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-transform border border-gray-100">
+                                    <img src={results[0]} className="w-full h-full object-contain p-6 transition-transform group-hover/hero:scale-[1.02]" alt="Hero" />
+                                    <div className="absolute bottom-6 right-6 pointer-events-none">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); downloadImage(results[0], 'merchant-hero.png'); }} 
+                                            className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-transform border border-gray-100 pointer-events-auto"
+                                        >
                                             <DownloadIcon className="w-4 h-4"/> Download
                                         </button>
                                     </div>
@@ -305,16 +314,20 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         </div>
                                         
                                         {results.slice(1).map((res, idx) => (
-                                            <div key={idx} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative">
+                                            <div 
+                                                key={idx} 
+                                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative cursor-zoom-in hover:shadow-md transition-shadow"
+                                                onClick={() => setViewImage(res)}
+                                            >
                                                 <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">
                                                     {getLabel(idx + 1, mode)}
                                                 </div>
                                                 <div className="aspect-[4/3]">
-                                                    <img src={res} className="w-full h-full object-cover" alt={`Variant ${idx+1}`} />
+                                                    <img src={res} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`Variant ${idx+1}`} />
                                                 </div>
                                                 <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button 
-                                                        onClick={() => downloadImage(res, `merchant-variant-${idx+1}.png`)}
+                                                        onClick={(e) => { e.stopPropagation(); downloadImage(res, `merchant-variant-${idx+1}.png`); }}
                                                         className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"
                                                     >
                                                         <DownloadIcon className="w-4 h-4"/>
@@ -472,6 +485,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setMainImage)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {viewImage && (
+                <ImageModal imageUrl={viewImage} onClose={() => setViewImage(null)} onDownload={() => downloadImage(viewImage, 'merchant-asset.png')} />
+            )}
         </>
     );
 };

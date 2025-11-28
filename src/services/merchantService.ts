@@ -107,7 +107,7 @@ const generateVariant = async (
     **GLOBAL REQUIREMENTS**:
     - Photorealistic, 4k, Commercial quality.
     - Perfect lighting and shadows.
-    - If white background is requested, it must be pure hex #FFFFFF.
+    - **CRITICAL BACKGROUND RULE**: If the prompt requests a White Background, it must be a SOLID, PURE HEX #FFFFFF background. No grey gradients, no studio floors, no walls. Just the subject isolated on white.
     
     OUTPUT: A single image.
     `});
@@ -137,25 +137,25 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     if (inputs.type === 'apparel') {
         // --- APPAREL BATCH ---
         
-        // 1. Long Shot
-        tasks.push(generateVariant("Long Shot", 
-            "Full body shot. Model standing or walking confidently. Show the entire outfit and how the fabric drapes.", 
+        // 1. Long Shot (HERO) - MUST BE WHITE BACKGROUND
+        tasks.push(generateVariant("Hero Long Shot", 
+            "Standard E-commerce Catalog Shot. Full body. Model standing neutrally facing forward or slight angle. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No distractions. Clear view of the garment.", 
             inputs, optMain, optBack, optModel));
 
-        // 2. Stylized / Editorial
+        // 2. Stylized / Editorial - Keep Contextual/Lifestyle
         tasks.push(generateVariant("Editorial Stylized", 
-            "Street style or lifestyle context. Background should be a blurred city street, cafe, or park (matching the outfit vibe). Dynamic pose.", 
+            "Street style or lifestyle context. Background should be a blurred city street, cafe, or park (matching the outfit vibe). Dynamic pose. Cinematic lighting.", 
             inputs, optMain, optBack, optModel));
 
-        // 3. Side Profile
+        // 3. Side Profile - MUST BE WHITE BACKGROUND
         tasks.push(generateVariant("Side Profile", 
-            "Model turned 90 degrees to the side. Show the fit and silhouette from the side view. Neutral studio background.", 
+            "Model turned 90 degrees to the side. Show the fit and silhouette from the side view. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**", 
             inputs, optMain, optBack, optModel));
 
-        // 4. Back Shot
+        // 4. Back Shot - MUST BE WHITE BACKGROUND
         const backPrompt = optBack 
-            ? "Model turned 180 degrees showing the back. Use the 'BACK VIEW REFERENCE' for accurate design details." 
-            : "Model turned 180 degrees showing the back. Hallucinate a clean, standard back design consistent with the front.";
+            ? "Model turned 180 degrees showing the back. Use the 'BACK VIEW REFERENCE' for accurate design details. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**" 
+            : "Model turned 180 degrees showing the back. Hallucinate a clean, standard back design consistent with the front. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
         tasks.push(generateVariant("Back View", backPrompt, inputs, optMain, optBack, optModel));
 
         // 5. Texture Close-up
@@ -166,14 +166,14 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     } else {
         // --- PRODUCT BATCH ---
 
-        // 1. Hero Angle A (45 deg)
+        // 1. Hero Angle A (45 deg) - WHITE
         tasks.push(generateVariant("Hero 45-Degree", 
-            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Pure White Background (#FFFFFF). Soft natural drop shadow.", 
+            "Classic E-commerce Hero Shot. Product at a 45-degree angle. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural drop shadow only.", 
             inputs, optMain, null, null));
 
-        // 2. Hero Angle B (Front)
+        // 2. Hero Angle B (Front) - WHITE
         tasks.push(generateVariant("Hero Front View", 
-            "Direct Front View or Top-Down View (whichever suits the product best). Pure White Background (#FFFFFF). Perfect symmetry.", 
+            "Direct Front View or Top-Down View (whichever suits the product best). **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry.", 
             inputs, optMain, null, null));
 
         // 3. Lifestyle Model
