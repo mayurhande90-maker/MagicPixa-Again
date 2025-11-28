@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -24,9 +23,9 @@ const features = [
     },
     {
         id: 'brand_kit',
-        icon: <BrandKitIcon className="w-10 h-10 text-white" />,
-        title: "BrandKit AI",
-        description: "Automatically create a full product pack from just a photo and product name.",
+        icon: <UploadTrayIcon className="w-10 h-10 text-white" />,
+        title: "Merchant Studio",
+        description: "Generate complete E-commerce product packs (Hero, Lifestyle, Detail) in one go.",
         color: "bg-green-500",
         disabled: false,
     },

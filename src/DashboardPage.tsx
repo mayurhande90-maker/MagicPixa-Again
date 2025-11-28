@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
@@ -9,20 +8,19 @@ import { ReferralModal } from './components/ReferralModal';
 import { MagicPhotoStudio } from './features/MagicPhotoStudio';
 import { MagicInterior } from './features/MagicInterior';
 import { MagicApparel } from './features/MagicApparel';
-import { MagicMockup } from './features/MagicMockup'; // Import
+import { MagicMockup } from './features/MagicMockup';
 import { DashboardHome } from './features/DashboardHome';
 import { Creations } from './features/Creations';
 import { CaptionAI } from './features/CaptionAI';
 import { DailyMissionStudio } from './features/DailyMissionStudio';
 import { ThumbnailStudio } from './features/ThumbnailStudio';
-import { BrandKitAI } from './features/BrandKitAI';
+import { MerchantStudio } from './features/MerchantStudio'; // Renamed import
 import { BrandStylistAI } from './features/BrandStylistAI';
 import { MagicRealty } from './features/MagicRealty';
 import { BrandKitManager } from './features/BrandKitManager'; 
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
-    InputField, 
     TextAreaField, 
     MilestoneSuccessModal, 
     checkMilestone
@@ -37,13 +35,8 @@ import {
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
-    SparklesIcon, 
     UsersIcon,
-    LightbulbIcon,
-    ThumbnailIcon,
     PaletteIcon,
-    MockupIcon,
-    BrandKitIcon,
     PencilIcon,
 } from './components/icons';
 
@@ -179,12 +172,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                         />;
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
-            case 'brand_manager': // New View for My Brand Kit
+            case 'brand_manager':
                 return <BrandKitManager auth={auth} />;
             case 'studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':
-                 return <BrandKitAI auth={auth} appConfig={appConfig} />;
+                 // Replaced BrandKitAI with MerchantStudio
+                 return <MerchantStudio auth={auth} appConfig={appConfig} />;
             case 'thumbnail_studio':
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
@@ -253,7 +247,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     user={auth.user} 
                     onClose={() => setShowReferralModal(false)} 
                     onClaimSuccess={(updatedUser) => {
-                        // Use setUser from auth prop to update global user state immediately
                         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
                     }}
                 />

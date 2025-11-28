@@ -1,4 +1,3 @@
-
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -870,7 +869,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Photo Studio': 2,
           'Model Shot': 3,
           'Thumbnail Studio': 5,
-          'BrandKit AI': 5, // Renamed from Product Studio
+          'BrandKit AI': 15, // Renamed from Product Studio / Ad Variant. Now Merchant Studio (Batch 5)
           'Brand Stylist AI': 4,
           'Magic Soul': 3,
           'Magic Photo Colour': 2,
@@ -882,11 +881,12 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Scanner': 1,
           'Magic Notes': 2,
           'Magic Realty': 4,
+          'Merchant Studio': 15, // Alias for clarity if accessed by new name
         },
         featureToggles: {
           'studio': true,
           'thumbnail_studio': true,
-          'brand_kit': true, // Renamed from product_studio
+          'brand_kit': true, 
           'brand_stylist': true,
           'soul': true,
           'colour': true,

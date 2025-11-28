@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon } from './icons';
+import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -49,13 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGridIcon, disabled: false },
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
-    // NEW: Brand Kit Manager
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, disabled: false },
     { id: 'magic_realty', label: 'Magic Realty', icon: BuildingIcon, disabled: false },
-    { id: 'brand_kit', label: 'BrandKit AI', icon: LightbulbIcon, disabled: false }, // Swapped icon for Ad Variant to Lightbulb
+    // Renamed ID 'brand_kit' label to 'Merchant Studio' and icon to UploadTray
+    { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, disabled: false }, 
     { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },
     { id: 'colour', label: 'Magic Photo Colour', icon: PaletteIcon, disabled: false },
@@ -98,7 +97,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     setIsClaiming(true);
     try {
         const updatedUser = await claimDailyAttendance(user.uid);
-        // Update local user state immediately to reflect changes without reload
         setUser(prev => prev ? { ...prev, ...updatedUser } as User : null);
     } catch (e) {
         console.error("Claim failed", e);
