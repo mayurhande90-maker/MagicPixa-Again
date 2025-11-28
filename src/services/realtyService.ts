@@ -3,7 +3,7 @@ import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Optimize images to 1024px to manage token limits with multiple images
+// Optimize images to 1024px to manage token limits
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -40,10 +40,9 @@ interface RealtyInputs {
     modelImage?: { base64: string; mimeType: string } | null;
     modelGenerationParams?: ModelGenerationParams;
     propertyImage?: { base64: string; mimeType: string } | null;
-    referenceImage: { base64: string; mimeType: string };
+    referenceImage?: { base64: string; mimeType: string } | null; // Made optional
     logoImage?: { base64: string; mimeType: string } | null;
     amenities?: string[];
-    // New Brand Identity Data
     brandIdentity?: {
         colors: { primary: string; secondary: string; accent: string; };
         fonts: { heading: string; body: string; };
@@ -60,25 +59,41 @@ interface RealtyInputs {
 }
 
 /**
- * Analyzes the reference image to detect what information fields are present in the design.
- * Uses Gemini 3 Pro for high-accuracy layout understanding.
+ * PHASE 0: THE RESEARCHER (Only used if no reference image is provided)
+ * Searches for current best-in-class real estate ad layouts.
  */
+const researchTrendingLayout = async (ai: any, context: string): Promise<string> => {
+    const prompt = `You are a Senior Art Director. 
+    
+    TASK: Research "Trending Luxury Real Estate Flyer Design 2025".
+    CONTEXT: The ad is for "${context}".
+    
+    Find a specific, high-conversion layout style used by top agencies (like Sotheby's, Knight Frank, or Modern Luxury).
+    
+    OUTPUT: A detailed visual description of the layout.
+    - Where is the Hero Image? (Full bleed, split screen, floating?)
+    - Where is the Headline? (Top centered, bottom left, overlay?)
+    - Where is the Footer?
+    - What is the color mood?
+    
+    Return ONLY the visual description paragraph.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: { parts: [{ text: prompt }] },
+        config: { tools: [{ googleSearch: {} }] }
+    });
+
+    return response.text || "Modern, full-bleed hero image with clean minimal typography at the bottom.";
+};
+
 export const analyzeRealtyReference = async (base64: string, mimeType: string): Promise<ReferenceAnalysis> => {
     const ai = getAiClient();
     const { data, mimeType: optimizedMime } = await optimizeImage(base64, mimeType);
 
     const prompt = `Analyze this Real Estate Ad Design.
-    
-    Your task is to identify which specific data fields are visually present in the design layout.
-    Scan the text and layout to detect placeholders or actual values for:
-    - **Price**: e.g., "₹1.5 Cr", "$500k", "Starting from...".
-    - **RERA / Legal ID**: e.g., "RERA No:...", small legal text at bottom.
-    - **Contact Details**: e.g., Phone number, Website URL, QR code area.
-    - **Location**: e.g., City name, Address, "Near Airport".
-    - **Unit Type**: e.g., "2 BHK", "3 Bed Residences", "Villa".
-    - **Project Name**: Large distinct title text.
-
-    Return a JSON object indicating true/false for each field if you see a designated space or text for it.`;
+    Identify which data fields are visually present: Price, RERA, Contact, Location, Unit Type, Project Name.
+    Return JSON.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -104,12 +119,10 @@ export const analyzeRealtyReference = async (base64: string, mimeType: string): 
                 }
             }
         });
-
         const text = response.text;
-        if (!text) return { hasPrice: false, hasRera: false, hasContact: true, hasLocation: true, hasUnitType: true, hasProjectName: true }; // Fallback
+        if (!text) return { hasPrice: false, hasRera: false, hasContact: true, hasLocation: true, hasUnitType: true, hasProjectName: true };
         return JSON.parse(text);
     } catch (error) {
-        console.error("Reference analysis failed:", error);
         return { hasPrice: false, hasRera: false, hasContact: false, hasLocation: false, hasUnitType: false, hasProjectName: true };
     }
 };
@@ -117,62 +130,73 @@ export const analyzeRealtyReference = async (base64: string, mimeType: string): 
 export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> => {
     const ai = getAiClient();
 
+    // --- STRATEGY DETERMINATION ---
+    let layoutInstruction = "";
+    let referencePart = null;
+
+    if (inputs.referenceImage) {
+        // Mode A: Mimic Uploaded Reference
+        const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+        layoutInstruction = "STRICTLY MIMIC the composition, camera angle, and negative space of the 'LAYOUT REFERENCE' image provided.";
+        referencePart = { inlineData: { data: optReference.data, mimeType: optReference.mimeType } };
+    } else {
+        // Mode B: AI Auto-Design (Research)
+        const trendingLayout = await researchTrendingLayout(ai, inputs.texts.marketingContext);
+        layoutInstruction = `GENERATE A NEW LAYOUT based on this professional direction: "${trendingLayout}". 
+        Use the "Rule of Thirds". Ensure 30% negative space for text. Create a "Z-Pattern" reading flow.`;
+    }
+
     // ==============================================================================================
-    // PASS 1: THE LAYOUT-AWARE PHOTOGRAPHER
-    // Goal: Generate the scene (House + Model) but FORCE it to match the Reference's composition structure.
+    // PASS 1: THE PHOTOGRAPHER (Composition & Base Scene)
     // ==============================================================================================
     
     const pass1Parts: any[] = [];
 
-    // 1. The "Template" (Reference Image) - Now crucial for Pass 1
-    const optReference = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-    pass1Parts.push({ text: "LAYOUT REFERENCE (Mimic this camera angle, zoom, and negative space):" });
-    pass1Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
+    if (referencePart) {
+        pass1Parts.push({ text: "LAYOUT REFERENCE:" });
+        pass1Parts.push(referencePart);
+    }
 
-    // 2. Property Image (The Subject)
     if (inputs.propertyImage) {
         const optProperty = await optimizeImage(inputs.propertyImage.base64, inputs.propertyImage.mimeType);
-        pass1Parts.push({ text: "PROPERTY TO FEATURE (Use this architecture):" });
+        pass1Parts.push({ text: "PROPERTY ARCHITECTURE:" });
         pass1Parts.push({ inlineData: { data: optProperty.data, mimeType: optProperty.mimeType } });
     }
 
-    // 3. Model Integration
     let modelPrompt = "";
     if (inputs.modelImage) {
         const optModel = await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType);
-        pass1Parts.push({ text: "MODEL TO INTEGRATE:" });
+        pass1Parts.push({ text: "MODEL:" });
         pass1Parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
-        modelPrompt = "Integrate the provided model into the scene.";
+        modelPrompt = "Integrate the provided model naturally into the scene.";
     } else if (inputs.modelGenerationParams) {
         const p = inputs.modelGenerationParams;
-        modelPrompt = `Generate a photorealistic model: ${p.skinTone} ${p.region} ${p.modelType} (${p.bodyType}). 
-        Action: ${p.composition}, ${p.framing}. 
-        Lighting: Match the property's lighting.`;
+        modelPrompt = `Generate a premium model: ${p.skinTone} ${p.region} ${p.modelType}. Action: ${p.composition}.`;
     } else {
-        modelPrompt = "No model. Focus purely on architecture.";
+        modelPrompt = "No people. Focus on architecture.";
     }
 
     const pass1Prompt = `You are a World-Class Architectural Photographer.
     
-    TASK: Re-shoot the "PROPERTY" to match the "LAYOUT REFERENCE" composition exactly.
+    TASK: Create the base photograph for a Real Estate Ad.
     
-    *** COMPOSITION CLONING (CRITICAL) ***
-    - Look at the **LAYOUT REFERENCE**. Where is the building? Where is the sky? Where is the ground?
-    - **COPY THAT EXACT FRAMING**.
-    - If the Reference has 40% sky at the top, your output MUST have 40% sky at the top.
-    - If the Reference has the building in the bottom-right corner, place the Property in the bottom-right corner.
-    - **WHY?**: We need to place text overlays later. If you fill the frame with the building, the text will cover it.
+    *** COMPOSITION RULES ***
+    ${layoutInstruction}
     
-    *** AESTHETICS ***
-    - Lighting: Golden Hour / Premium Daylight (unless Reference is Night).
+    *** LIGHTING & MOOD ***
+    - "Golden Hour" or "Blue Hour" premium lighting (unless reference dictates otherwise).
+    - Wide angle lens (16mm-24mm) to make the space look expansive.
+    - Straight vertical lines (Architectural correction).
+    
+    *** SUBJECT ***
     - ${modelPrompt}
-    - **NO TEXT**: Do not generate text yet. Just the clean background image.
+    - If fusing Model + Property: The model should look comfortable, owning the space. 
+    - **CRITICAL**: Leave empty space (sky, floor, or plain wall) where text can be placed later. Do not fill every pixel with detail.
     
-    OUTPUT: A single clean photograph matching the spatial arrangement of the Reference.`;
+    OUTPUT: A clean, high-resolution photograph. NO TEXT overlays yet.`;
 
     pass1Parts.push({ text: pass1Prompt });
 
-    // Execute Pass 1
     const pass1Response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts: pass1Parts },
@@ -183,88 +207,73 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }));
 
     const cleanImageBase64 = pass1Response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
-    if (!cleanImageBase64) throw new Error("Pass 1 (Composition) failed to generate image.");
+    if (!cleanImageBase64) throw new Error("Pass 1 (Composition) failed.");
 
 
     // ==============================================================================================
-    // PASS 2: THE GRID-BASED DESIGNER (Strict Layout Engine)
-    // Goal: Map pixels from Reference to Canvas. 
+    // PASS 2: THE GRAPHIC DESIGNER (Typography & Layout)
     // ==============================================================================================
 
     const pass2Parts: any[] = [];
 
-    // 1. The Canvas (Result from Pass 1)
     pass2Parts.push({ text: "CANVAS (Background):" });
     pass2Parts.push({ inlineData: { data: cleanImageBase64, mimeType: "image/jpeg" } });
 
-    // 2. The Template (Reference)
-    pass2Parts.push({ text: "DESIGN TEMPLATE (Copy layout grid exactly):" });
-    pass2Parts.push({ inlineData: { data: optReference.data, mimeType: optReference.mimeType } });
+    if (referencePart) {
+        pass2Parts.push({ text: "STYLE REFERENCE (Copy font weights and placement):" });
+        pass2Parts.push(referencePart);
+    }
 
-    // 3. The Brand Asset (Logo)
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        pass2Parts.push({ text: "USER LOGO (This image MUST appear exactly as is in the final output):" });
+        pass2Parts.push({ text: "BRAND LOGO (Place exactly as is):" });
         pass2Parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
-    // 4. Design Instructions
-    const pass2Prompt = `You are a Layout Engine & Expert Real Estate Copywriter.
-    
-    *** 1. COPYWRITING (The "Hook") ***
-    - **Input Context**: "${inputs.texts.marketingContext || 'Luxury Lifestyle'}"
-    - **TASK**: Create a **NEW**, high-converting Marketing Title (3-6 words) based on the context.
-    - **CRITICAL**: Do NOT just copy-paste the context. Turn it into an ad headline.
-      - Input: "2bhk available" -> Output: "Your Dream 2BHK Awaits"
-      - Input: "Near airport" -> Output: "Connect to the World"
-    
-    *** 2. VISUAL HIERARCHY (Strict Order) ***
-    You must map the text elements to the Reference Layout based on visual prominence:
-    
-    1. **TOP PRIORITY (H1 - Largest Text)**:
-       - Content: The **GENERATED MARKETING TITLE**.
-       - Placement: Most prominent text slot (usually top or center).
-    
-    2. **SECONDARY (H2 - Medium Text)**:
-       - Content: **PROJECT NAME** ("${inputs.texts.projectName}").
-       - Placement: Below or near the title, slightly smaller.
-    
-    3. **TERTIARY (H3 - Small Text)**:
-       - Content: **UNIT TYPE** ("${inputs.texts.unitType}").
-    
-    *** 3. LAYOUT & COMPOSITION ***
-    - **Grid Mapping**: Visualize the Reference Layout. Place your new H1, H2, and H3 texts in the exact same grid positions as the Reference's text blocks.
-    - **Subject Visibility**: Ensure the building/model (Background) is clearly visible. Do not let text cover the main subject.
-    
-    *** 4. FOOTER & DETAILS ***
-    ${inputs.amenities && inputs.amenities.length > 0 ? `
-    - **AMENITIES**: Render a clean list for: ${inputs.amenities.join(', ')}.
-    ` : ''}
+    // Brand Kit Styling
+    let brandingInstruction = "";
+    if (inputs.brandIdentity) {
+        brandingInstruction = `
+        *** BRAND GUIDELINES (STRICT) ***
+        - **Primary Color**: ${inputs.brandIdentity.colors.primary} (Use for Headlines, Buttons, or Footer Backgrounds).
+        - **Secondary Color**: ${inputs.brandIdentity.colors.secondary} (Use for Subtitles or Accents).
+        - **Accent Color**: ${inputs.brandIdentity.colors.accent}.
+        - **Fonts**: Mimic a "${inputs.brandIdentity.fonts.heading}" style for titles and "${inputs.brandIdentity.fonts.body}" for details.
+        `;
+    } else {
+        brandingInstruction = "Match the color palette and font style of the Reference Image provided.";
+    }
 
-    ${(inputs.texts.contact || inputs.texts.rera || inputs.texts.location) ? `
-    - **FOOTER BAR**: Create a distinct footer strip at the very bottom.
-    - Content: ${inputs.texts.location} ${inputs.texts.contact ? '| ' + inputs.texts.contact : ''} ${inputs.texts.rera ? '| ' + inputs.texts.rera : ''}
-    ` : ''}
+    const pass2Prompt = `You are a Senior Graphic Designer & Copywriter.
     
-    *** 5. LOGO PLACEMENT (CRITICAL) ***
-    - **Source**: Use the exact pixel data from the "USER LOGO" input.
-    - **Action**: Superimpose the User Logo onto the canvas.
-    - **Position**: Match the X,Y position of the logo found in the "DESIGN TEMPLATE".
-    - **Fidelity**: Do NOT change the logo's color, font, or shape. It must be an exact replica of the uploaded logo file.
+    TASK: Design the final Real Estate Flyer.
     
-    *** 6. STYLE MATCHING ***
-    ${inputs.brandIdentity ? `
-    - **BRAND IDENTITY ENFORCEMENT (STRICT)**:
-      - **Primary Color**: Use ${inputs.brandIdentity.colors.primary} for major graphical elements (shapes, footer bar background, or headline text).
-      - **Secondary Color**: Use ${inputs.brandIdentity.colors.secondary} for accents or sub-text.
-      - **Fonts**: Emulate a "${inputs.brandIdentity.fonts.heading}" style for the H1 Headline. Use "${inputs.brandIdentity.fonts.body}" style for details.
-    ` : `
-    - Match the Reference's font styles (Serif/Sans), weights, and color palette.
-    `}
+    *** 1. COPYWRITING ***
+    - **Context**: "${inputs.texts.marketingContext}"
+    - **ACTION**: Generate a Short, Punchy, High-Value Headline (3-5 words). Examples: "Luxury Defined", "Your Forever Home", "Rise Above".
     
-    - **Price**: If "${inputs.texts.price}" exists, place it in a high-visibility badge/sticker.
+    *** 2. VISUAL HIERARCHY (The "F-Pattern") ***
+    1. **HEADLINE (H1)**: Largest text. High contrast against background.
+    2. **PROJECT NAME**: "${inputs.texts.projectName}". Prominent but smaller than Headline.
+    3. **UNIT CONFIG**: "${inputs.texts.unitType}". Clear and readable.
+    
+    *** 3. PLACEMENT & LAYOUT ***
+    - If using a Reference, map text positions to the reference.
+    - If Auto-Design, place Headline in the area with most negative space (e.g., Sky).
+    - Ensure NO text covers the Model's face or the main building features.
+    - Use drop shadows or scrims (dark gradients) behind text if the background is busy.
+    
+    *** 4. DETAILS & FOOTER ***
+    ${inputs.amenities && inputs.amenities.length > 0 ? `- List Amenities clean and small: ${inputs.amenities.join(' • ')}` : ''}
+    ${(inputs.texts.contact || inputs.texts.location) ? `- FOOTER STRIP: ${inputs.texts.location} | ${inputs.texts.contact || ''} ${inputs.texts.rera ? '| ' + inputs.texts.rera : ''}` : ''}
+    
+    ${inputs.texts.price ? `- **PRICE TAG**: Place "${inputs.texts.price}" in a high-visibility badge or distinct color block.` : ''}
 
-    OUTPUT: The final composite image.`;
+    *** 5. BRANDING ***
+    ${brandingInstruction}
+    - **LOGO**: Place the User Logo in a standard corner (Top Right or Top Left).
+    
+    OUTPUT: The final composed advertisement image.`;
 
     pass2Parts.push({ text: pass2Prompt });
 
@@ -278,7 +287,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     }));
 
     const finalImageBase64 = pass2Response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
-    if (!finalImageBase64) throw new Error("Pass 2 (Design) failed to generate image.");
+    if (!finalImageBase64) throw new Error("Pass 2 (Design) failed.");
 
     return finalImageBase64;
 };

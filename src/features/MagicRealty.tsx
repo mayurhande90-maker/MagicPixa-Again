@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
@@ -84,14 +85,17 @@ const LabelWithBadge: React.FC<{ label: string; detected?: boolean }> = ({ label
 );
 
 export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    // Strategy Choices
+    const [brandStrategy, setBrandStrategy] = useState<'brand_kit' | 'custom'>('custom');
+    const [designMode, setDesignMode] = useState<'reference' | 'auto'>('reference');
+
     // Assets
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [propertyImage, setPropertyImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
 
-    // Brand Kit Integration State
-    const [usingBrandKit, setUsingBrandKit] = useState(false);
+    // Brand Kit Loading State
     const [isLoadingBrandKit, setIsLoadingBrandKit] = useState(false);
 
     // Decisions
@@ -121,17 +125,16 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Details
     const [texts, setTexts] = useState({
         projectName: '',
-        unitType: '', // e.g. 3BHK
-        marketingContext: '', // e.g. Ready to move, Luxury
+        unitType: '',
+        marketingContext: '',
         price: '',
-        // Moved to dynamic sections below
         location: '',
         rera: '',
         contact: ''
     });
 
     // New Dynamic Sections State
-    const [amenities, setAmenities] = useState<string[]>([]); // Initially empty
+    const [amenities, setAmenities] = useState<string[]>([]);
     const [showAmenities, setShowAmenities] = useState(false);
     const [showContact, setShowContact] = useState(false);
 
@@ -158,34 +161,47 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // --- BRAND KIT AUTO-LOADER ---
+    // --- BRAND KIT INIT ---
+    useEffect(() => {
+        if (auth.user?.brandKit) {
+            setBrandStrategy('brand_kit');
+        } else {
+            setBrandStrategy('custom');
+        }
+    }, [auth.user?.brandKit]);
+
+    // --- BRAND KIT ASSET LOADER ---
     useEffect(() => {
         const loadBrandAssets = async () => {
-            if (auth.user?.brandKit && !logoImage && !usingBrandKit) {
-                console.log("Found Brand Kit, attempting to auto-load assets...");
+            if (brandStrategy === 'brand_kit' && auth.user?.brandKit) {
                 setIsLoadingBrandKit(true);
-                
-                // Auto-fill context fields if empty
-                if (!texts.contact && auth.user.brandKit.website) {
-                    setTexts(prev => ({ ...prev, contact: auth.user!.brandKit!.website }));
-                }
-                
-                // Attempt to load logo
-                if (auth.user.brandKit.logos.primary) {
+                const kit = auth.user.brandKit;
+
+                // 1. Text Pre-fill
+                setTexts(prev => ({
+                    ...prev,
+                    contact: kit.website || prev.contact
+                }));
+                // Enable contact section if we have data
+                if (kit.website) setShowContact(true);
+
+                // 2. Logo Pre-fill (if not already custom loaded)
+                if (kit.logos.primary && !logoImage) {
                     try {
-                        const base64Data = await urlToBase64(auth.user.brandKit.logos.primary);
-                        setLogoImage({ url: auth.user.brandKit.logos.primary, base64: base64Data });
-                        setUsingBrandKit(true);
+                        const base64Data = await urlToBase64(kit.logos.primary);
+                        setLogoImage({ url: kit.logos.primary, base64: base64Data });
                     } catch (e) {
-                        console.warn("Failed to auto-load Brand Kit logo (it might not exist yet):", e);
-                        // Do not set error state, just fail gracefully so user can upload manually
+                        console.warn("Could not load brand kit logo:", e);
                     }
                 }
                 setIsLoadingBrandKit(false);
+            } else if (brandStrategy === 'custom') {
+                // If switched to custom, clear logo so user can upload manually if they want
+                // But typically we keep the logo if it exists to be nice.
             }
         };
         loadBrandAssets();
-    }, [auth.user?.brandKit]); // Run when brandKit data is available
+    }, [brandStrategy, auth.user?.brandKit]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -207,8 +223,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             try {
                 const analysis = await analyzeRealtyReference(base64.base64, base64.mimeType);
                 setDetectedFields(analysis);
-                
-                // Auto-open sections if detected
                 if (analysis.hasContact || analysis.hasRera || analysis.hasLocation) {
                     setShowContact(true);
                 }
@@ -223,10 +237,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleToggleAmenities = () => {
         if (!showAmenities) {
-            // When enabling, add 3 empty rows if list is empty
-            if (amenities.length === 0) {
-                setAmenities(['', '', '']);
-            }
+            if (amenities.length === 0) setAmenities(['', '', '']);
             setShowAmenities(true);
         } else {
             setShowAmenities(false);
@@ -242,7 +253,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const addAmenity = () => {
         setAmenities([...amenities, '']);
-        // UX Fix: Scroll to the new input
         autoScroll();
     };
 
@@ -252,7 +262,10 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!referenceImage || !auth.user || !texts.projectName) return;
+        // Requirement Check: Need Reference (if in reference mode) OR Auto mode. And Project Name.
+        const refReady = designMode === 'auto' || !!referenceImage;
+        if (!refReady || !auth.user || !texts.projectName) return;
+        
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -261,21 +274,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const mode = propertyChoice === 'generate' ? 'new_property' : 'lifestyle_fusion';
             
-            // Construct generation params
             const modelGenerationParams = modelChoice === 'generate' ? {
-                modelType,
-                region: modelRegion,
-                skinTone,
-                bodyType,
-                composition: modelComposition,
-                framing: modelFraming
+                modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming
             } : undefined;
 
-            // Filter out empty amenities strings
             const validAmenities = showAmenities ? amenities.filter(a => a.trim() !== '') : [];
 
-            // Pass text context based on toggle state. 
-            // If toggle is closed, we send empty strings so the AI doesn't generate them.
             const finalTexts = {
                 ...texts,
                 contact: showContact ? texts.contact : '',
@@ -288,12 +292,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 modelImage: modelChoice === 'upload' ? modelImage?.base64 : null, 
                 modelGenerationParams,
                 propertyImage: propertyChoice === 'upload' ? propertyImage?.base64 : null, 
-                referenceImage: referenceImage.base64,
+                referenceImage: designMode === 'reference' && referenceImage ? referenceImage.base64 : undefined,
                 logoImage: logoImage?.base64,
                 amenities: validAmenities,
                 texts: finalTexts,
-                // Inject Brand Kit Data if available
-                brandIdentity: auth.user.brandKit ? {
+                brandIdentity: (brandStrategy === 'brand_kit' && auth.user.brandKit) ? {
                     colors: auth.user.brandKit.colors,
                     fonts: auth.user.brandKit.fonts
                 } : undefined
@@ -323,11 +326,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelImage(null);
         setPropertyImage(null);
         setReferenceImage(null);
-        // Only clear logo if we are NOT using brand kit auto-load. 
-        // If brand kit is active, we keep it for convenience.
-        if (!usingBrandKit) {
-            setLogoImage(null);
-        }
+        if (brandStrategy === 'custom') setLogoImage(null);
         
         setModelChoice(null);
         setPropertyChoice(null);
@@ -335,11 +334,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setAmenities([]);
         setShowAmenities(false);
         setShowContact(false);
-        
-        // Reset Model Gen Params
-        setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
-        setModelComposition(''); setModelFraming('');
-        
         setResultImage(null);
         setDetectedFields(null);
     };
@@ -356,14 +350,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // Validation
-    const isModelReady = 
-        modelChoice === 'skip' || 
-        (modelChoice === 'upload' && !!modelImage) || 
-        (modelChoice === 'generate' && !!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming);
-
+    // --- VALIDATION ---
+    const isModelReady = modelChoice === 'skip' || (modelChoice === 'upload' && !!modelImage) || (modelChoice === 'generate' && !!modelType);
+    const isRefReady = designMode === 'auto' || (designMode === 'reference' && !!referenceImage);
+    
     const canGenerate = 
-        !!referenceImage && 
+        isRefReady && 
         !!texts.projectName && 
         (propertyChoice === 'generate' || !!propertyImage) && 
         !!modelChoice &&
@@ -374,7 +366,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         <>
             <FeatureLayout
                 title="Magic Realty"
-                description="Create stunning Real Estate ads with Lifestyle Fusion and Golden Hour enhancement."
+                description="Create luxury Real Estate ads with Lifestyle Fusion and Golden Hour enhancement."
                 icon={<BuildingIcon className="w-6 h-6 text-indigo-600" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -388,21 +380,16 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Ad"
+                    label: designMode === 'auto' ? "Auto-Design Ad" : "Generate Ad"
                 }}
                 scrollRef={scrollRef}
                 customActionButtons={
                     resultImage ? (
-                        <button 
-                            onClick={() => setShowMagicEditor(true)}
-                            className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"
-                        >
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> 
-                            <span>Magic Editor</span>
+                        <button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
+                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span>
                         </button>
                     ) : null
                 }
-                // Left Content
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading ? (
@@ -410,7 +397,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-indigo-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">Copywriting & Designing...</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">
+                                    {designMode === 'auto' ? "Researching Trends & Designing..." : "Cloning Layout & Rendering..."}
+                                </p>
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
@@ -424,21 +413,39 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
-                // Right Content: The Wizard
                 rightContent={
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
-                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
-                                <CreditCardIcon className="w-10 h-10 text-red-500" />
-                            </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
-                            <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">
-                                Recharge Now
-                            </button>
+                            <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
                             
+                            {/* STRATEGY SELECTION: Brand Kit vs Custom */}
+                            {auth.user?.brandKit && (
+                                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-100">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <BrandKitIcon className="w-4 h-4 text-purple-600"/>
+                                        <label className="text-xs font-bold text-purple-800 uppercase tracking-wider">Brand Strategy</label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setBrandStrategy('brand_kit')}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${brandStrategy === 'brand_kit' ? 'bg-white border-purple-400 text-purple-700 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-white/50'}`}
+                                        >
+                                            Use Brand Kit
+                                        </button>
+                                        <button 
+                                            onClick={() => setBrandStrategy('custom')}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${brandStrategy === 'custom' ? 'bg-white border-purple-400 text-purple-700 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-white/50'}`}
+                                        >
+                                            Custom / One-off
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Step 1: Model */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3 ml-1">
@@ -446,35 +453,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lifestyle Model</label>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mb-3">
-                                    <StepCard 
-                                        title="Upload" 
-                                        description="Use own photo" 
-                                        icon={<UserIcon className="w-4 h-4"/>} 
-                                        selected={modelChoice === 'upload'}
-                                        onClick={() => { setModelChoice('upload'); }} 
-                                    />
-                                    <StepCard 
-                                        title="Generate" 
-                                        description="Create with AI" 
-                                        icon={<SparklesIcon className="w-4 h-4"/>} 
-                                        selected={modelChoice === 'generate'}
-                                        onClick={() => { setModelChoice('generate'); }} 
-                                    />
-                                    <StepCard 
-                                        title="Skip" 
-                                        description="Focus on house" 
-                                        icon={<XIcon className="w-4 h-4"/>} 
-                                        selected={modelChoice === 'skip'}
-                                        onClick={() => { setModelChoice('skip'); setModelImage(null); }} 
-                                    />
+                                    <StepCard title="Upload" description="Own photo" icon={<UserIcon className="w-4 h-4"/>} selected={modelChoice === 'upload'} onClick={() => setModelChoice('upload')} />
+                                    <StepCard title="Generate" description="AI Human" icon={<SparklesIcon className="w-4 h-4"/>} selected={modelChoice === 'generate'} onClick={() => setModelChoice('generate')} />
+                                    <StepCard title="Skip" description="Architecture only" icon={<XIcon className="w-4 h-4"/>} selected={modelChoice === 'skip'} onClick={() => { setModelChoice('skip'); setModelImage(null); }} />
                                 </div>
-                                
-                                {modelChoice === 'upload' && (
-                                    <div className="animate-fadeIn">
-                                        <CompactUpload label="Upload Model Photo (Required for Fusion)" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />
-                                    </div>
-                                )}
-
+                                {modelChoice === 'upload' && <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} />}
                                 {modelChoice === 'generate' && (
                                     <div className="animate-fadeIn space-y-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
                                         <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />
@@ -494,189 +477,110 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Property Asset</label>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <StepCard 
-                                        title="Upload Site Photo" 
-                                        description="Enhance existing photo." 
-                                        icon={<UploadTrayIcon className="w-5 h-5"/>} 
-                                        selected={propertyChoice === 'upload'}
-                                        onClick={() => { setPropertyChoice('upload'); }} 
-                                    />
-                                    <StepCard 
-                                        title="Generate New" 
-                                        description="Create from Reference vibe." 
-                                        icon={<SparklesIcon className="w-5 h-5"/>} 
-                                        selected={propertyChoice === 'generate'}
-                                        onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); }} 
-                                    />
+                                    <StepCard title="Upload Photo" description="Enhance existing" icon={<UploadTrayIcon className="w-5 h-5"/>} selected={propertyChoice === 'upload'} onClick={() => setPropertyChoice('upload')} />
+                                    <StepCard title="Generate New" description="Create from text" icon={<SparklesIcon className="w-5 h-5"/>} selected={propertyChoice === 'generate'} onClick={() => { setPropertyChoice('generate'); setPropertyImage(null); }} />
                                 </div>
-                                {propertyChoice === 'upload' && (
-                                    <div className="animate-fadeIn">
-                                        <CompactUpload label="Site/Interior Photo" image={propertyImage} onUpload={handleUpload(setPropertyImage)} onClear={() => setPropertyImage(null)} icon={<BuildingIcon className="w-6 h-6 text-indigo-400"/>} />
-                                    </div>
-                                )}
+                                {propertyChoice === 'upload' && <CompactUpload label="Site/Interior Photo" image={propertyImage} onUpload={handleUpload(setPropertyImage)} onClear={() => setPropertyImage(null)} icon={<BuildingIcon className="w-6 h-6 text-indigo-400"/>} />}
                             </div>
 
-                            {/* Step 3: Reference (with Auto-Detect) */}
+                            {/* Step 3: Design Mode (Ref vs Auto) */}
                             <div className="border-t border-gray-100 pt-6">
-                                <div className="flex items-center justify-between mb-3 ml-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Reference Style</label>
-                                    </div>
-                                    {analyzingRef && (
-                                        <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                                            <span className="text-[10px] text-blue-600 font-bold animate-pulse">Scanning Layout...</span>
-                                        </div>
-                                    )}
+                                <div className="flex items-center gap-2 mb-3 ml-1">
+                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">3</span>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Design Strategy</label>
                                 </div>
-                                <CompactUpload label="Reference Image (Required)" image={referenceImage} onUpload={handleRefUpload} onClear={() => { setReferenceImage(null); setDetectedFields(null); }} icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} heightClass="h-40" />
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <StepCard title="Reference" description="Clone a layout" icon={<LightbulbIcon className="w-5 h-5"/>} selected={designMode === 'reference'} onClick={() => setDesignMode('reference')} />
+                                    <StepCard title="AI Auto-Design" description="Best practices 2025" icon={<MagicWandIcon className="w-5 h-5"/>} selected={designMode === 'auto'} onClick={() => { setDesignMode('auto'); setReferenceImage(null); }} />
+                                </div>
+                                
+                                {designMode === 'reference' && (
+                                    <div className="animate-fadeIn relative">
+                                        {analyzingRef && (
+                                            <div className="absolute top-0 right-0 flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 z-10">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                                <span className="text-[10px] text-blue-600 font-bold animate-pulse">Scanning Layout...</span>
+                                            </div>
+                                        )}
+                                        <CompactUpload label="Reference Layout Image" image={referenceImage} onUpload={handleRefUpload} onClear={() => { setReferenceImage(null); setDetectedFields(null); }} icon={<LightbulbIcon className="w-6 h-6 text-yellow-500"/>} heightClass="h-40" />
+                                    </div>
+                                )}
+                                {designMode === 'auto' && (
+                                    <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-xs text-indigo-800 leading-relaxed">
+                                        <p><strong>AI Agent Active:</strong> We will research current luxury real estate design trends and automatically generate a high-conversion layout for you.</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Step 4: Details */}
                             <div className="border-t border-gray-100 pt-6">
-                                <div className="flex items-center justify-between gap-2 mb-3 ml-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Details</label>
-                                    </div>
-                                    {isLoadingBrandKit ? (
-                                        <div className="flex items-center gap-1.5 bg-gray-50 text-gray-500 px-2 py-1 rounded-full border border-gray-100">
-                                            <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-[9px] font-bold uppercase">Syncing Brand Kit...</span>
-                                        </div>
-                                    ) : usingBrandKit && (
-                                        <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 shadow-sm animate-fadeIn">
-                                            <BrandKitIcon className="w-3 h-3" />
-                                            <span className="text-[9px] font-bold uppercase">Brand Kit Active</span>
-                                        </div>
-                                    )}
+                                <div className="flex items-center gap-2 mb-3 ml-1">
+                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Details</label>
                                 </div>
                                 
+                                {/* Conditional Logo Section */}
                                 <div className="mb-4">
-                                    <CompactUpload label="Brand Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => { setLogoImage(null); setUsingBrandKit(false); }} icon={<SparklesIcon className="w-6 h-6 text-purple-400"/>} optional={true} heightClass="h-24" />
+                                    {brandStrategy === 'brand_kit' && logoImage ? (
+                                        <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                                            <img src={logoImage.url} className="w-10 h-10 object-contain" alt="Brand Logo"/>
+                                            <div>
+                                                <p className="text-xs font-bold text-purple-900">Brand Kit Active</p>
+                                                <p className="text-[10px] text-purple-600">Logo & Contact pre-filled</p>
+                                            </div>
+                                            <button onClick={() => setBrandStrategy('custom')} className="ml-auto text-[10px] text-purple-500 underline hover:text-purple-700">Override</button>
+                                        </div>
+                                    ) : (
+                                        <CompactUpload label="Brand Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<SparklesIcon className="w-6 h-6 text-purple-400"/>} optional={true} heightClass="h-24" />
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <InputField 
-                                            label={<LabelWithBadge label="Project Name" detected={detectedFields?.hasProjectName} />} 
-                                            placeholder="e.g. Skyline Towers" 
-                                            value={texts.projectName} 
-                                            onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} 
-                                        />
-                                        <InputField 
-                                            label={<LabelWithBadge label="Unit Size" detected={detectedFields?.hasUnitType} />} 
-                                            placeholder="e.g. 2 BHK / 3 BHK" 
-                                            value={texts.unitType} 
-                                            onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} 
-                                        />
+                                        <InputField label={<LabelWithBadge label="Project Name" detected={detectedFields?.hasProjectName} />} placeholder="e.g. Skyline Towers" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
+                                        <InputField label={<LabelWithBadge label="Unit Size" detected={detectedFields?.hasUnitType} />} placeholder="e.g. 2 BHK" value={texts.unitType} onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} />
                                     </div>
-                                    
-                                    <TextAreaField 
-                                        label="Context / Description (AI will generate a title from this)" 
-                                        placeholder="e.g. 'Ready to move', 'Sea facing'. AI will generate a catchy title from this." 
-                                        value={texts.marketingContext} 
-                                        onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})}
-                                        rows={3}
-                                    />
-                                    
-                                    <div className="grid grid-cols-1 gap-3">
-                                        <InputField 
-                                            label={<LabelWithBadge label="Price (Optional)" detected={detectedFields?.hasPrice} />} 
-                                            placeholder="e.g. ₹1.5 Cr+" 
-                                            value={texts.price} 
-                                            onChange={(e: any) => setTexts({...texts, price: e.target.value})} 
-                                        />
-                                    </div>
+                                    <TextAreaField label="Context (AI will create title)" placeholder="e.g. 'Sea facing, Luxury'" value={texts.marketingContext} onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})} rows={3} />
+                                    <InputField label={<LabelWithBadge label="Price (Optional)" detected={detectedFields?.hasPrice} />} placeholder="e.g. ₹1.5 Cr+" value={texts.price} onChange={(e: any) => setTexts({...texts, price: e.target.value})} />
                                 </div>
                             </div>
 
-                            {/* Amenities Toggle */}
+                            {/* Toggles */}
                             <div className="border-t border-gray-100 pt-4">
-                                <button 
-                                    onClick={handleToggleAmenities}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showAmenities ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <CheckIcon className={`w-4 h-4 ${showAmenities ? 'text-blue-600' : 'text-gray-400'}`}/>
-                                        <span className="text-xs font-bold uppercase tracking-wider">Add Amenities / Features?</span>
-                                    </div>
+                                <button onClick={handleToggleAmenities} className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showAmenities ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}>
+                                    <div className="flex items-center gap-2"><CheckIcon className={`w-4 h-4 ${showAmenities ? 'text-blue-600' : 'text-gray-400'}`}/><span className="text-xs font-bold uppercase tracking-wider">Add Amenities?</span></div>
                                     {showAmenities ? <ChevronUpIcon className="w-4 h-4"/> : <ChevronDownIcon className="w-4 h-4"/>}
                                 </button>
-
                                 {showAmenities && (
                                     <div className="mt-4 space-y-3 animate-fadeIn bg-gray-50 p-4 rounded-xl border border-gray-100">
                                         {amenities.map((amenity, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 animate-fadeIn">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder={`Amenity ${idx + 1} (e.g. Gym, Pool)`}
-                                                    value={amenity}
-                                                    onChange={(e) => updateAmenity(idx, e.target.value)}
-                                                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                                                />
-                                                <button onClick={() => removeAmenity(idx)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                                                    <TrashIcon className="w-4 h-4"/>
-                                                </button>
-                                            </div>
+                                            <div key={idx} className="flex items-center gap-2"><input type="text" placeholder={`Amenity ${idx + 1}`} value={amenity} onChange={(e) => updateAmenity(idx, e.target.value)} className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"/><button onClick={() => removeAmenity(idx)} className="p-2 text-gray-400 hover:text-red-500"><TrashIcon className="w-4 h-4"/></button></div>
                                         ))}
-                                        <button onClick={addAmenity} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:text-blue-800 transition-colors mt-2">
-                                            <PlusCircleIcon className="w-4 h-4"/> Add Amenity
-                                        </button>
+                                        <button onClick={addAmenity} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:text-blue-800 mt-2"><PlusCircleIcon className="w-4 h-4"/> Add Amenity</button>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Contact Footer Toggle */}
                             <div className="border-t border-gray-100 pt-4">
-                                <button 
-                                    onClick={() => { setShowContact(!showContact); autoScroll(); }}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showContact ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <CheckIcon className={`w-4 h-4 ${showContact ? 'text-blue-600' : 'text-gray-400'}`}/>
-                                        <span className="text-xs font-bold uppercase tracking-wider">Add Footer & Contact Info?</span>
-                                    </div>
+                                <button onClick={() => { setShowContact(!showContact); autoScroll(); }} className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${showContact ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'} border`}>
+                                    <div className="flex items-center gap-2"><CheckIcon className={`w-4 h-4 ${showContact ? 'text-blue-600' : 'text-gray-400'}`}/><span className="text-xs font-bold uppercase tracking-wider">Add Footer Info?</span></div>
                                     {showContact ? <ChevronUpIcon className="w-4 h-4"/> : <ChevronDownIcon className="w-4 h-4"/>}
                                 </button>
-
                                 {showContact && (
                                     <div className="mt-4 grid grid-cols-1 gap-3 animate-fadeIn bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <InputField 
-                                            label={<LabelWithBadge label="Location (Full Address)" detected={detectedFields?.hasLocation} />} 
-                                            placeholder="e.g. Near Airport, Sector 42" 
-                                            value={texts.location} 
-                                            onChange={(e: any) => setTexts({...texts, location: e.target.value})} 
-                                        />
-                                        <InputField 
-                                            label={<LabelWithBadge label="Contact / Website" detected={detectedFields?.hasContact} />} 
-                                            placeholder="e.g. www.skyline.com" 
-                                            value={texts.contact} 
-                                            onChange={(e: any) => setTexts({...texts, contact: e.target.value})} 
-                                        />
-                                        <InputField 
-                                            label={<LabelWithBadge label="RERA ID (Legal)" detected={detectedFields?.hasRera} />} 
-                                            placeholder="e.g. P518000..." 
-                                            value={texts.rera} 
-                                            onChange={(e: any) => setTexts({...texts, rera: e.target.value})} 
-                                        />
+                                        <InputField label="Location" placeholder="Address" value={texts.location} onChange={(e: any) => setTexts({...texts, location: e.target.value})} />
+                                        <InputField label="Contact / Website" placeholder="Website" value={texts.contact} onChange={(e: any) => setTexts({...texts, contact: e.target.value})} />
+                                        <InputField label="RERA ID" placeholder="Legal ID" value={texts.rera} onChange={(e: any) => setTexts({...texts, rera: e.target.value})} />
                                     </div>
                                 )}
                             </div>
-
                         </div>
                     )
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && (
-                <MagicEditorModal 
-                    imageUrl={resultImage} 
-                    onClose={() => setShowMagicEditor(false)} 
-                    onSave={handleEditorSave}
-                    deductCredit={handleDeductEditCredit}
-                />
+                <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />
             )}
         </>
     );
