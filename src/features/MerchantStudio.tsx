@@ -214,6 +214,16 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setModelImage(null);
         setResults([]);
         setMode(null);
+        setViewImage(null);
+        
+        // Reset Configs
+        setModelSource('ai');
+        setAiGender('Female');
+        setAiEthnicity('International');
+        setAiSkinTone('Fair Tone');
+        setAiBodyType('Slim Build');
+        setProductType('');
+        setProductVibe('Clean Studio');
     };
 
     const handleDownloadAll = async () => {
@@ -389,7 +399,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             {mode && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <button onClick={() => setMode(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
+                                        <button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
                                             ← BACK TO MODE
                                         </button>
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
