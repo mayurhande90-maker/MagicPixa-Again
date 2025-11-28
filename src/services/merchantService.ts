@@ -108,6 +108,8 @@ const generateVariant = async (
     - Photorealistic, 4k, Commercial quality.
     - Perfect lighting and shadows.
     - **CRITICAL BACKGROUND RULE**: If the prompt requests a White Background, it must be a SOLID, PURE HEX #FFFFFF background. No grey gradients, no studio floors, no walls. Just the subject isolated on white.
+    - **SHADOWS**: Ground the subject with a subtle, realistic contact shadow only. No harsh dark shadows.
+    - **NEGATIVE CONSTRAINTS**: No props, no furniture, no watermarks, no text overlays unless explicitly requested.
     
     OUTPUT: A single image.
     `});
@@ -137,9 +139,9 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     if (inputs.type === 'apparel') {
         // --- APPAREL BATCH ---
         
-        // 1. Long Shot (HERO) - MUST BE WHITE BACKGROUND
+        // 1. Long Shot (HERO) - WHITE BG - MARKETPLACE COMPLIANT
         tasks.push(generateVariant("Hero Long Shot", 
-            "Standard E-commerce Catalog Shot. Full body. Model standing neutrally facing forward or slight angle. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No distractions. Clear view of the garment.", 
+            "Standard E-commerce Catalog Shot. Full body. Model standing neutrally facing forward. Arms relaxed by side. **CRITICAL: Hands must NOT obstruct the garment.** Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props.", 
             inputs, optMain, optBack, optModel));
 
         // 2. Stylized / Editorial - Keep Contextual/Lifestyle
@@ -147,15 +149,15 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
             "Street style or lifestyle context. Background should be a blurred city street, cafe, or park (matching the outfit vibe). Dynamic pose. Cinematic lighting.", 
             inputs, optMain, optBack, optModel));
 
-        // 3. Side Profile - MUST BE WHITE BACKGROUND
+        // 3. Side Profile - WHITE BG
         tasks.push(generateVariant("Side Profile", 
-            "Model turned 90 degrees to the side. Show the fit and silhouette from the side view. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**", 
+            "Model turned 90 degrees to the side. Show the fit and silhouette from the side view. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props.", 
             inputs, optMain, optBack, optModel));
 
-        // 4. Back Shot - MUST BE WHITE BACKGROUND
+        // 4. Back Shot - WHITE BG
         const backPrompt = optBack 
-            ? "Model turned 180 degrees showing the back. Use the 'BACK VIEW REFERENCE' for accurate design details. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**" 
-            : "Model turned 180 degrees showing the back. Hallucinate a clean, standard back design consistent with the front. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
+            ? "Model turned 180 degrees showing the back. Use the 'BACK VIEW REFERENCE' for accurate design details. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props." 
+            : "Model turned 180 degrees showing the back. Hallucinate a clean, standard back design consistent with the front. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props.";
         tasks.push(generateVariant("Back View", backPrompt, inputs, optMain, optBack, optModel));
 
         // 5. Texture Close-up
@@ -166,14 +168,14 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     } else {
         // --- PRODUCT BATCH ---
 
-        // 1. Hero Angle A (45 deg) - WHITE
+        // 1. Hero Angle A (45 deg) - WHITE BG - MARKETPLACE COMPLIANT
         tasks.push(generateVariant("Hero 45-Degree", 
-            "Classic E-commerce Hero Shot. Product at a 45-degree angle. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural drop shadow only.", 
+            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props, no watermarks.", 
             inputs, optMain, null, null));
 
-        // 2. Hero Angle B (Front) - WHITE
+        // 2. Hero Angle B (Front) - WHITE BG
         tasks.push(generateVariant("Hero Front View", 
-            "Direct Front View or Top-Down View (whichever suits the product best). **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry.", 
+            "Direct Front View or Top-Down View (whichever suits the product best). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry. No props.", 
             inputs, optMain, null, null));
 
         // 3. Lifestyle Model
