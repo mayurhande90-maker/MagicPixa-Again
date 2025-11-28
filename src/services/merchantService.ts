@@ -1,3 +1,4 @@
+
 import { Modality } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -27,6 +28,8 @@ export interface MerchantInputs {
         ethnicity: string;
         age: string;
         gender: string;
+        skinTone: string;
+        bodyType: string;
     }; // AI Generated model
     
     // Product Specifics
@@ -75,7 +78,7 @@ const generateVariant = async (
         if (optModel) {
             modelDesc = "Use the TARGET MODEL provided. Maintain facial identity and body shape exactly.";
         } else if (inputs.modelParams) {
-            modelDesc = `Generate a photorealistic model: ${inputs.modelParams.gender}, ${inputs.modelParams.age}, ${inputs.modelParams.ethnicity}.`;
+            modelDesc = `Generate a photorealistic model: ${inputs.modelParams.gender}, ${inputs.modelParams.age}, ${inputs.modelParams.ethnicity} ethnicity, ${inputs.modelParams.skinTone} skin tone, ${inputs.modelParams.bodyType} body build.`;
         }
 
         specificInstructions = `

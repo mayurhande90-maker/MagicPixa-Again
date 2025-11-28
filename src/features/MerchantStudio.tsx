@@ -12,7 +12,8 @@ import {
     XIcon, 
     DownloadIcon,
     ArrowUpCircleIcon,
-    CheckIcon
+    CheckIcon,
+    MagicWandIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
@@ -106,6 +107,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [modelSource, setModelSource] = useState<'ai' | 'upload'>('ai');
     const [aiGender, setAiGender] = useState('Female');
     const [aiEthnicity, setAiEthnicity] = useState('International');
+    const [aiSkinTone, setAiSkinTone] = useState('Fair Tone');
+    const [aiBodyType, setAiBodyType] = useState('Slim Build');
     
     // Config - Product
     const [productType, setProductType] = useState('');
@@ -113,6 +116,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     // Results
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
     const [results, setResults] = useState<string[]>([]); // Array of 5 data URLs
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
 
@@ -123,6 +127,21 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Animation Effect
+    useEffect(() => {
+        let interval: any;
+        if (loading) {
+            const steps = ["Mapping Surface Geometry...", "Simulating Physics...", "Calculating Reflections...", "Rendering Textures...", "Final Polish..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 1500);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -153,7 +172,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 modelParams: modelSource === 'ai' ? {
                     gender: aiGender,
                     ethnicity: aiEthnicity,
-                    age: 'Young Adult'
+                    age: 'Young Adult',
+                    skinTone: aiSkinTone,
+                    bodyType: aiBodyType
                 } : undefined,
                 productType: productType,
                 productVibe: productVibe
@@ -224,93 +245,95 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 hideGenerateButton={isLowCredits}
                 resultHeightClass="h-[850px]"
                 generateButtonStyle={{
-                    className: "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 border-none hover:scale-[1.02]",
+                    className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: `Generate 5 Images (${cost} Credits)`
+                    label: "Generate Assets"
                 }}
                 scrollRef={scrollRef}
                 
-                // LEFT CONTENT: Canvas / Results
+                // LEFT CONTENT: Canvas / Results (Split Layout)
                 leftContent={
-                    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100">
-                        {/* Header Toolbar */}
-                        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white">
-                            <div className="flex items-center gap-2">
-                                <CubeIcon className="w-5 h-5 text-gray-400"/>
-                                <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Asset Gallery</h3>
-                            </div>
-                            {(results.length > 0) && (
-                                <button 
-                                    onClick={handleDownloadAll} 
-                                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
-                                >
-                                    <DownloadIcon className="w-3.5 h-3.5"/> Download All
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-                            {loading ? (
-                                // Skeleton Loader
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                                    <div className="lg:col-span-2 lg:row-span-2 bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center animate-pulse">
-                                         <div className="w-16 h-16 bg-gray-100 rounded-full mb-4"></div>
-                                         <div className="h-4 w-32 bg-gray-100 rounded mb-2"></div>
-                                         <p className="text-xs text-gray-400 font-medium">Generating Hero Shot...</p>
-                                    </div>
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="bg-white rounded-xl border border-gray-100 h-40 animate-pulse"></div>
-                                    ))}
+                    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
+                        
+                        {/* 1. Loading Animation Overlay */}
+                        {loading && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                            ) : results.length > 0 && mode ? (
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                                    
-                                    {/* Main Hero Image (Takes up 2/3 width) */}
-                                    <div className="lg:col-span-2 lg:row-span-2 relative group rounded-2xl overflow-hidden shadow-sm border border-gray-200 bg-white min-h-[400px]">
-                                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider">
-                                            {getLabel(0, mode)}
-                                        </div>
-                                        <img src={results[0]} className="w-full h-full object-contain p-4" alt="Hero" />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                                             <button onClick={() => downloadImage(results[0], 'merchant-hero.png')} className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all pointer-events-auto hover:scale-105 flex items-center gap-2">
-                                                <DownloadIcon className="w-4 h-4"/> Download
-                                             </button>
-                                        </div>
-                                    </div>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                            </div>
+                        )}
 
-                                    {/* Grid for the rest */}
-                                    <div className="flex flex-col gap-4 h-full">
+                        {/* 2. Empty State */}
+                        {!loading && results.length === 0 && (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
+                                <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <CubeIcon className="w-10 h-10 text-indigo-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-400">Ready to Create</h3>
+                                <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                                    Select a mode on the right and upload your product to generate a full listing pack.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* 3. Results Layout (Sticky + Scroll) */}
+                        {!loading && results.length > 0 && mode && (
+                            <div className="flex flex-col lg:flex-row h-full">
+                                {/* Left: Sticky Hero (2/3 width on desktop) */}
+                                <div className="lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200">
+                                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider">
+                                        {getLabel(0, mode)}
+                                    </div>
+                                    <img src={results[0]} className="w-full h-full object-contain p-6" alt="Hero" />
+                                    <div className="absolute bottom-6 right-6">
+                                        <button onClick={() => downloadImage(results[0], 'merchant-hero.png')} className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-transform border border-gray-100">
+                                            <DownloadIcon className="w-4 h-4"/> Download
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Right: Scrollable Grid (1/3 width on desktop) */}
+                                <div className="lg:w-1/3 h-[50vh] lg:h-full bg-gray-50 overflow-y-auto custom-scrollbar relative">
+                                    <div className="p-4 space-y-4 pb-20"> {/* pb-20 for bottom gradient clearance */}
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Additional Assets</span>
+                                            {results.length > 0 && (
+                                                <button onClick={handleDownloadAll} className="text-[10px] font-bold text-blue-600 hover:underline">Download All</button>
+                                            )}
+                                        </div>
+                                        
                                         {results.slice(1).map((res, idx) => (
-                                            <div key={idx} className="relative flex-1 group rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white min-h-[140px]">
+                                            <div key={idx} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative">
                                                 <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">
                                                     {getLabel(idx + 1, mode)}
                                                 </div>
-                                                <img src={res} className="w-full h-full object-cover" alt={`Variant ${idx+1}`} />
-                                                <button 
-                                                    onClick={() => downloadImage(res, `merchant-variant-${idx+1}.png`)}
-                                                    className="absolute bottom-2 right-2 bg-white p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:text-blue-600 hover:scale-110"
-                                                    title="Download"
-                                                >
-                                                    <DownloadIcon className="w-3.5 h-3.5"/>
-                                                </button>
+                                                <div className="aspect-[4/3]">
+                                                    <img src={res} className="w-full h-full object-cover" alt={`Variant ${idx+1}`} />
+                                                </div>
+                                                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => downloadImage(res, `merchant-variant-${idx+1}.png`)}
+                                                        className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"
+                                                    >
+                                                        <DownloadIcon className="w-4 h-4"/>
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            ) : (
-                                // Empty State
-                                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
-                                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <CubeIcon className="w-10 h-10 text-indigo-300" />
+                                    
+                                    {/* Scroll Cue Gradient */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-200/50 to-transparent pointer-events-none flex items-end justify-center pb-2">
+                                        <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[9px] font-bold text-gray-500 shadow-sm animate-bounce">
+                                            Scroll for more
+                                        </div>
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-400">Ready to Create</h3>
-                                    <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                                        Select a mode on the right and upload your product to generate a full listing pack.
-                                    </p>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 
@@ -356,7 +379,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         <button onClick={() => setMode(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
                                             ← BACK TO MODE
                                         </button>
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                                             {mode} Mode
                                         </span>
                                     </div>
@@ -387,15 +410,39 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             {/* Model Selection */}
                                             <div className="border-t border-gray-100 pt-6">
                                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
-                                                <div className="flex bg-gray-50 p-1 rounded-xl mb-4 border border-gray-200">
-                                                    <button onClick={() => setModelSource('ai')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'ai' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>AI Model</button>
-                                                    <button onClick={() => setModelSource('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'upload' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>My Model</button>
+                                                
+                                                {/* Card Style Model Source */}
+                                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                                    <button 
+                                                        onClick={() => setModelSource('ai')}
+                                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                                            modelSource === 'ai' 
+                                                            ? 'bg-blue-50 border-blue-500 text-blue-700' 
+                                                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                                        }`}
+                                                    >
+                                                        <SparklesIcon className="w-5 h-5 mb-1"/>
+                                                        <span className="text-xs font-bold">AI Model</span>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setModelSource('upload')}
+                                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                                            modelSource === 'upload' 
+                                                            ? 'bg-blue-50 border-blue-500 text-blue-700' 
+                                                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                                        }`}
+                                                    >
+                                                        <UserIcon className="w-5 h-5 mb-1"/>
+                                                        <span className="text-xs font-bold">My Model</span>
+                                                    </button>
                                                 </div>
 
                                                 {modelSource === 'ai' ? (
-                                                    <div className="space-y-4">
+                                                    <div className="space-y-4 animate-fadeIn">
                                                         <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
                                                         <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
+                                                        <SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} />
+                                                        <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
                                                     </div>
                                                 ) : (
                                                     <CompactUpload
