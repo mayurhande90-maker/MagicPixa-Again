@@ -14,6 +14,21 @@ interface AdminPanelProps {
     onConfigUpdate: (newConfig: AppConfig) => void;
 }
 
+// Helper to safely display names/emails even if they are empty strings or whitespace
+const getDisplayName = (name: string | undefined | null) => {
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+        return <span className="italic text-gray-400">No Name</span>;
+    }
+    return name;
+};
+
+const getDisplayEmail = (email: string | undefined | null) => {
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+        return <span className="italic text-gray-400">No Email</span>;
+    }
+    return email;
+};
+
 const PermissionsGuide: React.FC<{ auth: AuthProps }> = ({ auth }) => (
     <div className="bg-red-50 border border-red-200 rounded-lg p-6 space-y-6">
         {/* FIRESTORE RULES */}
@@ -151,8 +166,8 @@ const AddCreditsModal: React.FC<{
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><XIcon className="w-6 h-6" /></button>
                 <h2 className="text-xl font-bold text-[#1E1E1E] mb-2">Add Credits</h2>
                 <div className="p-3 bg-gray-50 rounded-lg mb-4">
-                    <p className="text-sm font-semibold text-gray-800">{user.name || 'No Name'}</p>
-                    <p className="text-xs text-gray-500">{user.email || 'No Email'}</p>
+                    <p className="text-sm font-semibold text-gray-800">{getDisplayName(user.name)}</p>
+                    <p className="text-xs text-gray-500">{getDisplayEmail(user.email)}</p>
                     <p className="text-xs text-gray-500 mt-1">Current Balance: <span className="font-bold">{user.credits} credits</span></p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -213,11 +228,11 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
                     <div>
                         <p className="text-sm text-gray-500">Name</p>
-                        <p className="font-semibold text-gray-800">{user.name || 'No Name'}</p>
+                        <p className="font-semibold text-gray-800">{getDisplayName(user.name)}</p>
                     </div>
                      <div>
                         <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-semibold text-gray-800">{user.email || 'No Email'}</p>
+                        <p className="font-semibold text-gray-800">{getDisplayEmail(user.email)}</p>
                     </div>
                      <div>
                         <p className="text-sm text-gray-500">Sign Up Date</p>
@@ -493,8 +508,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                         {recentSignups.map(user => (
                                             <div key={user.uid} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                 <div className="min-w-0 mr-4">
-                                                    <p className="font-semibold text-gray-800 truncate">{user.name || 'No Name'}</p>
-                                                    <p className="text-xs text-gray-500 truncate" title={user.email}>{user.email || 'No Email'}</p>
+                                                    <p className="font-semibold text-gray-800 truncate">{getDisplayName(user.name)}</p>
+                                                    <p className="text-xs text-gray-500 truncate" title={user.email}>{getDisplayEmail(user.email)}</p>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     <p className="text-xs text-gray-400">
@@ -521,7 +536,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                         {recentPurchases.map(p => (
                                             <div key={p.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                 <div>
-                                                    <p className="font-semibold text-gray-800">{p.userName || 'No Name'}</p>
+                                                    <p className="font-semibold text-gray-800">{getDisplayName(p.userName)}</p>
                                                     <p className="text-xs text-gray-500">{p.packName}</p>
                                                 </div>
                                                 <p className="font-bold text-green-600">₹{p.amountPaid}</p>
@@ -571,7 +586,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name & Email</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Last Active</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Spent</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Credits</th>
@@ -582,8 +597,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                     {filteredUsers.map(user => (
                                         <tr key={user.uid}>
                                             <td className="px-4 py-3 text-sm">
-                                                <p className="font-medium text-gray-900">{user.name || 'No Name'}</p>
-                                                <p className="text-gray-500">{user.email || 'No Email'}</p>
+                                                <p className="font-medium text-gray-900">{getDisplayName(user.name)}</p>
+                                                <p className="text-gray-500">{getDisplayEmail(user.email)}</p>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-500">{user.lastActive ? user.lastActive.toDate().toLocaleString() : 'N/A'}</td>
                                             <td className="px-4 py-3 text-sm font-semibold text-gray-700">₹{user.totalSpent || 0}</td>

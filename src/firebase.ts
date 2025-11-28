@@ -1,3 +1,4 @@
+
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -629,8 +630,8 @@ export const purchaseTopUp = async (uid: string, packName: string, creditsToAdd:
       
       transaction.set(purchaseRef, {
         userId: uid,
-        userName: userData?.name,
-        userEmail: userData?.email,
+        userName: userData?.name || 'Unknown User', // FIX: Fallback for missing names
+        userEmail: userData?.email || 'No Email', // FIX: Fallback for missing emails
         amountPaid: amountPaid,
         creditsAdded: creditsToAdd,
         packName: packName,
