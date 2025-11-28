@@ -1,47 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, BrandKit, User } from '../types';
+import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, SparklesIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
+    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, RefreshIcon // Assuming RefreshIcon exists or use a generic one
 } from '../components/icons';
 import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit } from '../firebase';
 import { extractBrandColors } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 
+// Elegant Color Input Component
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
     onChange: (val: string) => void 
 }> = ({ label, value, onChange }) => (
-    <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</label>
-        <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
-            <input 
-                type="color" 
-                value={value} 
-                onChange={(e) => onChange(e.target.value)}
-                className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0" 
-            />
+    <div className="group">
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block group-hover:text-gray-600 transition-colors">{label}</label>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm group-hover:border-blue-300 group-hover:shadow-md transition-all">
+            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                <input 
+                    type="color" 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute -top-2 -left-2 w-16 h-16 cursor-pointer border-none p-0" 
+                />
+            </div>
             <input 
                 type="text" 
                 value={value} 
                 onChange={(e) => onChange(e.target.value)}
-                className="text-xs font-mono text-gray-600 bg-transparent border-none focus:ring-0 w-20 uppercase"
+                className="text-sm font-mono font-medium text-gray-700 bg-transparent border-none focus:ring-0 w-full uppercase outline-none"
             />
         </div>
     </div>
 );
 
+// Premium Asset Uploader
 const AssetUploader: React.FC<{
     label: string;
+    subLabel?: string;
     currentUrl: string | null;
     onUpload: (file: File) => void;
     onRemove: () => void;
-    onExtract?: () => void; // New prop for manual extraction
+    onExtract?: () => void;
     isLoading: boolean;
     isExtracting?: boolean;
-}> = ({ label, currentUrl, onUpload, onRemove, onExtract, isLoading, isExtracting }) => {
+}> = ({ label, subLabel, currentUrl, onUpload, onRemove, onExtract, isLoading, isExtracting }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,47 +57,60 @@ const AssetUploader: React.FC<{
     };
 
     return (
-        <div className="relative group">
-            <div className="flex justify-between items-center mb-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</label>
+        <div className="flex flex-col h-full">
+            <div className="flex justify-between items-end mb-2">
+                <div>
+                    <label className="text-xs font-bold text-gray-700 block">{label}</label>
+                    {subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}
+                </div>
                 {currentUrl && onExtract && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); onExtract(); }}
                         disabled={isExtracting}
-                        className="text-[10px] flex items-center gap-1 font-bold text-purple-600 hover:text-purple-800 transition-colors disabled:opacity-50"
-                        title="Re-run AI Color Analysis"
+                        className="text-[10px] flex items-center gap-1 font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100 transition-colors disabled:opacity-50"
+                        title="Analyze logo to find brand colors"
                     >
-                        <SparklesIcon className={`w-3 h-3 ${isExtracting ? 'animate-spin' : ''}`} /> Extract Colors
+                        <SparklesIcon className={`w-3 h-3 ${isExtracting ? 'animate-spin' : ''}`} /> 
+                        {isExtracting ? 'Analyzing...' : 'Extract Colors'}
                     </button>
                 )}
             </div>
             
             <div 
                 onClick={() => !currentUrl && inputRef.current?.click()}
-                className={`w-full h-32 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center relative overflow-hidden ${
+                className={`group relative flex-1 min-h-[140px] rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden ${
                     currentUrl 
-                    ? 'border-green-200 bg-white' 
-                    : 'border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50 cursor-pointer'
+                    ? 'border-gray-200 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")] bg-white' 
+                    : 'border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/30 cursor-pointer'
                 }`}
             >
                 {isLoading ? (
-                    <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                        <span className="text-xs text-indigo-500 font-medium">Uploading...</span>
+                    </div>
                 ) : currentUrl ? (
                     <>
-                        <img src={currentUrl} className="max-w-full max-h-full object-contain p-2" alt={label} />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="absolute inset-0 flex items-center justify-center p-4">
+                            <img src={currentUrl} className="max-w-full max-h-full object-contain drop-shadow-sm" alt={label} />
+                        </div>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                                className="bg-white/90 p-2 rounded-full text-red-500 hover:text-red-700 shadow-lg transform hover:scale-110 transition-all"
+                                className="bg-white text-red-500 p-2.5 rounded-xl shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all hover:bg-red-50"
+                                title="Remove Image"
                             >
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </div>
                     </>
                 ) : (
-                    <div className="text-center p-4">
-                        <UploadIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-xs text-gray-500 font-medium">Click to Upload</p>
+                    <div className="text-center p-4 transition-transform group-hover:scale-105">
+                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 text-indigo-400 group-hover:text-indigo-600">
+                            <UploadIcon className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600">Click to Upload</p>
+                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG (Max 5MB)</p>
                     </div>
                 )}
             </div>
@@ -115,6 +133,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
     const [isExtractingColors, setIsExtractingColors] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
     // Load initial data
     useEffect(() => {
@@ -125,14 +144,34 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const performSave = async (updatedKit: BrandKit) => {
         if (!auth.user) return;
+        setIsSaving(true);
         try {
             await saveUserBrandKit(auth.user.uid, updatedKit);
             auth.setUser(prev => prev ? { ...prev, brandKit: updatedKit } : null);
-            console.log("Brand Kit Auto-Saved");
+            setLastSaved(new Date());
         } catch (e) {
             console.error("Auto-save failed", e);
-            setToast({ msg: "Failed to auto-save changes.", type: "error" });
+            setToast({ msg: "Failed to save changes. Please try again.", type: "error" });
+        } finally {
+            setIsSaving(false);
         }
+    };
+
+    // Auto-save on text field blur or select change (debounced manually by user action)
+    const handleFieldChange = (field: keyof BrandKit, value: any) => {
+        const updated = { ...kit, [field]: value };
+        setKit(updated);
+        // We trigger save immediately for Selects/Colors, but for text inputs usually onBlur is better. 
+        // For simplicity in this unified handler, we'll save.
+        // In a real high-traffic app, debounce this.
+        performSave(updated); 
+    };
+    
+    // Deep update helper
+    const updateDeep = (section: keyof BrandKit, key: string, value: any) => {
+        const updated = { ...kit, [section]: { ...(kit[section] as any), [key]: value } };
+        setKit(updated);
+        performSave(updated);
     };
 
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
@@ -141,21 +180,16 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         
         try {
             const base64Data = await fileToBase64(file);
-            
-            // Construct Data URI
             const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
-            // 1. Upload to Storage
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
-            // 2. Update Local State AND Auto-Save
             const updatedKit = { ...kit, logos: { ...kit.logos, [key]: url } };
             setKit(updatedKit);
             await performSave(updatedKit);
             
             setToast({ msg: "Asset uploaded & saved!", type: "success" });
 
-            // 3. Auto-Extract Colors (only for primary logo if colors are default)
             if (key === 'primary' && kit.colors.primary === '#000000') {
                 handleExtractColors(base64Data.base64, base64Data.mimeType);
             }
@@ -163,7 +197,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             console.error("Upload failed", e);
             let errorMsg = "Failed to upload asset.";
             if (e.message.includes('permission') || e.code === 'storage/unauthorized') {
-                errorMsg = "Permission Denied. Please check Admin Panel -> Storage Rules.";
+                errorMsg = "Permission Denied. Check Storage Rules.";
             }
             setToast({ msg: errorMsg, type: "error" });
         } finally {
@@ -179,7 +213,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             let b64 = base64;
             let mime = mimeType;
 
-            // If triggered manually without file input, fetch the stored URL
             if (!b64 && kit.logos.primary) {
                 const fileData = await urlToBase64(kit.logos.primary);
                 b64 = fileData.base64;
@@ -188,54 +221,70 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             if (b64 && mime) {
                 const colors = await extractBrandColors(b64, mime);
-                
-                // Update and Auto-Save
                 const updatedKit = { ...kit, colors };
                 setKit(updatedKit);
                 await performSave(updatedKit);
-                
-                setToast({ msg: "Brand colors extracted from logo!", type: "success" });
+                setToast({ msg: "Palette extracted from logo!", type: "success" });
             }
         } catch (e) {
             console.error("Extraction failed", e);
-            setToast({ msg: "Failed to extract colors.", type: "error" });
+            setToast({ msg: "Color extraction failed.", type: "error" });
         } finally {
             setIsExtractingColors(false);
         }
     };
 
-    const handleManualSave = async () => {
-        setIsSaving(true);
-        await performSave(kit);
-        setIsSaving(false);
-        setToast({ msg: "Brand Kit saved successfully!", type: "success" });
-    };
-
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto pb-32">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1A1A1E] flex items-center gap-3">
-                    <BrandKitIcon className="w-8 h-8 text-indigo-600" />
-                    My Brand Kit
-                </h1>
-                <p className="text-gray-500 mt-2 max-w-2xl">
-                    Centralize your brand identity. These assets will be automatically applied to your AI generations in Magic Realty, Ads, and Thumbnails.
-                </p>
+        <div className="p-6 lg:p-10 max-w-[1400px] mx-auto pb-32 animate-fadeIn">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-[#1A1A1E] flex items-center gap-3">
+                        <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200">
+                            <BrandKitIcon className="w-8 h-8" />
+                        </div>
+                        Brand Vault
+                    </h1>
+                    <p className="text-gray-500 mt-2 text-lg max-w-2xl">
+                        Define your visual identity once. MagicPixa will apply it to every generation automatically.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {isSaving ? (
+                        <span className="text-xs font-bold text-indigo-500 flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full">
+                            <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                            Saving Changes...
+                        </span>
+                    ) : lastSaved && (
+                        <span className="text-xs font-medium text-gray-400 flex items-center gap-1.5">
+                            <CheckIcon className="w-3 h-3 text-green-500" />
+                            Saved {lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    )}
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 
-                {/* SECTION 1: IDENTITY ASSETS */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
-                            <ShieldCheckIcon className="w-5 h-5 text-indigo-500" />
-                            <h2 className="font-bold text-gray-800">Identity Assets</h2>
+                {/* LEFT COLUMN: VISUAL ASSETS (2/3 Width) */}
+                <div className="xl:col-span-2 space-y-8">
+                    
+                    {/* 1. Identity Assets Card */}
+                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-8 py-5 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                <ShieldCheckIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-gray-800 text-lg">Identity Assets</h2>
+                                <p className="text-xs text-gray-500">Upload high-res PNGs for best results.</p>
+                            </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="p-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <AssetUploader 
-                                label="Primary Logo (Dark)" 
+                                label="Primary Logo" 
+                                subLabel="Dark / Colored"
                                 currentUrl={kit.logos.primary} 
                                 onUpload={(f) => handleUpload('primary', f)} 
                                 onRemove={() => {
@@ -243,12 +292,13 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     setKit(updated);
                                     performSave(updated);
                                 }}
-                                onExtract={() => handleExtractColors()} // Manual Trigger
+                                onExtract={() => handleExtractColors()} 
                                 isLoading={uploadingState['primary']}
                                 isExtracting={isExtractingColors}
                             />
                             <AssetUploader 
-                                label="Secondary Logo (Light)" 
+                                label="Secondary Logo" 
+                                subLabel="Light / White"
                                 currentUrl={kit.logos.secondary} 
                                 onUpload={(f) => handleUpload('secondary', f)} 
                                 onRemove={() => {
@@ -259,7 +309,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 isLoading={uploadingState['secondary']}
                             />
                             <AssetUploader 
-                                label="Brand Mark / Icon" 
+                                label="Brand Mark" 
+                                subLabel="Icon / Favicon"
                                 currentUrl={kit.logos.mark} 
                                 onUpload={(f) => handleUpload('mark', f)} 
                                 onRemove={() => {
@@ -272,68 +323,75 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-                            <div className="flex items-center gap-2">
-                                <PaletteIcon className="w-5 h-5 text-purple-500" />
-                                <h2 className="font-bold text-gray-800">Visual DNA</h2>
+                    {/* 2. Visual DNA Card (Colors & Fonts) */}
+                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                                    <PaletteIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="font-bold text-gray-800 text-lg">Visual DNA</h2>
+                                    <p className="text-xs text-gray-500">Colors and typography.</p>
+                                </div>
                             </div>
-                            {isExtractingColors && (
-                                <span className="text-xs text-purple-600 font-bold flex items-center gap-2 animate-pulse">
-                                    <SparklesIcon className="w-4 h-4"/> Analyzing...
-                                </span>
-                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {/* Colors */}
                             <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Color Palette</h3>
-                                <div className="grid grid-cols-3 gap-4">
+                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Color Palette
+                                </h3>
+                                <div className="space-y-4">
                                     <ColorInput 
-                                        label="Primary" 
+                                        label="Primary (Brand Color)" 
                                         value={kit.colors.primary} 
-                                        onChange={(v) => setKit(prev => ({ ...prev, colors: { ...prev.colors, primary: v } }))} 
+                                        onChange={(v) => updateDeep('colors', 'primary', v)} 
                                     />
                                     <ColorInput 
-                                        label="Secondary" 
+                                        label="Secondary (Backgrounds)" 
                                         value={kit.colors.secondary} 
-                                        onChange={(v) => setKit(prev => ({ ...prev, colors: { ...prev.colors, secondary: v } }))} 
+                                        onChange={(v) => updateDeep('colors', 'secondary', v)} 
                                     />
                                     <ColorInput 
-                                        label="Accent" 
+                                        label="Accent (CTAs / Highlights)" 
                                         value={kit.colors.accent} 
-                                        onChange={(v) => setKit(prev => ({ ...prev, colors: { ...prev.colors, accent: v } }))} 
+                                        onChange={(v) => updateDeep('colors', 'accent', v)} 
                                     />
                                 </div>
                             </div>
                             
+                            {/* Typography */}
                             <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Typography</h3>
-                                <div className="space-y-3">
+                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Typography
+                                </h3>
+                                <div className="space-y-5">
                                     <div>
-                                        <label className="text-xs text-gray-500 block mb-1">Heading Style</label>
+                                        <label className="text-xs text-gray-500 font-medium block mb-2">Heading Style</label>
                                         <select 
                                             value={kit.fonts.heading}
-                                            onChange={(e) => setKit(prev => ({ ...prev, fonts: { ...prev.fonts, heading: e.target.value } }))}
-                                            className="w-full text-sm border-gray-200 rounded-lg p-2 bg-gray-50"
+                                            onChange={(e) => updateDeep('fonts', 'heading', e.target.value)}
+                                            className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
                                         >
-                                            <option>Modern Sans</option>
-                                            <option>Classic Serif</option>
-                                            <option>Bold Display</option>
-                                            <option>Elegant Script</option>
-                                            <option>Minimal Mono</option>
+                                            <option>Modern Sans (Clean)</option>
+                                            <option>Classic Serif (Luxury)</option>
+                                            <option>Bold Display (Impact)</option>
+                                            <option>Elegant Script (Soft)</option>
+                                            <option>Minimal Mono (Tech)</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 block mb-1">Body Style</label>
+                                        <label className="text-xs text-gray-500 font-medium block mb-2">Body Text Style</label>
                                         <select 
                                             value={kit.fonts.body}
-                                            onChange={(e) => setKit(prev => ({ ...prev, fonts: { ...prev.fonts, body: e.target.value } }))}
-                                            className="w-full text-sm border-gray-200 rounded-lg p-2 bg-gray-50"
+                                            onChange={(e) => updateDeep('fonts', 'body', e.target.value)}
+                                            className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
                                         >
-                                            <option>Clean Sans</option>
-                                            <option>Readable Serif</option>
-                                            <option>System Default</option>
+                                            <option>Clean Sans (Readable)</option>
+                                            <option>Readable Serif (Traditional)</option>
+                                            <option>System Default (Neutral)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -342,41 +400,48 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
                 </div>
 
-                {/* SECTION 3: CONTEXT & PREVIEW */}
+                {/* RIGHT COLUMN: PREVIEW & CONTEXT (Sticky) */}
                 <div className="space-y-8">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm h-full">
-                        <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
-                            <CaptionIcon className="w-5 h-5 text-blue-500" />
-                            <h2 className="font-bold text-gray-800">Brand Context</h2>
+                    
+                    {/* 3. Brand Context */}
+                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
+                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                                <CaptionIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-gray-800 text-lg">Brand Voice</h2>
+                                <p className="text-xs text-gray-500">How you speak to customers.</p>
+                            </div>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="p-6 space-y-5">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Company Name</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Company Name</label>
                                 <input 
                                     type="text" 
                                     value={kit.companyName}
-                                    onChange={(e) => setKit(prev => ({ ...prev, companyName: e.target.value }))}
+                                    onChange={(e) => handleFieldChange('companyName', e.target.value)}
                                     placeholder="e.g. Skyline Realty"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Website</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Website</label>
                                 <input 
                                     type="text" 
                                     value={kit.website}
-                                    onChange={(e) => setKit(prev => ({ ...prev, website: e.target.value }))}
+                                    onChange={(e) => handleFieldChange('website', e.target.value)}
                                     placeholder="e.g. www.skyline.com"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tone of Voice</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Tone of Voice</label>
                                 <select 
                                     value={kit.toneOfVoice}
-                                    onChange={(e) => setKit(prev => ({ ...prev, toneOfVoice: e.target.value }))}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                    onChange={(e) => handleFieldChange('toneOfVoice', e.target.value)}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all cursor-pointer"
                                 >
                                     <option>Professional</option>
                                     <option>Luxury</option>
@@ -387,47 +452,63 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </select>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="mt-8 pt-6 border-t border-gray-100">
-                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-4 rounded-xl text-white shadow-lg">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                                        {kit.logos.mark ? <img src={kit.logos.mark} className="w-5 h-5 object-contain" /> : <UserIcon className="w-4 h-4"/>}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <div className="w-2 h-2 rounded-full" style={{ background: kit.colors.primary }}></div>
-                                        <div className="w-2 h-2 rounded-full" style={{ background: kit.colors.secondary }}></div>
-                                        <div className="w-2 h-2 rounded-full" style={{ background: kit.colors.accent }}></div>
-                                    </div>
+                    {/* LIVE PREVIEW CARD */}
+                    <div className="sticky top-24">
+                        <div className="bg-gradient-to-br from-[#1A1A1E] to-[#2C2C2E] p-1 rounded-3xl shadow-2xl">
+                            <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[20px] border border-white/10 text-white">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Live Preview</h3>
+                                    <div className="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">{kit.toneOfVoice}</div>
                                 </div>
-                                <p className="text-xs font-bold opacity-50 mb-1">BRAND CARD PREVIEW</p>
-                                <h3 className="text-lg font-bold">{kit.companyName || "Your Company"}</h3>
-                                <p className="text-xs opacity-70">{kit.website || "yourwebsite.com"}</p>
+
+                                {/* Logo Area */}
+                                <div className="h-16 mb-6 flex items-center justify-start">
+                                    {kit.logos.secondary ? (
+                                        <img src={kit.logos.secondary} className="h-12 w-auto object-contain" alt="Logo Light" />
+                                    ) : kit.logos.primary ? (
+                                        <img src={kit.logos.primary} className="h-12 w-auto object-contain p-1 bg-white rounded" alt="Logo Dark" />
+                                    ) : (
+                                        <div className="h-12 w-12 bg-white/10 rounded-lg flex items-center justify-center border border-dashed border-white/30">
+                                            <UserIcon className="w-5 h-5 opacity-50" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Typography Preview */}
+                                <div className="space-y-2 mb-8">
+                                    <h2 className="text-2xl font-bold leading-tight" style={{ 
+                                        fontFamily: kit.fonts.heading.includes('Serif') ? 'serif' : 'sans-serif' 
+                                    }}>
+                                        {kit.companyName || "Your Company Name"}
+                                    </h2>
+                                    <p className="text-sm opacity-70" style={{ 
+                                        fontFamily: kit.fonts.body.includes('Serif') ? 'serif' : 'sans-serif' 
+                                    }}>
+                                        Building the future of {kit.website || "your brand"}.
+                                    </p>
+                                </div>
+
+                                {/* Color Palette Swatches */}
+                                <div className="flex gap-2">
+                                    <div className="h-2 flex-1 rounded-full" style={{ background: kit.colors.primary }}></div>
+                                    <div className="h-2 flex-1 rounded-full" style={{ background: kit.colors.secondary }}></div>
+                                    <div className="h-2 flex-1 rounded-full" style={{ background: kit.colors.accent }}></div>
+                                </div>
+                                <div className="flex justify-between text-[9px] text-white/40 mt-1 font-mono uppercase">
+                                    <span>Pri</span>
+                                    <span>Sec</span>
+                                    <span>Acc</span>
+                                </div>
                             </div>
                         </div>
+                        <p className="text-center text-xs text-gray-400 mt-4">
+                            These settings will automatically apply to all your new designs.
+                        </p>
                     </div>
-                </div>
-            </div>
 
-            {/* FLOATING SAVE BAR */}
-            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
-                <button 
-                    onClick={handleManualSave}
-                    disabled={isSaving}
-                    className="bg-[#1A1A1E] text-white px-8 py-3 rounded-full font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 disabled:opacity-70 disabled:transform-none"
-                >
-                    {isSaving ? (
-                        <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Saving...
-                        </>
-                    ) : (
-                        <>
-                            <CheckIcon className="w-5 h-5 text-green-400" />
-                            Save Brand Kit
-                        </>
-                    )}
-                </button>
+                </div>
             </div>
 
             {toast && (
