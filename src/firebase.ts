@@ -156,13 +156,22 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             updatePayload.referralCount = 0;
             needsUpdate = true;
         }
+
+        // --- NAME SYNCHRONIZATION (Fix for Admin Panel) ---
+        // If the database has a blank/generic name, but Google Auth provides a real name, update it.
+        if ((!userData.name || userData.name === 'New User' || userData.name.trim() === '') && name && name !== 'New User') {
+            console.log(`Self-healing name for ${uid}: '${userData.name}' -> '${name}'`);
+            updatePayload.name = name;
+            needsUpdate = true;
+        }
+
+        // Same for Email
+        if ((!userData.email || userData.email === 'No Email') && email) {
+            updatePayload.email = email;
+            needsUpdate = true;
+        }
         
         // --- STORAGE TIER SELF-HEALING (6-MONTH RULE) ---
-        // Logic:
-        // 1. If user has 'lastTierPurchaseDate', check if it's within 6 months.
-        // 2. If valid, set 'unlimited'. If expired, set 'limited'.
-        // 3. Fallback for legacy "Studio" plans without date: Assume Unlimited for now (or reset).
-        
         const now = new Date();
         const sixMonthsMs = 1000 * 60 * 60 * 24 * 30 * 6; // Approx 6 months
         
