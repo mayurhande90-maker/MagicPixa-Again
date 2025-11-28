@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, 
-    CloudUploadIcon // Using generic icon if CloudUpload doesn't exist, will fallback
+    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit } from '../firebase';

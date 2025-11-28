@@ -226,7 +226,7 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     if (inputs.logoImage) {
         const optLogo = await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType);
-        pass2Parts.push({ text: "BRAND LOGO (Place exactly as is):" });
+        pass2Parts.push({ text: "BRAND LOGO (Source Asset):" });
         pass2Parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
@@ -247,6 +247,12 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     const pass2Prompt = `You are a Senior Graphic Designer & Copywriter.
     
     TASK: Design the final Real Estate Flyer.
+
+    *** CRITICAL: LOGO INTEGRITY PROTOCOL ***
+    - A specific "BRAND LOGO" image has been provided as input.
+    - **STRICT PROHIBITION:** Do NOT redraw, reimagine, or stylize the logo.
+    - **MANDATE:** Use the provided logo image EXACTLY as is. It must be pixel-perfect identical to the input.
+    - **PLACEMENT:** Superimpose the logo clearly in a top corner (Top-Left or Top-Right) with sufficient padding.
     
     *** 1. COPYWRITING ***
     - **Context**: "${inputs.texts.marketingContext}"
@@ -271,7 +277,6 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     *** 5. BRANDING ***
     ${brandingInstruction}
-    - **LOGO**: Place the User Logo in a standard corner (Top Right or Top Left).
     
     OUTPUT: The final composed advertisement image.`;
 
