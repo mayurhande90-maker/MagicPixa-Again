@@ -151,8 +151,8 @@ const AddCreditsModal: React.FC<{
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><XIcon className="w-6 h-6" /></button>
                 <h2 className="text-xl font-bold text-[#1E1E1E] mb-2">Add Credits</h2>
                 <div className="p-3 bg-gray-50 rounded-lg mb-4">
-                    <p className="text-sm font-semibold text-gray-800">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-sm font-semibold text-gray-800">{user.name || 'No Name'}</p>
+                    <p className="text-xs text-gray-500">{user.email || 'No Email'}</p>
                     <p className="text-xs text-gray-500 mt-1">Current Balance: <span className="font-bold">{user.credits} credits</span></p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -213,11 +213,11 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
                     <div>
                         <p className="text-sm text-gray-500">Name</p>
-                        <p className="font-semibold text-gray-800">{user.name}</p>
+                        <p className="font-semibold text-gray-800">{user.name || 'No Name'}</p>
                     </div>
                      <div>
                         <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-semibold text-gray-800">{user.email}</p>
+                        <p className="font-semibold text-gray-800">{user.email || 'No Email'}</p>
                     </div>
                      <div>
                         <p className="text-sm text-gray-500">Sign Up Date</p>
@@ -493,8 +493,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                         {recentSignups.map(user => (
                                             <div key={user.uid} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                 <div className="min-w-0 mr-4">
-                                                    <p className="font-semibold text-gray-800 truncate">{user.name}</p>
-                                                    <p className="text-xs text-gray-500 truncate" title={user.email}>{user.email}</p>
+                                                    <p className="font-semibold text-gray-800 truncate">{user.name || 'No Name'}</p>
+                                                    <p className="text-xs text-gray-500 truncate" title={user.email}>{user.email || 'No Email'}</p>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     <p className="text-xs text-gray-400">
@@ -521,7 +521,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                         {recentPurchases.map(p => (
                                             <div key={p.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                 <div>
-                                                    <p className="font-semibold text-gray-800">{p.userName}</p>
+                                                    <p className="font-semibold text-gray-800">{p.userName || 'No Name'}</p>
                                                     <p className="text-xs text-gray-500">{p.packName}</p>
                                                 </div>
                                                 <p className="font-bold text-green-600">₹{p.amountPaid}</p>
@@ -582,8 +582,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig: propCon
                                     {filteredUsers.map(user => (
                                         <tr key={user.uid}>
                                             <td className="px-4 py-3 text-sm">
-                                                <p className="font-medium text-gray-900">{user.name}</p>
-                                                <p className="text-gray-500">{user.email}</p>
+                                                <p className="font-medium text-gray-900">{user.name || 'No Name'}</p>
+                                                <p className="text-gray-500">{user.email || 'No Email'}</p>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-500">{user.lastActive ? user.lastActive.toDate().toLocaleString() : 'N/A'}</td>
                                             <td className="px-4 py-3 text-sm font-semibold text-gray-700">₹{user.totalSpent || 0}</td>
