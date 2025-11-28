@@ -35,6 +35,9 @@ export interface MerchantInputs {
     // Product Specifics
     productType?: string; // e.g. "Headphones"
     productVibe?: string; // e.g. "Minimalist", "Luxury"
+    
+    // Pack Size
+    packSize?: 5 | 7 | 10;
 }
 
 /**
@@ -127,7 +130,7 @@ const generateVariant = async (
 };
 
 /**
- * Main function to orchestrate the batch of 5 images.
+ * Main function to orchestrate the batch of 5, 7, or 10 images.
  */
 export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<string[]> => {
     // 1. Optimize Assets once
@@ -136,16 +139,17 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     const optModel = inputs.modelImage ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType) : null;
 
     const tasks: Promise<string>[] = [];
+    const packSize = inputs.packSize || 5;
 
     if (inputs.type === 'apparel') {
         // --- APPAREL BATCH ---
         
-        // 1. Long Shot (HERO) - WHITE BG - MARKETPLACE COMPLIANT
+        // 1. Long Shot (HERO) - WHITE BG
         tasks.push(generateVariant("Hero Long Shot", 
             "Standard E-commerce Catalog Shot. Full body. Model standing neutrally facing forward. Arms relaxed by side. **CRITICAL: Hands must NOT obstruct the garment.** Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props.", 
             inputs, optMain, optBack, optModel));
 
-        // 2. Stylized / Editorial - Keep Contextual/Lifestyle
+        // 2. Lifestyle 1 (Contextual)
         tasks.push(generateVariant("Editorial Stylized", 
             "Street style or lifestyle context. Background should be a blurred city street, cafe, or park (matching the outfit vibe). Dynamic pose. Cinematic lighting.", 
             inputs, optMain, optBack, optModel));
@@ -166,6 +170,37 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
             "Macro close-up shot of the chest/torso area. Focus strictly on the fabric texture, stitching quality, and material details. High sharpness.", 
             inputs, optMain, optBack, optModel));
 
+        // --- EXTENDED PACK (7 Images) ---
+        if (packSize >= 7) {
+            // 6. Lifestyle 2 (Different Environment)
+            tasks.push(generateVariant("Lifestyle Alternative", 
+                "Indoor lifestyle setting. Model posing naturally in a modern living room or clean studio space with soft furniture. Relaxed vibe. Soft daylight.", 
+                inputs, optMain, optBack, optModel));
+            
+            // 7. Creative / Color Block
+            tasks.push(generateVariant("Creative Studio", 
+                "Fashion Editorial. Model posing against a solid pastel or vibrant colored background that complements the garment color. Artistic lighting. High fashion feel.", 
+                inputs, optMain, optBack, optModel));
+        }
+
+        // --- ULTIMATE PACK (10 Images) ---
+        if (packSize >= 10) {
+            // 8. Golden Hour
+            tasks.push(generateVariant("Golden Hour Outdoor", 
+                "Outdoor shot during Golden Hour. Warm sunlight backlighting the model. Dreamy, aspirational vibe. Nature or cityscape background.", 
+                inputs, optMain, optBack, optModel));
+            
+            // 9. Action / Movement
+            tasks.push(generateVariant("Action Movement", 
+                "Dynamic motion shot. Model walking briskly or twirling. Capture the fabric movement and flow. Energetic atmosphere.", 
+                inputs, optMain, optBack, optModel));
+                
+            // 10. Minimalist Architecture
+            tasks.push(generateVariant("Minimalist Architecture", 
+                "High-end fashion shoot. Model posing against concrete or marble architectural elements. Minimalist geometry. Cool tones.", 
+                inputs, optMain, optBack, optModel));
+        }
+
     } else {
         // --- PRODUCT BATCH ---
 
@@ -174,15 +209,15 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
             "Direct Front View or Top-Down View (whichever suits the product best). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry. No props.", 
             inputs, optMain, null, null));
 
-        // 2. Back View - WHITE BG (New)
-        const backPrompt = optBack
-            ? "Direct Back View of the product. Use the 'BACK VIEW REFERENCE' to perfectly recreate the back side details (ports, labels, texture). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**"
-            : "Direct Back View of the product. **CRITICAL**: Hallucinate a realistic back side consistent with the front design logic (e.g. if it's a bottle, show the back label or plain glass; if electronics, show ports/vents). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
-        tasks.push(generateVariant("Back View", backPrompt, inputs, optMain, optBack, null));
+        // 2. Back View - WHITE BG
+        const prodBackPrompt = optBack
+            ? "Direct Back View of the product. Use the 'BACK VIEW REFERENCE' to perfectly recreate the back side details. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**"
+            : "Direct Back View of the product. Hallucinate a realistic back side consistent with the front design logic. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
+        tasks.push(generateVariant("Back View", prodBackPrompt, inputs, optMain, optBack, null));
 
         // 3. Hero Angle (45 deg) - WHITE BG
         tasks.push(generateVariant("Hero 45-Degree", 
-            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props, no watermarks.", 
+            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props.", 
             inputs, optMain, null, null));
 
         // 4. Lifestyle Model
@@ -194,10 +229,44 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
         tasks.push(generateVariant("Build Quality Macro", 
             "Extreme close-up macro shot. Focus on the material finish, buttons, or texture to highlight build quality. Shallow depth of field.", 
             inputs, optMain, null, null));
+
+        // --- EXTENDED PACK (7 Images) ---
+        if (packSize >= 7) {
+            // 6. Lifestyle 2 (Context)
+            tasks.push(generateVariant("Contextual Environment", 
+                "Product placed on a table/desk/surface in a realistic room setting (e.g. Living room, Office, or Kitchen depending on item). Blurred background. 'In-situ' look.", 
+                inputs, optMain, null, null));
+            
+            // 7. Creative / Advertising
+            tasks.push(generateVariant("Creative Ad", 
+                `High-impact advertising shot. Product on a podium or artistic surface. Dramatic studio lighting. ${inputs.productVibe || 'Luxury'} aesthetic.`, 
+                inputs, optMain, null, null));
+        }
+
+        // --- ULTIMATE PACK (10 Images) ---
+        if (packSize >= 10) {
+            // 8. Flat Lay
+            tasks.push(generateVariant("Flat Lay Composition", 
+                "Top-down 'Flat Lay' photography. Product arranged neatly on a colored or textured surface with minimal relevant props (e.g. leaves, coffee, tech accessories). Organized and aesthetic.", 
+                inputs, optMain, null, null));
+                
+            // 9. In-Hand / Scale
+            tasks.push(generateVariant("In-Hand Scale", 
+                "Shot of a hand holding the product to show scale and grip. Neutral background. Focus on the hand-product interaction.", 
+                inputs, optMain, null, null));
+                
+            // 10. Dramatic / Neon or Nature
+            const vibePrompt = (inputs.productVibe || '').toLowerCase().includes('tech') 
+                ? "Dark background with neon rim lighting. Cyberpunk/Tech vibe." 
+                : "Outdoor nature setting with sunlight dapples and organic textures (wood/stone).";
+            
+            tasks.push(generateVariant("Dramatic Vibe", 
+                `Stylized mood shot. ${vibePrompt} Highlight the product silhouette.`, 
+                inputs, optMain, null, null));
+        }
     }
 
-    // Execute all 5 in parallel
-    // We use Promise.allSettled to ensure if one fails, we still get the others (handled in UI)
+    // Execute all in parallel
     const results = await Promise.all(tasks);
     return results;
 };

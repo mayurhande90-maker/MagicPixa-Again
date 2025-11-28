@@ -13,7 +13,8 @@ import {
     DownloadIcon,
     ArrowUpCircleIcon,
     CheckIcon,
-    MagicWandIcon
+    MagicWandIcon,
+    TicketIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
@@ -114,17 +115,20 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [productType, setProductType] = useState('');
     const [productVibe, setProductVibe] = useState('Clean Studio');
 
+    // Pack Size
+    const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
+
     // Results
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
-    const [results, setResults] = useState<string[]>([]); // Array of 5 data URLs
+    const [results, setResults] = useState<string[]>([]); // Array of data URLs
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     
     // View Modal State - now using index to support navigation
     const [viewIndex, setViewIndex] = useState<number | null>(null);
 
-    // Cost: 15 Credits for 5 Images
-    const cost = 15;
+    // Dynamic Cost Calculation
+    const cost = packSize === 5 ? 15 : packSize === 7 ? 21 : 30;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
@@ -180,7 +184,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     bodyType: aiBodyType
                 } : undefined,
                 productType: productType,
-                productVibe: productVibe
+                productVibe: productVibe,
+                packSize: packSize
             });
 
             // Process results (Add Base64 prefix)
@@ -189,10 +194,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
             // Save to history (Batch save or individually? Let's save individually)
             for (let i = 0; i < processedResults.length; i++) {
-                const typeName = mode === 'apparel' 
-                    ? ['Hero Long Shot', 'Editorial', 'Side', 'Back View', 'Detail'][i]
-                    : ['Hero Front', 'Back View', 'Hero Angle', 'Lifestyle', 'Macro'][i];
-                saveCreation(auth.user.uid, processedResults[i], `Merchant: ${typeName}`);
+                const label = getLabel(i, mode);
+                saveCreation(auth.user.uid, processedResults[i], `Merchant: ${label}`);
             }
 
             if (updatedUser.lifetimeGenerations) {
@@ -215,6 +218,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setResults([]);
         setMode(null);
         setViewIndex(null);
+        setPackSize(5); // Reset to default
         
         // Reset Configs
         setModelSource('ai');
@@ -236,9 +240,18 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => {
         if (currentMode === 'apparel') {
-            return ['Full Body (Hero)', 'Lifestyle Context', 'Side Profile', 'Back View', 'Fabric Detail'][index];
+            const labels = [
+                'Full Body (Hero)', 'Lifestyle Context', 'Side Profile', 'Back View', 'Fabric Detail',
+                'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'
+            ];
+            return labels[index] || `Variant ${index + 1}`;
+        } else {
+            const labels = [
+                'Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Context', 'Macro Detail',
+                'Contextual Room', 'Creative Ad', 'Flat Lay', 'In-Hand Scale', 'Dramatic/Vibe'
+            ];
+            return labels[index] || `Variant ${index + 1}`;
         }
-        return ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Context', 'Macro Detail'][index];
     };
 
     const canGenerate = !!mainImage && !isLowCredits;
@@ -247,7 +260,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Merchant Studio"
-                description="The ultimate e-commerce engine. Generate 5 listing-ready assets in one click."
+                description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click."
                 icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500" />}
                 creditCost={cost}
                 isGenerating={loading}
@@ -260,7 +273,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Assets"
+                    label: `Generate ${packSize} Assets` // Dynamic Label
                 }}
                 scrollRef={scrollRef}
                 
@@ -317,7 +330,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 <div className="lg:w-1/3 h-[50vh] lg:h-full bg-gray-50 overflow-y-auto custom-scrollbar relative">
                                     <div className="p-4 space-y-4 pb-20"> {/* pb-20 for bottom gradient clearance */}
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Additional Assets</span>
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Pack ({results.length})</span>
                                             {results.length > 0 && (
                                                 <button onClick={handleDownloadAll} className="text-[10px] font-bold text-blue-600 hover:underline">Download All</button>
                                             )}
@@ -367,7 +380,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             <CreditCardIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <p className="text-gray-500 mb-6 max-w-xs text-sm">
-                                The Full Pack generation requires 15 credits.
+                                The selected pack requires {cost} credits.
                             </p>
                             <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] shadow-lg">Recharge</button>
                         </div>
@@ -405,6 +418,36 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                                             {mode} Mode
                                         </span>
+                                    </div>
+
+                                    {/* PACK SIZE SELECTOR */}
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Pack Size</label>
+                                            <div className="flex items-center gap-1 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">
+                                                <TicketIcon className="w-3 h-3"/> {cost} Credits
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[5, 7, 10].map(size => (
+                                                <button
+                                                    key={size}
+                                                    onClick={() => setPackSize(size as 5 | 7 | 10)}
+                                                    className={`py-2 rounded-lg text-xs font-bold border-2 transition-all ${
+                                                        packSize === size 
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
+                                                        : 'border-transparent bg-white text-gray-500 hover:bg-gray-100'
+                                                    }`}
+                                                >
+                                                    {size === 5 ? 'Standard (5)' : size === 7 ? 'Extended (7)' : 'Ultimate (10)'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-2 text-center">
+                                            {packSize === 5 && "Includes: Hero, Back, Side, Lifestyle, Detail."}
+                                            {packSize === 7 && "Adds: Alternative Lifestyle & Creative Shot."}
+                                            {packSize === 10 && "Adds: Golden Hour, Motion/Action & Minimalist."}
+                                        </p>
                                     </div>
 
                                     {/* MAIN UPLOAD */}
