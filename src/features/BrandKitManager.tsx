@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
@@ -250,7 +251,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
                 {/* We grouped all inputs here for better vertical alignment */}
@@ -463,16 +464,32 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </div>
 
                                 {/* Logo Area */}
-                                <div className="h-20 mb-6 flex items-center justify-start border-b border-white/10 pb-6">
-                                    {kit.logos.secondary ? (
-                                        <img src={kit.logos.secondary} className="h-full w-auto object-contain" alt="Logo Light" />
-                                    ) : kit.logos.primary ? (
-                                        <img src={kit.logos.primary} className="h-full w-auto object-contain p-1 bg-white rounded" alt="Logo Dark" />
-                                    ) : (
-                                        <div className="h-16 w-16 bg-white/10 rounded-lg flex items-center justify-center border border-dashed border-white/30 text-white/30">
-                                            <UserIcon className="w-8 h-8" />
+                                <div className="mb-8 pb-6 border-b border-white/10">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Light Theme Context (for Dark Logo) */}
+                                        <div className="aspect-square rounded-xl bg-white flex items-center justify-center p-6 relative">
+                                            <span className="absolute top-2 left-3 text-[9px] font-bold text-gray-300 uppercase tracking-wider">On Light</span>
+                                            {kit.logos.primary ? (
+                                                <img src={kit.logos.primary} className="w-full h-full object-contain" alt="Primary Logo" />
+                                            ) : (
+                                                <div className="text-gray-200 text-center">
+                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Primary</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+
+                                        {/* Dark Theme Context (for Light Logo) */}
+                                        <div className="aspect-square rounded-xl bg-[#121212] border border-white/10 flex items-center justify-center p-6 relative">
+                                            <span className="absolute top-2 left-3 text-[9px] font-bold text-gray-600 uppercase tracking-wider">On Dark</span>
+                                            {kit.logos.secondary ? (
+                                                <img src={kit.logos.secondary} className="w-full h-full object-contain" alt="Secondary Logo" />
+                                            ) : (
+                                                <div className="text-gray-800 text-center">
+                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Secondary</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Typography Preview */}
