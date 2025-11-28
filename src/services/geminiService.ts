@@ -13,3 +13,4 @@ export * from './thumbnailService';
 export * from './apparelService';
 export * from './missionService';
 export * from './realtyService';
+export * from './mockupService';

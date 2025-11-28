@@ -9,6 +9,7 @@ import { ReferralModal } from './components/ReferralModal';
 import { MagicPhotoStudio } from './features/MagicPhotoStudio';
 import { MagicInterior } from './features/MagicInterior';
 import { MagicApparel } from './features/MagicApparel';
+import { MagicMockup } from './features/MagicMockup'; // Import
 import { DashboardHome } from './features/DashboardHome';
 import { Creations } from './features/Creations';
 import { CaptionAI } from './features/CaptionAI';
@@ -17,7 +18,7 @@ import { ThumbnailStudio } from './features/ThumbnailStudio';
 import { BrandKitAI } from './features/BrandKitAI';
 import { BrandStylistAI } from './features/BrandStylistAI';
 import { MagicRealty } from './features/MagicRealty';
-import { BrandKitManager } from './features/BrandKitManager'; // Import the new manager
+import { BrandKitManager } from './features/BrandKitManager'; 
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -33,7 +34,6 @@ import {
 import { 
     colourizeImage, 
     generateMagicSoul, 
-    generateMockup, 
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
@@ -200,7 +200,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'apparel':
                  return <MagicApparel auth={auth} appConfig={appConfig} />;
             case 'mockup':
-                 return <StandardFeature title="Magic Mockup" description="Product Mockups." icon={<MockupIcon className="w-6 h-6 text-indigo-500"/>} cost={appConfig?.featureCosts['Magic Mockup'] || 2} auth={auth} onGenerate={async (img, p) => await generateMockup(img.base64, img.mimeType, p || 'T-Shirt')} />;
+                 return <MagicMockup auth={auth} appConfig={appConfig} />;
             case 'caption':
                  return <CaptionAI auth={auth} appConfig={appConfig} />;
             case 'daily_mission':
