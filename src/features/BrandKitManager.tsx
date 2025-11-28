@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, SparklesIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
+    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, RefreshIcon
 } from '../components/icons';
 import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit } from '../firebase';
@@ -179,15 +179,19 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     // 3. Select Fields (Immediate Save)
     const handleSelectChange = (field: keyof BrandKit, value: string) => {
-        const updated = { ...kit, [field]: value };
-        setKit(updated);
-        performSave(updated);
+        setKit(prev => {
+            const updated = { ...prev, [field]: value };
+            performSave(updated);
+            return updated;
+        });
     };
 
     const updateDeepImmediate = (section: keyof BrandKit, key: string, value: any) => {
-        const updated = { ...kit, [section]: { ...(kit[section] as any), [key]: value } };
-        setKit(updated);
-        performSave(updated);
+        setKit(prev => {
+            const updated = { ...prev, [section]: { ...(prev[section] as any), [key]: value } };
+            performSave(updated);
+            return updated;
+        });
     };
 
     // 4. Asset Upload (Immediate Save + Feedback)
@@ -201,13 +205,21 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
-            const updatedKit = { ...kit, logos: { ...kit.logos, [key]: url } };
-            setKit(updatedKit);
-            await performSave(updatedKit);
+            // CRITICAL FIX: Use functional update to ensure we don't overwrite if other state changed
+            let newKitState: BrandKit | null = null;
+            
+            setKit(prev => {
+                const updated = { ...prev, logos: { ...prev.logos, [key]: url } };
+                newKitState = updated;
+                return updated;
+            });
+
+            // Save the state we just calculated
+            if (newKitState) await performSave(newKitState);
             
             setToast({ msg: "Asset uploaded & saved!", type: "success" });
 
-            if (key === 'primary' && kit.colors.primary === '#000000') {
+            if (key === 'primary') {
                 handleExtractColors(base64Data.base64, base64Data.mimeType);
             }
         } catch (e: any) {
@@ -223,13 +235,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     const handleExtractColors = async (base64?: string, mimeType?: string) => {
-        if (!kit.logos.primary && !base64) return;
-        
         setIsExtractingColors(true);
         try {
             let b64 = base64;
             let mime = mimeType;
 
+            // If triggered manually without direct file, fetch from URL
             if (!b64 && kit.logos.primary) {
                 const fileData = await urlToBase64(kit.logos.primary);
                 b64 = fileData.base64;
@@ -238,9 +249,16 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             if (b64 && mime) {
                 const colors = await extractBrandColors(b64, mime);
-                const updatedKit = { ...kit, colors };
-                setKit(updatedKit);
-                await performSave(updatedKit);
+                
+                // CRITICAL FIX: Functional update to merge colors into the LATEST state (including recent uploads)
+                setKit(prev => {
+                    // Check if we are overwriting user preferences? 
+                    // No, extraction is an explicit action, so overwriting is expected.
+                    const updated = { ...prev, colors };
+                    performSave(updated); // Save the merged result
+                    return updated;
+                });
+                
                 setToast({ msg: "Palette extracted from logo!", type: "success" });
             }
         } catch (e) {
@@ -305,9 +323,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 currentUrl={kit.logos.primary} 
                                 onUpload={(f) => handleUpload('primary', f)} 
                                 onRemove={() => {
-                                    const updated = { ...kit, logos: { ...kit.logos, primary: null } };
-                                    setKit(updated);
-                                    performSave(updated);
+                                    setKit(prev => {
+                                        const updated = { ...prev, logos: { ...prev.logos, primary: null } };
+                                        performSave(updated);
+                                        return updated;
+                                    });
                                 }}
                                 onExtract={() => handleExtractColors()} 
                                 isLoading={uploadingState['primary']}
@@ -319,9 +339,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 currentUrl={kit.logos.secondary} 
                                 onUpload={(f) => handleUpload('secondary', f)} 
                                 onRemove={() => {
-                                    const updated = { ...kit, logos: { ...kit.logos, secondary: null } };
-                                    setKit(updated);
-                                    performSave(updated);
+                                    setKit(prev => {
+                                        const updated = { ...prev, logos: { ...prev.logos, secondary: null } };
+                                        performSave(updated);
+                                        return updated;
+                                    });
                                 }}
                                 isLoading={uploadingState['secondary']}
                             />
@@ -331,9 +353,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 currentUrl={kit.logos.mark} 
                                 onUpload={(f) => handleUpload('mark', f)} 
                                 onRemove={() => {
-                                    const updated = { ...kit, logos: { ...kit.logos, mark: null } };
-                                    setKit(updated);
-                                    performSave(updated);
+                                    setKit(prev => {
+                                        const updated = { ...prev, logos: { ...prev.logos, mark: null } };
+                                        performSave(updated);
+                                        return updated;
+                                    });
                                 }}
                                 isLoading={uploadingState['mark']}
                             />
