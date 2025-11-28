@@ -100,7 +100,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     // Assets
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null); // Apparel only
+    const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null); // Apparel AND Product now
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null); // Apparel (User Model)
 
     // Config - Apparel
@@ -120,8 +120,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [results, setResults] = useState<string[]>([]); // Array of 5 data URLs
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     
-    // View Modal State
-    const [viewImage, setViewImage] = useState<string | null>(null);
+    // View Modal State - now using index to support navigation
+    const [viewIndex, setViewIndex] = useState<number | null>(null);
 
     // Cost: 15 Credits for 5 Images
     const cost = 15;
@@ -190,8 +190,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             // Save to history (Batch save or individually? Let's save individually)
             for (let i = 0; i < processedResults.length; i++) {
                 const typeName = mode === 'apparel' 
-                    ? ['Long Shot', 'Stylized', 'Side', 'Back', 'Texture'][i]
-                    : ['Hero 45', 'Hero Front', 'Lifestyle', 'Creative', 'Macro'][i];
+                    ? ['Hero Long Shot', 'Editorial', 'Side', 'Back View', 'Detail'][i]
+                    : ['Hero Front', 'Back View', 'Hero Angle', 'Lifestyle', 'Macro'][i];
                 saveCreation(auth.user.uid, processedResults[i], `Merchant: ${typeName}`);
             }
 
@@ -214,7 +214,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setModelImage(null);
         setResults([]);
         setMode(null);
-        setViewImage(null);
+        setViewIndex(null);
         
         // Reset Configs
         setModelSource('ai');
@@ -236,9 +236,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => {
         if (currentMode === 'apparel') {
-            return ['Full Body (Hero)', 'Lifestyle', 'Side Profile', 'Back View', 'Fabric Detail'][index];
+            return ['Full Body (Hero)', 'Lifestyle Context', 'Side Profile', 'Back View', 'Fabric Detail'][index];
         }
-        return ['Hero Shot (45°)', 'Hero Shot (Front)', 'Lifestyle Context', 'Creative Ad', 'Macro Detail'][index];
+        return ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Context', 'Macro Detail'][index];
     };
 
     const canGenerate = !!mainImage && !isLowCredits;
@@ -297,7 +297,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 {/* Left: Sticky Hero (2/3 width on desktop) */}
                                 <div 
                                     className="lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero"
-                                    onClick={() => setViewImage(results[0])}
+                                    onClick={() => setViewIndex(0)}
                                 >
                                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider">
                                         {getLabel(0, mode)}
@@ -327,7 +327,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <div 
                                                 key={idx} 
                                                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 group relative cursor-zoom-in hover:shadow-md transition-shadow"
-                                                onClick={() => setViewImage(res)}
+                                                onClick={() => setViewIndex(idx + 1)}
                                             >
                                                 <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">
                                                     {getLabel(idx + 1, mode)}
@@ -482,10 +482,23 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
                                     {/* PRODUCT SPECIFIC FLOW */}
                                     {mode === 'product' && (
-                                        <div className="border-t border-gray-100 pt-6 space-y-4">
-                                            <InputField label="Product Type" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e: any) => setProductType(e.target.value)} />
-                                            <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
-                                        </div>
+                                        <>
+                                            {/* Back View Option for Product */}
+                                            <CompactUpload
+                                                label="Back View"
+                                                subLabel="Optional (Recommended)"
+                                                image={backImage}
+                                                onUpload={handleUpload(setBackImage)}
+                                                onClear={() => setBackImage(null)}
+                                                icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>}
+                                                heightClass="h-24"
+                                            />
+
+                                            <div className="border-t border-gray-100 pt-6 space-y-4">
+                                                <InputField label="Product Type" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e: any) => setProductType(e.target.value)} />
+                                                <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -496,8 +509,16 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setMainImage)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
             
-            {viewImage && (
-                <ImageModal imageUrl={viewImage} onClose={() => setViewImage(null)} onDownload={() => downloadImage(viewImage, 'merchant-asset.png')} />
+            {viewIndex !== null && results.length > 0 && (
+                <ImageModal 
+                    imageUrl={results[viewIndex]} 
+                    onClose={() => setViewIndex(null)} 
+                    onDownload={() => downloadImage(results[viewIndex], 'merchant-asset.png')} 
+                    hasNext={viewIndex < results.length - 1}
+                    hasPrev={viewIndex > 0}
+                    onNext={() => setViewIndex(viewIndex + 1)}
+                    onPrev={() => setViewIndex(viewIndex - 1)}
+                />
             )}
         </>
     );

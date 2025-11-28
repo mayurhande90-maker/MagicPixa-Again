@@ -20,7 +20,7 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 export interface MerchantInputs {
     type: 'apparel' | 'product';
     mainImage: { base64: string; mimeType: string };
-    backImage?: { base64: string; mimeType: string } | null; // Optional for apparel
+    backImage?: { base64: string; mimeType: string } | null; // Optional for apparel AND product
     
     // Apparel Specifics
     modelImage?: { base64: string; mimeType: string } | null; // User's own model
@@ -60,7 +60,8 @@ const generateVariant = async (
     parts.push({ text: "MAIN PRODUCT REFERENCE:" });
     parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
 
-    if (optBack && inputs.type === 'apparel') {
+    // Back view reference is useful for both Apparel and Products now
+    if (optBack) {
         parts.push({ text: "BACK VIEW REFERENCE:" });
         parts.push({ inlineData: { data: optBack.data, mimeType: optBack.mimeType } });
     }
@@ -168,24 +169,25 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
     } else {
         // --- PRODUCT BATCH ---
 
-        // 1. Hero Angle A (45 deg) - WHITE BG - MARKETPLACE COMPLIANT
-        tasks.push(generateVariant("Hero 45-Degree", 
-            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props, no watermarks.", 
-            inputs, optMain, null, null));
-
-        // 2. Hero Angle B (Front) - WHITE BG
+        // 1. Hero Front View - WHITE BG
         tasks.push(generateVariant("Hero Front View", 
             "Direct Front View or Top-Down View (whichever suits the product best). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry. No props.", 
             inputs, optMain, null, null));
 
-        // 3. Lifestyle Model
-        tasks.push(generateVariant("Lifestyle Usage", 
-            "A human model using/holding the product in a natural environment. Focus on the interaction and utility.", 
+        // 2. Back View - WHITE BG (New)
+        const backPrompt = optBack
+            ? "Direct Back View of the product. Use the 'BACK VIEW REFERENCE' to perfectly recreate the back side details (ports, labels, texture). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**"
+            : "Direct Back View of the product. **CRITICAL**: Hallucinate a realistic back side consistent with the front design logic (e.g. if it's a bottle, show the back label or plain glass; if electronics, show ports/vents). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
+        tasks.push(generateVariant("Back View", backPrompt, inputs, optMain, optBack, null));
+
+        // 3. Hero Angle (45 deg) - WHITE BG
+        tasks.push(generateVariant("Hero 45-Degree", 
+            "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props, no watermarks.", 
             inputs, optMain, null, null));
 
-        // 4. Creative Stylized
-        tasks.push(generateVariant("Creative Ad", 
-            `High-impact advertising shot. Place the product on a podium or in a creative composition using ${inputs.productVibe || 'Luxury'} aesthetics. Dramatic lighting.`, 
+        // 4. Lifestyle Model
+        tasks.push(generateVariant("Lifestyle Usage", 
+            "A human model using/holding the product in a natural environment. Focus on the interaction and utility.", 
             inputs, optMain, null, null));
 
         // 5. Macro Detail

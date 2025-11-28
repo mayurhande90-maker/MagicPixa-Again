@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     SparklesIcon, 
     DownloadIcon, 
@@ -7,7 +7,10 @@ import {
     RegenerateIcon, 
     UploadIcon, 
     XIcon,
-    CheckIcon
+    CheckIcon,
+    ChevronLeftRightIcon,
+    ArrowLeftIcon,
+    ChevronRightIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 
@@ -97,30 +100,74 @@ export const ImageModal: React.FC<{
     onClose: () => void;
     onDownload?: () => void;
     onDelete?: () => void;
-}> = ({ imageUrl, onClose, onDownload, onDelete }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
-        <div className="relative w-full h-full flex items-center justify-center">
-            <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-50"><XIcon className="w-8 h-8" /></button>
-            <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
-            
-            {/* Bottom Action Bar */}
-            {(onDownload || onDelete) && (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50" onClick={(e) => e.stopPropagation()}>
-                    {onDownload && (
-                        <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">
-                            <DownloadIcon className="w-5 h-5"/> Download
-                        </button>
-                    )}
-                    {onDelete && (
-                        <button onClick={onDelete} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50 px-6 py-3 rounded-full font-bold transition-colors flex items-center gap-2 backdrop-blur-md hover:scale-105 transform">
-                            <TrashIcon className="w-5 h-5"/> Delete
-                        </button>
-                    )}
-                </div>
-            )}
+    onNext?: () => void;
+    onPrev?: () => void;
+    hasNext?: boolean;
+    hasPrev?: boolean;
+}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev }) => {
+    
+    // Keyboard navigation support
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight' && onNext && hasNext) {
+                onNext();
+            } else if (e.key === 'ArrowLeft' && onPrev && hasPrev) {
+                onPrev();
+            } else if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onNext, onPrev, hasNext, hasPrev, onClose]);
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
+            <div className="relative w-full h-full flex items-center justify-center">
+                <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-50"><XIcon className="w-8 h-8" /></button>
+                
+                {/* Navigation Buttons */}
+                {hasPrev && onPrev && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onPrev(); }} 
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
+                        title="Previous Image (Left Arrow)"
+                    >
+                        <ArrowLeftIcon className="w-8 h-8" />
+                    </button>
+                )}
+                
+                {hasNext && onNext && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onNext(); }} 
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
+                        title="Next Image (Right Arrow)"
+                    >
+                        <ChevronRightIcon className="w-8 h-8" />
+                    </button>
+                )}
+
+                <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain animate-fadeIn" onClick={(e) => e.stopPropagation()} />
+                
+                {/* Bottom Action Bar */}
+                {(onDownload || onDelete) && (
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50" onClick={(e) => e.stopPropagation()}>
+                        {onDownload && (
+                            <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">
+                                <DownloadIcon className="w-5 h-5"/> Download
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button onClick={onDelete} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50 px-6 py-3 rounded-full font-bold transition-colors flex items-center gap-2 backdrop-blur-md hover:scale-105 transform">
+                                <TrashIcon className="w-5 h-5"/> Delete
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number }> = ({ onClose, bonus = 5 }) => {
     const [isClaimed, setIsClaimed] = useState(false);
