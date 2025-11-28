@@ -41,7 +41,8 @@ export const generateMagicMockup = async (
     designMime: string,
     targetObject: string,
     material: string,
-    sceneVibe: string
+    sceneVibe: string,
+    objectColor?: string
 ): Promise<string> => {
     const ai = getAiClient();
     try {
@@ -49,13 +50,19 @@ export const generateMagicMockup = async (
 
         const physicsInstruction = MATERIAL_PHYSICS[material] || 'realistic print texture';
         const lightingInstruction = VIBE_SETTINGS[sceneVibe] || 'professional studio lighting';
+        
+        // Construct Color Instruction
+        const colorPromptPart = objectColor 
+            ? `The ${targetObject} itself must be **${objectColor}** in color. Ensure the product base material is ${objectColor}.` 
+            : '';
 
         const prompt = `You are a World-Class Product Visualization Engine (The Reality Engine).
         
         TASK: Generate a photorealistic mockup.
         
-        1. **SCENE**: Create a high-quality photo of a ${targetObject}.
+        1. **SCENE**: Create a high-quality photo of a ${objectColor ? objectColor + ' ' : ''}${targetObject}.
            - Vibe: ${lightingInstruction}
+           - **COLOR**: ${colorPromptPart}
         
         2. **APPLICATION**: Apply the provided INPUT DESIGN onto the ${targetObject}.
            - **CRITICAL**: The design must not look like a flat sticker. It must obey the physics of the material.

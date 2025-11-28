@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
 import { 
     MockupIcon, 
     UploadIcon, 
@@ -10,7 +10,8 @@ import {
     SparklesIcon, 
     CreditCardIcon, 
     MagicWandIcon, 
-    TrashIcon 
+    TrashIcon,
+    PaletteIcon 
 } from '../components/icons';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
@@ -65,8 +66,10 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     
     // Configurations
     const [targetObject, setTargetObject] = useState('');
+    const [customObject, setCustomObject] = useState(''); // New: Custom Object Input
     const [material, setMaterial] = useState('');
     const [sceneVibe, setSceneVibe] = useState('');
+    const [objectColor, setObjectColor] = useState(''); // New: Color
     
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -82,9 +85,18 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isLowCredits = userCredits < cost;
 
     // Options
-    const objectOptions = ['T-Shirt', 'Hoodie', 'iPhone 15', 'MacBook', 'Coffee Mug', 'Water Bottle', 'Tote Bag', 'Notebook', 'Business Card', 'Packaging Box', 'Neon Sign', 'Wall Sign'];
+    const objectOptions = ['T-Shirt', 'Hoodie', 'iPhone 15', 'MacBook', 'Coffee Mug', 'Water Bottle', 'Tote Bag', 'Notebook', 'Business Card', 'Packaging Box', 'Neon Sign', 'Wall Sign', 'Other / Custom'];
     const materialOptions = ['Standard Ink', 'Embroidery', 'Gold Foil', 'Silver Foil', 'Deboss', 'Emboss', 'Laser Etch', 'Smart Object'];
     const vibeOptions = ['Studio Clean', 'Lifestyle', 'Cinematic', 'Nature', 'Urban'];
+    
+    const commonColors = [
+        { name: 'White', value: '#FFFFFF', border: 'border-gray-200' },
+        { name: 'Black', value: '#000000', border: 'border-transparent' },
+        { name: 'Navy', value: '#000080', border: 'border-transparent' },
+        { name: 'Red', value: '#FF0000', border: 'border-transparent' },
+        { name: 'Grey', value: '#808080', border: 'border-transparent' },
+        { name: 'Beige', value: '#F5F5DC', border: 'border-gray-200' },
+    ];
 
     // Animation
     useEffect(() => {
@@ -123,7 +135,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!designImage || !auth.user || !targetObject || !material || !sceneVibe) return;
+        const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
+        if (!designImage || !auth.user || !finalTarget || !material || !sceneVibe) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -133,9 +146,10 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const res = await generateMagicMockup(
                 designImage.base64.base64,
                 designImage.base64.mimeType,
-                targetObject,
+                finalTarget,
                 material,
-                sceneVibe
+                sceneVibe,
+                objectColor
             );
 
             const url = `data:image/png;base64,${res}`;
@@ -162,8 +176,10 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setDesignImage(null);
         setResultImage(null);
         setTargetObject('');
+        setCustomObject('');
         setMaterial('');
         setSceneVibe('');
+        setObjectColor('');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -178,7 +194,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!designImage && !!targetObject && !!material && !!sceneVibe && !isLowCredits;
+    const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
+    const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
 
     return (
         <>
@@ -193,7 +210,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 resultImage={resultImage}
                 onResetResult={handleGenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[750px]"
+                resultHeightClass="h-[800px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -267,25 +284,75 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="h-px w-full bg-gray-200"></div>
                                     
-                                    <SelectionGrid 
-                                        label="2. Target Object" 
-                                        options={objectOptions} 
-                                        value={targetObject} 
-                                        onChange={(val) => { setTargetObject(val); autoScroll(); }} 
-                                    />
-
-                                    {targetObject && (
+                                    {/* 2. Target Object Selection */}
+                                    <div className="animate-fadeIn">
                                         <SelectionGrid 
-                                            label="3. Material Physics" 
+                                            label="2. Target Object" 
+                                            options={objectOptions} 
+                                            value={targetObject} 
+                                            onChange={(val) => { setTargetObject(val); autoScroll(); }} 
+                                        />
+                                        {/* Conditional Input for Custom Object */}
+                                        {targetObject === 'Other / Custom' && (
+                                            <div className="mt-4 animate-fadeIn">
+                                                <InputField 
+                                                    label="Describe Your Object"
+                                                    placeholder="e.g. Vintage Lunchbox, Surfboard, Space Helmet..."
+                                                    value={customObject}
+                                                    onChange={(e: any) => setCustomObject(e.target.value)}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 3. Product Color */}
+                                    {(targetObject && (targetObject !== 'Other / Custom' || customObject)) && (
+                                        <div className="animate-fadeIn">
+                                            <div className="flex items-center justify-between mb-3 ml-1">
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Product Color</label>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div className="flex gap-2">
+                                                    {commonColors.map(color => (
+                                                        <button
+                                                            key={color.name}
+                                                            onClick={() => setObjectColor(color.name)}
+                                                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 shadow-sm ${color.border} ${objectColor === color.name ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : ''}`}
+                                                            style={{ backgroundColor: color.value }}
+                                                            title={color.name}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <PaletteIcon className="w-4 h-4 text-gray-400"/>
+                                                    </div>
+                                                    <input 
+                                                        type="text"
+                                                        placeholder="Or type custom color (e.g. Neon Green)..."
+                                                        value={objectColor}
+                                                        onChange={(e) => setObjectColor(e.target.value)}
+                                                        className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 4. Material Physics */}
+                                    {objectColor && (
+                                        <SelectionGrid 
+                                            label="4. Material Physics" 
                                             options={materialOptions} 
                                             value={material} 
                                             onChange={(val) => { setMaterial(val); autoScroll(); }} 
                                         />
                                     )}
 
+                                    {/* 5. Scene Vibe */}
                                     {material && (
                                         <SelectionGrid 
-                                            label="4. Scene Vibe" 
+                                            label="5. Scene Vibe" 
                                             options={vibeOptions} 
                                             value={sceneVibe} 
                                             onChange={(val) => { setSceneVibe(val); autoScroll(); }} 
