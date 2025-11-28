@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -28,21 +29,21 @@ const ModeCard: React.FC<{
 }> = ({ title, description, icon, selected, onClick, color }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center justify-center p-6 rounded-3xl border-2 transition-all w-full aspect-[4/3] group relative overflow-hidden ${
+        className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all w-full group relative overflow-hidden text-center h-32 ${
             selected 
-            ? `border-${color}-500 bg-${color}-50 shadow-lg` 
-            : `border-gray-100 bg-white hover:border-${color}-300 hover:shadow-md`
+            ? `border-${color}-500 bg-${color}-50 shadow-md` 
+            : `border-gray-100 bg-white hover:border-${color}-200 hover:bg-gray-50`
         }`}
     >
-        <div className={`p-4 rounded-full mb-4 transition-transform group-hover:scale-110 ${selected ? `bg-${color}-500 text-white` : `bg-${color}-100 text-${color}-600`}`}>
+        <div className={`mb-2 transition-transform group-hover:scale-110 ${selected ? `text-${color}-600` : `text-gray-400`}`}>
             {icon}
         </div>
-        <h3 className={`font-bold text-lg mb-1 ${selected ? `text-${color}-900` : 'text-gray-800'}`}>{title}</h3>
-        <p className={`text-xs text-center px-4 ${selected ? `text-${color}-700` : 'text-gray-500'}`}>{description}</p>
+        <h3 className={`font-bold text-sm mb-0.5 ${selected ? `text-${color}-900` : 'text-gray-700'}`}>{title}</h3>
+        <p className={`text-[10px] ${selected ? `text-${color}-700` : 'text-gray-400'}`}>{description}</p>
         
         {/* Checkmark for selected */}
         {selected && (
-            <div className={`absolute top-3 right-3 bg-${color}-500 text-white p-1 rounded-full`}>
+            <div className={`absolute top-2 right-2 bg-${color}-500 text-white p-0.5 rounded-full`}>
                 <CheckIcon className="w-3 h-3" />
             </div>
         )}
@@ -62,16 +63,16 @@ const CompactUpload: React.FC<{
 
     return (
         <div className="relative w-full group h-full">
-            <div className="mb-2 ml-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-                {subLabel && <p className="text-[10px] text-gray-400">{subLabel}</p>}
+            <div className="mb-2 ml-1 flex justify-between items-end">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+                {subLabel && <span className="text-[10px] text-gray-400">{subLabel}</span>}
             </div>
             {image ? (
-                <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} />
+                <div className={`relative w-full ${heightClass} bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm group-hover:border-blue-300 transition-colors`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2" alt={label} />
                     <button
                         onClick={(e) => { e.stopPropagation(); onClear(); }}
-                        className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"
+                        className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-10 border border-gray-100"
                     >
                         <XIcon className="w-3 h-3"/>
                     </button>
@@ -79,12 +80,12 @@ const CompactUpload: React.FC<{
             ) : (
                 <div
                     onClick={() => inputRef.current?.click()}
-                    className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
+                    className={`w-full ${heightClass} border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
                 >
                     <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
                         {icon}
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload</p>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Click to Upload</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -113,7 +114,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     // Results
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<string[]>([]); // Array of 5 data URLs
-    const [loadingProgress, setLoadingProgress] = useState(0); // 0-5
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
 
     // Cost: 15 Credits for 5 Images
@@ -139,7 +139,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
         setLoading(true);
         setResults([]); 
-        setLoadingProgress(0);
 
         try {
             // Deduct Credits First
@@ -193,6 +192,21 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setMode(null);
     };
 
+    const handleDownloadAll = async () => {
+        if (results.length === 0) return;
+        for (let i = 0; i < results.length; i++) {
+            downloadImage(results[i], `merchant-asset-${i+1}.png`);
+            await new Promise(r => setTimeout(r, 500)); // Stagger downloads
+        }
+    };
+
+    const getLabel = (index: number, currentMode: 'apparel' | 'product') => {
+        if (currentMode === 'apparel') {
+            return ['Full Body', 'Lifestyle', 'Side Profile', 'Back View', 'Fabric Detail'][index];
+        }
+        return ['Hero Shot (45°)', 'Hero Shot (Front)', 'Lifestyle Context', 'Creative Ad', 'Macro Detail'][index];
+    };
+
     const canGenerate = !!mainImage && !isLowCredits;
 
     return (
@@ -218,63 +232,85 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 
                 // LEFT CONTENT: Canvas / Results
                 leftContent={
-                    <div className="h-full w-full flex flex-col">
-                        {loading || results.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-4 h-full p-4 overflow-y-auto custom-scrollbar">
-                                {/* Large Hero (First Result) */}
-                                <div className="col-span-2 aspect-video bg-gray-100 rounded-2xl overflow-hidden relative shadow-sm border border-gray-200 group">
-                                    {loading && !results[0] ? (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                <p className="text-xs font-bold text-blue-500 animate-pulse">Rendering Hero...</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <img src={results[0]} className="w-full h-full object-cover" alt="Hero" />
-                                    )}
-                                    {results[0] && (
-                                        <button 
-                                            onClick={() => downloadImage(results[0], 'merchant-hero.png')}
-                                            className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                                        >
-                                            <DownloadIcon className="w-5 h-5 text-gray-700"/>
-                                        </button>
-                                    )}
-                                </div>
+                    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100">
+                        {/* Header Toolbar */}
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white">
+                            <div className="flex items-center gap-2">
+                                <CubeIcon className="w-5 h-5 text-gray-400"/>
+                                <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Asset Gallery</h3>
+                            </div>
+                            {(results.length > 0) && (
+                                <button 
+                                    onClick={handleDownloadAll} 
+                                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+                                >
+                                    <DownloadIcon className="w-3.5 h-3.5"/> Download All
+                                </button>
+                            )}
+                        </div>
 
-                                {/* Grid of 4 */}
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative shadow-sm border border-gray-200 group">
-                                        {loading && !results[i] ? (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <div className="w-8 h-8 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                                            </div>
-                                        ) : (
-                                            <img src={results[i]} className="w-full h-full object-cover" alt={`Variant ${i}`} />
-                                        )}
-                                        {results[i] && (
-                                            <button 
-                                                onClick={() => downloadImage(results[i], `merchant-var-${i}.png`)}
-                                                className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                                            >
-                                                <DownloadIcon className="w-4 h-4 text-gray-700"/>
-                                            </button>
-                                        )}
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+                            {loading ? (
+                                // Skeleton Loader
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                                    <div className="lg:col-span-2 lg:row-span-2 bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center animate-pulse">
+                                         <div className="w-16 h-16 bg-gray-100 rounded-full mb-4"></div>
+                                         <div className="h-4 w-32 bg-gray-100 rounded mb-2"></div>
+                                         <p className="text-xs text-gray-400 font-medium">Generating Hero Shot...</p>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden shadow-sm">
-                                <div className="text-center opacity-50 select-none">
-                                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CubeIcon className="w-10 h-10 text-indigo-500" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-300">Listing Canvas</h3>
-                                    <p className="text-sm text-gray-300 mt-1">Upload to preview your batch.</p>
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="bg-white rounded-xl border border-gray-100 h-40 animate-pulse"></div>
+                                    ))}
                                 </div>
-                            </div>
-                        )}
+                            ) : results.length > 0 && mode ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                                    
+                                    {/* Main Hero Image (Takes up 2/3 width) */}
+                                    <div className="lg:col-span-2 lg:row-span-2 relative group rounded-2xl overflow-hidden shadow-sm border border-gray-200 bg-white min-h-[400px]">
+                                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider">
+                                            {getLabel(0, mode)}
+                                        </div>
+                                        <img src={results[0]} className="w-full h-full object-contain p-4" alt="Hero" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                                             <button onClick={() => downloadImage(results[0], 'merchant-hero.png')} className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all pointer-events-auto hover:scale-105 flex items-center gap-2">
+                                                <DownloadIcon className="w-4 h-4"/> Download
+                                             </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Grid for the rest */}
+                                    <div className="flex flex-col gap-4 h-full">
+                                        {results.slice(1).map((res, idx) => (
+                                            <div key={idx} className="relative flex-1 group rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white min-h-[140px]">
+                                                <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">
+                                                    {getLabel(idx + 1, mode)}
+                                                </div>
+                                                <img src={res} className="w-full h-full object-cover" alt={`Variant ${idx+1}`} />
+                                                <button 
+                                                    onClick={() => downloadImage(res, `merchant-variant-${idx+1}.png`)}
+                                                    className="absolute bottom-2 right-2 bg-white p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:text-blue-600 hover:scale-110"
+                                                    title="Download"
+                                                >
+                                                    <DownloadIcon className="w-3.5 h-3.5"/>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                // Empty State
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
+                                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <CubeIcon className="w-10 h-10 text-indigo-300" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-400">Ready to Create</h3>
+                                    <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                                        Select a mode on the right and upload your product to generate a full listing pack.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 }
                 
@@ -320,14 +356,14 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         <button onClick={() => setMode(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
                                             ← BACK TO MODE
                                         </button>
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                                             {mode} Mode
                                         </span>
                                     </div>
 
                                     {/* MAIN UPLOAD */}
                                     <CompactUpload
-                                        label={mode === 'apparel' ? "Cloth Photo (Flat Lay / Ghost)" : "Product Photo"}
+                                        label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"}
                                         image={mainImage}
                                         onUpload={handleUpload(setMainImage)}
                                         onClear={() => setMainImage(null)}
@@ -339,25 +375,25 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         <>
                                             {/* Back View Option */}
                                             <CompactUpload
-                                                label="Back View of Cloth"
-                                                subLabel="Optional: Improves accuracy"
+                                                label="Back View"
+                                                subLabel="Optional"
                                                 image={backImage}
                                                 onUpload={handleUpload(setBackImage)}
                                                 onClear={() => setBackImage(null)}
-                                                icon={<UploadTrayIcon className="w-6 h-6 text-gray-400"/>}
+                                                icon={<UploadTrayIcon className="w-5 h-5 text-gray-400"/>}
                                                 heightClass="h-24"
                                             />
 
                                             {/* Model Selection */}
                                             <div className="border-t border-gray-100 pt-6">
                                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
-                                                <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-                                                    <button onClick={() => setModelSource('ai')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'ai' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>AI Model</button>
-                                                    <button onClick={() => setModelSource('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'upload' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>My Model</button>
+                                                <div className="flex bg-gray-50 p-1 rounded-xl mb-4 border border-gray-200">
+                                                    <button onClick={() => setModelSource('ai')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'ai' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>AI Model</button>
+                                                    <button onClick={() => setModelSource('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelSource === 'upload' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>My Model</button>
                                                 </div>
 
                                                 {modelSource === 'ai' ? (
-                                                    <div className="space-y-3">
+                                                    <div className="space-y-4">
                                                         <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
                                                         <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
                                                     </div>
