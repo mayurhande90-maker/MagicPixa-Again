@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, User } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, SparklesIcon, PaletteIcon, 
     CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
 } from '../components/icons';
-import { fileToBase64 } from '../utils/imageUtils';
+import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit } from '../firebase';
 import { extractBrandColors } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
@@ -39,8 +38,10 @@ const AssetUploader: React.FC<{
     currentUrl: string | null;
     onUpload: (file: File) => void;
     onRemove: () => void;
+    onExtract?: () => void; // New prop for manual extraction
     isLoading: boolean;
-}> = ({ label, currentUrl, onUpload, onRemove, isLoading }) => {
+    isExtracting?: boolean;
+}> = ({ label, currentUrl, onUpload, onRemove, onExtract, isLoading, isExtracting }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +53,20 @@ const AssetUploader: React.FC<{
 
     return (
         <div className="relative group">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</label>
+            <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</label>
+                {currentUrl && onExtract && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onExtract(); }}
+                        disabled={isExtracting}
+                        className="text-[10px] flex items-center gap-1 font-bold text-purple-600 hover:text-purple-800 transition-colors disabled:opacity-50"
+                        title="Re-run AI Color Analysis"
+                    >
+                        <SparklesIcon className={`w-3 h-3 ${isExtracting ? 'animate-spin' : ''}`} /> Extract Colors
+                    </button>
+                )}
+            </div>
+            
             <div 
                 onClick={() => !currentUrl && inputRef.current?.click()}
                 className={`w-full h-32 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center relative overflow-hidden ${
@@ -109,6 +123,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     }, [auth.user]);
 
+    const performSave = async (updatedKit: BrandKit) => {
+        if (!auth.user) return;
+        try {
+            await saveUserBrandKit(auth.user.uid, updatedKit);
+            auth.setUser(prev => prev ? { ...prev, brandKit: updatedKit } : null);
+            console.log("Brand Kit Auto-Saved");
+        } catch (e) {
+            console.error("Auto-save failed", e);
+            setToast({ msg: "Failed to auto-save changes.", type: "error" });
+        }
+    };
+
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
         if (!auth.user) return;
         setUploadingState(prev => ({ ...prev, [key]: true }));
@@ -116,29 +142,28 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const base64Data = await fileToBase64(file);
             
-            // FIX: Construct proper Data URI for uploadBrandAsset which expects it to parse mime type
+            // Construct Data URI
             const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
             // 1. Upload to Storage
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
-            // 2. Update Local State
-            setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
+            // 2. Update Local State AND Auto-Save
+            const updatedKit = { ...kit, logos: { ...kit.logos, [key]: url } };
+            setKit(updatedKit);
+            await performSave(updatedKit);
             
+            setToast({ msg: "Asset uploaded & saved!", type: "success" });
+
             // 3. Auto-Extract Colors (only for primary logo if colors are default)
             if (key === 'primary' && kit.colors.primary === '#000000') {
-                setIsExtractingColors(true);
-                const colors = await extractBrandColors(base64Data.base64, base64Data.mimeType);
-                setKit(prev => ({ ...prev, colors }));
-                setIsExtractingColors(false);
-                setToast({ msg: "Brand colors extracted from logo!", type: "success" });
+                handleExtractColors(base64Data.base64, base64Data.mimeType);
             }
         } catch (e: any) {
             console.error("Upload failed", e);
-            // Provide better error feedback
             let errorMsg = "Failed to upload asset.";
             if (e.message.includes('permission') || e.code === 'storage/unauthorized') {
-                errorMsg = "Permission Denied. Please update Firebase Storage Rules (see Admin Panel).";
+                errorMsg = "Permission Denied. Please check Admin Panel -> Storage Rules.";
             }
             setToast({ msg: errorMsg, type: "error" });
         } finally {
@@ -146,20 +171,44 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    const handleSave = async () => {
-        if (!auth.user) return;
-        setIsSaving(true);
+    const handleExtractColors = async (base64?: string, mimeType?: string) => {
+        if (!kit.logos.primary && !base64) return;
+        
+        setIsExtractingColors(true);
         try {
-            await saveUserBrandKit(auth.user.uid, kit);
-            // Update global user object
-            auth.setUser(prev => prev ? { ...prev, brandKit: kit } : null);
-            setToast({ msg: "Brand Kit saved successfully!", type: "success" });
+            let b64 = base64;
+            let mime = mimeType;
+
+            // If triggered manually without file input, fetch the stored URL
+            if (!b64 && kit.logos.primary) {
+                const fileData = await urlToBase64(kit.logos.primary);
+                b64 = fileData.base64;
+                mime = fileData.mimeType;
+            }
+
+            if (b64 && mime) {
+                const colors = await extractBrandColors(b64, mime);
+                
+                // Update and Auto-Save
+                const updatedKit = { ...kit, colors };
+                setKit(updatedKit);
+                await performSave(updatedKit);
+                
+                setToast({ msg: "Brand colors extracted from logo!", type: "success" });
+            }
         } catch (e) {
-            console.error("Save failed", e);
-            setToast({ msg: "Failed to save Brand Kit.", type: "error" });
+            console.error("Extraction failed", e);
+            setToast({ msg: "Failed to extract colors.", type: "error" });
         } finally {
-            setIsSaving(false);
+            setIsExtractingColors(false);
         }
+    };
+
+    const handleManualSave = async () => {
+        setIsSaving(true);
+        await performSave(kit);
+        setIsSaving(false);
+        setToast({ msg: "Brand Kit saved successfully!", type: "success" });
     };
 
     return (
@@ -189,21 +238,35 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 label="Primary Logo (Dark)" 
                                 currentUrl={kit.logos.primary} 
                                 onUpload={(f) => handleUpload('primary', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))}
+                                onRemove={() => {
+                                    const updated = { ...kit, logos: { ...kit.logos, primary: null } };
+                                    setKit(updated);
+                                    performSave(updated);
+                                }}
+                                onExtract={() => handleExtractColors()} // Manual Trigger
                                 isLoading={uploadingState['primary']}
+                                isExtracting={isExtractingColors}
                             />
                             <AssetUploader 
                                 label="Secondary Logo (Light)" 
                                 currentUrl={kit.logos.secondary} 
                                 onUpload={(f) => handleUpload('secondary', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, secondary: null } }))}
+                                onRemove={() => {
+                                    const updated = { ...kit, logos: { ...kit.logos, secondary: null } };
+                                    setKit(updated);
+                                    performSave(updated);
+                                }}
                                 isLoading={uploadingState['secondary']}
                             />
                             <AssetUploader 
                                 label="Brand Mark / Icon" 
                                 currentUrl={kit.logos.mark} 
                                 onUpload={(f) => handleUpload('mark', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, mark: null } }))}
+                                onRemove={() => {
+                                    const updated = { ...kit, logos: { ...kit.logos, mark: null } };
+                                    setKit(updated);
+                                    performSave(updated);
+                                }}
                                 isLoading={uploadingState['mark']}
                             />
                         </div>
@@ -217,7 +280,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </div>
                             {isExtractingColors && (
                                 <span className="text-xs text-purple-600 font-bold flex items-center gap-2 animate-pulse">
-                                    <SparklesIcon className="w-4 h-4"/> Extracting from Logo...
+                                    <SparklesIcon className="w-4 h-4"/> Analyzing...
                                 </span>
                             )}
                         </div>
@@ -349,7 +412,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             {/* FLOATING SAVE BAR */}
             <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
                 <button 
-                    onClick={handleSave}
+                    onClick={handleManualSave}
                     disabled={isSaving}
                     className="bg-[#1A1A1E] text-white px-8 py-3 rounded-full font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 disabled:opacity-70 disabled:transform-none"
                 >

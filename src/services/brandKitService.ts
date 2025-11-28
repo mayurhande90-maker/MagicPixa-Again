@@ -59,8 +59,13 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
             }
         });
 
-        const text = response.text;
+        let text = response.text || "";
+        
+        // Robust JSON Parsing: Strip Markdown code blocks if present
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
         if (!text) return { primary: '#000000', secondary: '#ffffff', accent: '#007bff' };
+        
         return JSON.parse(text);
     } catch (e) {
         console.error("Color extraction failed:", e);
@@ -137,9 +142,19 @@ export const analyzeAdStrategy = async (
         }
     });
 
-    const text = response.text;
+    let text = response.text || "";
+    // Clean up markdown
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
     if (!text) throw new Error("Analysis failed to generate response.");
-    return JSON.parse(text);
+    
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("JSON parse error for Ad Strategy:", e);
+        // Fallback or re-throw
+        throw new Error("Failed to parse AI strategy response.");
+    }
 };
 
 /**

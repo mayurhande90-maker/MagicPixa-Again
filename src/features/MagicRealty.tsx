@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
@@ -93,6 +92,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // Brand Kit Integration State
     const [usingBrandKit, setUsingBrandKit] = useState(false);
+    const [isLoadingBrandKit, setIsLoadingBrandKit] = useState(false);
 
     // Decisions
     const [modelChoice, setModelChoice] = useState<'upload' | 'generate' | 'skip' | null>(null);
@@ -161,8 +161,10 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // --- BRAND KIT AUTO-LOADER ---
     useEffect(() => {
         const loadBrandAssets = async () => {
-            if (auth.user?.brandKit && !logoImage) {
-                console.log("Found Brand Kit, auto-loading assets...");
+            if (auth.user?.brandKit && !logoImage && !usingBrandKit) {
+                console.log("Found Brand Kit, attempting to auto-load assets...");
+                setIsLoadingBrandKit(true);
+                
                 // Auto-fill context fields if empty
                 if (!texts.contact && auth.user.brandKit.website) {
                     setTexts(prev => ({ ...prev, contact: auth.user!.brandKit!.website }));
@@ -175,9 +177,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         setLogoImage({ url: auth.user.brandKit.logos.primary, base64: base64Data });
                         setUsingBrandKit(true);
                     } catch (e) {
-                        console.warn("Failed to auto-load Brand Kit logo:", e);
+                        console.warn("Failed to auto-load Brand Kit logo (it might not exist yet):", e);
+                        // Do not set error state, just fail gracefully so user can upload manually
                     }
                 }
+                setIsLoadingBrandKit(false);
             }
         };
         loadBrandAssets();
@@ -208,7 +212,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 if (analysis.hasContact || analysis.hasRera || analysis.hasLocation) {
                     setShowContact(true);
                 }
-                // Note: amenities hard to detect via OCR without complex logic, so we leave that manual.
             } catch (err) {
                 console.error("Ref analysis failed", err);
             } finally {
@@ -537,7 +540,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">4</span>
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Details</label>
                                     </div>
-                                    {usingBrandKit && (
+                                    {isLoadingBrandKit ? (
+                                        <div className="flex items-center gap-1.5 bg-gray-50 text-gray-500 px-2 py-1 rounded-full border border-gray-100">
+                                            <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-[9px] font-bold uppercase">Syncing Brand Kit...</span>
+                                        </div>
+                                    ) : usingBrandKit && (
                                         <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-100 shadow-sm animate-fadeIn">
                                             <BrandKitIcon className="w-3 h-3" />
                                             <span className="text-[9px] font-bold uppercase">Brand Kit Active</span>
