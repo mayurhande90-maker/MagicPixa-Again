@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, AuthProps, AppConfig, Purchase, Transaction, CreditPack } from '../types';
+import { User, AuthProps, AppConfig, Purchase, Transaction, CreditPack, Creation } from '../types';
 import { 
-    getAllUsers, addCreditsToUser, getAppConfig, updateAppConfig, getRecentSignups, getRecentPurchases, getTotalRevenue, getCreditHistory
+    getAllUsers, addCreditsToUser, getAppConfig, updateAppConfig, getRecentSignups, getRecentPurchases, getTotalRevenue, getCreditHistory, getCreations
 } from '../firebase';
 import { 
-    UsersIcon, CreditCardIcon, XIcon, SparklesIcon, InformationCircleIcon, CurrencyDollarIcon, ChartBarIcon, CogIcon, EyeIcon, CheckIcon, PencilIcon, AdjustmentsVerticalIcon
+    UsersIcon, CreditCardIcon, XIcon, SparklesIcon, InformationCircleIcon, CurrencyDollarIcon, ChartBarIcon, CogIcon, EyeIcon, CheckIcon, PencilIcon, AdjustmentsVerticalIcon, ImageIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -210,71 +210,155 @@ const AddCreditsModal: React.FC<{
 };
 
 const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user, onClose }) => {
+    const [activeTab, setActiveTab] = useState<'details' | 'creations'>('details');
+    
+    // Transactions Data
     const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+
+    // Creations Data
+    const [creations, setCreations] = useState<Creation[]>([]);
+    const [isLoadingCreations, setIsLoadingCreations] = useState(false);
+    const [hasLoadedCreations, setHasLoadedCreations] = useState(false);
 
     useEffect(() => {
         getCreditHistory(user.uid)
             .then(history => setTransactions(history as Transaction[]))
             .catch(err => console.error("Failed to load user transaction history:", err))
-            .finally(() => setIsLoading(false));
+            .finally(() => setIsLoadingTransactions(false));
     }, [user.uid]);
+
+    useEffect(() => {
+        if (activeTab === 'creations' && !hasLoadedCreations) {
+            setIsLoadingCreations(true);
+            getCreations(user.uid)
+                .then(data => {
+                    setCreations(data as Creation[]);
+                    setHasLoadedCreations(true);
+                })
+                .catch(err => console.error("Failed to load creations:", err))
+                .finally(() => setIsLoadingCreations(false));
+        }
+    }, [activeTab, user.uid, hasLoadedCreations]);
     
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
-            <div className="relative bg-white w-full max-w-2xl m-4 p-6 rounded-2xl shadow-xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="relative bg-white w-full max-w-4xl m-4 p-6 rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><XIcon className="w-6 h-6" /></button>
-                <h2 className="text-xl font-bold text-[#1E1E1E] mb-4">User Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <p className="text-sm text-gray-500">Name</p>
-                        <p className="font-semibold text-gray-800">{getDisplayName(user.name)}</p>
-                    </div>
-                     <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-semibold text-gray-800">{getDisplayEmail(user.email)}</p>
-                    </div>
-                     <div>
-                        <p className="text-sm text-gray-500">Sign Up Date</p>
-                        <p className="font-semibold text-gray-800">{user.signUpDate ? new Date(user.signUpDate.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500">Last Active</p>
-                        <p className="font-semibold text-gray-800">{user.lastActive ? user.lastActive.toDate().toLocaleString() : 'N/A'}</p>
-                    </div>
-                     <div>
-                        <p className="text-sm text-gray-500">Credit Balance</p>
-                        <p className="font-bold text-lg text-blue-600">{user.credits} credits</p>
-                    </div>
-                     <div>
-                        <p className="text-sm text-gray-500">Total Spent</p>
-                        <p className="font-bold text-lg text-green-600">₹{user.totalSpent || 0}</p>
-                    </div>
+                
+                <div className="mb-6">
+                    <h2 className="text-xl font-bold text-[#1E1E1E] mb-1">{getDisplayName(user.name)}</h2>
+                    <p className="text-sm text-gray-500">{getDisplayEmail(user.email)}</p>
                 </div>
-                <h3 className="text-lg font-bold text-[#1E1E1E] mb-2">Transaction History</h3>
-                <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
-                    {isLoading ? <p className="p-4 text-center">Loading history...</p> : transactions.length > 0 ? (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Description</th>
-                                    <th className="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {transactions.map(tx => (
-                                    <tr key={tx.id}>
-                                        <td className="px-4 py-2 text-sm text-gray-500">{tx.date.toDate().toLocaleDateString()}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{tx.feature}{tx.reason && ` (${tx.reason})`}</td>
-                                        <td className={`px-4 py-2 text-sm font-bold text-right ${tx.creditChange ? 'text-green-600' : 'text-red-600'}`}>
-                                            {tx.creditChange ? tx.creditChange : `-${tx.cost} cr`}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : <p className="p-4 text-center text-gray-500">No transactions found.</p>}
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 mb-4">
+                    <button 
+                        onClick={() => setActiveTab('details')}
+                        className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'details' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Overview & History
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('creations')}
+                        className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'creations' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Creations Gallery
+                    </button>
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                    {activeTab === 'details' ? (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Account Info</p>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Joined</span> <span className="text-sm font-medium">{user.signUpDate ? new Date(user.signUpDate.seconds * 1000).toLocaleDateString() : 'N/A'}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Last Active</span> <span className="text-sm font-medium">{user.lastActive ? user.lastActive.toDate().toLocaleDateString() : 'N/A'}</span></div>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Credits & Spending</p>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Balance</span> <span className="text-sm font-bold text-blue-600">{user.credits} CR</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Total Spent</span> <span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Generations</span> <span className="text-sm font-medium">{user.lifetimeGenerations || 0}</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wider">Transaction History</h3>
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                {isLoadingTransactions ? (
+                                    <div className="p-8 text-center text-gray-500">Loading history...</div>
+                                ) : transactions.length > 0 ? (
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
+                                                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
+                                                <th className="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Change</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {transactions.map(tx => (
+                                                <tr key={tx.id}>
+                                                    <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{tx.date?.toDate().toLocaleDateString()}</td>
+                                                    <td className="px-4 py-2 text-sm text-gray-800">{tx.feature}{tx.reason && <span className="text-gray-400 text-xs ml-1">({tx.reason})</span>}</td>
+                                                    <td className={`px-4 py-2 text-sm font-bold text-right ${tx.creditChange ? 'text-green-600' : 'text-gray-600'}`}>
+                                                        {tx.creditChange ? tx.creditChange : `-${tx.cost}`}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="p-8 text-center text-gray-500 text-sm">No transactions found.</div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        // CREATIONS GALLERY TAB
+                        <div className="h-full">
+                            {isLoadingCreations ? (
+                                <div className="p-12 flex flex-col items-center justify-center text-gray-400">
+                                    <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mb-3"></div>
+                                    <p className="text-sm">Loading user's gallery...</p>
+                                </div>
+                            ) : creations.length > 0 ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {creations.map(creation => (
+                                        <div key={creation.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                            <img 
+                                                src={creation.thumbnailUrl || creation.imageUrl} 
+                                                alt={creation.feature} 
+                                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                                loading="lazy"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                                <p className="text-white text-xs font-bold truncate">{creation.feature}</p>
+                                                <p className="text-gray-300 text-[10px]">{creation.createdAt ? new Date((creation.createdAt as any).seconds * 1000).toLocaleDateString() : ''}</p>
+                                            </div>
+                                            <a 
+                                                href={creation.imageUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="absolute inset-0 z-10"
+                                                title="View Full Size"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-12 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                    <p>No creations generated yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
