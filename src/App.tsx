@@ -217,28 +217,30 @@ const App: React.FC = () => {
           // Check for admin claim or specific email for dev purposes
           const isAdmin = !!idTokenResult.claims.isAdmin || firebaseUser.email === 'mayurhande90@gmail.com';
           
+          const profileData = userProfile as any;
+
           const userToSet: User = {
             uid: firebaseUser.uid,
-            name: userProfile.name || firebaseUser.displayName || 'User',
-            email: userProfile.email || firebaseUser.email || 'No Email',
-            avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
-            credits: userProfile.credits,
-            totalCreditsAcquired: userProfile.totalCreditsAcquired,
-            signUpDate: userProfile.signUpDate,
-            lastActive: userProfile.lastActive,
-            plan: userProfile.plan,
+            name: profileData.name || firebaseUser.displayName || 'User',
+            email: profileData.email || firebaseUser.email || 'No Email',
+            avatar: getInitials(profileData.name || firebaseUser.displayName || ''),
+            credits: profileData.credits,
+            totalCreditsAcquired: profileData.totalCreditsAcquired,
+            signUpDate: profileData.signUpDate,
+            lastActive: profileData.lastActive,
+            plan: profileData.plan,
             isAdmin: isAdmin,
-            isBanned: userProfile.isBanned || false, // Mapping ban status
-            totalSpent: userProfile.totalSpent || 0,
-            dailyMission: userProfile.dailyMission, 
-            lifetimeGenerations: userProfile.lifetimeGenerations || 0,
-            lastAttendanceClaim: userProfile.lastAttendanceClaim || null,
-            referralCode: userProfile.referralCode,
-            referralCount: userProfile.referralCount,
-            referredBy: userProfile.referredBy,
-            brandKit: userProfile.brandKit,
-            storageTier: userProfile.storageTier,
-            systemNotification: userProfile.systemNotification
+            isBanned: profileData.isBanned || false, // Mapping ban status
+            totalSpent: profileData.totalSpent || 0,
+            dailyMission: profileData.dailyMission, 
+            lifetimeGenerations: profileData.lifetimeGenerations || 0,
+            lastAttendanceClaim: profileData.lastAttendanceClaim || null,
+            referralCode: profileData.referralCode,
+            referralCount: profileData.referralCount,
+            referredBy: profileData.referredBy,
+            brandKit: profileData.brandKit,
+            storageTier: profileData.storageTier,
+            systemNotification: profileData.systemNotification
           };
           setUser(userToSet);
           setIsAuthenticated(true);
