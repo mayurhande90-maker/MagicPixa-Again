@@ -10,7 +10,7 @@ import ToastNotification from './components/ToastNotification';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, getAnnouncement } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
-import { InformationCircleIcon, XIcon, ShieldCheckIcon } from './components/icons';
+import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
 
 const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
     if (!announcement || !announcement.isActive) return null;
@@ -69,6 +69,10 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('home_dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  
+  // Impersonation State
+  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null);
+
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
@@ -256,6 +260,14 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      if (impersonatedUser) {
+          // If impersonating, just exit impersonation mode
+          setImpersonatedUser(null);
+          setToastMessage("Returned to Admin view");
+          setToastType('info');
+          return;
+      }
+
       if (auth) await auth.signOut();
       setCurrentPage('home');
       window.scrollTo(0, 0);
@@ -267,22 +279,38 @@ const App: React.FC = () => {
   };
   
   const handleSaveProfile = async (newName: string) => {
-    if (user && newName.trim() && user.name !== newName) {
+    // Determine which user to update (should probably only update own profile unless admin)
+    const targetUser = impersonatedUser || user;
+    if (targetUser && newName.trim() && targetUser.name !== newName) {
       try {
-        await updateUserProfile(user.uid, { name: newName });
-        setUser(prevUser => {
-          if (!prevUser) return null;
-          return {
-            ...prevUser,
-            name: newName,
-            avatar: getInitials(newName),
-          };
-        });
+        await updateUserProfile(targetUser.uid, { name: newName });
+        // Update local state
+        const updateState = (prev: User | null) => prev ? { ...prev, name: newName, avatar: getInitials(newName) } : null;
+        
+        if (impersonatedUser) setImpersonatedUser(updateState);
+        else setUser(updateState);
+
         setEditProfileModalOpen(false);
       } catch (error) {
         console.error("Failed to update profile:", error);
       }
     }
+  };
+  
+  // Impersonation Logic
+  const handleImpersonateUser = (targetUser: User) => {
+      setImpersonatedUser(targetUser);
+      navigateTo('dashboard', 'home_dashboard');
+      setToastMessage(`Viewing as ${targetUser.name}`);
+      setToastType('info');
+  };
+
+  const stopImpersonation = () => {
+      setImpersonatedUser(null);
+      setToastMessage("Exited View Mode");
+      setToastType('info');
+      // Optionally navigate back to admin panel
+      navigateTo('dashboard', 'admin');
   };
   
   const openAuthModal = () => setAuthModalOpen(true);
@@ -291,12 +319,16 @@ const App: React.FC = () => {
       setTimeout(() => setAuthError(null), 300);
   };
 
+  // Determine the active user object to pass down
+  const activeUser = impersonatedUser || user;
+
   const authProps: AuthProps = {
-    isAuthenticated,
-    user,
-    setUser,
+    isAuthenticated: !!activeUser, // If impersonating, we are "authenticated" as them
+    user: activeUser,
+    setUser: impersonatedUser ? setImpersonatedUser : setUser, // If impersonating, state updates go to the temp user state
     handleLogout,
     openAuthModal,
+    impersonateUser: handleImpersonateUser
   };
 
   if (isLoadingAuth || isConfigLoading) {
@@ -310,14 +342,30 @@ const App: React.FC = () => {
     );
   }
 
-  // Suspended User Lockout
-  if (user && user.isBanned) {
+  // Suspended User Lockout (Only if real user is banned, not if admin views a banned user)
+  if (user && user.isBanned && !impersonatedUser) {
       return <BannedScreen onLogout={handleLogout} />;
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      {showBanner && announcement && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
+      {/* Impersonation Banner */}
+      {impersonatedUser && (
+          <div className="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md z-[110] sticky top-0">
+              <div className="flex items-center gap-2">
+                  <EyeIcon className="w-5 h-5 animate-pulse" />
+                  <span className="font-bold text-sm">Viewing as: {impersonatedUser.name} ({impersonatedUser.email})</span>
+              </div>
+              <button 
+                onClick={stopImpersonation}
+                className="bg-white text-indigo-600 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm"
+              >
+                  Exit View Mode
+              </button>
+          </div>
+      )}
+
+      {showBanner && announcement && !impersonatedUser && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
       
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
       {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
@@ -330,9 +378,9 @@ const App: React.FC = () => {
           error={authError}
         />
       )}
-      {editProfileModalOpen && user && (
+      {editProfileModalOpen && activeUser && (
         <EditProfileModal
-          user={user}
+          user={activeUser}
           onClose={() => setEditProfileModalOpen(false)}
           onSave={handleSaveProfile}
         />

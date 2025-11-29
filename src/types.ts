@@ -89,6 +89,8 @@ export interface AuthProps {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   handleLogout: () => void;
   openAuthModal: () => void;
+  // New Impersonation Prop
+  impersonateUser?: (targetUser: User) => void;
 }
 
 export interface Transaction {

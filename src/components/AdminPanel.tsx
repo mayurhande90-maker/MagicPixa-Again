@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement } from '../types';
 import { 
     getAllUsers, 
@@ -28,9 +28,11 @@ import {
     InformationCircleIcon,
     TrashIcon,
     FlagIcon,
-    AudioWaveIcon, // Placeholder for Announcement Icon
-    DocumentTextIcon, // Placeholder for Logs
-    ImageIcon
+    AudioWaveIcon,
+    DocumentTextIcon,
+    ImageIcon,
+    EyeIcon,
+    AdjustmentsVerticalIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -40,7 +42,7 @@ interface AdminPanelProps {
 }
 
 // User Detail Modal Component
-const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, onClose }) => {
+const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; }> = ({ user, onClose, onViewAs }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [isLoadingCreations, setIsLoadingCreations] = useState(false);
@@ -78,9 +80,17 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
                             <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                        <XIcon className="w-6 h-6 text-gray-500" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={onViewAs}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors shadow-md"
+                        >
+                            <EyeIcon className="w-3 h-3" /> View As
+                        </button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                            <XIcon className="w-6 h-6 text-gray-500" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -203,8 +213,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     // Users Data
     const [allUsers, setAllUsers] = useState<User[]>([]); 
-    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortOption, setSortOption] = useState<'newest' | 'oldest' | 'active' | 'credits_high' | 'spent_high'>('newest');
     const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null);
     
     // Credit Grant Modal
@@ -225,26 +235,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     useEffect(() => {
         if (appConfig) setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
-        // Initial Fetch
         loadOverview();
         fetchAnnouncement();
     }, [appConfig]);
 
-    // Tab-Specific Loaders
     useEffect(() => {
         if (activeTab === 'users') loadUsers();
         if (activeTab === 'system') loadAuditLogs();
         if (activeTab === 'analytics') loadAnalytics();
     }, [activeTab]);
 
-    useEffect(() => {
-        const lower = searchTerm.toLowerCase();
-        setFilteredUsers(allUsers.filter(u => 
-            u.name?.toLowerCase().includes(lower) || 
-            u.email?.toLowerCase().includes(lower) ||
-            u.uid === searchTerm
-        ));
-    }, [searchTerm, allUsers]);
+    // FILTER & SORT LOGIC
+    const filteredUsers = useMemo(() => {
+        let result = [...allUsers];
+
+        // 1. Search Filter
+        if (searchTerm.trim()) {
+            const lower = searchTerm.toLowerCase();
+            result = result.filter(u => 
+                u.name?.toLowerCase().includes(lower) || 
+                u.email?.toLowerCase().includes(lower) ||
+                u.uid === searchTerm
+            );
+        }
+
+        // 2. Sort Logic
+        result.sort((a, b) => {
+            switch (sortOption) {
+                case 'newest':
+                    return ((b.signUpDate as any)?.seconds || 0) - ((a.signUpDate as any)?.seconds || 0);
+                case 'oldest':
+                    return ((a.signUpDate as any)?.seconds || 0) - ((b.signUpDate as any)?.seconds || 0);
+                case 'active':
+                    return ((b.lastActive as any)?.seconds || 0) - ((a.lastActive as any)?.seconds || 0);
+                case 'credits_high':
+                    return (b.credits || 0) - (a.credits || 0);
+                case 'spent_high':
+                    return (b.totalSpent || 0) - (a.totalSpent || 0);
+                default:
+                    return 0;
+            }
+        });
+
+        return result;
+    }, [allUsers, searchTerm, sortOption]);
 
     const loadOverview = async () => {
         try {
@@ -339,13 +373,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         }
     };
 
+    const handleViewAs = (targetUser: User) => {
+        if (auth.impersonateUser) {
+            // Confirm just in case
+            if (confirm(`You are about to view the dashboard as ${targetUser.name}. Any generation you trigger will count towards THEIR credits. Continue?`)) {
+                auth.impersonateUser(targetUser);
+            }
+        } else {
+            alert("Impersonation feature not available.");
+        }
+    };
+
     const handleSaveAnnouncement = async () => {
         if (!auth.user) return;
         await updateAnnouncement(auth.user.uid, announcement);
         alert("Announcement updated!");
     };
 
-    // Simple Render Helpers
+    // Render Helpers
     const TabButton = ({ id, label, icon: Icon }: any) => (
         <button 
             onClick={() => setActiveTab(id)}
@@ -361,7 +406,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto pb-24">
+        <div className="p-6 max-w-[1600px] mx-auto pb-24">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <h1 className="text-3xl font-bold text-[#1A1A1E] flex items-center gap-3">
                     <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-200">
@@ -392,11 +437,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
                             <div className="p-4 bg-blue-100 rounded-xl text-blue-600"><UsersIcon className="w-8 h-8"/></div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">New Users</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recent Signups</p>
                                 <p className="text-3xl font-black text-[#1A1A1E]">{stats.signups.length} <span className="text-xs font-medium text-gray-400">last 10</span></p>
                             </div>
                         </div>
-                        {/* Config Panel Shortcut */}
                         <div className="bg-gradient-to-br from-gray-800 to-black p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -405,23 +449,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 </div>
                                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
                             </div>
-                            <button onClick={() => {}} className="text-xs font-bold text-gray-400 hover:text-white mt-4 flex items-center gap-1">
-                                View Server Logs →
-                            </button>
+                            <div className="mt-4">
+                                <span className="text-xs text-gray-400">{allUsers.length} total users indexed</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">Recent Activity</h3></div>
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">Recent Purchases</h3></div>
                             <div className="divide-y divide-gray-100">
                                 {stats.purchases.map(p => (
-                                    <div key={p.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                    <div key={p.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                                         <div>
                                             <p className="text-sm font-bold text-gray-800">{p.packName}</p>
                                             <p className="text-xs text-gray-500">{p.userEmail}</p>
                                         </div>
-                                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">+₹{p.amountPaid}</span>
+                                        <div className="text-right">
+                                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded block mb-1">+₹{p.amountPaid}</span>
+                                            <span className="text-[9px] text-gray-400">{p.purchaseDate ? new Date((p.purchaseDate as any).seconds * 1000).toLocaleDateString() : '-'}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -429,18 +476,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         {localConfig && (
                             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-gray-800">Quick Config</h3>
-                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">Save</button>}
+                                    <h3 className="font-bold text-gray-800">Feature Controls</h3>
+                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md hover:bg-green-700 transition-colors">Save Changes</button>}
                                 </div>
-                                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar p-1">
                                     {Object.entries(localConfig.featureToggles || {}).map(([key, enabled]) => (
-                                        <div key={key} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-lg">
-                                            <span className="text-xs font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                                        <div key={key} className="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:shadow-sm transition-all bg-gray-50/50">
+                                            <span className="text-xs font-bold capitalize truncate max-w-[120px]" title={key}>{key.replace(/_/g, ' ')}</span>
                                             <button 
                                                 onClick={() => handleConfigChange('featureToggles', key, !enabled)}
-                                                className={`w-8 h-4 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                className={`w-9 h-5 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
                                             >
-                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-transform ${enabled ? 'left-4.5' : 'left-0.5'}`}></div>
+                                                <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${enabled ? 'left-5' : 'left-0.5'}`}></div>
                                             </button>
                                         </div>
                                     ))}
@@ -455,7 +502,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {activeTab === 'analytics' && (
                 <div className="animate-fadeIn space-y-6">
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Heatmap (Usage)</h3>
+                        <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Usage Heatmap</h3>
                         {featureUsage.length > 0 ? (
                             <div className="space-y-4">
                                 {featureUsage.map((item, idx) => {
@@ -468,14 +515,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                                 <span className="text-gray-500">{item.count} gens</span>
                                             </div>
                                             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                                                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-sm" style={{ width: `${percent}%` }}></div>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         ) : (
-                            <p className="text-gray-400 text-sm">No usage data available yet.</p>
+                            <div className="text-center py-10 text-gray-400 text-sm">
+                                <ChartBarIcon className="w-8 h-8 mx-auto mb-2 opacity-50"/>
+                                No usage data available yet.
+                            </div>
                         )}
                     </div>
                 </div>
@@ -484,80 +534,124 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {/* --- USERS TAB --- */}
             {activeTab === 'users' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
-                    <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-                        <h3 className="font-bold text-gray-800">User Management ({filteredUsers.length})</h3>
-                        <input 
-                            type="text" 
-                            placeholder="Search by name, email, UID..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full sm:w-64 px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                        />
+                    
+                    {/* Toolbar */}
+                    <div className="p-4 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-center gap-4 bg-gray-50/30">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-gray-800">User Management</h3>
+                            <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs font-bold">{filteredUsers.length}</span>
+                        </div>
+                        
+                        <div className="flex gap-3 w-full lg:w-auto">
+                            {/* Sort Dropdown */}
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <AdjustmentsVerticalIcon className="w-4 h-4 text-gray-400" />
+                                </div>
+                                <select 
+                                    value={sortOption}
+                                    onChange={(e) => setSortOption(e.target.value as any)}
+                                    className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer hover:border-gray-300 transition-colors shadow-sm"
+                                >
+                                    <option value="newest">Recent Signups</option>
+                                    <option value="oldest">Oldest Members</option>
+                                    <option value="active">Latest Active</option>
+                                    <option value="credits_high">Highest Credits</option>
+                                    <option value="spent_high">Top Spenders</option>
+                                </select>
+                            </div>
+
+                            {/* Search */}
+                            <div className="relative flex-1 lg:w-64">
+                                <input 
+                                    type="text" 
+                                    placeholder="Search users..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-4 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-sm"
+                                />
+                            </div>
+                        </div>
                     </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider border-b border-gray-200">
                                 <tr>
                                     <th className="p-4">Identity</th>
                                     <th className="p-4">Status</th>
                                     <th className="p-4">Credits</th>
-                                    <th className="p-4">Engagement</th>
-                                    <th className="p-4 text-right">Controls</th>
+                                    <th className="p-4">Stats</th>
+                                    <th className="p-4">Last Seen</th>
+                                    <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
-                                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading users...</td></tr>
+                                    <tr><td colSpan={6} className="p-12 text-center text-gray-400">Loading user database...</td></tr>
+                                ) : filteredUsers.length === 0 ? (
+                                    <tr><td colSpan={6} className="p-12 text-center text-gray-400">No users found.</td></tr>
                                 ) : filteredUsers.map(u => (
-                                    <tr key={u.uid} className={`hover:bg-gray-50 transition-colors ${u.isBanned ? 'bg-red-50 hover:bg-red-100' : ''}`}>
+                                    <tr key={u.uid} className={`hover:bg-gray-50 transition-colors group ${u.isBanned ? 'bg-red-50 hover:bg-red-100' : ''}`}>
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                                                <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-200 shadow-sm">
                                                     {u.name?.[0]}
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-gray-800">{u.name}</p>
-                                                    <p className="text-xs text-gray-500">{u.email}</p>
-                                                    <p className="text-[9px] text-gray-300 font-mono mt-0.5 cursor-pointer hover:text-gray-500" title={u.uid} onClick={() => navigator.clipboard.writeText(u.uid)}>{u.uid.substring(0,8)}...</p>
+                                                    <p className="font-bold text-gray-800 text-sm">{u.name}</p>
+                                                    <p className="text-[11px] text-gray-500">{u.email}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-4">
                                             {u.isBanned ? (
-                                                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">BANNED</span>
+                                                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold border border-red-200">BANNED</span>
                                             ) : (
-                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{u.plan || 'Free'}</span>
+                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">{u.plan || 'Free'}</span>
                                             )}
                                         </td>
-                                        <td className="p-4 font-mono font-bold text-gray-700">{u.credits}</td>
                                         <td className="p-4">
-                                            <div className="text-xs">
-                                                <span className="text-gray-500">Gens:</span> <b>{u.lifetimeGenerations || 0}</b>
+                                            <div className="font-mono font-bold text-gray-700">{u.credits}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded w-fit">Gens: {u.lifetimeGenerations || 0}</span>
+                                                {u.totalSpent ? <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded w-fit">Paid: ₹{u.totalSpent}</span> : null}
                                             </div>
-                                            <div className="text-xs mt-1">
-                                                <span className="text-gray-500">Refs:</span> <b>{u.referralCount || 0}</b>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="text-xs text-gray-600">
+                                                {u.lastActive ? new Date((u.lastActive as any).seconds * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                                             </div>
                                         </td>
                                         <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => handleViewAs(u)}
+                                                    className="p-1.5 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                                    title="View As User"
+                                                >
+                                                    <EyeIcon className="w-4 h-4"/>
+                                                </button>
                                                 <button 
                                                     onClick={() => setSelectedUserForDetail(u)}
-                                                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600 transition-colors"
-                                                    title="View Details & Gallery"
+                                                    className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
+                                                    title="Details"
                                                 >
                                                     <InformationCircleIcon className="w-4 h-4"/>
                                                 </button>
                                                 <button 
                                                     onClick={() => setCreditModalUser(u.uid)}
-                                                    className="p-1.5 hover:bg-green-100 rounded text-gray-500 hover:text-green-600 transition-colors"
-                                                    title="Grant Credits"
+                                                    className="p-1.5 hover:bg-green-100 rounded-lg text-gray-400 hover:text-green-600 transition-colors"
+                                                    title="Add Credits"
                                                 >
                                                     <PlusIcon className="w-4 h-4"/>
                                                 </button>
                                                 <button 
                                                     onClick={() => handleToggleBan(u)}
-                                                    className={`p-1.5 rounded transition-colors ${u.isBanned ? 'bg-red-600 text-white' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}
-                                                    title={u.isBanned ? "Unban User" : "Ban User"}
+                                                    className={`p-1.5 rounded-lg transition-colors ${u.isBanned ? 'bg-red-100 text-red-600' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'}`}
+                                                    title={u.isBanned ? "Unban" : "Ban"}
                                                 >
                                                     <XIcon className="w-4 h-4"/>
                                                 </button>
@@ -586,7 +680,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 <textarea 
                                     value={announcement.message}
                                     onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
-                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none"
+                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none transition-shadow"
                                     placeholder="e.g. Scheduled maintenance tonight at 10 PM."
                                 />
                             </div>
@@ -597,7 +691,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                     <select 
                                         value={announcement.type}
                                         onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})}
-                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm"
+                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium bg-white"
                                     >
                                         <option value="info">Info (Blue)</option>
                                         <option value="warning">Warning (Yellow)</option>
@@ -606,20 +700,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
-                                    <div className="flex items-center gap-3 h-[46px]">
-                                        <button 
-                                            onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
-                                            className={`flex-1 h-full rounded-xl text-sm font-bold transition-all border ${announcement.isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
-                                        >
-                                            {announcement.isActive ? 'ACTIVE' : 'INACTIVE'}
-                                        </button>
-                                    </div>
+                                    <button 
+                                        onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
+                                        className={`w-full h-[46px] rounded-xl text-sm font-bold transition-all border flex items-center justify-center gap-2 ${announcement.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${announcement.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                                        {announcement.isActive ? 'ACTIVE' : 'INACTIVE'}
+                                    </button>
                                 </div>
                             </div>
 
                             <button 
                                 onClick={handleSaveAnnouncement}
-                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg mt-4"
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg mt-4 shadow-indigo-200"
                             >
                                 Publish Announcement
                             </button>
@@ -666,20 +759,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {/* Credit Grant Modal */}
             {creditModalUser && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] animate-fadeIn">
-                    <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm transform transition-all scale-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Grant Credits</h3>
+                    <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm transform transition-all scale-100 border border-gray-100">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-green-100 text-green-600 rounded-full"><PlusIcon className="w-5 h-5"/></div>
+                            <h3 className="text-lg font-bold text-gray-900">Grant Credits</h3>
+                        </div>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
-                                <input type="number" value={creditAmount} onChange={(e) => setCreditAmount(parseInt(e.target.value))} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <input type="number" value={creditAmount} onChange={(e) => setCreditAmount(parseInt(e.target.value))} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason</label>
-                                <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setCreditModalUser(null)} className="flex-1 px-4 py-2 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-                                <button onClick={handleGrantCredits} disabled={isLoading} className="flex-1 px-4 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">{isLoading ? '...' : 'Grant'}</button>
+                                <button onClick={() => setCreditModalUser(null)} className="flex-1 px-4 py-2 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button onClick={handleGrantCredits} disabled={isLoading} className="flex-1 px-4 py-2 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-200 disabled:opacity-50">{isLoading ? '...' : 'Grant'}</button>
                             </div>
                         </div>
                     </div>
@@ -688,7 +784,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
             {/* User Detail Modal */}
             {selectedUserForDetail && (
-                <UserDetailModal user={selectedUserForDetail} onClose={() => setSelectedUserForDetail(null)} />
+                <UserDetailModal 
+                    user={selectedUserForDetail} 
+                    onClose={() => setSelectedUserForDetail(null)} 
+                    onViewAs={() => {
+                        handleViewAs(selectedUserForDetail);
+                        setSelectedUserForDetail(null);
+                    }}
+                />
             )}
         </div>
     );
