@@ -7,7 +7,7 @@ import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import ToastNotification from './components/ToastNotification';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, getAnnouncement } from './firebase'; 
+import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, subscribeToAnnouncement } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
 import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
@@ -110,13 +110,15 @@ const App: React.FC = () => {
       }
     };
     
-    const fetchAnnouncement = async () => {
-        const ann = await getAnnouncement();
+    // Subscribe to announcement updates in real-time
+    const unsubscribeAnnouncement = subscribeToAnnouncement((ann) => {
         setAnnouncement(ann);
-    };
+        setShowBanner(true); // Re-show banner if updated
+    });
 
     fetchConfig();
-    fetchAnnouncement();
+    
+    return () => unsubscribeAnnouncement();
   }, []);
 
   // Capture referral code from URL

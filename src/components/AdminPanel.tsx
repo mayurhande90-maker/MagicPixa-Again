@@ -32,7 +32,8 @@ import {
     DocumentTextIcon,
     ImageIcon,
     EyeIcon,
-    AdjustmentsVerticalIcon
+    AdjustmentsVerticalIcon,
+    RegenerateIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -40,6 +41,24 @@ interface AdminPanelProps {
     appConfig: AppConfig | null;
     onConfigUpdate: (config: AppConfig) => void;
 }
+
+// DEFINITIVE LIST OF FEATURES
+// Ensures toggles appear even if DB config is partial/missing keys
+const KNOWN_FEATURES = [
+    'studio',
+    'brand_kit',
+    'brand_stylist',
+    'thumbnail_studio',
+    'magic_realty',
+    'soul',
+    'colour',
+    'caption',
+    'interior',
+    'apparel',
+    'mockup',
+    'scanner',
+    'notes'
+];
 
 // User Detail Modal Component
 const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; }> = ({ user, onClose, onViewAs }) => {
@@ -260,14 +279,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         }
 
         // 2. Sort Logic
+        // Timestamp Helper: Handles Timestamp objects, Date objects, or falls back to 0
+        const getTs = (obj: any): number => {
+            if (!obj) return 0;
+            if (typeof obj.toMillis === 'function') return obj.toMillis();
+            if (obj.seconds) return obj.seconds * 1000;
+            if (obj instanceof Date) return obj.getTime();
+            return 0;
+        };
+
         result.sort((a, b) => {
+            const dateA = getTs(a.signUpDate);
+            const dateB = getTs(b.signUpDate);
+            const activeA = getTs(a.lastActive);
+            const activeB = getTs(b.lastActive);
+
             switch (sortOption) {
-                case 'newest':
-                    return ((b.signUpDate as any)?.seconds || 0) - ((a.signUpDate as any)?.seconds || 0);
-                case 'oldest':
-                    return ((a.signUpDate as any)?.seconds || 0) - ((b.signUpDate as any)?.seconds || 0);
+                case 'newest': // Descending (Newer dates first) -> B - A
+                    return dateB - dateA;
+                case 'oldest': // Ascending (Older dates first) -> A - B
+                    return dateA - dateB;
                 case 'active':
-                    return ((b.lastActive as any)?.seconds || 0) - ((a.lastActive as any)?.seconds || 0);
+                    return activeB - activeA;
                 case 'credits_high':
                     return (b.credits || 0) - (a.credits || 0);
                 case 'spent_high':
@@ -306,8 +339,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const loadAuditLogs = async () => {
-        const logs = await getAuditLogs();
-        setAuditLogs(logs);
+        setIsLoading(true);
+        try {
+            const logs = await getAuditLogs();
+            setAuditLogs(logs);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const loadAnalytics = async () => {
@@ -368,8 +406,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const handleToggleBan = async (user: User) => {
         if (!auth.user) return;
         if (confirm(`Are you sure you want to ${user.isBanned ? 'UNBAN' : 'BAN'} ${user.email}?`)) {
-            await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
-            loadUsers(); // Refresh
+            // Optimistic UI Update: Flip local state immediately
+            setAllUsers(prev => prev.map(u => 
+                u.uid === user.uid ? { ...u, isBanned: !u.isBanned } : u
+            ));
+            
+            // Backend Update
+            try {
+                await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
+            } catch (e) {
+                console.error("Ban failed", e);
+                alert("Failed to update ban status. Reverting.");
+                loadUsers(); // Revert on failure
+            }
         }
     };
 
@@ -387,7 +436,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const handleSaveAnnouncement = async () => {
         if (!auth.user) return;
         await updateAnnouncement(auth.user.uid, announcement);
-        alert("Announcement updated!");
+        alert("Announcement updated! It will appear for users immediately.");
     };
 
     // Render Helpers
@@ -458,7 +507,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">Recent Purchases</h3></div>
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
                                 {stats.purchases.map(p => (
                                     <div key={p.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                                         <div>
@@ -480,17 +529,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                     {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md hover:bg-green-700 transition-colors">Save Changes</button>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar p-1">
-                                    {Object.entries(localConfig.featureToggles || {}).map(([key, enabled]) => (
-                                        <div key={key} className="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:shadow-sm transition-all bg-gray-50/50">
-                                            <span className="text-xs font-bold capitalize truncate max-w-[120px]" title={key}>{key.replace(/_/g, ' ')}</span>
-                                            <button 
-                                                onClick={() => handleConfigChange('featureToggles', key, !enabled)}
-                                                className={`w-9 h-5 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${enabled ? 'left-5' : 'left-0.5'}`}></div>
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {/* Use KNOWN_FEATURES to iterate, ensuring all are shown even if missing in DB config */}
+                                    {KNOWN_FEATURES.map((key) => {
+                                        const enabled = localConfig.featureToggles?.[key] !== false; // Default true
+                                        return (
+                                            <div key={key} className="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:shadow-sm transition-all bg-gray-50/50">
+                                                <span className="text-xs font-bold capitalize truncate max-w-[120px]" title={key}>{key.replace(/_/g, ' ')}</span>
+                                                <button 
+                                                    onClick={() => handleConfigChange('featureToggles', key, !enabled)}
+                                                    className={`w-9 h-5 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${enabled ? 'left-5' : 'left-0.5'}`}></div>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -553,8 +606,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                     onChange={(e) => setSortOption(e.target.value as any)}
                                     className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer hover:border-gray-300 transition-colors shadow-sm"
                                 >
-                                    <option value="newest">Recent Signups</option>
-                                    <option value="oldest">Oldest Members</option>
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
                                     <option value="active">Latest Active</option>
                                     <option value="credits_high">Highest Credits</option>
                                     <option value="spent_high">Top Spenders</option>
@@ -724,7 +777,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {/* --- SYSTEM TAB --- */}
             {activeTab === 'system' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">System Audit Logs</h3></div>
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800">System Audit Logs</h3>
+                        <button onClick={loadAuditLogs} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                            <RegenerateIcon className="w-3 h-3"/> Refresh
+                        </button>
+                    </div>
                     <div className="max-h-[600px] overflow-y-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
@@ -736,7 +794,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {auditLogs.map(log => (
+                                {isLoading ? (
+                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading logs...</td></tr>
+                                ) : auditLogs.length === 0 ? (
+                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400">No logs found.</td></tr>
+                                ) : auditLogs.map(log => (
                                     <tr key={log.id} className="hover:bg-gray-50">
                                         <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
                                             {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}

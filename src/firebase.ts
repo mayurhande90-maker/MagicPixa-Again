@@ -1126,12 +1126,43 @@ export const logAdminAction = async (adminEmail: string, action: string, details
 export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
     if (!db) return [];
     try {
-        const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+        // Fallback: If index is missing, try query without sort, then sort client-side
+        let snap;
+        try {
+            snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get();
+        } catch (idxError) {
+            console.warn("Index error on audit_logs, falling back to unsorted query", idxError);
+            snap = await db.collection('audit_logs').limit(limit).get();
+        }
+        
+        const logs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+        
+        // Client-side sort if needed
+        logs.sort((a, b) => {
+            const tA = a.timestamp?.seconds || 0;
+            const tB = b.timestamp?.seconds || 0;
+            return tB - tA;
+        });
+        
+        return logs;
     } catch (error) {
         console.error("Error fetching audit logs", error);
         return [];
     }
+};
+
+// Replaces getAnnouncement with a subscription model for real-time updates
+export const subscribeToAnnouncement = (callback: (announcement: Announcement | null) => void) => {
+    if (!db) return () => {};
+    return db.collection('config').doc('announcement').onSnapshot((doc) => {
+        if (doc.exists) {
+            callback(doc.data() as Announcement);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Error subscribing to announcement", error);
+    });
 };
 
 export const getAnnouncement = async (): Promise<Announcement | null> => {
