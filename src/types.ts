@@ -81,6 +81,9 @@ export interface User {
 
   // Brand Kit
   brandKit?: BrandKit;
+  
+  // Admin Features
+  systemNotification?: string | null; // One-time message from admin
 }
 
 export interface AuthProps {
@@ -149,6 +152,14 @@ export interface AuditLog {
     action: string;
     details: string;
     timestamp: any; // Timestamp
+}
+
+export interface ApiErrorLog {
+    id: string;
+    timestamp: any;
+    endpoint: string; // e.g., 'generateContent'
+    error: string;
+    userId?: string;
 }
 
 export interface Announcement {

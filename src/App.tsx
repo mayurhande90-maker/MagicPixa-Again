@@ -46,9 +46,13 @@ const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
                 <ShieldCheckIcon className="w-10 h-10 text-red-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Suspended</h1>
-            <p className="text-gray-500 mb-8">
-                Your account has been suspended due to a violation of our terms of service. Please contact support if you believe this is an error.
+            <p className="text-gray-500 mb-6">
+                Your account has been suspended due to a violation of our terms of service.
             </p>
+            <div className="bg-gray-100 p-4 rounded-xl mb-8">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Contact Support</p>
+                <a href="mailto:support@magicpixa.com" className="text-blue-600 font-bold hover:underline">support@magicpixa.com</a>
+            </div>
             <button 
                 onClick={onLogout}
                 className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
@@ -121,6 +125,21 @@ const App: React.FC = () => {
     return () => unsubscribeAnnouncement();
   }, []);
 
+  // Listen for Targeted Notifications
+  useEffect(() => {
+      if (user && user.systemNotification) {
+          // Show toast
+          setToastMessage(user.systemNotification);
+          setToastType('info');
+          
+          // Clear notification from DB to prevent showing it again
+          updateUserProfile(user.uid, { systemNotification: null });
+          
+          // Update local state immediately to prevent loop
+          setUser(prev => prev ? { ...prev, systemNotification: null } : null);
+      }
+  }, [user]);
+
   // Capture referral code from URL
   useEffect(() => {
       const params = new URLSearchParams(window.location.search);
@@ -167,7 +186,8 @@ const App: React.FC = () => {
             referralCount: userProfile.referralCount,
             referredBy: userProfile.referredBy,
             brandKit: userProfile.brandKit,
-            storageTier: userProfile.storageTier
+            storageTier: userProfile.storageTier,
+            systemNotification: userProfile.systemNotification
           };
           setUser(userToSet);
           setIsAuthenticated(true);

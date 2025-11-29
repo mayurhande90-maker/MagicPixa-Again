@@ -7,7 +7,7 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
-import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement } from './types';
+import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog } from './types';
 import { resizeImage } from './utils/imageUtils';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -1100,7 +1100,9 @@ export const toggleUserBan = async (adminUid: string, targetUid: string, isBanne
     const adminRef = db.collection('users').doc(adminUid);
     const adminSnap = await adminRef.get();
     
-    await db.collection('users').doc(targetUid).update({ isBanned });
+    // FIX: Use set with merge: true to handle missing isBanned fields gracefully.
+    await db.collection('users').doc(targetUid).set({ isBanned }, { merge: true });
+    
     await logAdminAction(adminSnap.data()?.email || 'Admin', isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
 };
 
@@ -1109,8 +1111,20 @@ export const updateUserPlan = async (adminUid: string, targetUid: string, newPla
     const adminRef = db.collection('users').doc(adminUid);
     const adminSnap = await adminRef.get();
 
-    await db.collection('users').doc(targetUid).update({ plan: newPlan });
+    // Use set merge to be safe
+    await db.collection('users').doc(targetUid).set({ plan: newPlan }, { merge: true });
     await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
+};
+
+export const sendSystemNotification = async (adminUid: string, targetUid: string, message: string) => {
+    if (!db) throw new Error("DB not init");
+    const adminRef = db.collection('users').doc(adminUid);
+    const adminSnap = await adminRef.get();
+
+    // Write a one-time message to the user doc. 
+    // The frontend listens for this, shows a toast, and then clears it.
+    await db.collection('users').doc(targetUid).set({ systemNotification: message }, { merge: true });
+    await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `Target: ${targetUid}, Msg: ${message}`);
 };
 
 export const logAdminAction = async (adminEmail: string, action: string, details: string) => {
@@ -1121,6 +1135,20 @@ export const logAdminAction = async (adminEmail: string, action: string, details
         details,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
+};
+
+export const logApiError = async (endpoint: string, errorMsg: string, userId?: string) => {
+    if (!db) return;
+    try {
+        await db.collection('api_error_logs').add({
+            endpoint,
+            error: errorMsg,
+            userId: userId || 'anonymous',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Failed to log API error to Firestore", e);
+    }
 };
 
 export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
@@ -1147,6 +1175,33 @@ export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
         return logs;
     } catch (error) {
         console.error("Error fetching audit logs", error);
+        return [];
+    }
+};
+
+export const getApiErrorLogs = async (limit: number = 50): Promise<ApiErrorLog[]> => {
+    if (!db) return [];
+    try {
+        let snap;
+        try {
+            snap = await db.collection('api_error_logs').orderBy('timestamp', 'desc').limit(limit).get();
+        } catch (idxError) {
+            console.warn("Index error on api_error_logs, falling back", idxError);
+            snap = await db.collection('api_error_logs').limit(limit).get();
+        }
+        
+        const logs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApiErrorLog));
+        
+        // Client sort
+        logs.sort((a, b) => {
+            const tA = a.timestamp?.seconds || 0;
+            const tB = b.timestamp?.seconds || 0;
+            return tB - tA;
+        });
+        
+        return logs;
+    } catch (error) {
+        console.error("Error fetching API logs", error);
         return [];
     }
 };
@@ -1181,7 +1236,13 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
     const adminRef = db.collection('users').doc(adminUid);
     const adminSnap = await adminRef.get();
     
-    await db.collection('config').doc('announcement').set(announcement);
+    // FIX: Ensure clean object structure
+    await db.collection('config').doc('announcement').set({
+        message: announcement.message,
+        isActive: announcement.isActive,
+        type: announcement.type,
+        link: announcement.link || ""
+    });
     await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
 };
 

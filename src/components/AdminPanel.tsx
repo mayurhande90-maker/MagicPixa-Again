@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement } from '../types';
+import { AuthProps, AppConfig, User, Purchase, AuditLog, ApiErrorLog, Announcement } from '../types';
 import { 
     getAllUsers, 
     addCreditsToUser, 
@@ -10,7 +10,9 @@ import {
     getTotalRevenue,
     toggleUserBan,
     updateUserPlan,
+    sendSystemNotification,
     getAuditLogs,
+    getApiErrorLogs,
     getAnnouncement,
     updateAnnouncement,
     getGlobalFeatureUsage,
@@ -33,7 +35,8 @@ import {
     ImageIcon,
     EyeIcon,
     AdjustmentsVerticalIcon,
-    RegenerateIcon
+    RegenerateIcon,
+    SystemIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -61,10 +64,20 @@ const KNOWN_FEATURES = [
 ];
 
 // User Detail Modal Component
-const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; }> = ({ user, onClose, onViewAs }) => {
+const UserDetailModal: React.FC<{ 
+    user: User; 
+    onClose: () => void; 
+    onViewAs: () => void; 
+    adminUid: string;
+}> = ({ user, onClose, onViewAs, adminUid }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [isLoadingCreations, setIsLoadingCreations] = useState(false);
+    
+    // Actions State
+    const [manualPlan, setManualPlan] = useState(user.plan || 'Free');
+    const [notificationText, setNotificationText] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'creations') {
@@ -84,9 +97,35 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
         }
     };
 
+    const handleUpdatePlan = async () => {
+        setIsUpdating(true);
+        try {
+            await updateUserPlan(adminUid, user.uid, manualPlan);
+            alert("Plan updated successfully!");
+        } catch (e) {
+            alert("Failed to update plan.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleSendNotification = async () => {
+        if(!notificationText.trim()) return;
+        setIsUpdating(true);
+        try {
+            await sendSystemNotification(adminUid, user.uid, notificationText);
+            setNotificationText('');
+            alert("Notification sent! The user will see it next time they are active.");
+        } catch (e) {
+            alert("Failed to send notification.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-fadeIn">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -118,7 +157,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
                         onClick={() => setActiveTab('overview')} 
                         className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
-                        Overview & History
+                        Overview & Actions
                     </button>
                     <button 
                         onClick={() => setActiveTab('creations')} 
@@ -131,51 +170,109 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                     {activeTab === 'overview' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Stats Cards */}
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Status</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Plan</span>
-                                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{user.plan || 'Free'}</span>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Stats Cards */}
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Status</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Current Plan</span>
+                                            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{user.plan || 'Free'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Credits</span>
+                                            <span className="text-sm font-bold text-gray-800">{user.credits}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Total Spent</span>
+                                            <span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Joined</span>
+                                            <span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Last Active</span>
+                                            <span className="text-sm text-gray-800">
+                                                {user.lastActive ? new Date((user.lastActive as any).seconds * 1000).toLocaleString() : '-'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Credits</span>
-                                        <span className="text-sm font-bold text-gray-800">{user.credits}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Total Spent</span>
-                                        <span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Joined</span>
-                                        <span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Last Active</span>
-                                        <span className="text-sm text-gray-800">
-                                            {user.lastActive ? new Date((user.lastActive as any).seconds * 1000).toLocaleString() : '-'}
-                                        </span>
+                                </div>
+
+                                {/* Engagement */}
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Engagement</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Generations</span>
+                                            <span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Referrals</span>
+                                            <span className="text-sm font-bold text-indigo-600">{user.referralCount || 0}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Referral Code</span>
+                                            <code className="text-xs bg-gray-100 px-2 py-1 rounded">{user.referralCode || '-'}</code>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Engagement */}
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Engagement</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Generations</span>
-                                        <span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span>
+                            {/* Admin Controls Area */}
+                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <CogIcon className="w-4 h-4 text-gray-500" /> Admin Controls
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Manual Plan */}
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Manual Tier Assignment</label>
+                                        <div className="flex gap-2">
+                                            <select 
+                                                value={manualPlan}
+                                                onChange={(e) => setManualPlan(e.target.value)}
+                                                className="flex-1 text-sm p-2 rounded-lg border border-gray-300 outline-none"
+                                            >
+                                                <option value="Free">Free</option>
+                                                <option value="Starter Pack">Starter Pack</option>
+                                                <option value="Creator Pack">Creator Pack</option>
+                                                <option value="Studio Pack">Studio Pack</option>
+                                                <option value="Agency Pack">Agency Pack</option>
+                                                <option value="VIP Access">VIP Access</option>
+                                                <option value="Influencer">Influencer</option>
+                                            </select>
+                                            <button 
+                                                onClick={handleUpdatePlan} 
+                                                disabled={isUpdating}
+                                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                            >
+                                                Set Plan
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Referrals</span>
-                                        <span className="text-sm font-bold text-indigo-600">{user.referralCount || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Referral Code</span>
-                                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">{user.referralCode || '-'}</code>
+
+                                    {/* Targeted Notification */}
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Send Targeted Notification</label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={notificationText}
+                                                onChange={(e) => setNotificationText(e.target.value)}
+                                                placeholder="e.g. Added 50 credits..." 
+                                                className="flex-1 text-sm p-2 rounded-lg border border-gray-300 outline-none"
+                                            />
+                                            <button 
+                                                onClick={handleSendNotification} 
+                                                disabled={isUpdating || !notificationText}
+                                                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                            >
+                                                Send
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -247,6 +344,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     // Advanced Features Data
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+    const [apiErrorLogs, setApiErrorLogs] = useState<ApiErrorLog[]>([]);
     const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info' });
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
 
@@ -260,7 +358,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     useEffect(() => {
         if (activeTab === 'users') loadUsers();
-        if (activeTab === 'system') loadAuditLogs();
+        if (activeTab === 'system') {
+            loadAuditLogs();
+            loadApiErrorLogs();
+        }
         if (activeTab === 'analytics') loadAnalytics();
     }, [activeTab]);
 
@@ -348,6 +449,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         }
     };
 
+    const loadApiErrorLogs = async () => {
+        try {
+            const logs = await getApiErrorLogs();
+            setApiErrorLogs(logs);
+        } catch (e) { console.error(e) }
+    };
+
     const loadAnalytics = async () => {
         const usage = await getGlobalFeatureUsage();
         setFeatureUsage(usage);
@@ -416,7 +524,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
             } catch (e) {
                 console.error("Ban failed", e);
-                alert("Failed to update ban status. Reverting.");
+                alert("Failed to update ban status. Reverting UI.");
                 loadUsers(); // Revert on failure
             }
         }
@@ -438,6 +546,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         await updateAnnouncement(auth.user.uid, announcement);
         alert("Announcement updated! It will appear for users immediately.");
     };
+
+    const handleClearAnnouncement = async () => {
+        if (!auth.user) return;
+        const cleared = { ...announcement, isActive: false, message: '' };
+        setAnnouncement(cleared);
+        await updateAnnouncement(auth.user.uid, cleared);
+        alert("Announcement cleared.");
+    }
 
     // Render Helpers
     const TabButton = ({ id, label, icon: Icon }: any) => (
@@ -763,12 +879,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 </div>
                             </div>
 
-                            <button 
-                                onClick={handleSaveAnnouncement}
-                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg mt-4 shadow-indigo-200"
-                            >
-                                Publish Announcement
-                            </button>
+                            <div className="flex gap-4 pt-4">
+                                <button 
+                                    onClick={handleClearAnnouncement}
+                                    className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                                >
+                                    Clear & Turn Off
+                                </button>
+                                <button 
+                                    onClick={handleSaveAnnouncement}
+                                    className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                                >
+                                    Publish
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -776,42 +900,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
             {/* --- SYSTEM TAB --- */}
             {activeTab === 'system' && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                        <h3 className="font-bold text-gray-800">System Audit Logs</h3>
-                        <button onClick={loadAuditLogs} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                            <RegenerateIcon className="w-3 h-3"/> Refresh
-                        </button>
-                    </div>
-                    <div className="max-h-[600px] overflow-y-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
-                                <tr>
-                                    <th className="p-4">Time</th>
-                                    <th className="p-4">Admin</th>
-                                    <th className="p-4">Action</th>
-                                    <th className="p-4">Details</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {isLoading ? (
-                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading logs...</td></tr>
-                                ) : auditLogs.length === 0 ? (
-                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400">No logs found.</td></tr>
-                                ) : auditLogs.map(log => (
-                                    <tr key={log.id} className="hover:bg-gray-50">
-                                        <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
-                                            {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}
-                                        </td>
-                                        <td className="p-4 font-medium text-gray-800">{log.adminEmail}</td>
-                                        <td className="p-4">
-                                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-[10px] font-bold font-mono">{log.action}</span>
-                                        </td>
-                                        <td className="p-4 text-xs text-gray-600 font-mono">{log.details}</td>
+                <div className="space-y-8 animate-fadeIn">
+                    {/* API Health Log */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 bg-red-50/50 flex justify-between items-center">
+                            <h3 className="font-bold text-red-800 flex items-center gap-2">
+                                <SystemIcon className="w-4 h-4"/> API Failure Log (Last 50)
+                            </h3>
+                            <button onClick={loadApiErrorLogs} className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1">
+                                <RegenerateIcon className="w-3 h-3"/> Refresh
+                            </button>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+                                    <tr>
+                                        <th className="p-4">Time</th>
+                                        <th className="p-4">Endpoint</th>
+                                        <th className="p-4">Error</th>
+                                        <th className="p-4">User</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {isLoading ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading logs...</td></tr>
+                                    ) : apiErrorLogs.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400">No API errors recorded recently.</td></tr>
+                                    ) : apiErrorLogs.map(log => (
+                                        <tr key={log.id} className="hover:bg-red-50/30">
+                                            <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
+                                                {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}
+                                            </td>
+                                            <td className="p-4 font-mono text-xs text-gray-700">{log.endpoint}</td>
+                                            <td className="p-4 text-xs text-red-600 font-mono break-all">{log.error}</td>
+                                            <td className="p-4 text-xs text-gray-500">{log.userId}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Audit Logs */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-800">Admin Audit Trail</h3>
+                            <button onClick={loadAuditLogs} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                <RegenerateIcon className="w-3 h-3"/> Refresh
+                            </button>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+                                    <tr>
+                                        <th className="p-4">Time</th>
+                                        <th className="p-4">Admin</th>
+                                        <th className="p-4">Action</th>
+                                        <th className="p-4">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {isLoading ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading logs...</td></tr>
+                                    ) : auditLogs.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400">No logs found.</td></tr>
+                                    ) : auditLogs.map(log => (
+                                        <tr key={log.id} className="hover:bg-gray-50">
+                                            <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
+                                                {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}
+                                            </td>
+                                            <td className="p-4 font-medium text-gray-800">{log.adminEmail}</td>
+                                            <td className="p-4">
+                                                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-[10px] font-bold font-mono">{log.action}</span>
+                                            </td>
+                                            <td className="p-4 text-xs text-gray-600 font-mono">{log.details}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -845,7 +1012,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             )}
 
             {/* User Detail Modal */}
-            {selectedUserForDetail && (
+            {selectedUserForDetail && auth.user && (
                 <UserDetailModal 
                     user={selectedUserForDetail} 
                     onClose={() => setSelectedUserForDetail(null)} 
@@ -853,6 +1020,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         handleViewAs(selectedUserForDetail);
                         setSelectedUserForDetail(null);
                     }}
+                    adminUid={auth.user.uid}
                 />
             )}
         </div>
