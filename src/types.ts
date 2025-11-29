@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -57,6 +58,8 @@ export interface User {
   storageTier?: 'limited' | 'unlimited'; // 'limited' = 30 days, 'unlimited' = forever
 
   isAdmin?: boolean; // Added for admin access control
+  isBanned?: boolean; // New: Account suspension status
+  notes?: string; // New: Admin notes for user
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
   
@@ -136,4 +139,19 @@ export interface AppConfig {
     featureCosts: { [key: string]: number };
     featureToggles: { [key: string]: boolean };
     creditPacks: CreditPack[];
+}
+
+export interface AuditLog {
+    id: string;
+    adminEmail: string;
+    action: string;
+    details: string;
+    timestamp: any; // Timestamp
+}
+
+export interface Announcement {
+    message: string;
+    isActive: boolean;
+    type: 'info' | 'warning' | 'error';
+    link?: string;
 }

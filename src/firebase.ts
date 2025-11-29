@@ -1,3 +1,4 @@
+
 // FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
 // Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
 // FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
@@ -6,7 +7,7 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
-import { AppConfig, Purchase, User, BrandKit } from './types';
+import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement } from './types';
 import { resizeImage } from './utils/imageUtils';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -239,6 +240,7 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
       referredBy: null,
       basePlan: null,
       lastTierPurchaseDate: null,
+      isBanned: false,
       dailyMission: {
           completedAt: new Date(0).toISOString(),
           nextUnlock: new Date(0).toISOString(),
@@ -1022,6 +1024,10 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         });
     });
 
+    // Log this admin action
+    const adminSnap = await db.collection('users').doc(adminUid).get();
+    await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_CREDITS', `Added ${amount} to ${targetUid}. Reason: ${reason}`);
+
     const updatedDoc = await userRef.get();
     if (!updatedDoc.exists) {
         throw new Error("Failed to retrieve updated user profile after adding credits.");
@@ -1085,6 +1091,87 @@ export const saveUserBrandKit = async (uid: string, brandKit: BrandKit): Promise
     if (!db) throw new Error("Firestore is not initialized.");
     const userRef = db.collection("users").doc(uid);
     await userRef.update({ brandKit });
+};
+
+// --- NEW ADVANCED ADMIN FUNCTIONS ---
+
+export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => {
+    if (!db) throw new Error("DB not init");
+    const adminRef = db.collection('users').doc(adminUid);
+    const adminSnap = await adminRef.get();
+    
+    await db.collection('users').doc(targetUid).update({ isBanned });
+    await logAdminAction(adminSnap.data()?.email || 'Admin', isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
+};
+
+export const updateUserPlan = async (adminUid: string, targetUid: string, newPlan: string) => {
+    if (!db) throw new Error("DB not init");
+    const adminRef = db.collection('users').doc(adminUid);
+    const adminSnap = await adminRef.get();
+
+    await db.collection('users').doc(targetUid).update({ plan: newPlan });
+    await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
+};
+
+export const logAdminAction = async (adminEmail: string, action: string, details: string) => {
+    if (!db) return;
+    await db.collection('audit_logs').add({
+        adminEmail,
+        action,
+        details,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+};
+
+export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
+    if (!db) return [];
+    try {
+        const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get();
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+    } catch (error) {
+        console.error("Error fetching audit logs", error);
+        return [];
+    }
+};
+
+export const getAnnouncement = async (): Promise<Announcement | null> => {
+    if (!db) return null;
+    try {
+        const snap = await db.collection('config').doc('announcement').get();
+        return snap.exists ? snap.data() as Announcement : null;
+    } catch (error) {
+        console.error("Error getting announcement", error);
+        return null;
+    }
+};
+
+export const updateAnnouncement = async (adminUid: string, announcement: Announcement) => {
+    if (!db) return;
+    const adminRef = db.collection('users').doc(adminUid);
+    const adminSnap = await adminRef.get();
+    
+    await db.collection('config').doc('announcement').set(announcement);
+    await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
+};
+
+export const getGlobalFeatureUsage = async (): Promise<{feature: string, count: number}[]> => {
+    if (!db) return [];
+    try {
+        // Limited query to approximate hot features from recent activity
+        const snap = await db.collectionGroup('transactions').orderBy('date', 'desc').limit(500).get();
+        const counts: {[key:string]: number} = {};
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.feature && !data.feature.includes('Purchase')) {
+                const f = data.feature.split(':')[0].trim(); // Normalize "Merchant: Hero" to "Merchant"
+                counts[f] = (counts[f] || 0) + 1;
+            }
+        });
+        return Object.entries(counts).map(([feature, count]) => ({ feature, count })).sort((a,b) => b.count - a.count);
+    } catch (e) {
+        console.warn("Analytics fetch failed", e);
+        return [];
+    }
 };
 
 export { app, auth };
