@@ -166,5 +166,6 @@ export interface Announcement {
     message: string;
     isActive: boolean;
     type: 'info' | 'warning' | 'error';
+    displayStyle?: 'banner' | 'modal'; // New option for enhanced display
     link?: string;
 }

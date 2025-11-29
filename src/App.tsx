@@ -39,6 +39,57 @@ const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () =>
     );
 };
 
+const GlobalAnnouncementModal: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
+    if (!announcement || !announcement.isActive) return null;
+
+    const styles = {
+        info: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-100', icon: 'text-blue-600' },
+        warning: { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-100', icon: 'text-yellow-600' },
+        error: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-100', icon: 'text-red-600' }
+    };
+    
+    const style = styles[announcement.type];
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-bounce-slight relative">
+                <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-full transition-all">
+                    <XIcon className="w-5 h-5" />
+                </button>
+                
+                <div className={`p-6 text-center ${style.bg} border-b ${style.border}`}>
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <InformationCircleIcon className={`w-8 h-8 ${style.icon}`} />
+                    </div>
+                    <h3 className={`text-xl font-bold ${style.text} mb-1`}>Announcement</h3>
+                </div>
+                
+                <div className="p-6 text-center">
+                    <p className="text-gray-600 leading-relaxed mb-6">{announcement.message}</p>
+                    
+                    {announcement.link ? (
+                        <a 
+                            href={announcement.link} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="block w-full py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                        >
+                            Read More
+                        </a>
+                    ) : (
+                        <button 
+                            onClick={onClose}
+                            className="block w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                        >
+                            Dismiss
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-red-100">
@@ -85,7 +136,7 @@ const App: React.FC = () => {
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
-  const [showBanner, setShowBanner] = useState(true);
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
   
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -117,7 +168,7 @@ const App: React.FC = () => {
     // Subscribe to announcement updates in real-time
     const unsubscribeAnnouncement = subscribeToAnnouncement((ann) => {
         setAnnouncement(ann);
-        setShowBanner(true); // Re-show banner if updated
+        setShowAnnouncement(true); // Re-show on update
     });
 
     fetchConfig();
@@ -387,7 +438,16 @@ const App: React.FC = () => {
           </div>
       )}
 
-      {showBanner && announcement && !impersonatedUser && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
+      {/* Global Announcement Logic */}
+      {showAnnouncement && announcement && announcement.isActive && !impersonatedUser && (
+          <>
+            {announcement.displayStyle === 'modal' ? (
+                <GlobalAnnouncementModal announcement={announcement} onClose={() => setShowAnnouncement(false)} />
+            ) : (
+                <GlobalBanner announcement={announcement} onClose={() => setShowAnnouncement(false)} />
+            )}
+          </>
+      )}
       
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
       {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}

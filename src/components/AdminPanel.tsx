@@ -345,7 +345,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     // Advanced Features Data
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
     const [apiErrorLogs, setApiErrorLogs] = useState<ApiErrorLog[]>([]);
-    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info' });
+    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info', displayStyle: 'banner' });
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -463,7 +463,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const fetchAnnouncement = async () => {
         const ann = await getAnnouncement();
-        if (ann) setAnnouncement(ann);
+        if (ann) setAnnouncement({ ...ann, displayStyle: ann.displayStyle || 'banner' });
     };
 
     // --- ACTIONS ---
@@ -549,7 +549,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const handleClearAnnouncement = async () => {
         if (!auth.user) return;
-        const cleared = { ...announcement, isActive: false, message: '' };
+        const cleared: Announcement = { ...announcement, isActive: false, message: '' };
         setAnnouncement(cleared);
         await updateAnnouncement(auth.user.uid, cleared);
         alert("Announcement cleared.");
@@ -834,65 +834,144 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* --- COMMS TAB --- */}
+            {/* --- COMMS TAB (ENHANCED) --- */}
             {activeTab === 'comms' && (
-                <div className="animate-fadeIn max-w-2xl mx-auto">
+                <div className="animate-fadeIn max-w-4xl mx-auto space-y-8">
+                    {/* Editor Card */}
                     <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div>
-                            <h3 className="text-xl font-bold text-gray-800">Global Announcement</h3>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Global Communication</h3>
+                                <p className="text-sm text-gray-500">Send alerts or announcements to all active users.</p>
+                            </div>
                         </div>
                         
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
-                                <textarea 
-                                    value={announcement.message}
-                                    onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
-                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none transition-shadow"
-                                    placeholder="e.g. Scheduled maintenance tonight at 10 PM."
-                                />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Left: Input */}
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Type</label>
-                                    <select 
-                                        value={announcement.type}
-                                        onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})}
-                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium bg-white"
-                                    >
-                                        <option value="info">Info (Blue)</option>
-                                        <option value="warning">Warning (Yellow)</option>
-                                        <option value="error">Critical (Red)</option>
-                                    </select>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Announcement Text</label>
+                                    <textarea 
+                                        value={announcement.message}
+                                        onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
+                                        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-32 resize-none transition-shadow"
+                                        placeholder="e.g. Scheduled maintenance tonight at 10 PM."
+                                    />
                                 </div>
+                                
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
-                                    <button 
-                                        onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
-                                        className={`w-full h-[46px] rounded-xl text-sm font-bold transition-all border flex items-center justify-center gap-2 ${announcement.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
-                                    >
-                                        <div className={`w-2 h-2 rounded-full ${announcement.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                                        {announcement.isActive ? 'ACTIVE' : 'INACTIVE'}
-                                    </button>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Display Style</label>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setAnnouncement({...announcement, displayStyle: 'banner'})}
+                                            className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${announcement.displayStyle === 'banner' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-200' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            Top Banner
+                                        </button>
+                                        <button 
+                                            onClick={() => setAnnouncement({...announcement, displayStyle: 'modal'})}
+                                            className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${announcement.displayStyle === 'modal' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-200' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            Popup Modal
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Alert Level</label>
+                                        <select 
+                                            value={announcement.type}
+                                            onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})}
+                                            className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium bg-white outline-none cursor-pointer"
+                                        >
+                                            <option value="info">Info (Blue)</option>
+                                            <option value="warning">Warning (Yellow)</option>
+                                            <option value="error">Critical (Red)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
+                                        <button 
+                                            onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
+                                            className={`w-full h-[46px] rounded-xl text-sm font-bold transition-all border flex items-center justify-center gap-2 ${announcement.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+                                        >
+                                            <div className={`w-2.5 h-2.5 rounded-full shadow-sm transition-colors ${announcement.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                                            {announcement.isActive ? 'PUBLISHED' : 'DRAFT'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Link (Optional)</label>
+                                    <input 
+                                        type="text" 
+                                        value={announcement.link || ''}
+                                        onChange={(e) => setAnnouncement({...announcement, link: e.target.value})}
+                                        placeholder="https://..."
+                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm outline-none"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button 
-                                    onClick={handleClearAnnouncement}
-                                    className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors"
-                                >
-                                    Clear & Turn Off
-                                </button>
-                                <button 
-                                    onClick={handleSaveAnnouncement}
-                                    className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-                                >
-                                    Publish
-                                </button>
+                            {/* Right: Live Preview */}
+                            <div className="bg-gray-100 rounded-2xl p-4 flex flex-col justify-center items-center relative overflow-hidden border border-gray-200/50">
+                                <div className="absolute top-4 left-4 bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-gray-500 uppercase tracking-wide border border-gray-200">
+                                    Live Preview
+                                </div>
+                                
+                                {announcement.displayStyle === 'banner' ? (
+                                    <div className="w-full space-y-2">
+                                        <div className="w-full bg-white h-4 rounded-t-lg opacity-50"></div>
+                                        <div className={`w-full py-3 px-4 rounded-lg shadow-sm text-white text-xs font-medium flex items-center justify-center gap-2 ${
+                                            announcement.type === 'info' ? 'bg-blue-600' : 
+                                            announcement.type === 'warning' ? 'bg-yellow-500' : 'bg-red-600'
+                                        }`}>
+                                            <InformationCircleIcon className="w-4 h-4"/>
+                                            <span className="truncate max-w-[200px]">{announcement.message || "Preview Text"}</span>
+                                        </div>
+                                        <div className="w-full bg-white h-32 rounded-b-lg opacity-50 p-4">
+                                            <div className="w-1/3 h-2 bg-gray-200 rounded mb-2"></div>
+                                            <div className="w-2/3 h-2 bg-gray-200 rounded"></div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gray-200/50 rounded-xl border border-gray-200 relative">
+                                        {/* Mock Backdrop */}
+                                        <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]"></div>
+                                        {/* Mock Modal */}
+                                        <div className="bg-white w-4/5 rounded-xl shadow-lg relative z-10 overflow-hidden">
+                                            <div className={`p-4 flex flex-col items-center justify-center border-b ${
+                                                announcement.type === 'info' ? 'bg-blue-50 border-blue-100 text-blue-600' :
+                                                announcement.type === 'warning' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' : 'bg-red-50 border-red-100 text-red-600'
+                                            }`}>
+                                                <InformationCircleIcon className="w-6 h-6 mb-2"/>
+                                                <div className="h-2 w-16 bg-current opacity-20 rounded"></div>
+                                            </div>
+                                            <div className="p-4 text-center">
+                                                <p className="text-xs text-gray-600 mb-4">{announcement.message || "Your message here..."}</p>
+                                                <div className="h-8 w-full bg-gray-100 rounded-lg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+                        </div>
+
+                        <div className="flex gap-4 mt-8 pt-6 border-t border-gray-100">
+                            <button 
+                                onClick={handleClearAnnouncement}
+                                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Clear & Disable
+                            </button>
+                            <button 
+                                onClick={handleSaveAnnouncement}
+                                className="flex-1 py-3 bg-[#1A1A1E] text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                            >
+                                <CheckIcon className="w-5 h-5 text-[#F9D230]"/> Update Announcement
+                            </button>
                         </div>
                     </div>
                 </div>

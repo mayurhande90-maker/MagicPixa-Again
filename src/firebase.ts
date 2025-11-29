@@ -1241,6 +1241,7 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
         message: announcement.message,
         isActive: announcement.isActive,
         type: announcement.type,
+        displayStyle: announcement.displayStyle || 'banner', // Default to banner if missing
         link: announcement.link || ""
     });
     await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
