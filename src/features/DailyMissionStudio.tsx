@@ -199,8 +199,9 @@ export const DailyMissionStudio: React.FC<{
         );
     }
 
-    // STRICT PERSISTENCE: If locked and NOT showing reward modal, show Locked Screen.
-    if (isLocked && !showReward) {
+    // STRICT PERSISTENCE: If locked AND not showing reward AND not viewing a result, show Locked Screen.
+    // This allows the user to stay on the page to view the result after completion.
+    if (isLocked && !showReward && !result) {
          return (
              <div className="flex flex-col items-center justify-center h-full p-8 lg:p-16 max-w-4xl mx-auto animate-fadeIn">
                  <div className="bg-white p-12 rounded-3xl shadow-xl border border-green-100 text-center relative overflow-hidden w-full">
@@ -237,8 +238,8 @@ export const DailyMissionStudio: React.FC<{
                 canGenerate={!!image}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={() => { setImage(null); setResult(null); }}
+                onResetResult={isLocked ? undefined : () => setResult(null)}
+                onNewSession={isLocked ? undefined : () => { setImage(null); setResult(null); }}
                 resultHeightClass="h-[650px]" 
                 hideGenerateButton={true} // Custom button in right panel
                 disableScroll={true} 
@@ -257,7 +258,7 @@ export const DailyMissionStudio: React.FC<{
                                 src={image.url} 
                                 className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} 
                             />
-                            {!loading && (
+                            {!loading && !isLocked && (
                                 <button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 right-4 bg-white/90 p-2.5 rounded-full shadow-lg hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40">
                                     <UploadIcon className="w-5 h-5"/>
                                 </button>
@@ -313,9 +314,9 @@ export const DailyMissionStudio: React.FC<{
                         <div className="mt-auto pt-4 border-t border-gray-200/50 shrink-0 z-10 bg-[#F6F7FA]">
                             <button 
                                 onClick={handleGenerate} 
-                                disabled={!image || loading}
+                                disabled={!image || loading || isLocked}
                                 className={`w-full py-3 rounded-2xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 mb-2 ${
-                                    !image 
+                                    !image || isLocked
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                                     : 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-[1.02] shadow-black/20'
                                 }`}
@@ -324,6 +325,11 @@ export const DailyMissionStudio: React.FC<{
                                     <>
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                         Processing...
+                                    </>
+                                ) : isLocked ? (
+                                    <>
+                                        <CheckIcon className="w-5 h-5 text-green-500"/>
+                                        Completed
                                     </>
                                 ) : (
                                     <>
@@ -345,7 +351,6 @@ export const DailyMissionStudio: React.FC<{
                     reward={activeMission.reward} 
                     onClose={() => { 
                         setShowReward(false); 
-                        navigateTo('dashboard', 'home_dashboard'); 
                     }} 
                 />
             )}

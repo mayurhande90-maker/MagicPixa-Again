@@ -1,5 +1,5 @@
 
-import { Modality } from "@google/genai";
+import { Modality, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -118,7 +118,7 @@ const generateVariant = async (
     OUTPUT: A single image.
     `});
 
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { responseModalities: [Modality.IMAGE] }
