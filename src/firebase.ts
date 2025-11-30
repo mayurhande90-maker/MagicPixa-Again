@@ -69,6 +69,17 @@ const generateReferralCode = (name: string) => {
     return `${prefix}${suffix}`;
 };
 
+const getInitials = (name: string): string => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+};
+
 export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null) => {
   if (!db) throw new Error("Firestore is not initialized.");
   const userRef = db.collection("users").doc(uid);
@@ -108,12 +119,13 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
     return db.collection("users").doc(uid).onSnapshot((doc) => {
         if (doc.exists) {
             const data = doc.data();
+            const name = data?.name || 'User';
             // Map Firestore data to User interface
             const user: User = {
                 uid,
-                name: data?.name || 'User',
+                name: name,
                 email: data?.email || '',
-                avatar: '', // Calculated in App.tsx or use data?.avatar if stored
+                avatar: getInitials(name), 
                 credits: data?.credits || 0,
                 totalCreditsAcquired: data?.totalCreditsAcquired,
                 signUpDate: data?.signUpDate,
