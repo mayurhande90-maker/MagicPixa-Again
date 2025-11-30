@@ -817,6 +817,12 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         transaction.update(userRef, {
             credits: firebase.firestore.FieldValue.increment(safeAmount),
             totalCreditsAcquired: firebase.firestore.FieldValue.increment(safeAmount),
+            // Set the notification on the user document
+            creditGrantNotification: {
+                amount: safeAmount,
+                message: reason,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }
         });
         
         transaction.set(newTransactionRef, {
@@ -839,6 +845,17 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     
     const updatedDoc = await userRef.get();
     return updatedDoc.data();
+};
+
+export const clearCreditGrantNotification = async (uid: string) => {
+    if (!db) return;
+    try {
+        await db.collection('users').doc(uid).update({
+            creditGrantNotification: firebase.firestore.FieldValue.delete()
+        });
+    } catch (error) {
+        console.error("Failed to clear credit notification:", error);
+    }
 };
 
 export const uploadBrandAsset = async (uid: string, base64: string, type: string): Promise<string> => {

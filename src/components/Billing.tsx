@@ -44,7 +44,7 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
     );
 };
 
-const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveView }) => {
+export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveView }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -68,7 +68,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
 
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
-    if (feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant')) {
+    if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant')) {
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
@@ -359,8 +359,18 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
                                                         {getIconForFeature(tx.feature)}
                                                     </div>
                                                     <div>
-                                                         <p className="font-bold text-gray-800">{tx.feature}</p>
-                                                         <p className="text-[10px] font-medium text-gray-400 mt-0.5">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                         {/* Custom Logic for Credit Grant Display */}
+                                                         {tx.feature === 'MagicPixa Credit Grant' ? (
+                                                             <>
+                                                                <p className="font-bold text-gray-800">{tx.reason}</p>
+                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">Admin Grant</p>
+                                                             </>
+                                                         ) : (
+                                                             <>
+                                                                <p className="font-bold text-gray-800">{tx.feature}</p>
+                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                             </>
+                                                         )}
                                                     </div>
                                                 </div>
                                                  {tx.creditChange ? (
@@ -386,7 +396,6 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
                 )}
             </div>
         </div>
-      </div>
       
       {isInfoModalOpen && (
           <div 
@@ -437,5 +446,4 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
     </>
   );
 };
-
-export default Billing;
+    

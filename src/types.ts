@@ -89,6 +89,13 @@ export interface User {
       read: boolean;
       timestamp: any;
   };
+
+  // Credit Grant Notification
+  creditGrantNotification?: {
+      amount: number;
+      message: string;
+      timestamp: any;
+  } | null;
 }
 
 export interface AuthProps {

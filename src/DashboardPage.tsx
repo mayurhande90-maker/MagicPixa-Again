@@ -1,8 +1,9 @@
+
 import React, { useState, useRef } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Billing from './components/Billing';
+import { Billing } from './components/Billing';
 import { AdminPanel } from './components/AdminPanel';
 import { ReferralModal } from './components/ReferralModal';
 import { MagicPhotoStudio } from './features/MagicPhotoStudio';
@@ -256,3 +257,4 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 };
 
 export default DashboardPage;
+    

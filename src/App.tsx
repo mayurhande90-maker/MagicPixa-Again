@@ -21,6 +21,7 @@ import {
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
 import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
+import { CreditGrantModal } from './components/CreditGrantModal';
 
 const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
     if (!announcement || !announcement.isActive) return null;
@@ -380,7 +381,44 @@ const App: React.FC = () => {
           />
       )}
       
+      {/* Show Global Announcement if active */}
       {showBanner && announcement && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
+      
+      {/* Show Admin System Notifications (Persistent Bar) */}
+      {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+          <div className={`
+              w-full px-4 py-3 flex items-center justify-between text-sm font-medium z-[90] shadow-sm
+              ${activeUser.systemNotification.type === 'warning' ? 'bg-yellow-50 text-yellow-800 border-b border-yellow-100' : 
+                activeUser.systemNotification.type === 'success' ? 'bg-green-50 text-green-800 border-b border-green-100' : 
+                'bg-blue-50 text-blue-800 border-b border-blue-100'}
+          `}>
+              <div className="flex items-center gap-2 mx-auto max-w-7xl w-full">
+                  <InformationCircleIcon className="w-5 h-5 shrink-0" />
+                  <span>{activeUser.systemNotification.message}</span>
+              </div>
+              <button 
+                  onClick={async () => {
+                      // Mark as read in Firestore
+                      if (auth && activeUser) {
+                          // Simple update to clear it or mark read
+                          await updateUserProfile(activeUser.uid, { systemNotification: null });
+                      }
+                  }}
+                  className="p-1 hover:bg-black/5 rounded-full"
+              >
+                  <XIcon className="w-4 h-4" />
+              </button>
+          </div>
+      )}
+
+      {/* Credit Grant Modal */}
+      {activeUser?.creditGrantNotification && (
+          <CreditGrantModal 
+              userId={activeUser.uid}
+              amount={activeUser.creditGrantNotification.amount}
+              message={activeUser.creditGrantNotification.message}
+          />
+      )}
       
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
       {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
