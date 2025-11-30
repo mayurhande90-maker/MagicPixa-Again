@@ -4,9 +4,6 @@ import { Timestamp } from 'firebase/firestore';
 
 // Add Razorpay to the global window interface
 declare global {
-    // FIX: Moved the AIStudio interface inside `declare global` to properly augment the
-    // global `Window` type and resolve declaration merging conflicts. This prevents
-    // subsequent property declaration errors.
     interface AIStudio {
       hasSelectedApiKey: () => Promise<boolean>;
       openSelectKey: () => Promise<void>;
@@ -14,7 +11,6 @@ declare global {
 
     interface Window {
       Razorpay: any;
-      // Add aistudio for video generation API key selection
       aistudio?: AIStudio;
     }
 }
@@ -36,9 +32,9 @@ export interface BrandKit {
         body: string;
     };
     logos: {
-        primary: string | null; // URL
-        secondary: string | null; // URL
-        mark: string | null; // URL
+        primary: string | null;
+        secondary: string | null;
+        mark: string | null;
     };
 }
 
@@ -50,39 +46,36 @@ export interface User {
   credits: number;
   totalCreditsAcquired?: number;
   signUpDate?: { seconds: number; nanoseconds: number };
-  plan?: string; // Display Name (e.g. "Studio Pack | Top-up")
+  plan?: string; 
   
   // Storage & Tier Logic
-  basePlan?: string | null; // The underlying high-tier plan (e.g. "Studio Pack")
-  lastTierPurchaseDate?: Timestamp | null; // When the high-tier plan was bought
-  storageTier?: 'limited' | 'unlimited'; // 'limited' = 30 days, 'unlimited' = forever
+  basePlan?: string | null;
+  lastTierPurchaseDate?: Timestamp | null;
+  storageTier?: 'limited' | 'unlimited';
 
-  isAdmin?: boolean; // Added for admin access control
-  isBanned?: boolean; // New: Account suspension status
-  notes?: string; // New: Admin notes for user
+  isAdmin?: boolean;
+  isBanned?: boolean; // Account suspension status
+  notes?: string; // Admin notes
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking
   
   // Engagement Features
-  lifetimeGenerations?: number; // Track total generations for milestones
-  lastAttendanceClaim?: Timestamp; // Track daily check-in
+  lifetimeGenerations?: number;
+  lastAttendanceClaim?: Timestamp;
 
-  lastDailyMissionCompleted?: Timestamp; // Legacy field, keeping for backward compatibility
+  lastDailyMissionCompleted?: Timestamp;
   dailyMission?: {
-      completedAt: string; // ISO string
-      nextUnlock: string;  // ISO string
+      completedAt: string;
+      nextUnlock: string;
       lastMissionId?: string;
   };
 
-  // Referral System
   referralCode?: string;
   referredBy?: string;
   referralCount?: number;
 
-  // Brand Kit
   brandKit?: BrandKit;
   
-  // Admin System Notifications
   systemNotification?: {
       message: string;
       type: 'info' | 'warning' | 'success';
@@ -97,17 +90,15 @@ export interface AuthProps {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   handleLogout: () => void;
   openAuthModal: () => void;
+  impersonateUser?: (user: User) => void; // New for Admin
 }
 
 export interface Transaction {
     id: string;
     feature: string;
-    // Cost is now the INR amount for purchases, or credit amount for deductions
     cost: number; 
     date: Timestamp;
-    // creditChange stores the string representation, e.g., "+165"
     creditChange?: string;
-    // Fields for admin grants
     reason?: string;
     grantedBy?: string;
 }
@@ -126,7 +117,7 @@ export interface Purchase {
 export interface Creation {
     id: string;
     imageUrl: string;
-    thumbnailUrl?: string; // Added for optimization
+    thumbnailUrl?: string;
     storagePath: string;
     feature: string;
     createdAt: Timestamp;
@@ -154,7 +145,7 @@ export interface AuditLog {
     adminEmail: string;
     action: string;
     details: string;
-    timestamp: any; // Timestamp
+    timestamp: any;
 }
 
 export interface ApiErrorLog {
