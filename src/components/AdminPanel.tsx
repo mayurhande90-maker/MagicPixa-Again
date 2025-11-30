@@ -63,6 +63,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
     const [creditReason, setCreditReason] = useState('Customer Support');
     const [notifMessage, setNotifMessage] = useState('');
     const [notifType, setNotifType] = useState<'info' | 'success' | 'warning'>('info');
+    const [notifStyle, setNotifStyle] = useState<'banner' | 'pill' | 'toast' | 'modal'>('banner'); // New State
     const [isActionLoading, setIsActionLoading] = useState(false);
 
     useEffect(() => {
@@ -116,7 +117,8 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
         if(!user.uid || !notifMessage || !currentUser.uid) return;
         setIsActionLoading(true);
         try {
-            await sendSystemNotification(currentUser.uid, user.uid, notifMessage, notifType);
+            // Pass the selected style
+            await sendSystemNotification(currentUser.uid, user.uid, notifMessage, notifType, notifStyle);
             alert("Notification sent to user dashboard.");
             setNotifMessage('');
         } catch (e) {
@@ -202,14 +204,39 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
                             <div className="space-y-6">
                                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Send In-App Notification</h3>
-                                    <div className="space-y-3">
-                                        <textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)} className="w-full p-2 border rounded-lg text-sm h-20 resize-none" placeholder="Message to user..." />
-                                        <div className="flex gap-2">
-                                            {['info', 'success', 'warning'].map((t) => (
-                                                <button key={t} onClick={() => setNotifType(t as any)} className={`flex-1 py-1 text-xs font-bold rounded capitalize border ${notifType === t ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>{t}</button>
-                                            ))}
+                                    <div className="space-y-4">
+                                        <textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm h-20 resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="Message to user..." />
+                                        
+                                        {/* Type Selector */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1.5 block">Message Tone</label>
+                                            <div className="flex gap-2">
+                                                {['info', 'success', 'warning'].map((t) => (
+                                                    <button key={t} onClick={() => setNotifType(t as any)} className={`flex-1 py-2 text-xs font-bold rounded-lg capitalize border transition-all ${notifType === t ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{t}</button>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <button onClick={handleSendNotification} disabled={isActionLoading || !notifMessage} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">Send Alert</button>
+
+                                        {/* Style Selector */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1.5 block">Visual Style</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button onClick={() => setNotifStyle('banner')} className={`py-2 px-3 rounded-lg text-xs font-bold border text-left transition-all ${notifStyle === 'banner' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                                    📢 Top Banner
+                                                </button>
+                                                <button onClick={() => setNotifStyle('pill')} className={`py-2 px-3 rounded-lg text-xs font-bold border text-left transition-all ${notifStyle === 'pill' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                                    💊 Floating Pill
+                                                </button>
+                                                <button onClick={() => setNotifStyle('toast')} className={`py-2 px-3 rounded-lg text-xs font-bold border text-left transition-all ${notifStyle === 'toast' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                                    🍞 Corner Toast
+                                                </button>
+                                                <button onClick={() => setNotifStyle('modal')} className={`py-2 px-3 rounded-lg text-xs font-bold border text-left transition-all ${notifStyle === 'modal' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                                    🛑 Center Modal
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <button onClick={handleSendNotification} disabled={isActionLoading || !notifMessage} className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-200 transition-all transform active:scale-95">Send Alert</button>
                                     </div>
                                 </div>
                             </div>

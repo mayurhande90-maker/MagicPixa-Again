@@ -86,6 +86,7 @@ export interface User {
   systemNotification?: {
       message: string;
       type: 'info' | 'warning' | 'success';
+      style?: 'banner' | 'pill' | 'toast' | 'modal'; // Added style property
       read: boolean;
       timestamp: any;
   };

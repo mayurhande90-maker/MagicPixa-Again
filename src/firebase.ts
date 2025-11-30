@@ -911,7 +911,14 @@ export const updateUserPlan = async (adminUid: string, targetUid: string, newPla
     } catch (e) { console.warn("Audit logging failed", e); }
 };
 
-export const sendSystemNotification = async (adminUid: string, targetUid: string, message: string, type: 'info' | 'warning' | 'success') => {
+// Updated to accept 'style'
+export const sendSystemNotification = async (
+    adminUid: string, 
+    targetUid: string, 
+    message: string, 
+    type: 'info' | 'warning' | 'success',
+    style: 'banner' | 'pill' | 'toast' | 'modal' = 'banner' // Default to banner
+) => {
     if (!db) return;
     
     // Write directly to user profile for real-time listener pick-up
@@ -919,6 +926,7 @@ export const sendSystemNotification = async (adminUid: string, targetUid: string
         systemNotification: {
             message,
             type,
+            style, // Save the chosen style
             read: false,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }
@@ -927,7 +935,7 @@ export const sendSystemNotification = async (adminUid: string, targetUid: string
     try {
         const adminRef = db.collection('users').doc(adminUid);
         const adminSnap = await adminRef.get();
-        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Msg: ${message}`);
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Style: ${style}, Msg: ${message}`);
     } catch (e) { console.warn("Audit logging failed", e); }
 };
 
