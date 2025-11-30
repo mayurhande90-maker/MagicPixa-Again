@@ -108,52 +108,70 @@ export const updateUserProfile = async (uid: string, data: { [key: string]: any 
 // Admin Helpers
 export const logAdminAction = async (adminEmail: string, action: string, details: string) => {
     if (!db) return;
-    db.collection('audit_logs').add({
-        adminEmail,
-        action,
-        details,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(e => console.warn("Failed to write audit log:", e));
+    try {
+        await db.collection('audit_logs').add({
+            adminEmail,
+            action,
+            details,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch(e) {
+        console.warn("Failed to write audit log:", e);
+    }
 };
 
 export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => {
     if (!db) throw new Error("DB not init");
+    
+    // Perform update
     await db.collection('users').doc(targetUid).set({ isBanned }, { merge: true });
     
-    const adminRef = db.collection('users').doc(adminUid);
-    adminRef.get().then(snap => {
-        logAdminAction(snap.data()?.email || 'Admin', isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
-    });
+    // Log action safely
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        const adminEmail = adminSnap.data()?.email || 'Admin';
+        await logAdminAction(adminEmail, isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
+    } catch(e) {
+        console.warn("Logging failed for ban action, but ban applied.", e);
+    }
 };
 
 export const updateUserPlan = async (adminUid: string, targetUid: string, newPlan: string) => {
     if (!db) throw new Error("DB not init");
     await db.collection('users').doc(targetUid).set({ plan: newPlan }, { merge: true });
     
-    const adminRef = db.collection('users').doc(adminUid);
-    adminRef.get().then(snap => {
-        logAdminAction(snap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
-    });
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
+    } catch(e) {
+        console.warn("Logging failed", e);
+    }
 };
 
 export const sendSystemNotification = async (adminUid: string, targetUid: string, message: string) => {
     if (!db) throw new Error("DB not init");
     await db.collection('users').doc(targetUid).set({ systemNotification: message }, { merge: true });
     
-    const adminRef = db.collection('users').doc(adminUid);
-    adminRef.get().then(snap => {
-        logAdminAction(snap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `Target: ${targetUid}, Msg: ${message}`);
-    });
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `Target: ${targetUid}, Msg: ${message}`);
+    } catch(e) {
+        console.warn("Logging failed", e);
+    }
 };
 
 export const logApiError = async (endpoint: string, errorMsg: string, userId?: string) => {
     if (!db) return;
-    db.collection('api_error_logs').add({
-        endpoint,
-        error: errorMsg,
-        userId: userId || 'anonymous',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(e => console.warn("Failed to log API error", e));
+    try {
+        await db.collection('api_error_logs').add({
+            endpoint,
+            error: errorMsg,
+            userId: userId || 'anonymous',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.warn("Failed to log API error", e);
+    }
 };
 
 export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
@@ -233,18 +251,20 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
         isActive: announcement.isActive,
         type: announcement.type,
         displayStyle: announcement.displayStyle || 'banner', 
-        link: announcement.link || ""
+        link: announcement.link || "" // Explicitly saving link
     });
     
-    const adminRef = db.collection('users').doc(adminUid);
-    adminRef.get().then(snap => {
-        logAdminAction(snap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
-    });
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
+    } catch(e) {
+        console.warn("Log failed", e);
+    }
 };
 
-// --- Missing Functions Implementation ---
+// --- Other Services ---
 
-export const deductCredits = async (uid: string, amount: number, feature: string) => {
+export const deductCredits = async (uid: string, amount: number, feature: string): Promise<User> => {
     if (!db) throw new Error("DB not init");
     const userRef = db.collection('users').doc(uid);
     
@@ -271,7 +291,7 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     });
     
     const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid };
+    return { ...updatedSnap.data(), uid } as User;
 };
 
 export const saveCreation = async (uid: string, imageUrl: string, feature: string) => {
@@ -315,7 +335,7 @@ export const getCreditHistory = async (uid: string) => {
     }
 };
 
-export const completeDailyMission = async (uid: string, reward: number, missionId: string) => {
+export const completeDailyMission = async (uid: string, reward: number, missionId: string): Promise<User> => {
     if (!db) throw new Error("DB not init");
     const userRef = db.collection('users').doc(uid);
     
@@ -339,10 +359,10 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
     });
 
     const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid };
+    return { ...updatedSnap.data(), uid } as User;
 };
 
-export const purchaseTopUp = async (uid: string, packName: string, credits: number, amountPaid: number) => {
+export const purchaseTopUp = async (uid: string, packName: string, credits: number, amountPaid: number): Promise<User> => {
     if (!db) throw new Error("DB not init");
     const userRef = db.collection('users').doc(uid);
     
@@ -367,10 +387,10 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
     });
 
     const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid };
+    return { ...updatedSnap.data(), uid } as User;
 };
 
-export const claimDailyAttendance = async (uid: string) => {
+export const claimDailyAttendance = async (uid: string): Promise<User> => {
     if (!db) throw new Error("DB not init");
     const userRef = db.collection('users').doc(uid);
     
@@ -387,10 +407,10 @@ export const claimDailyAttendance = async (uid: string) => {
     });
 
     const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid };
+    return { ...updatedSnap.data(), uid } as User;
 };
 
-export const claimReferralCode = async (uid: string, code: string) => {
+export const claimReferralCode = async (uid: string, code: string): Promise<User> => {
     if (!db) throw new Error("DB not init");
     
     const referrerSnap = await db.collection('users').where('referralCode', '==', code).limit(1).get();
@@ -434,7 +454,7 @@ export const claimReferralCode = async (uid: string, code: string) => {
     await batch.commit();
     
     const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid };
+    return { ...updatedSnap.data(), uid } as User;
 };
 
 export const uploadBrandAsset = async (uid: string, dataUri: string, type: string) => {
@@ -458,7 +478,8 @@ export const getAppConfig = async (): Promise<AppConfig> => {
 export const updateAppConfig = async (adminUid: string, config: AppConfig) => {
     if (!db) return;
     await db.collection('config').doc('app_settings').set(config);
-    logAdminAction(adminUid, 'UPDATE_CONFIG', 'Updated app settings');
+    const snap = await db.collection('users').doc(adminUid).get();
+    logAdminAction(snap.data()?.email || 'Admin', 'UPDATE_CONFIG', 'Updated app settings');
 };
 
 export const getRecentSignups = async (limit = 10) => {
@@ -492,10 +513,10 @@ export const getTotalRevenue = async () => {
     }
 };
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (): Promise<User[]> => {
     if (!db) return [];
     const snap = await db.collection('users').limit(100).get();
-    return snap.docs.map(d => ({uid: d.id, ...d.data()}));
+    return snap.docs.map(d => ({uid: d.id, ...d.data()} as User));
 };
 
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number) => {
@@ -504,7 +525,8 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(amount)
     });
-    logAdminAction(adminUid, 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}`);
+    const snap = await db.collection('users').doc(adminUid).get();
+    logAdminAction(snap.data()?.email || 'Admin', 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}`);
 };
 
 export const getGlobalFeatureUsage = async () => {
