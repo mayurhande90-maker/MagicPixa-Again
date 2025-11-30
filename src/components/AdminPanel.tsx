@@ -17,7 +17,8 @@ import {
     getCreations,
     sendSystemNotification,
     getApiErrorLogs,
-    get24HourCreditBurn
+    get24HourCreditBurn,
+    getRevenueStats
 } from '../firebase';
 import { 
     UsersIcon, 
@@ -37,7 +38,8 @@ import {
     ArrowLeftIcon,
     ArrowRightIcon,
     DownloadIcon,
-    SystemIcon
+    SystemIcon,
+    EyeIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -104,6 +106,21 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
         }
     };
 
+    const formatFullDate = (timestamp: any) => {
+        if (!timestamp) return 'Never';
+        // Handle Firestore Timestamp or Date object
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+        return date.toLocaleString('en-US', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-fadeIn">
@@ -145,6 +162,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Total Spent</span><span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span></div>
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Plan</span><span className="text-sm font-bold bg-blue-50 text-blue-600 px-2 rounded">{user.plan || 'Free'}</span></div>
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Joined</span><span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span></div>
+                                        <div className="flex justify-between border-t border-gray-100 pt-2"><span className="text-sm text-gray-600">Last Active</span><span className="text-sm font-bold text-gray-800">{formatFullDate(user.lastActive)}</span></div>
                                     </div>
                                 </div>
                                 
@@ -209,6 +227,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         revenue: 0, signups: [], purchases: []
     });
     const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
+    const [revenueHistory, setRevenueHistory] = useState<{ date: string; amount: number }[]>([]);
 
     // Users Data (With Client-Side Pagination)
     const [allUsers, setAllUsers] = useState<User[]>([]); 
@@ -276,12 +295,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const loadOverview = async () => {
         try {
-            const [rev, signups, purchases] = await Promise.all([
+            const [rev, signups, purchases, revHistory] = await Promise.all([
                 getTotalRevenue(),
                 getRecentSignups(10),
-                getRecentPurchases(10)
+                getRecentPurchases(10),
+                getRevenueStats(7)
             ]);
             setStats({ revenue: rev, signups, purchases });
+            setRevenueHistory(revHistory);
 
             // Calculate Burn Stats
             const burn24 = await get24HourCreditBurn();
@@ -471,25 +492,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         </div>
                     </div>
 
-                    {/* Revenue Chart (Mock Visual) & Feature Config */}
+                    {/* Revenue Chart & Feature Config */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                             <h3 className="font-bold text-gray-800 mb-6">Revenue Trend (Last 7 Days)</h3>
                             <div className="h-48 flex items-end justify-between gap-2">
-                                {/* Simple CSS Bar Chart Visualization */}
-                                {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
-                                    <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer">
-                                        <div 
-                                            className="w-full bg-blue-100 rounded-t-lg transition-all duration-500 group-hover:bg-blue-500 relative" 
-                                            style={{ height: `${h}%` }}
-                                        >
-                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                ₹{(h * 150)}
+                                {/* Bar Chart Visualization */}
+                                {revenueHistory.length > 0 ? (
+                                    revenueHistory.map((item, i) => {
+                                        // Calculate max for scale, with fallback to avoid division by zero
+                                        const maxAmount = Math.max(...revenueHistory.map(r => r.amount), 100);
+                                        const heightPercent = Math.max((item.amount / maxAmount) * 100, 5); // Min 5% height for visibility
+                                        
+                                        return (
+                                            <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer">
+                                                <div 
+                                                    className="w-full bg-blue-100 rounded-t-lg transition-all duration-500 group-hover:bg-blue-500 relative flex items-end justify-center" 
+                                                    style={{ height: `${heightPercent}%` }}
+                                                >
+                                                    <div className="absolute -top-8 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold">
+                                                        ₹{item.amount.toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                <p className="text-center text-[9px] sm:text-[10px] text-gray-400 mt-2 font-bold truncate px-1">{item.date}</p>
                                             </div>
-                                        </div>
-                                        <p className="text-center text-[10px] text-gray-400 mt-2 font-bold">Day {i+1}</p>
-                                    </div>
-                                ))}
+                                        );
+                                    })
+                                ) : (
+                                    <p className="text-gray-400 text-sm w-full text-center py-10">No revenue data available.</p>
+                                )}
                             </div>
                         </div>
 
@@ -577,6 +608,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                         <td className="p-4 font-mono text-green-600 font-bold">₹{u.totalSpent || 0}</td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button 
+                                                    onClick={() => auth.impersonateUser && auth.impersonateUser(u)} 
+                                                    className="p-1.5 hover:bg-orange-100 rounded text-gray-500 hover:text-orange-600"
+                                                    title="View As User"
+                                                >
+                                                    <EyeIcon className="w-4 h-4"/>
+                                                </button>
                                                 <button onClick={() => setSelectedUserForDetail(u)} className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600"><InformationCircleIcon className="w-4 h-4"/></button>
                                                 <button onClick={() => handleToggleBan(u)} className={`p-1.5 rounded transition-colors ${u.isBanned ? 'bg-red-600 text-white' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}>
                                                     <XIcon className="w-4 h-4"/>

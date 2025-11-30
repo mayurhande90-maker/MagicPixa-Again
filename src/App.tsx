@@ -10,7 +10,7 @@ import ToastNotification from './components/ToastNotification';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, getAnnouncement } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
-import { InformationCircleIcon, XIcon, ShieldCheckIcon } from './components/icons';
+import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
 
 const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
     if (!announcement || !announcement.isActive) return null;
@@ -46,14 +46,33 @@ const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
                 <ShieldCheckIcon className="w-10 h-10 text-red-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Suspended</h1>
-            <p className="text-gray-500 mb-8">
-                Your account has been suspended due to a violation of our terms of service. Please contact support if you believe this is an error.
+            <p className="text-gray-500 mb-4">
+                Your account has been suspended due to a violation of our terms of service.
             </p>
+            <div className="bg-red-50 p-3 rounded-lg mb-6 text-sm text-red-700 border border-red-100">
+                Contact Support: <br/>
+                <a href="mailto:support@magicpixa.com" className="font-bold underline">support@magicpixa.com</a>
+            </div>
             <button 
                 onClick={onLogout}
                 className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
             >
                 Sign Out
+            </button>
+        </div>
+    </div>
+);
+
+const ImpersonationBanner: React.FC<{ originalUser: User; targetUser: User; onExit: () => void }> = ({ originalUser, targetUser, onExit }) => (
+    <div className="bg-orange-500 text-white px-4 py-3 relative flex items-center justify-center shadow-md z-[110]">
+        <div className="flex items-center gap-3 text-sm font-bold">
+            <EyeIcon className="w-5 h-5" />
+            <span>Viewing as: <span className="underline">{targetUser.email}</span> ({targetUser.name})</span>
+            <button 
+                onClick={onExit}
+                className="ml-4 bg-white text-orange-600 px-3 py-1 rounded-full text-xs hover:bg-orange-50 transition-colors uppercase tracking-wider"
+            >
+                Exit View Mode
             </button>
         </div>
     </div>
@@ -68,7 +87,11 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [activeView, setActiveView] = useState<View>('home_dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  
+  // Auth State
+  const [user, setUser] = useState<User | null>(null); // The actual logged-in user
+  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // The admin is viewing this user
+  
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
@@ -82,6 +105,9 @@ const App: React.FC = () => {
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'logout'>('success');
+
+  // Computed User: If impersonating, the app sees the target user. Otherwise, the real user.
+  const activeUser = impersonatedUser || user;
 
   const getInitials = (name: string): string => {
     if (!name) return '';
@@ -168,12 +194,14 @@ const App: React.FC = () => {
           setAuthError(null); 
         } else {
           setUser(null);
+          setImpersonatedUser(null); // Clear impersonation on logout
           setIsAuthenticated(false);
         }
       } catch (error) {
         console.error("Error in onAuthStateChanged handler:", error);
         setAuthError("Failed to load your user profile. Please try signing in again.");
         setUser(null);
+        setImpersonatedUser(null);
         setIsAuthenticated(false);
         if (auth) {
             auth.signOut(); 
@@ -267,10 +295,14 @@ const App: React.FC = () => {
   };
   
   const handleSaveProfile = async (newName: string) => {
-    if (user && newName.trim() && user.name !== newName) {
+    if (activeUser && newName.trim() && activeUser.name !== newName) {
       try {
-        await updateUserProfile(user.uid, { name: newName });
-        setUser(prevUser => {
+        await updateUserProfile(activeUser.uid, { name: newName });
+        
+        // If impersonating, update impersonatedUser. If real, update user.
+        const updateFn = impersonatedUser ? setImpersonatedUser : setUser;
+        
+        updateFn(prevUser => {
           if (!prevUser) return null;
           return {
             ...prevUser,
@@ -285,6 +317,22 @@ const App: React.FC = () => {
     }
   };
   
+  // Impersonation Handler
+  const handleImpersonate = (targetUser: User | null) => {
+      setImpersonatedUser(targetUser);
+      if (targetUser) {
+          setToastMessage(`Now viewing as ${targetUser.name}`);
+          setToastType('info');
+          // Reset to home dashboard view when switching users to avoid broken states
+          navigateTo('dashboard', 'home_dashboard');
+      } else {
+          setToastMessage(`Exited View Mode`);
+          setToastType('success');
+          // Return admin to admin panel
+          navigateTo('dashboard', 'admin');
+      }
+  };
+
   const openAuthModal = () => setAuthModalOpen(true);
   const closeAuthModal = () => {
       setAuthModalOpen(false);
@@ -293,10 +341,11 @@ const App: React.FC = () => {
 
   const authProps: AuthProps = {
     isAuthenticated,
-    user,
-    setUser,
+    user: activeUser, // Pass the effective user (either real or impersonated)
+    setUser: impersonatedUser ? setImpersonatedUser : setUser, // Allow updates to flow to the correct state
     handleLogout,
     openAuthModal,
+    impersonateUser: handleImpersonate
   };
 
   if (isLoadingAuth || isConfigLoading) {
@@ -310,13 +359,34 @@ const App: React.FC = () => {
     );
   }
 
-  // Suspended User Lockout
-  if (user && user.isBanned) {
-      return <BannedScreen onLogout={handleLogout} />;
+  // Suspended User Lockout (Only applies if user is logged in AND not an admin impersonating them)
+  // If an admin impersonates a banned user, they should still see the interface (to debug) or maybe see the banned screen?
+  // Let's allow admins to see the banned screen to verify it works, but provide the exit button.
+  if (activeUser && activeUser.isBanned) {
+      return (
+        <>
+            {impersonatedUser && user && (
+                <ImpersonationBanner 
+                    originalUser={user} 
+                    targetUser={impersonatedUser} 
+                    onExit={() => handleImpersonate(null)} 
+                />
+            )}
+            <BannedScreen onLogout={handleLogout} />
+        </>
+      );
   }
 
   return (
     <div className="min-h-screen flex flex-col">
+      {impersonatedUser && user && (
+          <ImpersonationBanner 
+            originalUser={user} 
+            targetUser={impersonatedUser} 
+            onExit={() => handleImpersonate(null)} 
+          />
+      )}
+      
       {showBanner && announcement && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
       
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
@@ -330,9 +400,9 @@ const App: React.FC = () => {
           error={authError}
         />
       )}
-      {editProfileModalOpen && user && (
+      {editProfileModalOpen && activeUser && (
         <EditProfileModal
-          user={user}
+          user={activeUser}
           onClose={() => setEditProfileModalOpen(false)}
           onSave={handleSaveProfile}
         />

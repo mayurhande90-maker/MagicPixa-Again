@@ -90,8 +90,6 @@ export const signInWithGoogle = async () => {
     }
 };
 
-// ... (existing code for getOrCreateUserProfile, claimReferralCode, etc. until updateUserProfile)
-
 export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null) => {
   if (!db) throw new Error("Firestore is not initialized.");
   // DEFINITIVE FIX: Switched to 'compat' API for document reference and retrieval.
@@ -730,6 +728,56 @@ export const getTotalRevenue = async (): Promise<number> => {
         total += doc.data().amountPaid || 0;
     });
     return total;
+};
+
+// Aggregates revenue data by date for charts
+export const getRevenueStats = async (days: number = 7): Promise<{ date: string; amount: number }[]> => {
+    if (!db) return [];
+    
+    // Create an array of last 7 days keys
+    const dates: string[] = [];
+    const stats: Record<string, number> = {};
+    const endDate = new Date();
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        // Format: "Jan 15"
+        const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        dates.push(key);
+        stats[key] = 0;
+    }
+
+    // Calculate start date for query
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    try {
+        const purchasesRef = db.collection('purchases')
+            .where('purchaseDate', '>=', startDate)
+            .orderBy('purchaseDate', 'asc');
+        
+        const snapshot = await purchasesRef.get();
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.purchaseDate) {
+                const date = data.purchaseDate.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (stats[date] !== undefined) {
+                    stats[date] += (data.amountPaid || 0);
+                }
+            }
+        });
+
+        // Convert to array in correct order
+        return dates.map(date => ({
+            date,
+            amount: stats[date]
+        }));
+    } catch (e) {
+        console.error("Failed to fetch revenue stats:", e);
+        return dates.map(date => ({ date, amount: 0 }));
+    }
 };
 
 export const getAllUsers = async (): Promise<any[]> => {
