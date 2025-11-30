@@ -403,12 +403,33 @@ export const deleteCreation = async (uid: string, creation: any) => {
 export const getCreditHistory = async (uid: string) => {
     if (!db) return [];
     try {
-        const snap = await db.collection('users').doc(uid).collection('history')
-            .orderBy('date', 'desc')
-            .limit(50)
-            .get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let snap;
+        try {
+            // Try ordered query first
+            snap = await db.collection('users').doc(uid).collection('history')
+                .orderBy('date', 'desc')
+                .limit(50)
+                .get();
+        } catch (idxError) {
+            console.warn("Index error on credit history, falling back to unsorted query", idxError);
+            // Fallback to unsorted if index is missing
+            snap = await db.collection('users').doc(uid).collection('history')
+                .limit(50)
+                .get();
+        }
+        
+        const history = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Ensure sorting on client side in case server sort failed or wasn't applied
+        history.sort((a: any, b: any) => {
+            const tA = a.date?.seconds || 0;
+            const tB = b.date?.seconds || 0;
+            return tB - tA;
+        });
+        
+        return history;
     } catch(e) {
+        console.error("Failed to fetch credit history:", e);
         return [];
     }
 };
