@@ -99,6 +99,49 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
   }
 };
 
+// REAL-TIME LISTENER FOR USER PROFILE
+export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
+    if (!db) return () => {};
+    return db.collection("users").doc(uid).onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            // Map Firestore data to User interface
+            const user: User = {
+                uid,
+                name: data?.name || 'User',
+                email: data?.email || '',
+                avatar: '', // Calculated in App.tsx or use data?.avatar if stored
+                credits: data?.credits || 0,
+                totalCreditsAcquired: data?.totalCreditsAcquired,
+                signUpDate: data?.signUpDate,
+                plan: data?.plan,
+                basePlan: data?.basePlan,
+                lastTierPurchaseDate: data?.lastTierPurchaseDate,
+                storageTier: data?.storageTier,
+                isAdmin: false, // Set in App.tsx via claim check
+                isBanned: data?.isBanned || false,
+                notes: data?.notes,
+                lastActive: data?.lastActive,
+                totalSpent: data?.totalSpent,
+                lifetimeGenerations: data?.lifetimeGenerations,
+                lastAttendanceClaim: data?.lastAttendanceClaim,
+                lastDailyMissionCompleted: data?.lastDailyMissionCompleted,
+                dailyMission: data?.dailyMission,
+                referralCode: data?.referralCode,
+                referredBy: data?.referredBy,
+                referralCount: data?.referralCount,
+                brandKit: data?.brandKit,
+                systemNotification: data?.systemNotification
+            };
+            callback(user);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Error subscribing to user profile:", error);
+    });
+};
+
 export const updateUserProfile = async (uid: string, data: { [key: string]: any }): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized.");
     const userRef = db.collection("users").doc(uid);
@@ -484,6 +527,21 @@ export const saveUserBrandKit = async (uid: string, kit: any) => {
     await db.collection('users').doc(uid).update({ brandKit: kit });
 };
 
+// REAL-TIME LISTENER FOR APP CONFIG
+export const subscribeToAppConfig = (callback: (config: AppConfig) => void) => {
+    if (!db) return () => {};
+    return db.collection('config').doc('app_settings').onSnapshot((doc) => {
+        if (doc.exists) {
+            callback(doc.data() as AppConfig);
+        } else {
+            // Return defaults if not set
+            callback({ featureCosts: {}, featureToggles: {}, creditPacks: [] });
+        }
+    }, (error) => {
+        console.error("Error subscribing to app config:", error);
+    });
+};
+
 export const getAppConfig = async (): Promise<AppConfig> => {
     if (!db) return { featureCosts: {}, featureToggles: {}, creditPacks: [] };
     const doc = await db.collection('config').doc('app_settings').get();
@@ -492,9 +550,15 @@ export const getAppConfig = async (): Promise<AppConfig> => {
 
 export const updateAppConfig = async (adminUid: string, config: AppConfig) => {
     if (!db) return;
-    await db.collection('config').doc('app_settings').set(config);
-    const snap = await db.collection('users').doc(adminUid).get();
-    logAdminAction(snap.data()?.email || 'Admin', 'UPDATE_CONFIG', 'Updated app settings');
+    // Use set with merge to be safe, though config should be complete object usually
+    await db.collection('config').doc('app_settings').set(config, { merge: true });
+    
+    try {
+        const snap = await db.collection('users').doc(adminUid).get();
+        logAdminAction(snap.data()?.email || 'Admin', 'UPDATE_CONFIG', 'Updated app settings');
+    } catch (e) {
+        console.warn("Log failed", e);
+    }
 };
 
 export const getRecentSignups = async (limit = 10) => {
@@ -558,8 +622,12 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         });
     });
 
-    const snap = await db.collection('users').doc(adminUid).get();
-    logAdminAction(snap.data()?.email || 'Admin', 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}. Reason: ${message}`);
+    try {
+        const snap = await db.collection('users').doc(adminUid).get();
+        logAdminAction(snap.data()?.email || 'Admin', 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}. Reason: ${message}`);
+    } catch(e) {
+        console.warn("Log failed", e);
+    }
 };
 
 export const get24HourCreditBurn = async () => {
@@ -569,7 +637,6 @@ export const get24HourCreditBurn = async () => {
     try {
         // Query all history documents from all users where date > yesterday
         // Note: This requires a Collection Group Index on 'history' collection for the 'date' field.
-        // If index is missing, this query will fail or return empty depending on SDK version/mode.
         const query = db.collectionGroup('history').where('date', '>', yesterday);
         const snap = await query.get();
         let total = 0;

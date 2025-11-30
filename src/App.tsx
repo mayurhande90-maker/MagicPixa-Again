@@ -7,7 +7,17 @@ import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import ToastNotification from './components/ToastNotification';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, subscribeToAnnouncement } from './firebase'; 
+import { 
+    auth, 
+    isConfigValid, 
+    getMissingConfigKeys, 
+    signInWithGoogle, 
+    updateUserProfile, 
+    getOrCreateUserProfile, 
+    subscribeToAnnouncement,
+    subscribeToUserProfile, // New import
+    subscribeToAppConfig    // New import
+} from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
 import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon, MegaphoneIcon } from './components/icons';
@@ -175,27 +185,22 @@ const App: React.FC = () => {
       .toUpperCase();
   };
   
+  // Real-time Subscriptions for App Config and Announcement
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const config = await getAppConfig();
+    const unsubConfig = subscribeToAppConfig((config) => {
         setAppConfig(config);
-      } catch (error) {
-        console.error("Failed to load app configuration:", error);
-      } finally {
         setIsConfigLoading(false);
-      }
-    };
+    });
     
-    // Subscribe to announcement updates in real-time
-    const unsubscribeAnnouncement = subscribeToAnnouncement((ann) => {
+    const unsubAnnounce = subscribeToAnnouncement((ann) => {
         setAnnouncement(ann);
-        setShowAnnouncement(true); // Re-show on update
+        setShowAnnouncement(true); 
     });
 
-    fetchConfig();
-    
-    return () => unsubscribeAnnouncement();
+    return () => {
+        unsubConfig();
+        unsubAnnounce();
+    };
   }, []);
 
   // Capture referral code from URL
@@ -208,53 +213,47 @@ const App: React.FC = () => {
       }
   }, []);
 
+  // Auth State Listener with Real-time User Profile
   useEffect(() => {
     if (!auth) {
       setIsLoadingAuth(false);
       return;
     }
   
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    let userUnsubscribe: (() => void) | undefined;
+
+    const unsubscribeAuth = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
         if (firebaseUser) {
           const idTokenResult = await firebaseUser.getIdTokenResult();
-          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() }); // Update last active timestamp
-          const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() }); 
           
-          // Check for admin claim or specific email for dev purposes
+          // Ensure profile exists once
+          await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+          
           const isAdmin = !!idTokenResult.claims.isAdmin || firebaseUser.email === 'mayurhande90@gmail.com';
-          
-          const profileData = userProfile as any;
 
-          const userToSet: User = {
-            uid: firebaseUser.uid,
-            name: profileData.name || firebaseUser.displayName || 'User',
-            email: profileData.email || firebaseUser.email || 'No Email',
-            avatar: getInitials(profileData.name || firebaseUser.displayName || ''),
-            credits: profileData.credits,
-            totalCreditsAcquired: profileData.totalCreditsAcquired,
-            signUpDate: profileData.signUpDate,
-            lastActive: profileData.lastActive,
-            plan: profileData.plan,
-            isAdmin: isAdmin,
-            isBanned: profileData.isBanned || false, // Mapping ban status
-            totalSpent: profileData.totalSpent || 0,
-            dailyMission: profileData.dailyMission, 
-            lifetimeGenerations: profileData.lifetimeGenerations || 0,
-            lastAttendanceClaim: profileData.lastAttendanceClaim || null,
-            referralCode: profileData.referralCode,
-            referralCount: profileData.referralCount,
-            referredBy: profileData.referredBy,
-            brandKit: profileData.brandKit,
-            storageTier: profileData.storageTier,
-            systemNotification: profileData.systemNotification
-          };
-          setUser(userToSet);
-          setIsAuthenticated(true);
+          // Set up real-time listener for the user profile
+          // This handles credits, ban status, notifications, plan changes instantly.
+          userUnsubscribe = subscribeToUserProfile(firebaseUser.uid, (updatedUser) => {
+              if (updatedUser) {
+                  setUser({ ...updatedUser, isAdmin });
+                  setIsAuthenticated(true);
+              } else {
+                  // Fallback if doc missing (shouldn't happen after getOrCreate)
+                  setUser(null);
+                  setIsAuthenticated(false);
+              }
+          });
+
           setAuthError(null); 
         } else {
           setUser(null);
           setIsAuthenticated(false);
+          if (userUnsubscribe) {
+              userUnsubscribe();
+              userUnsubscribe = undefined;
+          }
         }
       } catch (error) {
         console.error("Error in onAuthStateChanged handler:", error);
@@ -269,7 +268,10 @@ const App: React.FC = () => {
       }
     });
   
-    return () => unsubscribe();
+    return () => {
+        unsubscribeAuth();
+        if (userUnsubscribe) userUnsubscribe();
+    };
   }, []);
 
   const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
@@ -329,7 +331,6 @@ const App: React.FC = () => {
     } catch (error: any) {
        console.error("Google Sign-In Error:", error);
        if (error.code === 'auth/unauthorized-domain') {
-          // ... error handling logic ...
           setAuthError("Domain not authorized. Please check console.");
        } else if (error.code === 'auth/account-exists-with-different-credential') {
             setAuthError('An account already exists with this email address.');
@@ -366,12 +367,11 @@ const App: React.FC = () => {
     if (targetUser && newName.trim() && targetUser.name !== newName) {
       try {
         await updateUserProfile(targetUser.uid, { name: newName });
-        // Update local state
-        const updateState = (prev: User | null) => prev ? { ...prev, name: newName, avatar: getInitials(newName) } : null;
-        
-        if (impersonatedUser) setImpersonatedUser(updateState);
-        else setUser(updateState);
-
+        // State update happens automatically via subscription for real user
+        // For impersonated user, we might need manual update if we don't have a listener for them
+        if (impersonatedUser) {
+             setImpersonatedUser({ ...impersonatedUser, name: newName, avatar: getInitials(newName) });
+        }
         setEditProfileModalOpen(false);
       } catch (error) {
         console.error("Failed to update profile:", error);
@@ -384,9 +384,8 @@ const App: React.FC = () => {
       if (targetUser) {
           try {
               await updateUserProfile(targetUser.uid, { systemNotification: null });
-              const updateState = (prev: User | null) => prev ? { ...prev, systemNotification: null } : null;
-              if (impersonatedUser) setImpersonatedUser(updateState);
-              else setUser(updateState);
+              // Local update for immediate feedback (though listener will catch it)
+              if (impersonatedUser) setImpersonatedUser({ ...impersonatedUser, systemNotification: null });
           } catch (error) {
               console.error("Failed to dismiss notification", error);
           }

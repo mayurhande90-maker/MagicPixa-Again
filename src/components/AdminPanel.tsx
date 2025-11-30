@@ -89,7 +89,7 @@ const StatCard: React.FC<{
 );
 
 // --- User Detail Modal ---
-const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; adminUid: string; onRefresh: () => void; }> = ({ user, onClose, onViewAs, adminUid, onRefresh }) => {
+const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; adminUid: string; onRefresh: () => Promise<void>; }> = ({ user, onClose, onViewAs, adminUid, onRefresh }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [manualPlan, setManualPlan] = useState(user.plan || 'Free');
@@ -102,12 +102,17 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
         if (activeTab === 'creations') getCreations(user.uid).then(setUserCreations);
     }, [activeTab, user.uid]);
 
+    // Update local state when prop user changes (e.g. after refresh)
+    useEffect(() => {
+        setManualPlan(user.plan || 'Free');
+    }, [user]);
+
     const handleUpdatePlan = async () => {
         setIsProcessing(true);
         try {
             await updateUserPlan(adminUid, user.uid, manualPlan);
             alert("Plan successfully updated.");
-            onRefresh(); // Refresh parent list
+            await onRefresh(); // Refresh parent list and current user details
         } catch (e) {
             console.error(e);
             alert("Failed to update plan.");
@@ -139,7 +144,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
             setGrantAmount(0);
             setGrantReason('');
             alert(`Successfully granted ${grantAmount} credits.`);
-            onRefresh();
+            await onRefresh(); // Refresh parent list and current user details
         } catch (e) {
             console.error(e);
             alert("Failed to grant credits.");
@@ -478,12 +483,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const toggleFeature = async (featureId: string, currentState: boolean) => {
-        if (!auth.user || !appConfig) return;
+        if (!auth.user) return;
         
+        const currentToggles = appConfig?.featureToggles || {};
         const updatedConfig = {
-            ...appConfig,
+            featureCosts: appConfig?.featureCosts || {},
+            creditPacks: appConfig?.creditPacks || [],
             featureToggles: {
-                ...appConfig.featureToggles,
+                ...currentToggles,
                 [featureId]: !currentState
             }
         };
@@ -546,8 +553,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             color="bg-blue-100" 
                         />
                         <StatCard 
-                            title="Credit Burn (24h)" 
-                            value={stats.creditBurn24h.toLocaleString()} 
+                            title="Total Credit Burn" 
+                            value={stats.totalSpent.toLocaleString()}
+                            subValue={`${stats.creditBurn24h.toLocaleString()} in last 24h`}
                             icon={<SparklesIcon className="w-6 h-6 text-orange-600" />} 
                             color="bg-orange-100" 
                         />
@@ -937,9 +945,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         if(auth.impersonateUser) auth.impersonateUser(selectedUser); 
                         setSelectedUser(null); 
                     }} 
-                    onRefresh={() => {
-                        getAllUsers().then(setAllUsers);
-                        setSelectedUser(null);
+                    onRefresh={async () => {
+                        const users = await getAllUsers();
+                        setAllUsers(users);
+                        // Update selected user view if still selected
+                        const updated = users.find(u => u.uid === selectedUser.uid);
+                        if(updated) setSelectedUser(updated);
                     }}
                 />
             )}
