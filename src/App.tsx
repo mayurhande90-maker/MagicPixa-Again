@@ -7,7 +7,17 @@ import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
 import EditProfileModal from './components/EditProfileModal';
 import ToastNotification from './components/ToastNotification';
-import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, getAnnouncement } from './firebase'; 
+import { 
+  auth, 
+  isConfigValid, 
+  getMissingConfigKeys, 
+  signInWithGoogle, 
+  updateUserProfile, 
+  getOrCreateUserProfile, 
+  subscribeToAppConfig,
+  subscribeToAnnouncement,
+  subscribeToUserProfile
+} from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
 import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
@@ -109,36 +119,24 @@ const App: React.FC = () => {
   // Computed User: If impersonating, the app sees the target user. Otherwise, the real user.
   const activeUser = impersonatedUser || user;
 
-  const getInitials = (name: string): string => {
-    if (!name) return '';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-  };
-  
+  // Real-time Subscriptions for Config & Announcements
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const config = await getAppConfig();
+    // 1. App Configuration
+    const unsubConfig = subscribeToAppConfig((config) => {
         setAppConfig(config);
-      } catch (error) {
-        console.error("Failed to load app configuration:", error);
-      } finally {
         setIsConfigLoading(false);
-      }
-    };
-    
-    const fetchAnnouncement = async () => {
-        const ann = await getAnnouncement();
-        setAnnouncement(ann);
-    };
+    });
 
-    fetchConfig();
-    fetchAnnouncement();
+    // 2. Global Announcements
+    const unsubAnnounce = subscribeToAnnouncement((ann) => {
+        setAnnouncement(ann);
+        if (ann?.isActive) setShowBanner(true);
+    });
+
+    return () => {
+        unsubConfig();
+        unsubAnnounce();
+    };
   }, []);
 
   // Capture referral code from URL
@@ -151,67 +149,75 @@ const App: React.FC = () => {
       }
   }, []);
 
+  // Auth & User Profile Subscription
   useEffect(() => {
     if (!auth) {
       setIsLoadingAuth(false);
       return;
     }
   
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
+    let userUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      // Clear previous user listener if any
+      if (userUnsubscribe) {
+          userUnsubscribe();
+          userUnsubscribe = null;
+      }
+
+      if (firebaseUser) {
+        try {
+          // 1. Get Claims (Admin Status)
           const idTokenResult = await firebaseUser.getIdTokenResult();
-          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() }); // Update last active timestamp
-          const userProfile = await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
-          
-          // Check for admin claim or specific email for dev purposes
           const isAdmin = !!idTokenResult.claims.isAdmin || firebaseUser.email === 'mayurhande90@gmail.com';
           
-          const userToSet: User = {
-            uid: firebaseUser.uid,
-            name: userProfile.name || firebaseUser.displayName || 'User',
-            email: userProfile.email || firebaseUser.email || 'No Email',
-            avatar: getInitials(userProfile.name || firebaseUser.displayName || ''),
-            credits: userProfile.credits,
-            totalCreditsAcquired: userProfile.totalCreditsAcquired,
-            signUpDate: userProfile.signUpDate,
-            lastActive: userProfile.lastActive,
-            plan: userProfile.plan,
-            isAdmin: isAdmin,
-            isBanned: userProfile.isBanned || false, // Mapping ban status
-            totalSpent: userProfile.totalSpent || 0,
-            dailyMission: userProfile.dailyMission, 
-            lifetimeGenerations: userProfile.lifetimeGenerations || 0,
-            lastAttendanceClaim: userProfile.lastAttendanceClaim || null,
-            referralCode: userProfile.referralCode,
-            referralCount: userProfile.referralCount,
-            referredBy: userProfile.referredBy,
-            brandKit: userProfile.brandKit,
-            storageTier: userProfile.storageTier
-          };
-          setUser(userToSet);
-          setIsAuthenticated(true);
-          setAuthError(null); 
-        } else {
+          // 2. Ensure Profile Exists (Run migration/creation logic once)
+          await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
+          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() });
+
+          // 3. Subscribe to Real-time Profile Updates
+          userUnsubscribe = subscribeToUserProfile(firebaseUser.uid, (firestoreUser) => {
+              if (firestoreUser) {
+                  // Merge Auth Data with Firestore Data
+                  const userToSet: User = {
+                      ...firestoreUser,
+                      isAdmin: isAdmin,
+                      // Prefer Auth email as it's authoritative
+                      email: firebaseUser.email || firestoreUser.email,
+                      // Fallback name
+                      name: firestoreUser.name || firebaseUser.displayName || 'User',
+                  };
+                  setUser(userToSet);
+                  setIsAuthenticated(true);
+                  setAuthError(null);
+              } else {
+                  // Should rare, but handle if doc missing
+                  setUser(null);
+                  setIsAuthenticated(false);
+              }
+              setIsLoadingAuth(false);
+          });
+
+        } catch (error) {
+          console.error("Error in onAuthStateChanged handler:", error);
+          setAuthError("Failed to load your user profile. Please try signing in again.");
           setUser(null);
-          setImpersonatedUser(null); // Clear impersonation on logout
+          setImpersonatedUser(null);
           setIsAuthenticated(false);
+          setIsLoadingAuth(false);
         }
-      } catch (error) {
-        console.error("Error in onAuthStateChanged handler:", error);
-        setAuthError("Failed to load your user profile. Please try signing in again.");
+      } else {
         setUser(null);
         setImpersonatedUser(null);
         setIsAuthenticated(false);
-        if (auth) {
-            auth.signOut(); 
-        }
-      } finally {
         setIsLoadingAuth(false);
       }
     });
   
-    return () => unsubscribe();
+    return () => {
+        authUnsubscribe();
+        if (userUnsubscribe) userUnsubscribe();
+    };
   }, []);
 
   const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
@@ -298,18 +304,7 @@ const App: React.FC = () => {
     if (activeUser && newName.trim() && activeUser.name !== newName) {
       try {
         await updateUserProfile(activeUser.uid, { name: newName });
-        
-        // If impersonating, update impersonatedUser. If real, update user.
-        const updateFn = impersonatedUser ? setImpersonatedUser : setUser;
-        
-        updateFn(prevUser => {
-          if (!prevUser) return null;
-          return {
-            ...prevUser,
-            name: newName,
-            avatar: getInitials(newName),
-          };
-        });
+        // No need to manually update state here, subscription will handle it!
         setEditProfileModalOpen(false);
       } catch (error) {
         console.error("Failed to update profile:", error);
@@ -359,9 +354,7 @@ const App: React.FC = () => {
     );
   }
 
-  // Suspended User Lockout (Only applies if user is logged in AND not an admin impersonating them)
-  // If an admin impersonates a banned user, they should still see the interface (to debug) or maybe see the banned screen?
-  // Let's allow admins to see the banned screen to verify it works, but provide the exit button.
+  // Suspended User Lockout
   if (activeUser && activeUser.isBanned) {
       return (
         <>

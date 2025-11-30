@@ -90,6 +90,12 @@ export const signInWithGoogle = async () => {
     }
 };
 
+export const getUser = async (uid: string): Promise<User | null> => {
+    if (!db) return null;
+    const doc = await db.collection('users').doc(uid).get();
+    return doc.exists ? ({ uid: doc.id, ...doc.data() } as User) : null;
+};
+
 export const getOrCreateUserProfile = async (uid: string, name?: string | null, email?: string | null) => {
   if (!db) throw new Error("Firestore is not initialized.");
   // DEFINITIVE FIX: Switched to 'compat' API for document reference and retrieval.
@@ -823,9 +829,13 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         });
     });
     
-    // Log action outside transaction (Admin always exists if logged in)
-    const adminSnap = await db.collection('users').doc(adminUid).get();
-    await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_CREDITS', `Added ${safeAmount} to ${targetUid}. Reason: ${reason}`);
+    // Log action outside transaction in try-catch to prevent failure if logs are locked
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_CREDITS', `Added ${safeAmount} to ${targetUid}. Reason: ${reason}`);
+    } catch (e) {
+        console.warn("Audit logging failed (Permissions?):", e);
+    }
     
     const updatedDoc = await userRef.get();
     return updatedDoc.data();
@@ -857,24 +867,28 @@ export const saveUserBrandKit = async (uid: string, brandKit: BrandKit): Promise
 
 export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => {
     if (!db) throw new Error("DB not init");
-    const adminRef = db.collection('users').doc(adminUid);
-    const adminSnap = await adminRef.get();
     await db.collection('users').doc(targetUid).update({ isBanned });
-    await logAdminAction(adminSnap.data()?.email || 'Admin', isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
+    
+    try {
+        const adminRef = db.collection('users').doc(adminUid);
+        const adminSnap = await adminRef.get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', isBanned ? 'BAN_USER' : 'UNBAN_USER', `Target: ${targetUid}`);
+    } catch (e) { console.warn("Audit logging failed", e); }
 };
 
 export const updateUserPlan = async (adminUid: string, targetUid: string, newPlan: string) => {
     if (!db) throw new Error("DB not init");
-    const adminRef = db.collection('users').doc(adminUid);
-    const adminSnap = await adminRef.get();
     await db.collection('users').doc(targetUid).update({ plan: newPlan });
-    await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
+    
+    try {
+        const adminRef = db.collection('users').doc(adminUid);
+        const adminSnap = await adminRef.get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_PLAN', `Target: ${targetUid}, New Plan: ${newPlan}`);
+    } catch (e) { console.warn("Audit logging failed", e); }
 };
 
 export const sendSystemNotification = async (adminUid: string, targetUid: string, message: string, type: 'info' | 'warning' | 'success') => {
     if (!db) return;
-    const adminRef = db.collection('users').doc(adminUid);
-    const adminSnap = await adminRef.get();
     
     // Write directly to user profile for real-time listener pick-up
     await db.collection('users').doc(targetUid).set({
@@ -886,17 +900,25 @@ export const sendSystemNotification = async (adminUid: string, targetUid: string
         }
     }, { merge: true });
 
-    await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Msg: ${message}`);
+    try {
+        const adminRef = db.collection('users').doc(adminUid);
+        const adminSnap = await adminRef.get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Msg: ${message}`);
+    } catch (e) { console.warn("Audit logging failed", e); }
 };
 
 export const logAdminAction = async (adminEmail: string, action: string, details: string) => {
     if (!db) return;
-    await db.collection('audit_logs').add({
-        adminEmail,
-        action,
-        details,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    try {
+        await db.collection('audit_logs').add({
+            adminEmail,
+            action,
+            details,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.warn("Failed to write to audit_logs (Check permissions)", e);
+    }
 };
 
 export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
@@ -981,9 +1003,6 @@ export const getAnnouncement = async (): Promise<Announcement | null> => {
 export const updateAnnouncement = async (adminUid: string, announcement: Announcement) => {
     if (!db) return;
     try {
-        const adminRef = db.collection('users').doc(adminUid);
-        const adminSnap = await adminRef.get();
-        
         // Create a clean object to avoid undefined value errors in Firestore
         const cleanAnn: any = {
             message: announcement.message || "",
@@ -994,7 +1013,13 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
         if (announcement.link) cleanAnn.link = announcement.link;
 
         await db.collection('config').doc('announcement').set(cleanAnn);
-        await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Msg: ${cleanAnn.message}`);
+        
+        try {
+            const adminRef = db.collection('users').doc(adminUid);
+            const adminSnap = await adminRef.get();
+            await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Msg: ${cleanAnn.message}`);
+        } catch (e) { console.warn("Audit logging failed", e); }
+
     } catch (error: any) {
         console.error("Update Announcement Error:", error);
         throw error;

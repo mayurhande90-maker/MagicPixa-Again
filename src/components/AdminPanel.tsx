@@ -18,7 +18,8 @@ import {
     sendSystemNotification,
     getApiErrorLogs,
     get24HourCreditBurn,
-    getRevenueStats
+    getRevenueStats,
+    getUser // New helper
 } from '../firebase';
 import { 
     UsersIcon, 
@@ -49,7 +50,10 @@ interface AdminPanelProps {
 }
 
 // User Detail Modal Component
-const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void }> = ({ user, currentUser, onClose }) => {
+const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void }> = ({ user: initialUser, currentUser, onClose }) => {
+    // Maintain local user state to support instant refresh
+    const [user, setUser] = useState<User>(initialUser);
+    
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [isLoadingCreations, setIsLoadingCreations] = useState(false);
@@ -65,7 +69,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
         if (activeTab === 'creations') {
             loadCreations();
         }
-    }, [activeTab]);
+    }, [activeTab, user.uid]);
 
     const loadCreations = async () => {
         setIsLoadingCreations(true);
@@ -79,16 +83,30 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
         }
     };
 
+    const refreshUserData = async () => {
+        try {
+            const updatedUser = await getUser(user.uid);
+            if (updatedUser) setUser(updatedUser);
+        } catch (e) {
+            console.error("Failed to refresh user data", e);
+        }
+    };
+
     const handleGrantCredits = async () => {
         if(!user.uid || !currentUser.uid) return;
         setIsActionLoading(true);
         try {
-            // Use the actual logged-in admin's UID instead of hardcoded 'ADMIN'
             await addCreditsToUser(currentUser.uid, user.uid, creditsToAdd, creditReason);
-            alert(`Granted ${creditsToAdd} credits successfully.`);
-        } catch (e) {
+            alert(`Success! Granted ${creditsToAdd} credits to ${user.name}.`);
+            // Refresh to show new balance immediately
+            await refreshUserData();
+        } catch (e: any) {
             console.error("Grant Credits Error:", e);
-            alert("Failed to grant credits. Check console for permission details.");
+            if (e.code === 'permission-denied' || e.message?.includes('permission')) {
+                alert("Permission Denied: Please update the 'Firestore Rules' in the Firebase Console.");
+            } else {
+                alert(`Failed to grant credits: ${e.message}`);
+            }
         } finally {
             setIsActionLoading(false);
         }
@@ -111,7 +129,6 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
 
     const formatFullDate = (timestamp: any) => {
         if (!timestamp) return 'Never';
-        // Handle Firestore Timestamp or Date object
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
         return date.toLocaleString('en-US', { 
             weekday: 'short', 
@@ -174,7 +191,9 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
                                     <div className="space-y-3">
                                         <input type="number" value={creditsToAdd} onChange={(e) => setCreditsToAdd(Number(e.target.value))} className="w-full p-2 border rounded-lg text-sm" placeholder="Amount" />
                                         <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Reason" />
-                                        <button onClick={handleGrantCredits} disabled={isActionLoading} className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50">Grant Now</button>
+                                        <button onClick={handleGrantCredits} disabled={isActionLoading} className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50">
+                                            {isActionLoading ? 'Processing...' : 'Grant Now'}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -232,7 +251,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
     const [revenueHistory, setRevenueHistory] = useState<{ date: string; amount: number }[]>([]);
 
-    // Users Data (With Client-Side Pagination)
+    // Users Data
     const [allUsers, setAllUsers] = useState<User[]>([]); 
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -256,25 +275,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Initial Load
     useEffect(() => {
         if (appConfig) setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
         loadOverview();
         fetchAnnouncement();
     }, [appConfig]);
 
-    // Tab Loaders
     useEffect(() => {
         if (activeTab === 'users') loadUsers();
         if (activeTab === 'system') loadLogs();
         if (activeTab === 'analytics') loadAnalytics();
     }, [activeTab]);
 
-    // Filtering & Sorting
     useEffect(() => {
         let res = [...allUsers];
         
-        // Filter
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
             res = res.filter(u => 
@@ -284,7 +299,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             );
         }
 
-        // Sort
         res.sort((a, b) => {
             if (sortMode === 'credits') return b.credits - a.credits;
             const dateA = a.signUpDate ? (a.signUpDate as any).seconds : 0;
@@ -293,7 +307,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         });
 
         setFilteredUsers(res);
-        setCurrentPage(1); // Reset to page 1 on filter change
+        setCurrentPage(1);
     }, [searchTerm, allUsers, sortMode]);
 
     const loadOverview = async () => {
@@ -307,11 +321,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             setStats({ revenue: rev, signups, purchases });
             setRevenueHistory(revHistory);
 
-            // Calculate Burn Stats
             const burn24 = await get24HourCreditBurn();
-            
-            // Calc Lifetime Burn: Total Acquired (from all users) - Total Currently Held
-            // We need all users for this, might be heavy if users > 1000, but for now it's okay
             const allUsersSnap = await getAllUsers();
             let totalAcquired = 0;
             let totalHeld = 0;
@@ -320,7 +330,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 totalHeld += (u.credits || 0);
             });
             const totalBurn = Math.max(0, totalAcquired - totalHeld);
-            
             setBurnStats({ totalBurn, burn24h: burn24 });
 
         } catch (e) {
@@ -340,21 +349,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const loadLogs = async () => {
         setIsRefreshingLogs(true);
-        if (systemLogType === 'audit') {
-            const logs = await getAuditLogs(50);
-            setAuditLogs(logs);
-        } else {
-            const errors = await getApiErrorLogs(50);
-            setApiErrors(errors);
+        try {
+            if (systemLogType === 'audit') {
+                const logs = await getAuditLogs(50);
+                setAuditLogs(logs);
+            } else {
+                const errors = await getApiErrorLogs(50);
+                setApiErrors(errors);
+            }
+        } catch (e) {
+            console.error("Logs permission error", e);
         }
         setIsRefreshingLogs(false);
     };
 
-    // Auto-refresh logs if on system tab
     useEffect(() => {
         let interval: any;
         if (activeTab === 'system') {
-            interval = setInterval(loadLogs, 60000); // 1 min
+            interval = setInterval(loadLogs, 60000); 
         }
         return () => clearInterval(interval);
     }, [activeTab, systemLogType]);
@@ -369,12 +381,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         if (ann) setAnnouncement(ann);
     };
 
-    // Actions
     const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => {
         if (!localConfig) return;
         setLocalConfig(prev => {
             if(!prev) return null;
-            // Create deep copy to avoid mutation
             const next = JSON.parse(JSON.stringify(prev));
             if (section === 'featureToggles') next.featureToggles[key] = value;
             return next;
@@ -384,10 +394,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const saveConfig = async () => {
         if (!localConfig) return;
-        await updateAppConfig(localConfig);
-        onConfigUpdate(localConfig);
-        setHasChanges(false);
-        alert("Configuration saved.");
+        try {
+            await updateAppConfig(localConfig);
+            onConfigUpdate(localConfig);
+            setHasChanges(false);
+            alert("Configuration saved.");
+        } catch (e) {
+            console.error("Config save error", e);
+            alert("Failed to save config. Check permissions.");
+        }
     };
 
     const handleToggleBan = async (user: User) => {
@@ -423,13 +438,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         a.click();
     };
 
-    // Pagination Logic
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
     const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
     const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
-    // Helpers
     const TabButton = ({ id, label, icon: Icon }: any) => (
         <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'}`}>
             <Icon className="w-4 h-4" /> {label}
@@ -451,10 +464,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             </div>
 
-            {/* OVERVIEW */}
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-fadeIn">
-                    {/* KPI Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                             <div className="flex justify-between items-start mb-4">
@@ -473,7 +484,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             <p className="text-2xl font-black text-[#1A1A1E]">{allUsers.length}</p>
                         </div>
 
-                        {/* Credit Burn Card */}
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -mr-10 -mt-10 blur-xl opacity-50"></div>
                             <div className="flex justify-between items-start mb-4 relative z-10">
@@ -486,7 +496,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             </div>
                         </div>
 
-                        {/* Config Status */}
                         <div className="bg-gray-900 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
@@ -501,18 +510,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         </div>
                     </div>
 
-                    {/* Revenue Chart & Feature Config */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                             <h3 className="font-bold text-gray-800 mb-6">Revenue Trend (Last 7 Days)</h3>
                             <div className="h-48 flex items-end justify-between gap-2">
-                                {/* Bar Chart Visualization */}
                                 {revenueHistory.length > 0 ? (
                                     revenueHistory.map((item, i) => {
-                                        // Calculate max for scale, with fallback to avoid division by zero
                                         const maxAmount = Math.max(...revenueHistory.map(r => r.amount), 100);
-                                        const heightPercent = Math.max((item.amount / maxAmount) * 100, 5); // Min 5% height for visibility
-                                        
+                                        const heightPercent = Math.max((item.amount / maxAmount) * 100, 5);
                                         return (
                                             <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer">
                                                 <div 
@@ -533,7 +538,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             </div>
                         </div>
 
-                        {/* Quick Feature Toggles */}
                         {localConfig && (
                             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
                                 <div className="flex justify-between items-center mb-4">
@@ -559,7 +563,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* USERS TAB */}
             {activeTab === 'users' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
                     <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
@@ -636,7 +639,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1} className="p-2 rounded hover:bg-gray-200 disabled:opacity-50"><ArrowLeftIcon className="w-4 h-4"/></button>
                         <span className="text-xs font-bold text-gray-500">Page {currentPage} of {totalPages}</span>
@@ -645,7 +647,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* COMMS TAB */}
             {activeTab === 'comms' && (
                 <div className="max-w-2xl mx-auto animate-fadeIn bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
@@ -687,7 +688,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* SYSTEM TAB */}
             {activeTab === 'system' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -727,11 +727,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 ))}
                             </tbody>
                         </table>
+                        {((systemLogType === 'audit' && auditLogs.length === 0) || (systemLogType === 'api' && apiErrors.length === 0)) && (
+                            <div className="p-8 text-center text-gray-400 text-sm">
+                                No logs found.
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* ANALYTICS TAB */}
             {activeTab === 'analytics' && (
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
                     <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Usage Heatmap</h3>
