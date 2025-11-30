@@ -119,6 +119,13 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
             needsUpdate = true;
         }
 
+        // REPAIR LOGIC: Backfill totalCreditsAcquired for legacy users to fix Admin Panel Burn Stats
+        // If missing, we assume it equals current credits (resetting historical burn to 0 for tracking moving forward)
+        if (userData.totalCreditsAcquired === undefined) {
+             updatePayload.totalCreditsAcquired = userData.credits || 0;
+             needsUpdate = true;
+        }
+
         if (!userData.dailyMission) {
             updatePayload.dailyMission = {
                 completedAt: new Date(0).toISOString(),
@@ -983,8 +990,7 @@ export const get24HourCreditBurn = async (): Promise<number> => {
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
         
         // Use a Collection Group Query to search ALL subcollections named 'transactions'
-        // Note: This requires a Firestore Composite Index.
-        // If not present, the query will fail (caught by catch block).
+        // Note: This requires a Firestore Composite Index on 'date' (Descending).
         const query = db.collectionGroup('transactions')
             .where('date', '>=', yesterday);
             
@@ -993,17 +999,26 @@ export const get24HourCreditBurn = async (): Promise<number> => {
         let totalBurn = 0;
         snap.forEach(doc => {
             const data = doc.data();
-            // We only care about deductions (where cost > 0), not grants/purchases (cost might be amountPaid or 0)
-            // Typically deductions have a positive 'cost' field representing credits spent.
-            // Purchases have 'creditsAdded'.
-            if (data.cost > 0 && !data.creditChange?.includes('+')) {
+            // FILTER LOGIC:
+            // 1. cost > 0: Must represent usage/spend.
+            // 2. !creditChange.includes('+'): Exclude Grants/Purchases (which have +10, +50 etc).
+            //    Note: Purchases have 'cost' as amountPaid (INR), but also have creditChange '+'.
+            //    Deductions have 'cost' as credits, and NO creditChange field (or empty).
+            
+            const isPositiveChange = data.creditChange && data.creditChange.includes('+');
+            
+            if (data.cost > 0 && !isPositiveChange) {
                 totalBurn += data.cost;
             }
         });
         return totalBurn;
-    } catch (e) {
-        console.warn("24h Burn Calc Failed (Index missing?):", e);
-        return 0; // Return 0 gracefully
+    } catch (e: any) {
+        if (e.code === 'failed-precondition') {
+             console.error("CRITICAL: Missing Firestore Index for Credit Burn stats. Open console to see the link to create it.", e);
+        } else {
+             console.warn("24h Burn Calc Failed:", e);
+        }
+        return 0;
     }
 };
 
