@@ -1048,16 +1048,16 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
             message: announcement.message || "",
             isActive: !!announcement.isActive,
             type: announcement.type || 'info',
-            displayStyle: announcement.displayStyle || 'banner'
+            style: announcement.style || 'banner', // Correctly save the style field
+            link: announcement.link || ""
         };
-        if (announcement.link) cleanAnn.link = announcement.link;
 
         await db.collection('config').doc('announcement').set(cleanAnn);
         
         try {
             const adminRef = db.collection('users').doc(adminUid);
             const adminSnap = await adminRef.get();
-            await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Msg: ${cleanAnn.message}`);
+            await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Style: ${cleanAnn.style}, Msg: ${cleanAnn.message}`);
         } catch (e) { console.warn("Audit logging failed", e); }
 
     } catch (error: any) {

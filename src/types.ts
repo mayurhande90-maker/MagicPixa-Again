@@ -177,7 +177,7 @@ export interface ApiErrorLog {
 export interface Announcement {
     message: string;
     isActive: boolean;
-    type: 'info' | 'warning' | 'error';
+    type: 'info' | 'warning' | 'error' | 'success';
     link?: string;
-    displayStyle?: 'banner' | 'modal';
+    style?: 'banner' | 'pill' | 'toast' | 'modal';
 }

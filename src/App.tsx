@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import HomePage from './HomePage';
-// FIX: Changed to a default import as DashboardPage is exported as default.
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
@@ -20,35 +19,9 @@ import {
 } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
-import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
+import { ShieldCheckIcon, EyeIcon, InformationCircleIcon, XIcon } from './components/icons';
 import { CreditGrantModal } from './components/CreditGrantModal';
-
-const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
-    if (!announcement || !announcement.isActive) return null;
-
-    const bgColors = {
-        info: 'bg-blue-600',
-        warning: 'bg-yellow-500',
-        error: 'bg-red-600'
-    };
-
-    return (
-        <div className={`${bgColors[announcement.type]} text-white px-4 py-2 relative flex items-center justify-center shadow-md z-[100]`}>
-            <div className="flex items-center gap-2 text-sm font-medium">
-                <InformationCircleIcon className="w-5 h-5" />
-                <span>{announcement.message}</span>
-                {announcement.link && (
-                    <a href={announcement.link} target="_blank" rel="noreferrer" className="underline font-bold hover:text-white/80">
-                        Learn More
-                    </a>
-                )}
-            </div>
-            <button onClick={onClose} className="absolute right-4 p-1 hover:bg-white/20 rounded-full transition-colors">
-                <XIcon className="w-4 h-4" />
-            </button>
-        </div>
-    );
-};
+import { NotificationDisplay } from './components/NotificationDisplay'; // Import new component
 
 const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -378,89 +351,6 @@ const App: React.FC = () => {
       }
   };
 
-  // Render Logic for Dynamic Notifications
-  const renderSystemNotification = () => {
-      if (!activeUser?.systemNotification || activeUser.systemNotification.read) return null;
-      
-      const { message, type, style } = activeUser.systemNotification;
-      const notifStyle = style || 'banner'; // Default fallback
-
-      // Colors based on type
-      const colors = {
-          info: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: 'text-blue-600' },
-          success: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', icon: 'text-green-600' },
-          warning: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: 'text-yellow-600' }
-      };
-      const theme = colors[type] || colors.info;
-
-      // 1. BANNER (Top Bar - Persistent)
-      if (notifStyle === 'banner') {
-          return (
-            <div className={`w-full px-4 py-3 flex items-center justify-between text-sm font-medium z-[90] shadow-sm border-b ${theme.bg} ${theme.border} ${theme.text}`}>
-                <div className="flex items-center gap-2 mx-auto max-w-7xl w-full">
-                    <InformationCircleIcon className={`w-5 h-5 shrink-0 ${theme.icon}`} />
-                    <span>{message}</span>
-                </div>
-                <button onClick={clearNotification} className="p-1 hover:bg-black/5 rounded-full"><XIcon className="w-4 h-4" /></button>
-            </div>
-          );
-      }
-
-      // 2. PILL (Floating Dynamic Island - Top Center)
-      if (notifStyle === 'pill') {
-          return (
-              <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-[fadeInDown_0.5s_ease-out]">
-                  <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full px-6 py-3 flex items-center gap-4 min-w-[320px] max-w-md">
-                      <div className={`p-1.5 rounded-full ${theme.bg} ${theme.icon}`}>
-                          <InformationCircleIcon className="w-5 h-5" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 flex-1">{message}</p>
-                      <button onClick={clearNotification} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
-                          <XIcon className="w-4 h-4" />
-                      </button>
-                  </div>
-              </div>
-          );
-      }
-
-      // 3. TOAST (Bottom Right)
-      if (notifStyle === 'toast') {
-          return (
-              <div className="fixed bottom-8 right-8 z-[200] animate-[slideInRight_0.4s_ease-out]">
-                  <div className={`bg-white shadow-xl border-l-4 rounded-r-xl p-4 flex items-start gap-3 max-w-sm ${theme.border.replace('border', 'border-l')}`}>
-                      <InformationCircleIcon className={`w-5 h-5 mt-0.5 ${theme.icon}`} />
-                      <div>
-                          <h4 className={`text-sm font-bold capitalize ${theme.text}`}>{type}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{message}</p>
-                      </div>
-                      <button onClick={clearNotification} className="text-gray-400 hover:text-gray-600 ml-2"><XIcon className="w-4 h-4" /></button>
-                  </div>
-              </div>
-          );
-      }
-
-      // 4. MODAL (Center Screen - High Priority)
-      if (notifStyle === 'modal') {
-          return (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-                  <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-center transform animate-bounce-slight relative overflow-hidden">
-                      <div className={`absolute top-0 left-0 w-full h-2 ${theme.bg.replace('bg-', 'bg-').replace('50', '500')}`}></div>
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${theme.bg} ${theme.icon}`}>
-                          <InformationCircleIcon className="w-8 h-8" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 capitalize">{type === 'info' ? 'Update' : type}</h3>
-                      <p className="text-gray-600 mb-6 leading-relaxed">{message}</p>
-                      <button onClick={clearNotification} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-colors">
-                          Got it
-                      </button>
-                  </div>
-              </div>
-          );
-      }
-
-      return null;
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       {impersonatedUser && user && (
@@ -471,11 +361,26 @@ const App: React.FC = () => {
           />
       )}
       
-      {/* Show Global Announcement if active */}
-      {showBanner && announcement && <GlobalBanner announcement={announcement} onClose={() => setShowBanner(false)} />}
+      {/* 1. Global Announcement Display */}
+      {showBanner && announcement && announcement.isActive && (
+          <NotificationDisplay 
+              message={announcement.message}
+              type={announcement.type}
+              style={announcement.style || 'banner'} // Default fallback
+              link={announcement.link}
+              onClose={() => setShowBanner(false)}
+          />
+      )}
       
-      {/* Dynamic System Notification */}
-      {renderSystemNotification()}
+      {/* 2. User System Notification Display */}
+      {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+          <NotificationDisplay 
+              message={activeUser.systemNotification.message}
+              type={activeUser.systemNotification.type}
+              style={activeUser.systemNotification.style || 'banner'} // Default fallback
+              onClose={clearNotification}
+          />
+      )}
 
       {/* Credit Grant Modal */}
       {activeUser?.creditGrantNotification && (
