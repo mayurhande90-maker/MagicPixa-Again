@@ -138,7 +138,22 @@ export const toggleUserBan = async (adminUid: string, targetUid: string, isBanne
 
 export const updateUserPlan = async (adminUid: string, targetUid: string, newPlan: string) => {
     if (!db) throw new Error("DB not init");
-    await db.collection('users').doc(targetUid).set({ plan: newPlan }, { merge: true });
+    
+    const userRef = db.collection('users').doc(targetUid);
+    
+    await db.runTransaction(async (t) => {
+         t.update(userRef, { plan: newPlan });
+         
+         // Add history entry for plan change
+         const historyRef = userRef.collection('history').doc();
+         t.set(historyRef, {
+            feature: 'Plan Update',
+            creditChange: '0',
+            reason: `Plan changed to ${newPlan} by Admin`,
+            cost: 0,
+            date: firebase.firestore.FieldValue.serverTimestamp()
+         });
+    });
     
     try {
         const adminSnap = await db.collection('users').doc(adminUid).get();
@@ -519,14 +534,57 @@ export const getAllUsers = async (): Promise<User[]> => {
     return snap.docs.map(d => ({uid: d.id, ...d.data()} as User));
 };
 
-export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number) => {
+export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, message: string = "Admin Grant") => {
     if (!db) return;
     const userRef = db.collection('users').doc(targetUid);
-    await userRef.update({
-        credits: firebase.firestore.FieldValue.increment(amount)
+    
+    await db.runTransaction(async (t) => {
+        const userDoc = await t.get(userRef);
+        if (!userDoc.exists) return;
+        
+        const newCredits = (userDoc.data()?.credits || 0) + amount;
+        
+        t.update(userRef, { credits: newCredits });
+        
+        // Add history
+        const historyRef = userRef.collection('history').doc();
+        t.set(historyRef, {
+            feature: 'Admin Grant',
+            creditChange: `+${amount}`,
+            reason: message,
+            cost: 0,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            grantedBy: adminUid 
+        });
     });
+
     const snap = await db.collection('users').doc(adminUid).get();
-    logAdminAction(snap.data()?.email || 'Admin', 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}`);
+    logAdminAction(snap.data()?.email || 'Admin', 'GRANT_CREDITS', `Granted ${amount} to ${targetUid}. Reason: ${message}`);
+};
+
+export const get24HourCreditBurn = async () => {
+    if (!db) return 0;
+    // Calculate timestamp for 24 hours ago
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    try {
+        // Query all history documents from all users where date > yesterday
+        // Note: This requires a Collection Group Index on 'history' collection for the 'date' field.
+        // If index is missing, this query will fail or return empty depending on SDK version/mode.
+        const query = db.collectionGroup('history').where('date', '>', yesterday);
+        const snap = await query.get();
+        let total = 0;
+        snap.forEach(doc => {
+            const data = doc.data();
+            // Sum up 'cost' field (credits spent)
+            if (data.cost && typeof data.cost === 'number') {
+                total += data.cost;
+            }
+        });
+        return total;
+    } catch (e) {
+        console.warn("Credit burn query failed (likely missing Firestore index):", e);
+        return 0;
+    }
 };
 
 export const getGlobalFeatureUsage = async () => {

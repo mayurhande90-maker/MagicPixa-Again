@@ -10,7 +10,7 @@ import ToastNotification from './components/ToastNotification';
 import { auth, isConfigValid, getMissingConfigKeys, signInWithGoogle, updateUserProfile, getOrCreateUserProfile, firebaseConfig, getAppConfig, subscribeToAnnouncement } from './firebase'; 
 import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
-import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon } from './components/icons';
+import { InformationCircleIcon, XIcon, ShieldCheckIcon, EyeIcon, MegaphoneIcon } from './components/icons';
 
 const GlobalBanner: React.FC<{ announcement: Announcement | null; onClose: () => void }> = ({ announcement, onClose }) => {
     if (!announcement || !announcement.isActive) return null;
@@ -86,6 +86,28 @@ const GlobalAnnouncementModal: React.FC<{ announcement: Announcement | null; onC
                     )}
                 </div>
             </div>
+        </div>
+    );
+};
+
+const SystemNotificationBar: React.FC<{ message: string | null | undefined; onClose: () => void }> = ({ message, onClose }) => {
+    if (!message) return null;
+
+    return (
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 relative flex items-center justify-center shadow-lg z-[105]">
+            <div className="flex items-center gap-3 text-sm font-bold max-w-4xl mx-auto">
+                <div className="bg-white/20 p-1.5 rounded-full">
+                    <MegaphoneIcon className="w-4 h-4" />
+                </div>
+                <span>{message}</span>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="absolute right-4 p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Dismiss notification"
+            >
+                <XIcon className="w-4 h-4" />
+            </button>
         </div>
     );
 };
@@ -175,21 +197,6 @@ const App: React.FC = () => {
     
     return () => unsubscribeAnnouncement();
   }, []);
-
-  // Listen for Targeted Notifications
-  useEffect(() => {
-      if (user && user.systemNotification) {
-          // Show toast
-          setToastMessage(user.systemNotification);
-          setToastType('info');
-          
-          // Clear notification from DB to prevent showing it again
-          updateUserProfile(user.uid, { systemNotification: null });
-          
-          // Update local state immediately to prevent loop
-          setUser(prev => prev ? { ...prev, systemNotification: null } : null);
-      }
-  }, [user]);
 
   // Capture referral code from URL
   useEffect(() => {
@@ -372,6 +379,20 @@ const App: React.FC = () => {
     }
   };
   
+  const handleDismissNotification = async () => {
+      const targetUser = impersonatedUser || user;
+      if (targetUser) {
+          try {
+              await updateUserProfile(targetUser.uid, { systemNotification: null });
+              const updateState = (prev: User | null) => prev ? { ...prev, systemNotification: null } : null;
+              if (impersonatedUser) setImpersonatedUser(updateState);
+              else setUser(updateState);
+          } catch (error) {
+              console.error("Failed to dismiss notification", error);
+          }
+      }
+  };
+
   // Impersonation Logic
   const handleImpersonateUser = (targetUser: User) => {
       setImpersonatedUser(targetUser);
@@ -450,6 +471,12 @@ const App: React.FC = () => {
             )}
           </>
       )}
+      
+      {/* Persistent System Notification Bar */}
+      <SystemNotificationBar 
+          message={activeUser?.systemNotification} 
+          onClose={handleDismissNotification} 
+      />
       
       {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
       {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}

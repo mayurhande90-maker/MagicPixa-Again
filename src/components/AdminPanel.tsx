@@ -13,7 +13,10 @@ import {
     updateAnnouncement,
     getCreations,
     getRecentSignups,
-    getRecentPurchases
+    getRecentPurchases,
+    addCreditsToUser,
+    get24HourCreditBurn,
+    updateAppConfig
 } from '../firebase';
 import { 
     XIcon, 
@@ -27,7 +30,9 @@ import {
     SparklesIcon,
     CurrencyDollarIcon,
     ArrowUpCircleIcon,
-    DownloadIcon
+    DownloadIcon,
+    EyeIcon,
+    RetryIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -35,6 +40,23 @@ interface AdminPanelProps {
     appConfig: AppConfig | null;
     onConfigUpdate: (config: AppConfig) => void;
 }
+
+// Known Features List for Toggles
+const KNOWN_FEATURES = [
+    { id: 'studio', label: 'Magic Photo Studio' },
+    { id: 'brand_kit', label: 'Merchant Studio' },
+    { id: 'brand_stylist', label: 'Magic Ads' },
+    { id: 'thumbnail_studio', label: 'Thumbnail Studio' },
+    { id: 'magic_realty', label: 'Magic Realty' },
+    { id: 'soul', label: 'Magic Soul' },
+    { id: 'colour', label: 'Magic Photo Colour' },
+    { id: 'caption', label: 'CaptionAI' },
+    { id: 'interior', label: 'Magic Interior' },
+    { id: 'apparel', label: 'Magic Apparel' },
+    { id: 'mockup', label: 'Magic Mockup' },
+    { id: 'scanner', label: 'Magic Scanner' },
+    { id: 'notes', label: 'Magic Notes' }
+];
 
 // --- Helper Components ---
 
@@ -72,6 +94,8 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [manualPlan, setManualPlan] = useState(user.plan || 'Free');
     const [notificationText, setNotificationText] = useState('');
+    const [grantAmount, setGrantAmount] = useState<number>(0);
+    const [grantReason, setGrantReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
@@ -102,6 +126,23 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
         } catch (e) {
             console.error(e);
             alert("Failed to send notification.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleGrantCredits = async () => {
+        if (grantAmount <= 0) return;
+        setIsProcessing(true);
+        try {
+            await addCreditsToUser(adminUid, user.uid, grantAmount, grantReason || "Admin Grant");
+            setGrantAmount(0);
+            setGrantReason('');
+            alert(`Successfully granted ${grantAmount} credits.`);
+            onRefresh();
+        } catch (e) {
+            console.error(e);
+            alert("Failed to grant credits.");
         } finally {
             setIsProcessing(false);
         }
@@ -168,9 +209,39 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
                                     onClick={onViewAs} 
                                     className="w-full bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl text-sm font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                                    <EyeIcon className="w-4 h-4"/>
                                     Impersonate (View As User)
                                 </button>
+
+                                {/* Grant Credits */}
+                                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                                    <label className="text-xs font-bold text-green-800 block mb-2">Grant Manual Credits</label>
+                                    <div className="space-y-2">
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="number" 
+                                                value={grantAmount || ''} 
+                                                onChange={e=>setGrantAmount(Number(e.target.value))} 
+                                                className="w-20 border border-gray-300 p-2 rounded-lg text-sm outline-none text-center"
+                                                placeholder="Amt"
+                                            />
+                                            <input 
+                                                type="text" 
+                                                value={grantReason} 
+                                                onChange={e=>setGrantReason(e.target.value)} 
+                                                className="flex-1 border border-gray-300 p-2 rounded-lg text-sm outline-none"
+                                                placeholder="Reason (Optional)"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={handleGrantCredits} 
+                                            disabled={isProcessing || grantAmount <= 0}
+                                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                            Add Credits
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {/* Plan Override */}
                                 <div>
@@ -200,14 +271,14 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
 
                                 {/* Targeted Notification */}
                                 <div>
-                                    <label className="text-xs font-bold text-gray-500 block mb-2">Send In-App Notification</label>
+                                    <label className="text-xs font-bold text-gray-500 block mb-2">Send In-App Notification (Header Bar)</label>
                                     <div className="flex gap-2">
                                         <input 
                                             type="text" 
                                             value={notificationText} 
                                             onChange={e=>setNotificationText(e.target.value)} 
                                             className="flex-1 border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                                            placeholder="Message will appear as a toast..."
+                                            placeholder="Message..."
                                         />
                                         <button 
                                             onClick={handleSendNotification} 
@@ -247,7 +318,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
     );
 };
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
     const [activeTab, setActiveTab] = useState('overview');
     
     // Stats State
@@ -257,13 +328,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
         activeToday: 0,
         newToday: 0,
         totalSpent: 0,
+        creditBurn24h: 0,
         signups: [] as User[], 
         purchases: [] as Purchase[] 
     });
 
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortOption, setSortOption] = useState('newest');
+    const [sortOption, setSortOption] = useState('oldest');
     
     // Announcement State
     const [announcement, setAnnouncement] = useState<Announcement>({ 
@@ -278,68 +350,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
     const [apiLogs, setApiLogs] = useState<ApiErrorLog[]>([]);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Auto Refresh State
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+
+    const loadOverview = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch Core Data
+            const [r, s, p, a, users, burn24h] = await Promise.all([
+                getTotalRevenue(),
+                getRecentSignups(10),
+                getRecentPurchases(10),
+                getAnnouncement(),
+                getAllUsers(), // Need full list for accurate counters
+                get24HourCreditBurn()
+            ]);
+
+            // Calculate Date-Based Stats
+            const now = new Date();
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            
+            const activeToday = users.filter(u => {
+                if (!u.lastActive) return false;
+                const d = (u.lastActive as any).toDate ? (u.lastActive as any).toDate() : new Date((u.lastActive as any).seconds * 1000);
+                return d > oneDayAgo;
+            }).length;
+
+            const newToday = users.filter(u => {
+                if (!u.signUpDate) return false;
+                const d = (u.signUpDate as any).toDate ? (u.signUpDate as any).toDate() : new Date((u.signUpDate as any).seconds * 1000);
+                return d > oneDayAgo;
+            }).length;
+
+            // Simple aggregation of credit usage
+            const totalSpent = users.reduce((acc, u) => acc + (u.totalSpent || 0), 0);
+
+            setStats({
+                revenue: r,
+                signups: s as any,
+                purchases: p as any,
+                totalUsers: users.length,
+                activeToday,
+                newToday,
+                totalSpent,
+                creditBurn24h: burn24h
+            });
+            
+            setAllUsers(users); // Cache for User Tab
+            if (a) setAnnouncement(a);
+        } catch (e) {
+            console.error("Failed to load admin stats", e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // Initial Load
     useEffect(() => {
-        const loadOverview = async () => {
-            setIsLoading(true);
-            try {
-                // Fetch Core Data
-                const [r, s, p, a, users] = await Promise.all([
-                    getTotalRevenue(),
-                    getRecentSignups(10),
-                    getRecentPurchases(10),
-                    getAnnouncement(),
-                    getAllUsers() // Need full list for accurate counters
-                ]);
-
-                // Calculate Date-Based Stats
-                const now = new Date();
-                const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                
-                const activeToday = users.filter(u => {
-                    if (!u.lastActive) return false;
-                    const d = (u.lastActive as any).toDate ? (u.lastActive as any).toDate() : new Date((u.lastActive as any).seconds * 1000);
-                    return d > oneDayAgo;
-                }).length;
-
-                const newToday = users.filter(u => {
-                    if (!u.signUpDate) return false;
-                    const d = (u.signUpDate as any).toDate ? (u.signUpDate as any).toDate() : new Date((u.signUpDate as any).seconds * 1000);
-                    return d > oneDayAgo;
-                }).length;
-
-                // Simple aggregation of credit usage
-                const totalSpent = users.reduce((acc, u) => acc + (u.totalSpent || 0), 0);
-
-                setStats({
-                    revenue: r,
-                    signups: s as any,
-                    purchases: p as any,
-                    totalUsers: users.length,
-                    activeToday,
-                    newToday,
-                    totalSpent
-                });
-                
-                setAllUsers(users); // Cache for User Tab
-                if (a) setAnnouncement(a);
-            } catch (e) {
-                console.error("Failed to load admin stats", e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         loadOverview();
     }, []);
 
-    // Tab-Specific Lazy Loading
+    // Auto Refresh for Logs (System Tab)
     useEffect(() => {
-        if(activeTab === 'system') { 
-            getAuditLogs().then(setAuditLogs); 
-            getApiErrorLogs().then(setApiLogs); 
+        let interval: NodeJS.Timeout;
+        if (activeTab === 'system' && autoRefreshEnabled) {
+            const refreshLogs = () => {
+                getAuditLogs().then(setAuditLogs);
+                getApiErrorLogs().then(setApiLogs);
+            };
+            refreshLogs(); // Initial
+            interval = setInterval(refreshLogs, 60000); // Every minute
         }
-    }, [activeTab]);
+        return () => clearInterval(interval);
+    }, [activeTab, autoRefreshEnabled]);
+
+    const handleRefreshLogs = () => {
+        getAuditLogs().then(setAuditLogs);
+        getApiErrorLogs().then(setApiLogs);
+    };
 
     const filteredUsers = useMemo(() => {
         let res = allUsers.filter(u => 
@@ -354,6 +443,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
             if (sortOption === 'newest') return getTs(b.signUpDate) - getTs(a.signUpDate);
             if (sortOption === 'oldest') return getTs(a.signUpDate) - getTs(b.signUpDate);
             if (sortOption === 'credits') return b.credits - a.credits;
+            if (sortOption === 'active') return getTs(b.lastActive) - getTs(a.lastActive);
             return 0;
         });
         return res;
@@ -387,6 +477,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
         }
     };
 
+    const toggleFeature = async (featureId: string, currentState: boolean) => {
+        if (!auth.user || !appConfig) return;
+        
+        const updatedConfig = {
+            ...appConfig,
+            featureToggles: {
+                ...appConfig.featureToggles,
+                [featureId]: !currentState
+            }
+        };
+        
+        try {
+            await updateAppConfig(auth.user.uid, updatedConfig);
+            onConfigUpdate(updatedConfig);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to toggle feature");
+        }
+    };
+
     // Helper to format timestamps safely
     const formatDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
@@ -402,7 +512,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                     <p className="text-sm text-gray-500 mt-1">System Overview & Management</p>
                 </div>
                 <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto w-full sm:w-auto">
-                    {['overview', 'users', 'comms', 'system'].map(tab => (
+                    {['overview', 'users', 'comms', 'features', 'system'].map(tab => (
                         <button 
                             key={tab} 
                             onClick={() => setActiveTab(tab)} 
@@ -436,21 +546,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                             color="bg-blue-100" 
                         />
                         <StatCard 
+                            title="Credit Burn (24h)" 
+                            value={stats.creditBurn24h.toLocaleString()} 
+                            icon={<SparklesIcon className="w-6 h-6 text-orange-600" />} 
+                            color="bg-orange-100" 
+                        />
+                        <StatCard 
                             title="Active (24h)" 
                             value={stats.activeToday} 
                             icon={<ChartBarIcon className="w-6 h-6 text-purple-600" />} 
                             color="bg-purple-100" 
                         />
-                        <StatCard 
-                            title="Credits Burned" 
-                            value={stats.totalSpent.toLocaleString()} 
-                            icon={<SparklesIcon className="w-6 h-6 text-orange-600" />} 
-                            color="bg-orange-100" 
-                        />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Revenue/Transactions Chart Area (Simplified Representation) */}
+                        {/* Revenue/Transactions Chart Area */}
                         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="font-bold text-gray-800 text-lg">Recent Transactions</h3>
@@ -529,8 +639,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                             onChange={e=>setSortOption(e.target.value)} 
                             className="border border-gray-300 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
                         >
-                            <option value="newest">Newest Signups</option>
                             <option value="oldest">Oldest Members</option>
+                            <option value="newest">Newest Signups</option>
+                            <option value="active">Recently Active</option>
                             <option value="credits">Highest Balance</option>
                         </select>
                     </div>
@@ -578,6 +689,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (auth.impersonateUser) auth.impersonateUser(u);
+                                                        }}
+                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors flex items-center gap-1"
+                                                        title="View As User"
+                                                    >
+                                                        <EyeIcon className="w-3 h-3"/> View
+                                                    </button>
                                                     <button 
                                                         onClick={() => setSelectedUser(u)} 
                                                         className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 shadow-sm"
@@ -720,8 +840,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                 </div>
             )}
 
+            {activeTab === 'features' && (
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
+                    <div className="mb-6">
+                        <h3 className="font-bold text-lg text-gray-800">Feature Management</h3>
+                        <p className="text-sm text-gray-500">Toggle features on or off. Disabled features will show as "Soon" to users.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {KNOWN_FEATURES.map(f => {
+                            const isEnabled = appConfig?.featureToggles?.[f.id] !== false; // Default true if undefined
+                            return (
+                                <div key={f.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isEnabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-75'}`}>
+                                    <span className="font-bold text-sm text-gray-800">{f.label}</span>
+                                    <ToggleSwitch 
+                                        checked={isEnabled} 
+                                        onChange={() => toggleFeature(f.id, isEnabled)} 
+                                        label={isEnabled ? "ON" : "OFF"}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {activeTab === 'system' && (
                 <div className="space-y-8 animate-fadeIn">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-700">Auto-Refresh Logs (60s)</span>
+                            <ToggleSwitch checked={autoRefreshEnabled} onChange={setAutoRefreshEnabled} />
+                        </div>
+                        <button 
+                            onClick={handleRefreshLogs} 
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-bold transition-colors"
+                        >
+                            <RetryIcon className="w-4 h-4"/> Refresh Now
+                        </button>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col h-[500px]">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -776,7 +933,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig }) => {
                     user={selectedUser} 
                     onClose={()=>setSelectedUser(null)} 
                     adminUid={auth.user.uid} 
-                    onViewAs={()=>{ auth.impersonateUser && auth.impersonateUser(selectedUser); setSelectedUser(null); }} 
+                    onViewAs={()=>{ 
+                        if(auth.impersonateUser) auth.impersonateUser(selectedUser); 
+                        setSelectedUser(null); 
+                    }} 
                     onRefresh={() => {
                         getAllUsers().then(setAllUsers);
                         setSelectedUser(null);
