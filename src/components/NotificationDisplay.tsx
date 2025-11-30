@@ -50,7 +50,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
             <div className={`w-full px-4 py-3 flex items-center justify-between text-sm font-medium z-[90] shadow-sm border-b transition-all duration-300 ${theme.bg} ${theme.border} ${theme.text}`}>
                 <div className="flex items-center gap-3 mx-auto max-w-7xl w-full">
                     <theme.Icon className={`w-5 h-5 shrink-0 ${theme.iconColor}`} />
-                    <span className="flex-1">
+                    <span className="flex-1 text-center">
                         {title && <span className="font-bold mr-2 uppercase tracking-wide text-xs opacity-90">{title}:</span>}
                         {message}
                         {link && (
@@ -75,7 +75,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                     <div className={`p-1.5 rounded-full ${theme.bg} ${theme.iconColor}`}>
                         <theme.Icon className="w-5 h-5" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-center">
                         {title && <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-0.5">{title}</p>}
                         <p className="text-sm font-medium text-gray-700 leading-tight">{message}</p>
                         {link && <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline block mt-1">View details</a>}
