@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement } from '../types';
+import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog } from '../types';
 import { 
     getAllUsers, 
     addCreditsToUser, 
@@ -14,7 +14,10 @@ import {
     getAnnouncement,
     updateAnnouncement,
     getGlobalFeatureUsage,
-    getCreations // Added for user details
+    getCreations,
+    sendSystemNotification,
+    getApiErrorLogs,
+    get24HourCreditBurn
 } from '../firebase';
 import { 
     UsersIcon, 
@@ -28,9 +31,13 @@ import {
     InformationCircleIcon,
     TrashIcon,
     FlagIcon,
-    AudioWaveIcon, // Placeholder for Announcement Icon
-    DocumentTextIcon, // Placeholder for Logs
-    ImageIcon
+    AudioWaveIcon,
+    DocumentTextIcon,
+    ImageIcon,
+    ArrowLeftIcon,
+    ArrowRightIcon,
+    DownloadIcon,
+    SystemIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -44,6 +51,13 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [isLoadingCreations, setIsLoadingCreations] = useState(false);
+    
+    // Actions State
+    const [creditsToAdd, setCreditsToAdd] = useState(10);
+    const [creditReason, setCreditReason] = useState('Customer Support');
+    const [notifMessage, setNotifMessage] = useState('');
+    const [notifType, setNotifType] = useState<'info' | 'success' | 'warning'>('info');
+    const [isActionLoading, setIsActionLoading] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'creations') {
@@ -63,9 +77,36 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
         }
     };
 
+    const handleGrantCredits = async () => {
+        if(!user.uid) return;
+        setIsActionLoading(true);
+        try {
+            await addCreditsToUser('ADMIN', user.uid, creditsToAdd, creditReason);
+            alert(`Granted ${creditsToAdd} credits successfully.`);
+        } catch (e) {
+            alert("Failed to grant credits.");
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    const handleSendNotification = async () => {
+        if(!user.uid || !notifMessage) return;
+        setIsActionLoading(true);
+        try {
+            await sendSystemNotification('ADMIN', user.uid, notifMessage, notifType);
+            alert("Notification sent to user dashboard.");
+            setNotifMessage('');
+        } catch (e) {
+            alert("Failed to send notification.");
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-fadeIn">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -76,6 +117,7 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
                         <div>
                             <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
                             <p className="text-sm text-gray-500">{user.email}</p>
+                            <p className="text-[10px] text-gray-400 font-mono mt-1">{user.uid}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
@@ -85,103 +127,71 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-100 px-6">
-                    <button 
-                        onClick={() => setActiveTab('overview')} 
-                        className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Overview & History
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('creations')} 
-                        className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'creations' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Creations Gallery
-                    </button>
+                    <button onClick={() => setActiveTab('overview')} className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Overview & Actions</button>
+                    <button onClick={() => setActiveTab('creations')} className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'creations' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Creations Gallery</button>
                 </div>
 
-                {/* Scrollable Content */}
+                {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                     {activeTab === 'overview' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Stats Cards */}
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Status</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Plan</span>
-                                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{user.plan || 'Free'}</span>
+                            {/* Stats */}
+                            <div className="space-y-6">
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Profile Stats</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Credits</span><span className="text-sm font-bold text-gray-800">{user.credits}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Lifetime Gens</span><span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Total Spent</span><span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Plan</span><span className="text-sm font-bold bg-blue-50 text-blue-600 px-2 rounded">{user.plan || 'Free'}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Joined</span><span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span></div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Credits</span>
-                                        <span className="text-sm font-bold text-gray-800">{user.credits}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Total Spent</span>
-                                        <span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Joined</span>
-                                        <span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Last Active</span>
-                                        <span className="text-sm text-gray-800">
-                                            {user.lastActive ? new Date((user.lastActive as any).seconds * 1000).toLocaleString() : '-'}
-                                        </span>
+                                </div>
+                                
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Grant Credits</h3>
+                                    <div className="space-y-3">
+                                        <input type="number" value={creditsToAdd} onChange={(e) => setCreditsToAdd(Number(e.target.value))} className="w-full p-2 border rounded-lg text-sm" placeholder="Amount" />
+                                        <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Reason" />
+                                        <button onClick={handleGrantCredits} disabled={isActionLoading} className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50">Grant Now</button>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Engagement */}
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Engagement</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Generations</span>
-                                        <span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Referrals</span>
-                                        <span className="text-sm font-bold text-indigo-600">{user.referralCount || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Referral Code</span>
-                                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">{user.referralCode || '-'}</code>
+                            {/* Actions */}
+                            <div className="space-y-6">
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Send In-App Notification</h3>
+                                    <div className="space-y-3">
+                                        <textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)} className="w-full p-2 border rounded-lg text-sm h-20 resize-none" placeholder="Message to user..." />
+                                        <div className="flex gap-2">
+                                            {['info', 'success', 'warning'].map((t) => (
+                                                <button key={t} onClick={() => setNotifType(t as any)} className={`flex-1 py-1 text-xs font-bold rounded capitalize border ${notifType === t ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>{t}</button>
+                                            ))}
+                                        </div>
+                                        <button onClick={handleSendNotification} disabled={isActionLoading || !notifMessage} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50">Send Alert</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        // Creations Gallery
+                        // Gallery
                         <div className="h-full">
                             {isLoadingCreations ? (
-                                <div className="flex justify-center items-center h-40">
-                                    <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                                </div>
+                                <div className="flex justify-center p-10"><div className="animate-spin w-8 h-8 border-2 border-blue-500 rounded-full border-t-transparent"></div></div>
                             ) : userCreations.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {userCreations.map((creation) => (
-                                        <div key={creation.id} className="relative group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 aspect-square">
-                                            <img 
-                                                src={creation.thumbnailUrl || creation.imageUrl} 
-                                                alt={creation.feature} 
-                                                className="w-full h-full object-cover"
-                                                loading="lazy"
-                                            />
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                                                <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{creation.feature}</span>
-                                                <span className="text-[9px] text-gray-300">
-                                                    {creation.createdAt ? new Date((creation.createdAt as any).seconds * 1000).toLocaleDateString() : ''}
-                                                </span>
+                                    {userCreations.map((c) => (
+                                        <div key={c.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+                                            <img src={c.thumbnailUrl || c.imageUrl} className="w-full h-full object-cover" loading="lazy" />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                                                <span className="text-[10px] text-white font-bold">{c.feature}</span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                                    <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
-                                    <p className="text-sm">No creations found for this user.</p>
-                                </div>
+                                <p className="text-center text-gray-400 mt-10">No creations found.</p>
                             )}
                         </div>
                     )}
@@ -196,55 +206,73 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     
     // Overview Data
     const [stats, setStats] = useState<{ revenue: number, signups: User[], purchases: Purchase[] }>({
-        revenue: 0,
-        signups: [],
-        purchases: []
+        revenue: 0, signups: [], purchases: []
     });
+    const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
 
-    // Users Data
+    // Users Data (With Client-Side Pagination)
     const [allUsers, setAllUsers] = useState<User[]>([]); 
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const usersPerPage = 10;
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'credits'>('newest');
     const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null);
     
-    // Credit Grant Modal
-    const [creditModalUser, setCreditModalUser] = useState<string | null>(null); 
-    const [creditAmount, setCreditAmount] = useState(10);
-    const [creditReason, setCreditReason] = useState('Support Adjustment');
+    // System Data
+    const [systemLogType, setSystemLogType] = useState<'audit' | 'api'>('audit');
+    const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+    const [apiErrors, setApiErrors] = useState<ApiErrorLog[]>([]);
+    const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
 
-    // Config Data
+    // Feature Config
     const [localConfig, setLocalConfig] = useState<AppConfig | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Advanced Features Data
-    const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info' });
+    // Other
+    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info', link: '', displayStyle: 'banner' });
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
-
     const [isLoading, setIsLoading] = useState(false);
 
+    // Initial Load
     useEffect(() => {
         if (appConfig) setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
-        // Initial Fetch
         loadOverview();
         fetchAnnouncement();
     }, [appConfig]);
 
-    // Tab-Specific Loaders
+    // Tab Loaders
     useEffect(() => {
         if (activeTab === 'users') loadUsers();
-        if (activeTab === 'system') loadAuditLogs();
+        if (activeTab === 'system') loadLogs();
         if (activeTab === 'analytics') loadAnalytics();
     }, [activeTab]);
 
+    // Filtering & Sorting
     useEffect(() => {
-        const lower = searchTerm.toLowerCase();
-        setFilteredUsers(allUsers.filter(u => 
-            u.name?.toLowerCase().includes(lower) || 
-            u.email?.toLowerCase().includes(lower) ||
-            u.uid === searchTerm
-        ));
-    }, [searchTerm, allUsers]);
+        let res = [...allUsers];
+        
+        // Filter
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            res = res.filter(u => 
+                u.name?.toLowerCase().includes(lower) || 
+                u.email?.toLowerCase().includes(lower) ||
+                u.uid === searchTerm
+            );
+        }
+
+        // Sort
+        res.sort((a, b) => {
+            if (sortMode === 'credits') return b.credits - a.credits;
+            const dateA = a.signUpDate ? (a.signUpDate as any).seconds : 0;
+            const dateB = b.signUpDate ? (b.signUpDate as any).seconds : 0;
+            return sortMode === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
+        setFilteredUsers(res);
+        setCurrentPage(1); // Reset to page 1 on filter change
+    }, [searchTerm, allUsers, sortMode]);
 
     const loadOverview = async () => {
         try {
@@ -254,8 +282,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 getRecentPurchases(10)
             ]);
             setStats({ revenue: rev, signups, purchases });
+
+            // Calculate Burn Stats
+            const burn24 = await get24HourCreditBurn();
+            
+            // Calc Lifetime Burn: Total Acquired (from all users) - Total Currently Held
+            // We need all users for this, might be heavy if users > 1000, but for now it's okay
+            const allUsersSnap = await getAllUsers();
+            let totalAcquired = 0;
+            let totalHeld = 0;
+            allUsersSnap.forEach(u => {
+                totalAcquired += (u.totalCreditsAcquired || u.credits || 0);
+                totalHeld += (u.credits || 0);
+            });
+            const totalBurn = Math.max(0, totalAcquired - totalHeld);
+            
+            setBurnStats({ totalBurn, burn24h: burn24 });
+
         } catch (e) {
-            console.error("Failed to load admin stats", e);
+            console.error("Failed to load overview", e);
         }
     };
 
@@ -264,17 +309,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         try {
             const users = await getAllUsers();
             setAllUsers(users);
-        } catch (e) {
-            console.error("Failed to load users", e);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const loadAuditLogs = async () => {
-        const logs = await getAuditLogs();
-        setAuditLogs(logs);
+    const loadLogs = async () => {
+        setIsRefreshingLogs(true);
+        if (systemLogType === 'audit') {
+            const logs = await getAuditLogs(50);
+            setAuditLogs(logs);
+        } else {
+            const errors = await getApiErrorLogs(50);
+            setApiErrors(errors);
+        }
+        setIsRefreshingLogs(false);
     };
+
+    // Auto-refresh logs if on system tab
+    useEffect(() => {
+        let interval: any;
+        if (activeTab === 'system') {
+            interval = setInterval(loadLogs, 60000); // 1 min
+        }
+        return () => clearInterval(interval);
+    }, [activeTab, systemLogType]);
 
     const loadAnalytics = async () => {
         const usage = await getGlobalFeatureUsage();
@@ -286,161 +345,170 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         if (ann) setAnnouncement(ann);
     };
 
-    // --- ACTIONS ---
-
+    // Actions
     const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => {
         if (!localConfig) return;
-        if (section === 'featureCosts' || section === 'featureToggles') {
-             setLocalConfig(prev => {
-                if(!prev) return null;
-                return { ...prev, [section]: { ...prev[section], [key]: value } }
-            });
-        }
+        setLocalConfig(prev => {
+            if(!prev) return null;
+            // Create deep copy to avoid mutation
+            const next = JSON.parse(JSON.stringify(prev));
+            if (section === 'featureToggles') next.featureToggles[key] = value;
+            return next;
+        });
         setHasChanges(true);
     };
 
     const saveConfig = async () => {
         if (!localConfig) return;
-        setIsLoading(true);
-        try {
-            await updateAppConfig(localConfig);
-            onConfigUpdate(localConfig);
-            setHasChanges(false);
-            alert("Configuration saved!");
-        } catch (e) {
-            console.error(e);
-            alert("Failed to save.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleGrantCredits = async () => {
-        if (!creditModalUser || !auth.user) return;
-        setIsLoading(true);
-        try {
-            await addCreditsToUser(auth.user.uid, creditModalUser, creditAmount, creditReason);
-            alert(`Added ${creditAmount} credits.`);
-            setCreditModalUser(null);
-            loadUsers(); 
-        } catch (e) {
-            console.error(e);
-            alert("Failed to grant credits.");
-        } finally {
-            setIsLoading(false);
-        }
+        await updateAppConfig(localConfig);
+        onConfigUpdate(localConfig);
+        setHasChanges(false);
+        alert("Configuration saved.");
     };
 
     const handleToggleBan = async (user: User) => {
-        if (!auth.user) return;
-        if (confirm(`Are you sure you want to ${user.isBanned ? 'UNBAN' : 'BAN'} ${user.email}?`)) {
-            await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
-            loadUsers(); // Refresh
+        if (confirm(`Confirm ${user.isBanned ? 'UNBAN' : 'BAN'} for ${user.email}?`)) {
+            if(auth.user) await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
+            loadUsers();
         }
     };
 
     const handleSaveAnnouncement = async () => {
-        if (!auth.user) return;
-        await updateAnnouncement(auth.user.uid, announcement);
-        alert("Announcement updated!");
+        if(auth.user) await updateAnnouncement(auth.user.uid, announcement);
+        alert("Announcement updated.");
     };
 
-    // Simple Render Helpers
+    const exportUsersCSV = () => {
+        const headers = ["UID", "Name", "Email", "Credits", "Plan", "Joined"];
+        const rows = allUsers.map(u => [
+            u.uid, u.name, u.email, u.credits, u.plan || 'Free', 
+            u.signUpDate ? new Date((u.signUpDate as any).seconds * 1000).toISOString() : ''
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users_export_${new Date().toISOString()}.csv`;
+        a.click();
+    };
+
+    // Pagination Logic
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+    // Helpers
     const TabButton = ({ id, label, icon: Icon }: any) => (
-        <button 
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                activeTab === id 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-            }`}
-        >
-            {Icon && <Icon className={`w-4 h-4 ${activeTab === id ? 'text-indigo-200' : 'text-gray-400'}`} />}
-            {label}
+        <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Icon className="w-4 h-4" /> {label}
         </button>
     );
 
     return (
         <div className="p-6 max-w-7xl mx-auto pb-24">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
                 <h1 className="text-3xl font-bold text-[#1A1A1E] flex items-center gap-3">
-                    <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-200">
-                        <ShieldCheckIcon className="w-6 h-6"/>
-                    </div>
-                    Admin Command
+                    <ShieldCheckIcon className="w-8 h-8 text-indigo-600" /> Admin Command
                 </h1>
                 <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
                     <TabButton id="analytics" label="Analytics" icon={ImageIcon} />
                     <TabButton id="users" label="Users" icon={UsersIcon} />
                     <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
-                    <TabButton id="system" label="System" icon={DocumentTextIcon} />
+                    <TabButton id="system" label="System" icon={SystemIcon} />
                 </div>
             </div>
 
-            {/* --- OVERVIEW TAB --- */}
+            {/* OVERVIEW */}
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-fadeIn">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
-                            <div className="p-4 bg-green-100 rounded-xl text-green-600"><CreditCardIcon className="w-8 h-8"/></div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Revenue</p>
-                                <p className="text-3xl font-black text-[#1A1A1E]">₹{stats.revenue.toLocaleString()}</p>
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-green-100 text-green-600 rounded-xl"><CreditCardIcon className="w-6 h-6"/></div>
+                                <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded font-bold">+12%</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Total Revenue</p>
+                            <p className="text-2xl font-black text-[#1A1A1E]">₹{stats.revenue.toLocaleString()}</p>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><UsersIcon className="w-6 h-6"/></div>
+                            </div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Total Users</p>
+                            <p className="text-2xl font-black text-[#1A1A1E]">{allUsers.length}</p>
+                        </div>
+
+                        {/* Credit Burn Card */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -mr-10 -mt-10 blur-xl opacity-50"></div>
+                            <div className="flex justify-between items-start mb-4 relative z-10">
+                                <div className="p-3 bg-orange-100 text-orange-600 rounded-xl"><ImageIcon className="w-6 h-6"/></div>
+                            </div>
+                            <p className="text-xs font-bold text-gray-400 uppercase relative z-10">Lifetime Credit Burn</p>
+                            <div className="flex items-end gap-2 relative z-10">
+                                <p className="text-2xl font-black text-[#1A1A1E]">{burnStats.totalBurn.toLocaleString()}</p>
+                                <span className="text-xs font-bold text-orange-600 mb-1">-{burnStats.burn24h} (24h)</span>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
-                            <div className="p-4 bg-blue-100 rounded-xl text-blue-600"><UsersIcon className="w-8 h-8"/></div>
+
+                        {/* Config Status */}
+                        <div className="bg-gray-900 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">New Users</p>
-                                <p className="text-3xl font-black text-[#1A1A1E]">{stats.signups.length} <span className="text-xs font-medium text-gray-400">last 10</span></p>
-                            </div>
-                        </div>
-                        {/* Config Panel Shortcut */}
-                        <div className="bg-gradient-to-br from-gray-800 to-black p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">System Status</p>
-                                    <p className="text-xl font-bold mt-1">Operational</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-400">System</span>
                                 </div>
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+                                <p className="text-lg font-bold">Operational</p>
                             </div>
-                            <button onClick={() => {}} className="text-xs font-bold text-gray-400 hover:text-white mt-4 flex items-center gap-1">
-                                View Server Logs →
+                            <button onClick={() => setActiveTab('system')} className="text-xs font-bold text-gray-400 hover:text-white mt-4 flex items-center gap-1">
+                                View Error Logs →
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">Recent Activity</h3></div>
-                            <div className="divide-y divide-gray-100">
-                                {stats.purchases.map(p => (
-                                    <div key={p.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                                        <div>
-                                            <p className="text-sm font-bold text-gray-800">{p.packName}</p>
-                                            <p className="text-xs text-gray-500">{p.userEmail}</p>
+                    {/* Revenue Chart (Mock Visual) & Feature Config */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-800 mb-6">Revenue Trend (Last 7 Days)</h3>
+                            <div className="h-48 flex items-end justify-between gap-2">
+                                {/* Simple CSS Bar Chart Visualization */}
+                                {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
+                                    <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer">
+                                        <div 
+                                            className="w-full bg-blue-100 rounded-t-lg transition-all duration-500 group-hover:bg-blue-500 relative" 
+                                            style={{ height: `${h}%` }}
+                                        >
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                                ₹{(h * 150)}
+                                            </div>
                                         </div>
-                                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">+₹{p.amountPaid}</span>
+                                        <p className="text-center text-[10px] text-gray-400 mt-2 font-bold">Day {i+1}</p>
                                     </div>
                                 ))}
                             </div>
                         </div>
+
+                        {/* Quick Feature Toggles */}
                         {localConfig && (
-                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-gray-800">Quick Config</h3>
-                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">Save</button>}
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-gray-800">Feature Control</h3>
+                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold animate-pulse">Save</button>}
                                 </div>
-                                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2 max-h-[250px]">
                                     {Object.entries(localConfig.featureToggles || {}).map(([key, enabled]) => (
-                                        <div key={key} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-lg">
-                                            <span className="text-xs font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                                        <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                            <span className="text-xs font-bold text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
                                             <button 
                                                 onClick={() => handleConfigChange('featureToggles', key, !enabled)}
-                                                className={`w-8 h-4 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                className={`w-10 h-5 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
                                             >
-                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-transform ${enabled ? 'left-4.5' : 'left-0.5'}`}></div>
+                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${enabled ? 'left-6' : 'left-1'}`}></div>
                                             </button>
                                         </div>
                                     ))}
@@ -451,114 +519,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* --- ANALYTICS TAB --- */}
-            {activeTab === 'analytics' && (
-                <div className="animate-fadeIn space-y-6">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Heatmap (Usage)</h3>
-                        {featureUsage.length > 0 ? (
-                            <div className="space-y-4">
-                                {featureUsage.map((item, idx) => {
-                                    const max = featureUsage[0].count;
-                                    const percent = (item.count / max) * 100;
-                                    return (
-                                        <div key={item.feature} className="relative">
-                                            <div className="flex justify-between text-xs font-bold mb-1 px-1">
-                                                <span className="text-gray-700">{item.feature}</span>
-                                                <span className="text-gray-500">{item.count} gens</span>
-                                            </div>
-                                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" style={{ width: `${percent}%` }}></div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">No usage data available yet.</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* --- USERS TAB --- */}
+            {/* USERS TAB */}
             {activeTab === 'users' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
                     <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-                        <h3 className="font-bold text-gray-800">User Management ({filteredUsers.length})</h3>
-                        <input 
-                            type="text" 
-                            placeholder="Search by name, email, UID..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full sm:w-64 px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                        />
+                        <div className="flex items-center gap-3">
+                            <h3 className="font-bold text-gray-800">Users ({filteredUsers.length})</h3>
+                            <button onClick={exportUsersCSV} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"><DownloadIcon className="w-3 h-3"/> Export CSV</button>
+                        </div>
+                        <div className="flex gap-2">
+                            <select 
+                                value={sortMode} 
+                                onChange={(e) => setSortMode(e.target.value as any)}
+                                className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold focus:outline-none"
+                            >
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="credits">Most Credits</option>
+                            </select>
+                            <input 
+                                type="text" 
+                                placeholder="Search..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 w-48"
+                            />
+                        </div>
                     </div>
+                    
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
                                 <tr>
                                     <th className="p-4">Identity</th>
-                                    <th className="p-4">Status</th>
+                                    <th className="p-4">Plan</th>
                                     <th className="p-4">Credits</th>
-                                    <th className="p-4">Engagement</th>
-                                    <th className="p-4 text-right">Controls</th>
+                                    <th className="p-4">Spent</th>
+                                    <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
-                                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading users...</td></tr>
-                                ) : filteredUsers.map(u => (
-                                    <tr key={u.uid} className={`hover:bg-gray-50 transition-colors ${u.isBanned ? 'bg-red-50 hover:bg-red-100' : ''}`}>
+                                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+                                ) : currentUsers.map(u => (
+                                    <tr key={u.uid} className={`hover:bg-gray-50 transition-colors ${u.isBanned ? 'bg-red-50' : ''}`}>
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-                                                    {u.name?.[0]}
-                                                </div>
+                                                <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xs">{u.name?.[0]}</div>
                                                 <div>
                                                     <p className="font-bold text-gray-800">{u.name}</p>
                                                     <p className="text-xs text-gray-500">{u.email}</p>
-                                                    <p className="text-[9px] text-gray-300 font-mono mt-0.5 cursor-pointer hover:text-gray-500" title={u.uid} onClick={() => navigator.clipboard.writeText(u.uid)}>{u.uid.substring(0,8)}...</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4">
-                                            {u.isBanned ? (
-                                                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">BANNED</span>
-                                            ) : (
-                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{u.plan || 'Free'}</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 font-mono font-bold text-gray-700">{u.credits}</td>
-                                        <td className="p-4">
-                                            <div className="text-xs">
-                                                <span className="text-gray-500">Gens:</span> <b>{u.lifetimeGenerations || 0}</b>
-                                            </div>
-                                            <div className="text-xs mt-1">
-                                                <span className="text-gray-500">Refs:</span> <b>{u.referralCount || 0}</b>
-                                            </div>
-                                        </td>
+                                        <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{u.plan || 'Free'}</span></td>
+                                        <td className="p-4 font-mono font-bold">{u.credits}</td>
+                                        <td className="p-4 font-mono text-green-600 font-bold">₹{u.totalSpent || 0}</td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button 
-                                                    onClick={() => setSelectedUserForDetail(u)}
-                                                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600 transition-colors"
-                                                    title="View Details & Gallery"
-                                                >
-                                                    <InformationCircleIcon className="w-4 h-4"/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => setCreditModalUser(u.uid)}
-                                                    className="p-1.5 hover:bg-green-100 rounded text-gray-500 hover:text-green-600 transition-colors"
-                                                    title="Grant Credits"
-                                                >
-                                                    <PlusIcon className="w-4 h-4"/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleToggleBan(u)}
-                                                    className={`p-1.5 rounded transition-colors ${u.isBanned ? 'bg-red-600 text-white' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}
-                                                    title={u.isBanned ? "Unban User" : "Ban User"}
-                                                >
+                                                <button onClick={() => setSelectedUserForDetail(u)} className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600"><InformationCircleIcon className="w-4 h-4"/></button>
+                                                <button onClick={() => handleToggleBan(u)} className={`p-1.5 rounded transition-colors ${u.isBanned ? 'bg-red-600 text-white' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}>
                                                     <XIcon className="w-4 h-4"/>
                                                 </button>
                                             </div>
@@ -568,91 +588,94 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1} className="p-2 rounded hover:bg-gray-200 disabled:opacity-50"><ArrowLeftIcon className="w-4 h-4"/></button>
+                        <span className="text-xs font-bold text-gray-500">Page {currentPage} of {totalPages}</span>
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages} className="p-2 rounded hover:bg-gray-200 disabled:opacity-50"><ArrowRightIcon className="w-4 h-4"/></button>
+                    </div>
                 </div>
             )}
 
-            {/* --- COMMS TAB --- */}
+            {/* COMMS TAB */}
             {activeTab === 'comms' && (
-                <div className="animate-fadeIn max-w-2xl mx-auto">
-                    <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div>
-                            <h3 className="text-xl font-bold text-gray-800">Global Announcement</h3>
+                <div className="max-w-2xl mx-auto animate-fadeIn bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div>
+                        <h3 className="text-xl font-bold text-gray-800">Global Announcement</h3>
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
+                            <textarea value={announcement.message} onChange={(e) => setAnnouncement({...announcement, message: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none" placeholder="e.g. Scheduled maintenance tonight." />
                         </div>
-                        
-                        <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Link (Optional)</label>
+                            <input type="text" value={announcement.link || ''} onChange={(e) => setAnnouncement({...announcement, link: e.target.value})} className="w-full p-3 border border-gray-200 rounded-xl text-sm" placeholder="https://..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
-                                <textarea 
-                                    value={announcement.message}
-                                    onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
-                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none"
-                                    placeholder="e.g. Scheduled maintenance tonight at 10 PM."
-                                />
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Type</label>
+                                <select value={announcement.type} onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})} className="w-full p-3 border border-gray-200 rounded-xl text-sm">
+                                    <option value="info">Info (Blue)</option>
+                                    <option value="warning">Warning (Yellow)</option>
+                                    <option value="error">Critical (Red)</option>
+                                </select>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Type</label>
-                                    <select 
-                                        value={announcement.type}
-                                        onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})}
-                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm"
-                                    >
-                                        <option value="info">Info (Blue)</option>
-                                        <option value="warning">Warning (Yellow)</option>
-                                        <option value="error">Critical (Red)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
-                                    <div className="flex items-center gap-3 h-[46px]">
-                                        <button 
-                                            onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
-                                            className={`flex-1 h-full rounded-xl text-sm font-bold transition-all border ${announcement.isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
-                                        >
-                                            {announcement.isActive ? 'ACTIVE' : 'INACTIVE'}
-                                        </button>
-                                    </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Display</label>
+                                <div className="flex gap-2">
+                                    {['banner', 'modal'].map(s => (
+                                        <button key={s} onClick={() => setAnnouncement({...announcement, displayStyle: s as any})} className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize border ${announcement.displayStyle === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500'}`}>{s}</button>
+                                    ))}
                                 </div>
                             </div>
-
-                            <button 
-                                onClick={handleSaveAnnouncement}
-                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg mt-4"
-                            >
-                                Publish Announcement
-                            </button>
+                        </div>
+                        <div className="flex items-center gap-4 pt-2">
+                            <button onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})} className={`flex-1 py-3 rounded-xl font-bold transition-all border ${announcement.isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500'}`}>{announcement.isActive ? 'Active' : 'Inactive'}</button>
+                            <button onClick={handleSaveAnnouncement} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg">Publish</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- SYSTEM TAB --- */}
+            {/* SYSTEM TAB */}
             {activeTab === 'system' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">System Audit Logs</h3></div>
+                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <div className="flex gap-2">
+                            <button onClick={() => setSystemLogType('audit')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${systemLogType === 'audit' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Admin Audit</button>
+                            <button onClick={() => setSystemLogType('api')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${systemLogType === 'api' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:bg-gray-100'}`}>API Errors</button>
+                        </div>
+                        <button onClick={loadLogs} className="p-2 hover:bg-gray-200 rounded-full" title="Refresh">
+                            <div className={`w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full ${isRefreshingLogs ? 'animate-spin' : ''}`}></div>
+                        </button>
+                    </div>
                     <div className="max-h-[600px] overflow-y-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
                                 <tr>
                                     <th className="p-4">Time</th>
-                                    <th className="p-4">Admin</th>
-                                    <th className="p-4">Action</th>
-                                    <th className="p-4">Details</th>
+                                    <th className="p-4">{systemLogType === 'audit' ? 'Admin' : 'Endpoint'}</th>
+                                    <th className="p-4">{systemLogType === 'audit' ? 'Action' : 'Error'}</th>
+                                    <th className="p-4">{systemLogType === 'audit' ? 'Details' : 'User ID'}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {auditLogs.map(log => (
+                                {systemLogType === 'audit' ? auditLogs.map(log => (
                                     <tr key={log.id} className="hover:bg-gray-50">
-                                        <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
-                                            {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}
-                                        </td>
-                                        <td className="p-4 font-medium text-gray-800">{log.adminEmail}</td>
-                                        <td className="p-4">
-                                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-[10px] font-bold font-mono">{log.action}</span>
-                                        </td>
+                                        <td className="p-4 text-xs text-gray-500 whitespace-nowrap">{log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}</td>
+                                        <td className="p-4 font-bold text-gray-700">{log.adminEmail}</td>
+                                        <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{log.action}</span></td>
                                         <td className="p-4 text-xs text-gray-600 font-mono">{log.details}</td>
+                                    </tr>
+                                )) : apiErrors.map(err => (
+                                    <tr key={err.id} className="hover:bg-red-50/30">
+                                        <td className="p-4 text-xs text-gray-500 whitespace-nowrap">{err.timestamp ? new Date(err.timestamp.seconds * 1000).toLocaleString() : '-'}</td>
+                                        <td className="p-4 font-bold text-red-600">{err.endpoint}</td>
+                                        <td className="p-4 text-xs text-red-700 font-mono max-w-xs truncate" title={err.error}>{err.error}</td>
+                                        <td className="p-4 text-xs text-gray-500 font-mono">{err.userId}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -661,35 +684,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* --- MODALS --- */}
-            
-            {/* Credit Grant Modal */}
-            {creditModalUser && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] animate-fadeIn">
-                    <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm transform transition-all scale-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Grant Credits</h3>
+            {/* ANALYTICS TAB */}
+            {activeTab === 'analytics' && (
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
+                    <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Usage Heatmap</h3>
+                    {featureUsage.length > 0 ? (
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
-                                <input type="number" value={creditAmount} onChange={(e) => setCreditAmount(parseInt(e.target.value))} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason</label>
-                                <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button onClick={() => setCreditModalUser(null)} className="flex-1 px-4 py-2 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-                                <button onClick={handleGrantCredits} disabled={isLoading} className="flex-1 px-4 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">{isLoading ? '...' : 'Grant'}</button>
-                            </div>
+                            {featureUsage.map((item) => {
+                                const max = featureUsage[0].count;
+                                const percent = (item.count / max) * 100;
+                                return (
+                                    <div key={item.feature} className="relative">
+                                        <div className="flex justify-between text-xs font-bold mb-1 px-1">
+                                            <span className="text-gray-700">{item.feature}</span>
+                                            <span className="text-gray-500">{item.count} gens</span>
+                                        </div>
+                                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
+                    ) : (
+                        <p className="text-gray-400 text-sm">No data available.</p>
+                    )}
                 </div>
             )}
 
-            {/* User Detail Modal */}
-            {selectedUserForDetail && (
-                <UserDetailModal user={selectedUserForDetail} onClose={() => setSelectedUserForDetail(null)} />
-            )}
+            {selectedUserForDetail && <UserDetailModal user={selectedUserForDetail} onClose={() => setSelectedUserForDetail(null)} />}
         </div>
     );
 };

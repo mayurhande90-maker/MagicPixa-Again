@@ -1,5 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { logApiError, auth } from '../firebase';
 
 /**
  * Helper function to get a fresh AI client on every call.
@@ -42,10 +43,6 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
 
         if (retries > 0 && isTransientError) {
             // Smart Delay: Exponential Backoff + Jitter
-            // Delay = (Base * 2^attempt) + Random(0-1000ms)
-            // Attempt 1: ~2000ms + jitter
-            // Attempt 2: ~4000ms + jitter
-            // Attempt 3: ~8000ms + jitter
             const jitter = Math.random() * 1000;
             const delay = baseDelay + jitter;
             
@@ -57,7 +54,12 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
             return callWithRetry(fn, retries - 1, baseDelay * 2);
         }
         
-        // If not transient (e.g. 400 Bad Request, Safety Filter) or no retries left, throw immediately.
+        // If final failure (or non-retriable), log to Firestore for Admin Panel
+        const userId = auth?.currentUser?.uid;
+        // Don't await this log, let it happen in background
+        logApiError('Gemini API', message || 'Unknown Error', userId).catch(e => console.error("Logging failed", e));
+        
+        // Re-throw to be handled by the UI
         throw error;
     }
 };

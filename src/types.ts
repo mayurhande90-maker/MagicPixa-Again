@@ -81,6 +81,14 @@ export interface User {
 
   // Brand Kit
   brandKit?: BrandKit;
+  
+  // Admin System Notifications
+  systemNotification?: {
+      message: string;
+      type: 'info' | 'warning' | 'success';
+      read: boolean;
+      timestamp: any;
+  };
 }
 
 export interface AuthProps {
@@ -149,9 +157,18 @@ export interface AuditLog {
     timestamp: any; // Timestamp
 }
 
+export interface ApiErrorLog {
+    id: string;
+    endpoint: string;
+    error: string;
+    userId?: string;
+    timestamp: any;
+}
+
 export interface Announcement {
     message: string;
     isActive: boolean;
     type: 'info' | 'warning' | 'error';
     link?: string;
+    displayStyle?: 'banner' | 'modal';
 }
