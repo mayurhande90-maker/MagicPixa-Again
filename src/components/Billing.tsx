@@ -100,7 +100,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
 
       transactions.forEach(tx => {
           if (!tx.date) return;
-          const date = tx.date.toDate();
+          // Handle both Firestore Timestamp and regular Date objects/strings
+          const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000 || tx.date);
           let key;
 
           if (date.toDateString() === today.toDateString()) {
@@ -368,7 +369,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                          ) : (
                                                              <>
                                                                 <p className="font-bold text-gray-800">{tx.feature}</p>
-                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                              </>
                                                          )}
                                                     </div>
@@ -396,6 +397,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                 )}
             </div>
         </div>
+      </div>
       
       {isInfoModalOpen && (
           <div 
@@ -446,4 +448,3 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     </>
   );
 };
-    
