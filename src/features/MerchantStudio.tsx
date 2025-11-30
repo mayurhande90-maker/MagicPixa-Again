@@ -240,6 +240,11 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             // Process results (Add Base64 prefix)
             const processedResults = outputImages.map(img => `data:image/png;base64,${img}`);
             setResults(processedResults);
+            
+            // Notification if partial results
+            if (processedResults.length < packSize) {
+                alert(`Generated ${processedResults.length} out of ${packSize} images. Some variations could not be created at this time, but credits were applied.`);
+            }
 
             // Save to history (Batch save or individually? Let's save individually)
             for (let i = 0; i < processedResults.length; i++) {
@@ -252,9 +257,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 if (bonus !== false) setMilestoneBonus(bonus);
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Generation process had issues. Some images might not have generated.");
+            alert(`Generation process failed: ${e.message || "Unknown error"}. Please check your connection.`);
         } finally {
             setLoading(false);
         }
