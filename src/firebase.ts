@@ -346,39 +346,49 @@ export const deductCredits = async (uid: string, amount: number, feature: string
     if (!db) throw new Error("DB not init");
     const userRef = db.collection('users').doc(uid);
     
-    await db.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) throw new Error("User not found");
-        
-        const currentCredits = userDoc.data()?.credits || 0;
-        if (currentCredits < amount) throw new Error("Insufficient credits");
-        
-        transaction.update(userRef, { 
-            credits: currentCredits - amount,
-            lastActive: firebase.firestore.FieldValue.serverTimestamp(),
-            totalSpent: (userDoc.data()?.totalSpent || 0) + amount,
-            lifetimeGenerations: (userDoc.data()?.lifetimeGenerations || 0) + 1
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) throw new Error("User not found");
+            
+            const currentCredits = userDoc.data()?.credits || 0;
+            if (currentCredits < amount) throw new Error("Insufficient credits");
+            
+            transaction.update(userRef, { 
+                credits: currentCredits - amount,
+                lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+                totalSpent: (userDoc.data()?.totalSpent || 0) + amount,
+                lifetimeGenerations: (userDoc.data()?.lifetimeGenerations || 0) + 1
+            });
+            
+            const historyRef = db.collection('users').doc(uid).collection('history').doc();
+            transaction.set(historyRef, {
+                feature,
+                cost: amount,
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            });
         });
         
-        const historyRef = db.collection('users').doc(uid).collection('history').doc();
-        transaction.set(historyRef, {
-            feature,
-            cost: amount,
-            date: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    });
-    
-    const updatedSnap = await userRef.get();
-    return { ...updatedSnap.data(), uid } as User;
+        const updatedSnap = await userRef.get();
+        return { ...updatedSnap.data(), uid } as User;
+    } catch (error) {
+        console.error("Failed to deduct credits:", error);
+        throw error;
+    }
 };
 
 export const saveCreation = async (uid: string, imageUrl: string, feature: string) => {
     if (!db) return;
-    await db.collection('users').doc(uid).collection('creations').add({
-        imageUrl,
-        feature,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    try {
+        await db.collection('users').doc(uid).collection('creations').add({
+            imageUrl,
+            feature,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        // Log warning but don't throw to prevent UI crashes if history save fails (e.g. permission issues)
+        console.warn("Failed to save creation to history:", error);
+    }
 };
 
 export const getCreations = async (uid: string) => {

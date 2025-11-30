@@ -276,18 +276,26 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
             const url = `data:image/png;base64,${res}`;
             setResult(url);
-            saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            
-             // Check for milestone bonus in updated user object
-            if (updatedUser.lifetimeGenerations) {
-                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
-                if (bonus !== false) {
-                    setMilestoneBonus(bonus);
+
+            // Separate Try/Catch for Database Ops to prevent crashing UI if generation succeeded
+            try {
+                saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+                const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+                
+                // Check for milestone bonus in updated user object
+                if (updatedUser.lifetimeGenerations) {
+                    const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                    if (bonus !== false) {
+                        setMilestoneBonus(bonus);
+                    }
                 }
+
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            } catch (dbError) {
+                console.error("Database sync failed, but image generated:", dbError);
+                // We do not alert the user here to avoid "Failed" message when they see the result.
             }
 
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert('Generation failed. Please try again.');
