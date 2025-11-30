@@ -61,9 +61,13 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
     // Actions State
     const [creditsToAdd, setCreditsToAdd] = useState(10);
     const [creditReason, setCreditReason] = useState('Customer Support');
+    
+    // Notification State
+    const [notifTitle, setNotifTitle] = useState(''); // New Title State
     const [notifMessage, setNotifMessage] = useState('');
     const [notifType, setNotifType] = useState<'info' | 'success' | 'warning'>('info');
-    const [notifStyle, setNotifStyle] = useState<'banner' | 'pill' | 'toast' | 'modal'>('banner'); // New State
+    const [notifStyle, setNotifStyle] = useState<'banner' | 'pill' | 'toast' | 'modal'>('banner');
+    
     const [isActionLoading, setIsActionLoading] = useState(false);
 
     useEffect(() => {
@@ -117,10 +121,11 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
         if(!user.uid || !notifMessage || !currentUser.uid) return;
         setIsActionLoading(true);
         try {
-            // Pass the selected style
-            await sendSystemNotification(currentUser.uid, user.uid, notifMessage, notifType, notifStyle);
+            // Pass the selected style and title
+            await sendSystemNotification(currentUser.uid, user.uid, notifTitle, notifMessage, notifType, notifStyle);
             alert("Notification sent to user dashboard.");
             setNotifMessage('');
+            setNotifTitle(''); // Reset title
         } catch (e) {
             console.error("Notification Error:", e);
             alert("Failed to send notification.");
@@ -205,7 +210,18 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
                                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Send In-App Notification</h3>
                                     <div className="space-y-4">
-                                        <textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm h-20 resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="Message to user..." />
+                                        
+                                        {/* Title Input */}
+                                        <div>
+                                            <input 
+                                                type="text" 
+                                                value={notifTitle} 
+                                                onChange={(e) => setNotifTitle(e.target.value)} 
+                                                className="w-full p-3 border border-gray-200 rounded-xl text-sm font-bold focus:border-indigo-500 outline-none mb-2" 
+                                                placeholder="Title / Headline (e.g. Special Bonus)" 
+                                            />
+                                            <textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm h-20 resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="Message body..." />
+                                        </div>
                                         
                                         {/* Type Selector */}
                                         <div>
@@ -298,7 +314,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [hasChanges, setHasChanges] = useState(false);
 
     // Other
-    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info', link: '', style: 'banner' });
+    const [announcement, setAnnouncement] = useState<Announcement>({ title: '', message: '', isActive: false, type: 'info', link: '', style: 'banner' });
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -682,8 +698,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     </div>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
-                            <textarea value={announcement.message} onChange={(e) => setAnnouncement({...announcement, message: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none" placeholder="e.g. Scheduled maintenance tonight." />
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Content</label>
+                            <div className="space-y-2">
+                                <input 
+                                    type="text" 
+                                    value={announcement.title || ''} 
+                                    onChange={(e) => setAnnouncement({...announcement, title: e.target.value})} 
+                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold" 
+                                    placeholder="Headline (e.g. Maintenance Alert)" 
+                                />
+                                <textarea value={announcement.message} onChange={(e) => setAnnouncement({...announcement, message: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none" placeholder="Message body..." />
+                            </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Link (Optional)</label>

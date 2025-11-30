@@ -911,22 +911,24 @@ export const updateUserPlan = async (adminUid: string, targetUid: string, newPla
     } catch (e) { console.warn("Audit logging failed", e); }
 };
 
-// Updated to accept 'style'
+// Updated to accept 'style' and 'title'
 export const sendSystemNotification = async (
     adminUid: string, 
-    targetUid: string, 
+    targetUid: string,
+    title: string, // New Argument
     message: string, 
     type: 'info' | 'warning' | 'success',
-    style: 'banner' | 'pill' | 'toast' | 'modal' = 'banner' // Default to banner
+    style: 'banner' | 'pill' | 'toast' | 'modal' = 'banner'
 ) => {
     if (!db) return;
     
     // Write directly to user profile for real-time listener pick-up
     await db.collection('users').doc(targetUid).set({
         systemNotification: {
+            title, // Save Title
             message,
             type,
-            style, // Save the chosen style
+            style,
             read: false,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }
@@ -935,7 +937,7 @@ export const sendSystemNotification = async (
     try {
         const adminRef = db.collection('users').doc(adminUid);
         const adminSnap = await adminRef.get();
-        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Style: ${style}, Msg: ${message}`);
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'SEND_NOTIFICATION', `To: ${targetUid}, Style: ${style}, Title: ${title}`);
     } catch (e) { console.warn("Audit logging failed", e); }
 };
 
@@ -1045,10 +1047,11 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
     try {
         // Create a clean object to avoid undefined value errors in Firestore
         const cleanAnn: any = {
+            title: announcement.title || "", // Save Title
             message: announcement.message || "",
             isActive: !!announcement.isActive,
             type: announcement.type || 'info',
-            style: announcement.style || 'banner', // Correctly save the style field
+            style: announcement.style || 'banner',
             link: announcement.link || ""
         };
 
@@ -1057,7 +1060,7 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
         try {
             const adminRef = db.collection('users').doc(adminUid);
             const adminSnap = await adminRef.get();
-            await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Style: ${cleanAnn.style}, Msg: ${cleanAnn.message}`);
+            await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Style: ${cleanAnn.style}, Title: ${cleanAnn.title}`);
         } catch (e) { console.warn("Audit logging failed", e); }
 
     } catch (error: any) {

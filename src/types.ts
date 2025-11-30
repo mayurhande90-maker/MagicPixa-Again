@@ -4,9 +4,6 @@ import { Timestamp } from 'firebase/firestore';
 
 // Add Razorpay to the global window interface
 declare global {
-    // FIX: Moved the AIStudio interface inside `declare global` to properly augment the
-    // global `Window` type and resolve declaration merging conflicts. This prevents
-    // subsequent property declaration errors.
     interface AIStudio {
       hasSelectedApiKey: () => Promise<boolean>;
       openSelectKey: () => Promise<void>;
@@ -14,7 +11,6 @@ declare global {
 
     interface Window {
       Razorpay: any;
-      // Add aistudio for video generation API key selection
       aistudio?: AIStudio;
     }
 }
@@ -84,9 +80,10 @@ export interface User {
   
   // Admin System Notifications
   systemNotification?: {
+      title?: string; // Added custom title
       message: string;
       type: 'info' | 'warning' | 'success';
-      style?: 'banner' | 'pill' | 'toast' | 'modal'; // Added style property
+      style?: 'banner' | 'pill' | 'toast' | 'modal';
       read: boolean;
       timestamp: any;
   };
@@ -175,6 +172,7 @@ export interface ApiErrorLog {
 }
 
 export interface Announcement {
+    title?: string; // Added custom title
     message: string;
     isActive: boolean;
     type: 'info' | 'warning' | 'error' | 'success';

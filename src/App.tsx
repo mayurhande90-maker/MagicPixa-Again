@@ -364,6 +364,7 @@ const App: React.FC = () => {
       {/* 1. Global Announcement Display */}
       {showBanner && announcement && announcement.isActive && (
           <NotificationDisplay 
+              title={announcement.title} // Pass Title
               message={announcement.message}
               type={announcement.type}
               style={announcement.style || 'banner'} // Default fallback
@@ -375,6 +376,7 @@ const App: React.FC = () => {
       {/* 2. User System Notification Display */}
       {activeUser?.systemNotification && !activeUser.systemNotification.read && (
           <NotificationDisplay 
+              title={activeUser.systemNotification.title} // Pass Title
               message={activeUser.systemNotification.message}
               type={activeUser.systemNotification.type}
               style={activeUser.systemNotification.style || 'banner'} // Default fallback

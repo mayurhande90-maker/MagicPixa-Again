@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { InformationCircleIcon, XIcon, CheckIcon, ShieldCheckIcon } from './icons';
 
 interface NotificationDisplayProps {
+    title?: string; // Added title prop
     message: string;
     type: 'info' | 'warning' | 'error' | 'success';
     style?: 'banner' | 'pill' | 'toast' | 'modal';
@@ -11,6 +12,7 @@ interface NotificationDisplayProps {
 }
 
 export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ 
+    title,
     message, 
     type, 
     style = 'banner', 
@@ -30,6 +32,9 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
         setTimeout(onClose, 300); // Wait for exit animation
     };
 
+    // Fallback title based on type if not provided
+    const displayTitle = title || (type === 'info' ? 'Update' : type);
+
     // Theme Configuration
     const themes = {
         info: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', iconColor: 'text-blue-600', Icon: InformationCircleIcon },
@@ -46,6 +51,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                 <div className="flex items-center gap-3 mx-auto max-w-7xl w-full">
                     <theme.Icon className={`w-5 h-5 shrink-0 ${theme.iconColor}`} />
                     <span className="flex-1">
+                        {title && <span className="font-bold mr-2 uppercase tracking-wide text-xs opacity-90">{title}:</span>}
                         {message}
                         {link && (
                             <a href={link} target="_blank" rel="noreferrer" className="ml-2 underline font-bold hover:opacity-80">
@@ -70,8 +76,9 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                         <theme.Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800 leading-tight">{message}</p>
-                        {link && <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline block mt-0.5">View details</a>}
+                        {title && <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-0.5">{title}</p>}
+                        <p className="text-sm font-medium text-gray-700 leading-tight">{message}</p>
+                        {link && <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline block mt-1">View details</a>}
                     </div>
                     <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
                         <XIcon className="w-4 h-4" />
@@ -88,7 +95,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                 <div className={`bg-white shadow-xl border-l-4 rounded-r-xl p-4 flex items-start gap-3 max-w-sm ${theme.border.replace('border', 'border-l')}`}>
                     <theme.Icon className={`w-5 h-5 mt-0.5 ${theme.iconColor}`} />
                     <div>
-                        <h4 className={`text-sm font-bold capitalize ${theme.text}`}>{type}</h4>
+                        <h4 className={`text-sm font-bold ${theme.text} ${!title ? 'capitalize' : ''}`}>{displayTitle}</h4>
                         <p className="text-sm text-gray-600 mt-1">{message}</p>
                         {link && <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline mt-2 block">Action →</a>}
                     </div>
@@ -109,7 +116,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${theme.bg} ${theme.iconColor}`}>
                         <theme.Icon className="w-8 h-8" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 capitalize">{type === 'info' ? 'Announcement' : type}</h3>
+                    <h3 className={`text-xl font-bold text-gray-900 mb-2 ${!title ? 'capitalize' : ''}`}>{displayTitle}</h3>
                     <p className="text-gray-600 mb-6 leading-relaxed">{message}</p>
                     
                     <div className="flex gap-3">
