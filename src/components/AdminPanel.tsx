@@ -49,7 +49,7 @@ interface AdminPanelProps {
 }
 
 // User Detail Modal Component
-const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, onClose }) => {
+const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void }> = ({ user, currentUser, onClose }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
     const [isLoadingCreations, setIsLoadingCreations] = useState(false);
@@ -80,26 +80,29 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, 
     };
 
     const handleGrantCredits = async () => {
-        if(!user.uid) return;
+        if(!user.uid || !currentUser.uid) return;
         setIsActionLoading(true);
         try {
-            await addCreditsToUser('ADMIN', user.uid, creditsToAdd, creditReason);
+            // Use the actual logged-in admin's UID instead of hardcoded 'ADMIN'
+            await addCreditsToUser(currentUser.uid, user.uid, creditsToAdd, creditReason);
             alert(`Granted ${creditsToAdd} credits successfully.`);
         } catch (e) {
-            alert("Failed to grant credits.");
+            console.error("Grant Credits Error:", e);
+            alert("Failed to grant credits. Check console for permission details.");
         } finally {
             setIsActionLoading(false);
         }
     };
 
     const handleSendNotification = async () => {
-        if(!user.uid || !notifMessage) return;
+        if(!user.uid || !notifMessage || !currentUser.uid) return;
         setIsActionLoading(true);
         try {
-            await sendSystemNotification('ADMIN', user.uid, notifMessage, notifType);
+            await sendSystemNotification(currentUser.uid, user.uid, notifMessage, notifType);
             alert("Notification sent to user dashboard.");
             setNotifMessage('');
         } catch (e) {
+            console.error("Notification Error:", e);
             alert("Failed to send notification.");
         } finally {
             setIsActionLoading(false);
@@ -395,8 +398,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const handleSaveAnnouncement = async () => {
-        if(auth.user) await updateAnnouncement(auth.user.uid, announcement);
-        alert("Announcement updated.");
+        if(!auth.user) return;
+        try {
+            await updateAnnouncement(auth.user.uid, announcement);
+            alert("Announcement updated successfully.");
+        } catch (e) {
+            console.error("Announcement Update Error:", e);
+            alert("Failed to update announcement. Check console.");
+        }
     };
 
     const exportUsersCSV = () => {
@@ -750,7 +759,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {selectedUserForDetail && <UserDetailModal user={selectedUserForDetail} onClose={() => setSelectedUserForDetail(null)} />}
+            {selectedUserForDetail && auth.user && <UserDetailModal user={selectedUserForDetail} currentUser={auth.user} onClose={() => setSelectedUserForDetail(null)} />}
         </div>
     );
 };

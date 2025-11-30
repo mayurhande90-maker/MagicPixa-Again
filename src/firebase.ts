@@ -799,23 +799,34 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     if (!db) throw new Error("Firestore is not initialized.");
     const userRef = db.collection("users").doc(targetUid);
     const newTransactionRef = db.collection(`users/${targetUid}/transactions`).doc();
+    
+    // Validate amount
+    const safeAmount = Number(amount);
+    if (isNaN(safeAmount)) throw new Error("Invalid credit amount");
+
     await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists) throw new Error("Target user profile does not exist.");
+        
         transaction.update(userRef, {
-            credits: firebase.firestore.FieldValue.increment(amount),
-            totalCreditsAcquired: firebase.firestore.FieldValue.increment(amount),
+            credits: firebase.firestore.FieldValue.increment(safeAmount),
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(safeAmount),
         });
+        
         transaction.set(newTransactionRef, {
             feature: "Admin Credit Grant",
-            creditChange: `+${amount}`,
+            creditChange: `+${safeAmount}`,
             reason: reason,
             grantedBy: adminUid,
             date: firebase.firestore.FieldValue.serverTimestamp(),
+            cost: 0 // Explicitly set cost to 0 as it's a grant
         });
     });
+    
+    // Log action outside transaction (Admin always exists if logged in)
     const adminSnap = await db.collection('users').doc(adminUid).get();
-    await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_CREDITS', `Added ${amount} to ${targetUid}. Reason: ${reason}`);
+    await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_CREDITS', `Added ${safeAmount} to ${targetUid}. Reason: ${reason}`);
+    
     const updatedDoc = await userRef.get();
     return updatedDoc.data();
 };
@@ -969,10 +980,25 @@ export const getAnnouncement = async (): Promise<Announcement | null> => {
 
 export const updateAnnouncement = async (adminUid: string, announcement: Announcement) => {
     if (!db) return;
-    const adminRef = db.collection('users').doc(adminUid);
-    const adminSnap = await adminRef.get();
-    await db.collection('config').doc('announcement').set(announcement);
-    await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${announcement.isActive}, Msg: ${announcement.message}`);
+    try {
+        const adminRef = db.collection('users').doc(adminUid);
+        const adminSnap = await adminRef.get();
+        
+        // Create a clean object to avoid undefined value errors in Firestore
+        const cleanAnn: any = {
+            message: announcement.message || "",
+            isActive: !!announcement.isActive,
+            type: announcement.type || 'info',
+            displayStyle: announcement.displayStyle || 'banner'
+        };
+        if (announcement.link) cleanAnn.link = announcement.link;
+
+        await db.collection('config').doc('announcement').set(cleanAnn);
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'UPDATE_ANNOUNCEMENT', `Active: ${cleanAnn.isActive}, Msg: ${cleanAnn.message}`);
+    } catch (error: any) {
+        console.error("Update Announcement Error:", error);
+        throw error;
+    }
 };
 
 // Real-time Subscriptions (Essential for immediate UI updates)
@@ -1037,4 +1063,4 @@ export const getGlobalFeatureUsage = async (): Promise<{feature: string, count: 
     }
 };
 
-export { app, auth };
+export { app, auth, db, storage };
