@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { InformationCircleIcon, XIcon, CheckIcon, ShieldCheckIcon } from './icons';
 
 interface NotificationDisplayProps {
-    title?: string; // Added title prop
+    title?: string;
     message: string;
     type: 'info' | 'warning' | 'error' | 'success';
     style?: 'banner' | 'pill' | 'toast' | 'modal';
@@ -47,10 +47,10 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
     // 1. BANNER (Top Bar - Standard)
     if (style === 'banner') {
         return (
-            <div className={`w-full px-4 py-3 flex items-center justify-between text-sm font-medium z-[90] shadow-sm border-b transition-all duration-300 ${theme.bg} ${theme.border} ${theme.text}`}>
-                <div className="flex items-center gap-3 mx-auto max-w-7xl w-full">
+            <div className={`w-full px-12 py-3 relative flex items-center justify-center text-sm font-medium z-[90] shadow-sm border-b transition-all duration-300 ${theme.bg} ${theme.border} ${theme.text}`}>
+                <div className="flex items-center justify-center gap-3 max-w-7xl">
                     <theme.Icon className={`w-5 h-5 shrink-0 ${theme.iconColor}`} />
-                    <span className="flex-1 text-center">
+                    <span className="text-center">
                         {title && <span className="font-bold mr-2 uppercase tracking-wide text-xs opacity-90">{title}:</span>}
                         {message}
                         {link && (
@@ -60,7 +60,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
                         )}
                     </span>
                 </div>
-                <button onClick={handleClose} className="p-1 hover:bg-black/5 rounded-full transition-colors ml-4">
+                <button onClick={handleClose} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded-full transition-colors">
                     <XIcon className="w-4 h-4" />
                 </button>
             </div>
@@ -71,16 +71,16 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
     if (style === 'pill') {
         return (
             <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
-                <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full px-5 py-3 flex items-center gap-4 min-w-[320px] max-w-md">
-                    <div className={`p-1.5 rounded-full ${theme.bg} ${theme.iconColor}`}>
+                <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full pl-6 pr-10 py-3 flex items-center justify-center gap-4 min-w-[320px] max-w-md relative">
+                    <div className={`p-1.5 rounded-full shrink-0 ${theme.bg} ${theme.iconColor}`}>
                         <theme.Icon className="w-5 h-5" />
                     </div>
-                    <div className="flex-1 text-center">
+                    <div className="text-center">
                         {title && <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-0.5">{title}</p>}
-                        <p className="text-sm font-medium text-gray-700 leading-tight">{message}</p>
+                        <p className="text-sm font-medium text-gray-800 leading-tight">{message}</p>
                         {link && <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline block mt-1">View details</a>}
                     </div>
-                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                    <button onClick={handleClose} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100">
                         <XIcon className="w-4 h-4" />
                     </button>
                 </div>
