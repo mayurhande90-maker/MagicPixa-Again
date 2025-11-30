@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -67,7 +68,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
 
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
-    if (feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('admin grant')) {
+    if (feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant')) {
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
@@ -238,7 +239,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
       const planName = user.plan || 'Free';
       // Only append "Plan" if it's the default Free tier
       if (planName === 'Free') return 'Free Plan';
-      // Otherwise return as is (e.g., "Starter Pack", "Studio Pack | Top-up")
+      // Otherwise return as is (e.g. "Starter Pack", "Studio Pack | Top-up")
       return planName;
   })();
 

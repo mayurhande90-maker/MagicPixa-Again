@@ -820,7 +820,7 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
         });
         
         transaction.set(newTransactionRef, {
-            feature: "Admin Credit Grant",
+            feature: "MagicPixa Credit Grant",
             creditChange: `+${safeAmount}`,
             reason: reason,
             grantedBy: adminUid,
