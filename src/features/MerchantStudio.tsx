@@ -216,10 +216,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setResults([]); 
 
         try {
-            // Note: We deliberately generate BEFORE deducting credits here to prevent
-            // a "permission error" from blocking the user if their session is slightly stale.
-            // We check `isLowCredits` above to prevent obvious free usage.
-            
+            // Deduct Credits First
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+
             const outputImages = await generateMerchantBatch({
                 type: mode,
                 mainImage: mainImage.base64,
@@ -240,38 +240,21 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             // Process results (Add Base64 prefix)
             const processedResults = outputImages.map(img => `data:image/png;base64,${img}`);
             setResults(processedResults);
-            
-            // Notification if partial results
-            if (processedResults.length < packSize) {
-                alert(`Generated ${processedResults.length} out of ${packSize} images. Some variations could not be created at this time.`);
+
+            // Save to history (Batch save or individually? Let's save individually)
+            for (let i = 0; i < processedResults.length; i++) {
+                const label = getLabel(i, mode);
+                saveCreation(auth.user.uid, processedResults[i], `Merchant: ${label}`);
             }
 
-            // Save to DB and Deduct Credits (Silently handle permission errors)
-            try {
-                // Save Individually
-                for (let i = 0; i < processedResults.length; i++) {
-                    const label = getLabel(i, mode);
-                    saveCreation(auth.user.uid, processedResults[i], `Merchant: ${label}`);
-                }
-
-                // Deduct
-                const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
-                
-                // Milestone Check
-                if (updatedUser.lifetimeGenerations) {
-                    const bonus = checkMilestone(updatedUser.lifetimeGenerations);
-                    if (bonus !== false) setMilestoneBonus(bonus);
-                }
-                
-                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            } catch (dbError) {
-                console.error("Database sync failed after merchant generation:", dbError);
-                // Do not alert user, let them enjoy the generated images.
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) setMilestoneBonus(bonus);
             }
 
-        } catch (e: any) {
+        } catch (e) {
             console.error(e);
-            alert(`Generation process failed: ${e.message || "Unknown error"}. Please check your connection.`);
+            alert("Generation process had issues. Some images might not have generated.");
         } finally {
             setLoading(false);
         }

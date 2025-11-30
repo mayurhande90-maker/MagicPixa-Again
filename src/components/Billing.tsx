@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -100,20 +99,9 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
 
       transactions.forEach(tx => {
           if (!tx.date) return;
-          
-          let date: Date;
-          // Safe date parsing handling both Firebase Timestamp and serialized objects
-          if ((tx.date as any).toDate) {
-              date = (tx.date as any).toDate();
-          } else if ((tx.date as any).seconds) {
-              date = new Date((tx.date as any).seconds * 1000);
-          } else {
-              date = new Date(tx.date as any);
-          }
-          
-          if (isNaN(date.getTime())) return;
-
+          const date = tx.date.toDate();
           let key;
+
           if (date.toDateString() === today.toDateString()) {
               key = 'Today';
           } else if (date.toDateString() === yesterday.toDateString()) {
@@ -125,7 +113,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
           if (!groups[key]) {
               groups[key] = [];
           }
-          groups[key].push({ ...tx, date: { toDate: () => date } as any }); // Normalize date object for rendering
+          groups[key].push(tx);
       });
 
       return groups;
@@ -245,10 +233,12 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
     return dateB.getTime() - dateA.getTime();
   });
 
-  // Safe Plan Display Logic
+  // Safe Plan Display Logic: Handles "Plan Plan" duplication and new "Top-up" format
   const displayPlanName = (() => {
       const planName = user.plan || 'Free';
+      // Only append "Plan" if it's the default Free tier
       if (planName === 'Free') return 'Free Plan';
+      // Otherwise return as is (e.g., "Starter Pack", "Studio Pack | Top-up")
       return planName;
   })();
 
@@ -369,7 +359,7 @@ const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveVi
                                                     </div>
                                                     <div>
                                                          <p className="font-bold text-gray-800">{tx.feature}</p>
-                                                         <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                                                         <p className="text-[10px] font-medium text-gray-400 mt-0.5">{tx.date.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                     </div>
                                                 </div>
                                                  {tx.creditChange ? (

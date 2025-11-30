@@ -447,10 +447,6 @@ export const CreditCoinIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
-export const MegaphoneIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.43.872.95 1.114 1.521.462 1.09.462 2.32 0 3.41-.242.57-.619 1.091-1.114 1.521" />} />
-);
-
 // Custom MagicPixa Logo
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div className={`flex items-center ${className}`}>

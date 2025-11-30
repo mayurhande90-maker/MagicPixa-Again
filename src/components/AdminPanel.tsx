@@ -1,38 +1,36 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, User, AuditLog, ApiErrorLog, Announcement, Purchase } from '../types';
+import React, { useState, useEffect } from 'react';
+import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement } from '../types';
 import { 
     getAllUsers, 
+    addCreditsToUser, 
+    updateAppConfig, 
+    getRecentSignups, 
+    getRecentPurchases, 
     getTotalRevenue,
     toggleUserBan,
     updateUserPlan,
-    sendSystemNotification,
     getAuditLogs,
-    getApiErrorLogs,
     getAnnouncement,
     updateAnnouncement,
-    getCreations,
-    getRecentSignups,
-    getRecentPurchases,
-    addCreditsToUser,
-    get24HourCreditBurn,
-    updateAppConfig
+    getGlobalFeatureUsage,
+    getCreations // Added for user details
 } from '../firebase';
 import { 
-    XIcon, 
-    ShieldCheckIcon, 
-    InformationCircleIcon, 
-    CheckIcon,
-    MegaphoneIcon,
-    UserIcon,
-    CreditCardIcon,
+    UsersIcon, 
+    CreditCardIcon, 
+    CogIcon, 
     ChartBarIcon,
-    SparklesIcon,
-    CurrencyDollarIcon,
-    ArrowUpCircleIcon,
-    DownloadIcon,
-    EyeIcon,
-    RetryIcon
+    PlusIcon,
+    CheckIcon,
+    XIcon,
+    ShieldCheckIcon,
+    InformationCircleIcon,
+    TrashIcon,
+    FlagIcon,
+    AudioWaveIcon, // Placeholder for Announcement Icon
+    DocumentTextIcon, // Placeholder for Logs
+    ImageIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -41,278 +39,148 @@ interface AdminPanelProps {
     onConfigUpdate: (config: AppConfig) => void;
 }
 
-// Known Features List for Toggles
-const KNOWN_FEATURES = [
-    { id: 'studio', label: 'Magic Photo Studio' },
-    { id: 'brand_kit', label: 'Merchant Studio' },
-    { id: 'brand_stylist', label: 'Magic Ads' },
-    { id: 'thumbnail_studio', label: 'Thumbnail Studio' },
-    { id: 'magic_realty', label: 'Magic Realty' },
-    { id: 'soul', label: 'Magic Soul' },
-    { id: 'colour', label: 'Magic Photo Colour' },
-    { id: 'caption', label: 'CaptionAI' },
-    { id: 'interior', label: 'Magic Interior' },
-    { id: 'apparel', label: 'Magic Apparel' },
-    { id: 'mockup', label: 'Magic Mockup' },
-    { id: 'scanner', label: 'Magic Scanner' },
-    { id: 'notes', label: 'Magic Notes' }
-];
-
-// --- Helper Components ---
-
-const ToggleSwitch: React.FC<{ checked: boolean; onChange: (val: boolean) => void; label?: string }> = ({ checked, onChange, label }) => (
-    <div className="flex items-center gap-3 cursor-pointer" onClick={() => onChange(!checked)}>
-        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${checked ? 'bg-green-500' : 'bg-gray-300'}`}>
-            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-6' : 'translate-x-0'}`}></div>
-        </div>
-        {label && <span className={`text-sm font-bold ${checked ? 'text-green-600' : 'text-gray-500'}`}>{label}</span>}
-    </div>
-);
-
-const StatCard: React.FC<{ 
-    title: string; 
-    value: string | number; 
-    subValue?: string; 
-    icon: React.ReactNode; 
-    color: string; 
-}> = ({ title, value, subValue, icon, color }) => (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start justify-between hover:shadow-md transition-all">
-        <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-            <h3 className="text-3xl font-black text-[#1A1A1E] mb-1">{value}</h3>
-            {subValue && <p className={`text-xs font-bold ${color.replace('bg-', 'text-').replace('100', '600')}`}>{subValue}</p>}
-        </div>
-        <div className={`p-3 rounded-xl ${color}`}>
-            {icon}
-        </div>
-    </div>
-);
-
-// --- User Detail Modal ---
-const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () => void; adminUid: string; onRefresh: () => Promise<void>; }> = ({ user, onClose, onViewAs, adminUid, onRefresh }) => {
+// User Detail Modal Component
+const UserDetailModal: React.FC<{ user: User; onClose: () => void }> = ({ user, onClose }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'creations'>('overview');
     const [userCreations, setUserCreations] = useState<any[]>([]);
-    const [manualPlan, setManualPlan] = useState(user.plan || 'Free');
-    const [notificationText, setNotificationText] = useState('');
-    const [grantAmount, setGrantAmount] = useState<number>(0);
-    const [grantReason, setGrantReason] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoadingCreations, setIsLoadingCreations] = useState(false);
 
     useEffect(() => {
-        if (activeTab === 'creations') getCreations(user.uid).then(setUserCreations);
-    }, [activeTab, user.uid]);
-
-    // Update local state when prop user changes (e.g. after refresh)
-    useEffect(() => {
-        setManualPlan(user.plan || 'Free');
-    }, [user]);
-
-    const handleUpdatePlan = async () => {
-        setIsProcessing(true);
-        try {
-            await updateUserPlan(adminUid, user.uid, manualPlan);
-            alert("Plan successfully updated.");
-            await onRefresh(); // Refresh parent list and current user details
-        } catch (e) {
-            console.error(e);
-            alert("Failed to update plan.");
-        } finally {
-            setIsProcessing(false);
+        if (activeTab === 'creations') {
+            loadCreations();
         }
-    };
+    }, [activeTab]);
 
-    const handleSendNotification = async () => {
-        if (!notificationText.trim()) return;
-        setIsProcessing(true);
+    const loadCreations = async () => {
+        setIsLoadingCreations(true);
         try {
-            await sendSystemNotification(adminUid, user.uid, notificationText);
-            setNotificationText('');
-            alert("Notification sent to user dashboard.");
+            const creations = await getCreations(user.uid);
+            setUserCreations(creations);
         } catch (e) {
-            console.error(e);
-            alert("Failed to send notification.");
+            console.error("Failed to load user creations", e);
         } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const handleGrantCredits = async () => {
-        if (grantAmount <= 0) return;
-        setIsProcessing(true);
-        try {
-            await addCreditsToUser(adminUid, user.uid, grantAmount, grantReason || "Admin Grant");
-            setGrantAmount(0);
-            setGrantReason('');
-            alert(`Successfully granted ${grantAmount} credits.`);
-            await onRefresh(); // Refresh parent list and current user details
-        } catch (e) {
-            console.error(e);
-            alert("Failed to grant credits.");
-        } finally {
-            setIsProcessing(false);
+            setIsLoadingCreations(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4 animate-fadeIn">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-                <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                    <div>
-                        <h2 className="text-2xl font-bold text-[#1A1A1E]">{user.name}</h2>
-                        <p className="text-sm text-gray-500 font-mono">{user.email}</p>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><XIcon className="w-6 h-6"/></button>
-                </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden animate-fadeIn">
                 
-                <div className="flex border-b px-6 bg-white">
-                    <button onClick={()=>setActiveTab('overview')} className={`py-4 px-6 text-sm font-bold border-b-2 transition-colors ${activeTab==='overview'?'border-blue-600 text-blue-600':'border-transparent text-gray-500 hover:text-gray-700'}`}>Overview & Actions</button>
-                    <button onClick={()=>setActiveTab('creations')} className={`py-4 px-6 text-sm font-bold border-b-2 transition-colors ${activeTab==='creations'?'border-blue-600 text-blue-600':'border-transparent text-gray-500 hover:text-gray-700'}`}>Creation Gallery</button>
+                {/* Header */}
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">
+                            {user.name?.[0] || 'U'}
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                        <XIcon className="w-6 h-6 text-gray-500" />
+                    </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 bg-[#F9FAFB]">
+                {/* Tabs */}
+                <div className="flex border-b border-gray-100 px-6">
+                    <button 
+                        onClick={() => setActiveTab('overview')} 
+                        className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Overview & History
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('creations')} 
+                        className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'creations' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Creations Gallery
+                    </button>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                     {activeTab === 'overview' ? (
-                        <div className="grid md:grid-cols-2 gap-8">
-                            {/* Stats Card */}
-                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">User Profile</h3>
-                                
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Credit Balance</span>
-                                    <span className="text-xl font-bold text-[#1A1A1E]">{user.credits}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Current Plan</span>
-                                    <span className="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-sm">{user.plan || 'Free'}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Total Spent</span>
-                                    <span className="font-bold text-gray-800">{user.totalSpent || 0} Credits</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Last Active</span>
-                                    <span className="text-sm font-medium text-gray-800">
-                                        {user.lastActive 
-                                            ? new Date((user.lastActive as any).seconds * 1000).toLocaleString() 
-                                            : 'Never'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="text-gray-600">Signed Up</span>
-                                    <span className="text-sm font-medium text-gray-800">
-                                        {user.signUpDate 
-                                            ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() 
-                                            : 'Unknown'}
-                                    </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Stats Cards */}
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Account Status</h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Plan</span>
+                                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{user.plan || 'Free'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Credits</span>
+                                        <span className="text-sm font-bold text-gray-800">{user.credits}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Total Spent</span>
+                                        <span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Joined</span>
+                                        <span className="text-sm text-gray-800">{user.signUpDate ? new Date((user.signUpDate as any).seconds * 1000).toLocaleDateString() : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Last Active</span>
+                                        <span className="text-sm text-gray-800">
+                                            {user.lastActive ? new Date((user.lastActive as any).seconds * 1000).toLocaleString() : '-'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Actions Card */}
-                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Administrative Controls</h3>
-                                
-                                <button 
-                                    onClick={onViewAs} 
-                                    className="w-full bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl text-sm font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <EyeIcon className="w-4 h-4"/>
-                                    Impersonate (View As User)
-                                </button>
-
-                                {/* Grant Credits */}
-                                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                                    <label className="text-xs font-bold text-green-800 block mb-2">Grant Manual Credits</label>
-                                    <div className="space-y-2">
-                                        <div className="flex gap-2">
-                                            <input 
-                                                type="number" 
-                                                value={grantAmount || ''} 
-                                                onChange={e=>setGrantAmount(Number(e.target.value))} 
-                                                className="w-20 border border-gray-300 p-2 rounded-lg text-sm outline-none text-center"
-                                                placeholder="Amt"
-                                            />
-                                            <input 
-                                                type="text" 
-                                                value={grantReason} 
-                                                onChange={e=>setGrantReason(e.target.value)} 
-                                                className="flex-1 border border-gray-300 p-2 rounded-lg text-sm outline-none"
-                                                placeholder="Reason (Optional)"
-                                            />
-                                        </div>
-                                        <button 
-                                            onClick={handleGrantCredits} 
-                                            disabled={isProcessing || grantAmount <= 0}
-                                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50"
-                                        >
-                                            Add Credits
-                                        </button>
+                            {/* Engagement */}
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Engagement</h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Generations</span>
+                                        <span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span>
                                     </div>
-                                </div>
-
-                                {/* Plan Override */}
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 block mb-2">Manual Plan Assignment</label>
-                                    <div className="flex gap-2">
-                                        <select 
-                                            value={manualPlan} 
-                                            onChange={e=>setManualPlan(e.target.value)} 
-                                            className="flex-1 border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        >
-                                            <option>Free</option>
-                                            <option>Starter Pack</option>
-                                            <option>Creator Pack</option>
-                                            <option>Studio Pack</option>
-                                            <option>Agency Pack</option>
-                                            <option>VIP</option>
-                                        </select>
-                                        <button 
-                                            onClick={handleUpdatePlan} 
-                                            disabled={isProcessing}
-                                            className="bg-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 disabled:opacity-50"
-                                        >
-                                            Update
-                                        </button>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Referrals</span>
+                                        <span className="text-sm font-bold text-indigo-600">{user.referralCount || 0}</span>
                                     </div>
-                                </div>
-
-                                {/* Targeted Notification */}
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 block mb-2">Send In-App Notification (Header Bar)</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={notificationText} 
-                                            onChange={e=>setNotificationText(e.target.value)} 
-                                            className="flex-1 border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                                            placeholder="Message..."
-                                        />
-                                        <button 
-                                            onClick={handleSendNotification} 
-                                            disabled={isProcessing}
-                                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            Send
-                                        </button>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Referral Code</span>
+                                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">{user.referralCode || '-'}</code>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {userCreations.length === 0 ? (
-                                <div className="text-center py-20 text-gray-400">
-                                    <p>No creations found for this user.</p>
+                        // Creations Gallery
+                        <div className="h-full">
+                            {isLoadingCreations ? (
+                                <div className="flex justify-center items-center h-40">
+                                    <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                    {userCreations.map(c => (
-                                        <div key={c.id} className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative group border border-gray-200">
-                                            <img src={c.thumbnailUrl || c.imageUrl} className="w-full h-full object-cover" loading="lazy" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                                                <p className="text-white text-xs font-bold truncate">{c.feature}</p>
-                                                <p className="text-gray-300 text-[10px]">{new Date(c.createdAt?.seconds * 1000).toLocaleDateString()}</p>
+                            ) : userCreations.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {userCreations.map((creation) => (
+                                        <div key={creation.id} className="relative group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 aspect-square">
+                                            <img 
+                                                src={creation.thumbnailUrl || creation.imageUrl} 
+                                                alt={creation.feature} 
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                            />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                                <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{creation.feature}</span>
+                                                <span className="text-[9px] text-gray-300">
+                                                    {creation.createdAt ? new Date((creation.createdAt as any).seconds * 1000).toLocaleDateString() : ''}
+                                                </span>
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                                    <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
+                                    <p className="text-sm">No creations found for this user.</p>
                                 </div>
                             )}
                         </div>
@@ -324,635 +192,503 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; onViewAs: () 
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'comms' | 'system'>('overview');
     
-    // Stats State
-    const [stats, setStats] = useState({ 
-        revenue: 0, 
-        totalUsers: 0,
-        activeToday: 0,
-        newToday: 0,
-        totalSpent: 0,
-        creditBurn24h: 0,
-        signups: [] as User[], 
-        purchases: [] as Purchase[] 
+    // Overview Data
+    const [stats, setStats] = useState<{ revenue: number, signups: User[], purchases: Purchase[] }>({
+        revenue: 0,
+        signups: [],
+        purchases: []
     });
 
-    const [allUsers, setAllUsers] = useState<User[]>([]);
+    // Users Data
+    const [allUsers, setAllUsers] = useState<User[]>([]); 
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortOption, setSortOption] = useState('oldest');
+    const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null);
     
-    // Announcement State
-    const [announcement, setAnnouncement] = useState<Announcement>({ 
-        message: '', 
-        isActive: false, 
-        type: 'info', 
-        displayStyle: 'banner',
-        link: ''
-    });
-    
+    // Credit Grant Modal
+    const [creditModalUser, setCreditModalUser] = useState<string | null>(null); 
+    const [creditAmount, setCreditAmount] = useState(10);
+    const [creditReason, setCreditReason] = useState('Support Adjustment');
+
+    // Config Data
+    const [localConfig, setLocalConfig] = useState<AppConfig | null>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Advanced Features Data
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-    const [apiLogs, setApiLogs] = useState<ApiErrorLog[]>([]);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [announcement, setAnnouncement] = useState<Announcement>({ message: '', isActive: false, type: 'info' });
+    const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
+
     const [isLoading, setIsLoading] = useState(false);
-    
-    // Auto Refresh State
-    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+
+    useEffect(() => {
+        if (appConfig) setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
+        // Initial Fetch
+        loadOverview();
+        fetchAnnouncement();
+    }, [appConfig]);
+
+    // Tab-Specific Loaders
+    useEffect(() => {
+        if (activeTab === 'users') loadUsers();
+        if (activeTab === 'system') loadAuditLogs();
+        if (activeTab === 'analytics') loadAnalytics();
+    }, [activeTab]);
+
+    useEffect(() => {
+        const lower = searchTerm.toLowerCase();
+        setFilteredUsers(allUsers.filter(u => 
+            u.name?.toLowerCase().includes(lower) || 
+            u.email?.toLowerCase().includes(lower) ||
+            u.uid === searchTerm
+        ));
+    }, [searchTerm, allUsers]);
 
     const loadOverview = async () => {
-        setIsLoading(true);
         try {
-            // Fetch Core Data
-            const [r, s, p, a, users, burn24h] = await Promise.all([
+            const [rev, signups, purchases] = await Promise.all([
                 getTotalRevenue(),
                 getRecentSignups(10),
-                getRecentPurchases(10),
-                getAnnouncement(),
-                getAllUsers(), // Need full list for accurate counters
-                get24HourCreditBurn()
+                getRecentPurchases(10)
             ]);
-
-            // Calculate Date-Based Stats
-            const now = new Date();
-            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            
-            const activeToday = users.filter(u => {
-                if (!u.lastActive) return false;
-                const d = (u.lastActive as any).toDate ? (u.lastActive as any).toDate() : new Date((u.lastActive as any).seconds * 1000);
-                return d > oneDayAgo;
-            }).length;
-
-            const newToday = users.filter(u => {
-                if (!u.signUpDate) return false;
-                const d = (u.signUpDate as any).toDate ? (u.signUpDate as any).toDate() : new Date((u.signUpDate as any).seconds * 1000);
-                return d > oneDayAgo;
-            }).length;
-
-            // Simple aggregation of credit usage
-            const totalSpent = users.reduce((acc, u) => acc + (u.totalSpent || 0), 0);
-
-            setStats({
-                revenue: r,
-                signups: s as any,
-                purchases: p as any,
-                totalUsers: users.length,
-                activeToday,
-                newToday,
-                totalSpent,
-                creditBurn24h: burn24h
-            });
-            
-            setAllUsers(users); // Cache for User Tab
-            if (a) setAnnouncement(a);
+            setStats({ revenue: rev, signups, purchases });
         } catch (e) {
             console.error("Failed to load admin stats", e);
+        }
+    };
+
+    const loadUsers = async () => {
+        setIsLoading(true);
+        try {
+            const users = await getAllUsers();
+            setAllUsers(users);
+        } catch (e) {
+            console.error("Failed to load users", e);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Initial Load
-    useEffect(() => {
-        loadOverview();
-    }, []);
-
-    // Auto Refresh for Logs (System Tab)
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (activeTab === 'system' && autoRefreshEnabled) {
-            const refreshLogs = () => {
-                getAuditLogs().then(setAuditLogs);
-                getApiErrorLogs().then(setApiLogs);
-            };
-            refreshLogs(); // Initial
-            interval = setInterval(refreshLogs, 60000); // Every minute
-        }
-        return () => clearInterval(interval);
-    }, [activeTab, autoRefreshEnabled]);
-
-    const handleRefreshLogs = () => {
-        getAuditLogs().then(setAuditLogs);
-        getApiErrorLogs().then(setApiLogs);
+    const loadAuditLogs = async () => {
+        const logs = await getAuditLogs();
+        setAuditLogs(logs);
     };
 
-    const filteredUsers = useMemo(() => {
-        let res = allUsers.filter(u => 
-            (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
-            (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-        
-        // Robust Date Sorting
-        const getTs = (d: any) => d ? (d.seconds ? d.seconds : new Date(d).getTime()/1000) : 0;
-        
-        res.sort((a,b) => {
-            if (sortOption === 'newest') return getTs(b.signUpDate) - getTs(a.signUpDate);
-            if (sortOption === 'oldest') return getTs(a.signUpDate) - getTs(b.signUpDate);
-            if (sortOption === 'credits') return b.credits - a.credits;
-            if (sortOption === 'active') return getTs(b.lastActive) - getTs(a.lastActive);
-            return 0;
-        });
-        return res;
-    }, [allUsers, searchTerm, sortOption]);
+    const loadAnalytics = async () => {
+        const usage = await getGlobalFeatureUsage();
+        setFeatureUsage(usage);
+    };
 
-    const handleBan = async (u: User) => {
+    const fetchAnnouncement = async () => {
+        const ann = await getAnnouncement();
+        if (ann) setAnnouncement(ann);
+    };
+
+    // --- ACTIONS ---
+
+    const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => {
+        if (!localConfig) return;
+        if (section === 'featureCosts' || section === 'featureToggles') {
+             setLocalConfig(prev => {
+                if(!prev) return null;
+                return { ...prev, [section]: { ...prev[section], [key]: value } }
+            });
+        }
+        setHasChanges(true);
+    };
+
+    const saveConfig = async () => {
+        if (!localConfig) return;
+        setIsLoading(true);
+        try {
+            await updateAppConfig(localConfig);
+            onConfigUpdate(localConfig);
+            setHasChanges(false);
+            alert("Configuration saved!");
+        } catch (e) {
+            console.error(e);
+            alert("Failed to save.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGrantCredits = async () => {
+        if (!creditModalUser || !auth.user) return;
+        setIsLoading(true);
+        try {
+            await addCreditsToUser(auth.user.uid, creditModalUser, creditAmount, creditReason);
+            alert(`Added ${creditAmount} credits.`);
+            setCreditModalUser(null);
+            loadUsers(); 
+        } catch (e) {
+            console.error(e);
+            alert("Failed to grant credits.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleToggleBan = async (user: User) => {
         if (!auth.user) return;
-        const action = u.isBanned ? "UNBAN" : "BAN";
-        if (confirm(`Are you sure you want to ${action} ${u.email}?`)) {
-            // Optimistic Update
-            setAllUsers(prev => prev.map(user => user.uid === u.uid ? { ...user, isBanned: !user.isBanned } : user));
-            try {
-                await toggleUserBan(auth.user.uid, u.uid, !u.isBanned);
-            } catch (e) {
-                console.error("Ban toggle failed:", e);
-                alert("Action failed. Reverting changes...");
-                // Revert
-                setAllUsers(prev => prev.map(user => user.uid === u.uid ? { ...user, isBanned: u.isBanned } : user));
-            }
+        if (confirm(`Are you sure you want to ${user.isBanned ? 'UNBAN' : 'BAN'} ${user.email}?`)) {
+            await toggleUserBan(auth.user.uid, user.uid, !user.isBanned);
+            loadUsers(); // Refresh
         }
     };
 
     const handleSaveAnnouncement = async () => {
         if (!auth.user) return;
-        try {
-            await updateAnnouncement(auth.user.uid, announcement);
-            alert("Announcement updated successfully.");
-        } catch (e) {
-            console.error(e);
-            alert("Failed to update announcement.");
-        }
+        await updateAnnouncement(auth.user.uid, announcement);
+        alert("Announcement updated!");
     };
 
-    const toggleFeature = async (featureId: string, currentState: boolean) => {
-        if (!auth.user) return;
-        
-        const currentToggles = appConfig?.featureToggles || {};
-        const updatedConfig = {
-            featureCosts: appConfig?.featureCosts || {},
-            creditPacks: appConfig?.creditPacks || [],
-            featureToggles: {
-                ...currentToggles,
-                [featureId]: !currentState
-            }
-        };
-        
-        try {
-            await updateAppConfig(auth.user.uid, updatedConfig);
-            onConfigUpdate(updatedConfig);
-        } catch (e) {
-            console.error(e);
-            alert("Failed to toggle feature");
-        }
-    };
-
-    // Helper to format timestamps safely
-    const formatDate = (timestamp: any) => {
-        if (!timestamp) return 'N/A';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-        return date.toLocaleDateString();
-    };
+    // Simple Render Helpers
+    const TabButton = ({ id, label, icon: Icon }: any) => (
+        <button 
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === id 
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+            }`}
+        >
+            {Icon && <Icon className={`w-4 h-4 ${activeTab === id ? 'text-indigo-200' : 'text-gray-400'}`} />}
+            {label}
+        </button>
+    );
 
     return (
-        <div className="p-4 sm:p-8 max-w-[1600px] mx-auto pb-32 bg-gray-50/50 min-h-screen">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#1A1A1E]">Admin Command Center</h1>
-                    <p className="text-sm text-gray-500 mt-1">System Overview & Management</p>
-                </div>
-                <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto w-full sm:w-auto">
-                    {['overview', 'users', 'comms', 'features', 'system'].map(tab => (
-                        <button 
-                            key={tab} 
-                            onClick={() => setActiveTab(tab)} 
-                            className={`px-5 py-2 rounded-lg font-bold text-sm capitalize transition-all whitespace-nowrap ${
-                                activeTab===tab 
-                                ? 'bg-black text-white shadow-md' 
-                                : 'bg-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                            }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+        <div className="p-6 max-w-7xl mx-auto pb-24">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <h1 className="text-3xl font-bold text-[#1A1A1E] flex items-center gap-3">
+                    <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-200">
+                        <ShieldCheckIcon className="w-6 h-6"/>
+                    </div>
+                    Admin Command
+                </h1>
+                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                    <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
+                    <TabButton id="analytics" label="Analytics" icon={ImageIcon} />
+                    <TabButton id="users" label="Users" icon={UsersIcon} />
+                    <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
+                    <TabButton id="system" label="System" icon={DocumentTextIcon} />
                 </div>
             </div>
 
+            {/* --- OVERVIEW TAB --- */}
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-fadeIn">
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <StatCard 
-                            title="Total Revenue" 
-                            value={`₹${stats.revenue.toLocaleString()}`} 
-                            icon={<CurrencyDollarIcon className="w-6 h-6 text-green-600" />} 
-                            color="bg-green-100" 
-                        />
-                        <StatCard 
-                            title="Total Users" 
-                            value={stats.totalUsers} 
-                            subValue={`+${stats.newToday} today`} 
-                            icon={<UserIcon className="w-6 h-6 text-blue-600" />} 
-                            color="bg-blue-100" 
-                        />
-                        <StatCard 
-                            title="Total Credit Burn" 
-                            value={stats.totalSpent.toLocaleString()}
-                            subValue={`${stats.creditBurn24h.toLocaleString()} in last 24h`}
-                            icon={<SparklesIcon className="w-6 h-6 text-orange-600" />} 
-                            color="bg-orange-100" 
-                        />
-                        <StatCard 
-                            title="Active (24h)" 
-                            value={stats.activeToday} 
-                            icon={<ChartBarIcon className="w-6 h-6 text-purple-600" />} 
-                            color="bg-purple-100" 
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Revenue/Transactions Chart Area */}
-                        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="font-bold text-gray-800 text-lg">Recent Transactions</h3>
-                                <button onClick={()=>setActiveTab('users')} className="text-xs font-bold text-blue-600 hover:underline">View Users</button>
-                            </div>
-                            
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 text-gray-400 text-xs uppercase">
-                                            <th className="pb-3 font-bold">User</th>
-                                            <th className="pb-3 font-bold">Pack</th>
-                                            <th className="pb-3 font-bold">Date</th>
-                                            <th className="pb-3 font-bold text-right">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {stats.purchases.length > 0 ? stats.purchases.map(p => (
-                                            <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="py-3 font-medium text-gray-900">{p.userName || 'Unknown'}</td>
-                                                <td className="py-3 text-gray-600">{p.packName}</td>
-                                                <td className="py-3 text-gray-500">{formatDate(p.purchaseDate)}</td>
-                                                <td className="py-3 text-right font-bold text-green-600">+₹{p.amountPaid}</td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan={4} className="py-8 text-center text-gray-400">No recent transactions.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
+                            <div className="p-4 bg-green-100 rounded-xl text-green-600"><CreditCardIcon className="w-8 h-8"/></div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Revenue</p>
+                                <p className="text-3xl font-black text-[#1A1A1E]">₹{stats.revenue.toLocaleString()}</p>
                             </div>
                         </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
+                            <div className="p-4 bg-blue-100 rounded-xl text-blue-600"><UsersIcon className="w-8 h-8"/></div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">New Users</p>
+                                <p className="text-3xl font-black text-[#1A1A1E]">{stats.signups.length} <span className="text-xs font-medium text-gray-400">last 10</span></p>
+                            </div>
+                        </div>
+                        {/* Config Panel Shortcut */}
+                        <div className="bg-gradient-to-br from-gray-800 to-black p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">System Status</p>
+                                    <p className="text-xl font-bold mt-1">Operational</p>
+                                </div>
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+                            </div>
+                            <button onClick={() => {}} className="text-xs font-bold text-gray-400 hover:text-white mt-4 flex items-center gap-1">
+                                View Server Logs →
+                            </button>
+                        </div>
+                    </div>
 
-                        {/* Recent Signups Feed */}
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
-                            <h3 className="font-bold text-gray-800 text-lg mb-4">Latest Signups</h3>
-                            <div className="flex-1 overflow-y-auto max-h-[400px] space-y-4 pr-2 custom-scrollbar">
-                                {stats.signups.map(user => (
-                                    <div key={user.uid} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100 cursor-pointer" onClick={() => setSelectedUser(user)}>
-                                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                            {user.avatar || user.name[0]}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">Recent Activity</h3></div>
+                            <div className="divide-y divide-gray-100">
+                                {stats.purchases.map(p => (
+                                    <div key={p.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-800">{p.packName}</p>
+                                            <p className="text-xs text-gray-500">{p.userEmail}</p>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-gray-900 text-sm truncate">{user.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                                        </div>
-                                        <div className="ml-auto text-[10px] text-gray-400 font-medium">
-                                            {formatDate(user.signUpDate)}
-                                        </div>
+                                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">+₹{p.amountPaid}</span>
                                     </div>
                                 ))}
-                                {stats.signups.length === 0 && (
-                                    <p className="text-center text-gray-400 text-sm py-4">No recent signups.</p>
-                                )}
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'users' && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fadeIn">
-                    <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-                        <div className="relative flex-1 max-w-md">
-                            <input 
-                                type="text" 
-                                placeholder="Search users by name or email..." 
-                                className="border border-gray-300 pl-4 pr-4 py-2.5 rounded-xl w-full text-sm focus:ring-2 focus:ring-indigo-500 outline-none" 
-                                value={searchTerm} 
-                                onChange={e=>setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <select 
-                            value={sortOption} 
-                            onChange={e=>setSortOption(e.target.value)} 
-                            className="border border-gray-300 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                        >
-                            <option value="oldest">Oldest Members</option>
-                            <option value="newest">Newest Signups</option>
-                            <option value="active">Recently Active</option>
-                            <option value="credits">Highest Balance</option>
-                        </select>
-                    </div>
-                    
-                    {isLoading ? (
-                        <div className="text-center py-20">
-                            <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-black rounded-full mx-auto mb-4"></div>
-                            <p className="text-gray-400">Loading user database...</p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b border-gray-100 text-gray-400 text-xs uppercase tracking-wider">
-                                        <th className="p-4 font-bold">User</th>
-                                        <th className="p-4 font-bold">Plan</th>
-                                        <th className="p-4 font-bold">Credits</th>
-                                        <th className="p-4 font-bold">Status</th>
-                                        <th className="p-4 font-bold text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredUsers.map(u => (
-                                        <tr key={u.uid} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
-                                            <td className="p-4">
-                                                <div className="font-bold text-[#1A1A1E]">{u.name}</div>
-                                                <div className="text-xs text-gray-500">{u.email}</div>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${u.plan === 'Free' || !u.plan ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'}`}>
-                                                    {u.plan || 'Free'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 font-mono font-medium text-gray-700">{u.credits}</td>
-                                            <td className="p-4">
-                                                {u.isBanned ? (
-                                                    <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-fit">
-                                                        <ShieldCheckIcon className="w-3 h-3" /> BANNED
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-bold border border-green-100 w-fit">
-                                                        Active
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button 
-                                                        onClick={() => {
-                                                            if (auth.impersonateUser) auth.impersonateUser(u);
-                                                        }}
-                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors flex items-center gap-1"
-                                                        title="View As User"
-                                                    >
-                                                        <EyeIcon className="w-3 h-3"/> View
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => setSelectedUser(u)} 
-                                                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 shadow-sm"
-                                                    >
-                                                        Details
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleBan(u)} 
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors ${
-                                                            u.isBanned 
-                                                            ? 'bg-green-600 text-white hover:bg-green-700' 
-                                                            : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
-                                                        }`}
-                                                    >
-                                                        {u.isBanned ? 'Unban' : 'Ban'}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                        {localConfig && (
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="font-bold text-gray-800">Quick Config</h3>
+                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">Save</button>}
+                                </div>
+                                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    {Object.entries(localConfig.featureToggles || {}).map(([key, enabled]) => (
+                                        <div key={key} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-lg">
+                                            <span className="text-xs font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                                            <button 
+                                                onClick={() => handleConfigChange('featureToggles', key, !enabled)}
+                                                className={`w-8 h-4 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-transform ${enabled ? 'left-4.5' : 'left-0.5'}`}></div>
+                                            </button>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'comms' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
-                    <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-                        <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                            <span className="p-1.5 bg-blue-100 rounded-lg text-blue-600"><ShieldCheckIcon className="w-5 h-5"/></span>
-                            Announcement Editor
-                        </h3>
-                        
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Message Content</label>
-                            <textarea 
-                                className="w-full border border-gray-200 p-4 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-gray-50" 
-                                rows={4}
-                                placeholder="Type your announcement here..." 
-                                value={announcement.message} 
-                                onChange={e=>setAnnouncement({...announcement, message: e.target.value})}
-                            ></textarea>
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Action Link (Optional)</label>
-                            <input 
-                                type="text"
-                                className="w-full border border-gray-200 p-3 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" 
-                                placeholder="https://..." 
-                                value={announcement.link || ''} 
-                                onChange={e=>setAnnouncement({...announcement, link: e.target.value})}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Display Style</label>
-                                <div className="flex flex-col gap-2">
-                                    <label className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${announcement.displayStyle === 'banner' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                                        <input type="radio" name="style" className="hidden" checked={announcement.displayStyle === 'banner'} onChange={() => setAnnouncement({...announcement, displayStyle: 'banner'})} />
-                                        <span className="text-sm font-bold">Top Banner</span>
-                                    </label>
-                                    <label className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${announcement.displayStyle === 'modal' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                                        <input type="radio" name="style" className="hidden" checked={announcement.displayStyle === 'modal'} onChange={() => setAnnouncement({...announcement, displayStyle: 'modal'})} />
-                                        <span className="text-sm font-bold">Popup Modal</span>
-                                    </label>
                                 </div>
                             </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* --- ANALYTICS TAB --- */}
+            {activeTab === 'analytics' && (
+                <div className="animate-fadeIn space-y-6">
+                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-800 mb-6">Feature Heatmap (Usage)</h3>
+                        {featureUsage.length > 0 ? (
+                            <div className="space-y-4">
+                                {featureUsage.map((item, idx) => {
+                                    const max = featureUsage[0].count;
+                                    const percent = (item.count / max) * 100;
+                                    return (
+                                        <div key={item.feature} className="relative">
+                                            <div className="flex justify-between text-xs font-bold mb-1 px-1">
+                                                <span className="text-gray-700">{item.feature}</span>
+                                                <span className="text-gray-500">{item.count} gens</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-gray-400 text-sm">No usage data available yet.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* --- USERS TAB --- */}
+            {activeTab === 'users' && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
+                    <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
+                        <h3 className="font-bold text-gray-800">User Management ({filteredUsers.length})</h3>
+                        <input 
+                            type="text" 
+                            placeholder="Search by name, email, UID..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full sm:w-64 px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th className="p-4">Identity</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4">Credits</th>
+                                    <th className="p-4">Engagement</th>
+                                    <th className="p-4 text-right">Controls</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {isLoading ? (
+                                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading users...</td></tr>
+                                ) : filteredUsers.map(u => (
+                                    <tr key={u.uid} className={`hover:bg-gray-50 transition-colors ${u.isBanned ? 'bg-red-50 hover:bg-red-100' : ''}`}>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                                                    {u.name?.[0]}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-800">{u.name}</p>
+                                                    <p className="text-xs text-gray-500">{u.email}</p>
+                                                    <p className="text-[9px] text-gray-300 font-mono mt-0.5 cursor-pointer hover:text-gray-500" title={u.uid} onClick={() => navigator.clipboard.writeText(u.uid)}>{u.uid.substring(0,8)}...</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            {u.isBanned ? (
+                                                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">BANNED</span>
+                                            ) : (
+                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{u.plan || 'Free'}</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 font-mono font-bold text-gray-700">{u.credits}</td>
+                                        <td className="p-4">
+                                            <div className="text-xs">
+                                                <span className="text-gray-500">Gens:</span> <b>{u.lifetimeGenerations || 0}</b>
+                                            </div>
+                                            <div className="text-xs mt-1">
+                                                <span className="text-gray-500">Refs:</span> <b>{u.referralCount || 0}</b>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button 
+                                                    onClick={() => setSelectedUserForDetail(u)}
+                                                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600 transition-colors"
+                                                    title="View Details & Gallery"
+                                                >
+                                                    <InformationCircleIcon className="w-4 h-4"/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => setCreditModalUser(u.uid)}
+                                                    className="p-1.5 hover:bg-green-100 rounded text-gray-500 hover:text-green-600 transition-colors"
+                                                    title="Grant Credits"
+                                                >
+                                                    <PlusIcon className="w-4 h-4"/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleToggleBan(u)}
+                                                    className={`p-1.5 rounded transition-colors ${u.isBanned ? 'bg-red-600 text-white' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}
+                                                    title={u.isBanned ? "Unban User" : "Ban User"}
+                                                >
+                                                    <XIcon className="w-4 h-4"/>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* --- COMMS TAB --- */}
+            {activeTab === 'comms' && (
+                <div className="animate-fadeIn max-w-2xl mx-auto">
+                    <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div>
+                            <h3 className="text-xl font-bold text-gray-800">Global Announcement</h3>
+                        </div>
+                        
+                        <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Urgency Level</label>
-                                <div className="flex flex-col gap-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
+                                <textarea 
+                                    value={announcement.message}
+                                    onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
+                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium h-24 resize-none"
+                                    placeholder="e.g. Scheduled maintenance tonight at 10 PM."
+                                />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Type</label>
                                     <select 
-                                        value={announcement.type} 
-                                        onChange={e=>setAnnouncement({...announcement, type: e.target.value as any})} 
-                                        className="w-full p-3 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={announcement.type}
+                                        onChange={(e) => setAnnouncement({...announcement, type: e.target.value as any})}
+                                        className="w-full p-3 border border-gray-200 rounded-xl text-sm"
                                     >
                                         <option value="info">Info (Blue)</option>
                                         <option value="warning">Warning (Yellow)</option>
                                         <option value="error">Critical (Red)</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
+                                    <div className="flex items-center gap-3 h-[46px]">
+                                        <button 
+                                            onClick={() => setAnnouncement({...announcement, isActive: !announcement.isActive})}
+                                            className={`flex-1 h-full rounded-xl text-sm font-bold transition-all border ${announcement.isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
+                                        >
+                                            {announcement.isActive ? 'ACTIVE' : 'INACTIVE'}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <ToggleSwitch 
-                                checked={announcement.isActive} 
-                                onChange={(val) => setAnnouncement({...announcement, isActive: val})} 
-                                label={announcement.isActive ? "Active (Visible)" : "Inactive (Hidden)"}
-                            />
-                            <button onClick={handleSaveAnnouncement} className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 shadow-lg transition-transform active:scale-95">
-                                Publish
+                            <button 
+                                onClick={handleSaveAnnouncement}
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg mt-4"
+                            >
+                                Publish Announcement
                             </button>
                         </div>
                     </div>
-
-                    <div className="lg:col-span-2 bg-gray-100 rounded-2xl border border-gray-200 p-8 flex flex-col items-center justify-center relative overflow-hidden">
-                        <div className="absolute top-4 left-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Live Preview</div>
-                        
-                        <div className="w-full max-w-lg">
-                            {announcement.displayStyle === 'banner' ? (
-                                <div className={`w-full p-4 rounded-lg shadow-md text-white flex items-center justify-between ${
-                                    announcement.type === 'error' ? 'bg-red-600' : 
-                                    announcement.type === 'warning' ? 'bg-yellow-500' : 
-                                    'bg-blue-600'
-                                }`}>
-                                    <div className="flex items-center gap-3">
-                                        <InformationCircleIcon className="w-5 h-5"/>
-                                        <span className="font-medium text-sm">{announcement.message || "Your announcement text here..."}</span>
-                                    </div>
-                                    <XIcon className="w-4 h-4 opacity-50"/>
-                                </div>
-                            ) : (
-                                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 w-full">
-                                    <div className={`p-6 text-center border-b ${
-                                        announcement.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 
-                                        announcement.type === 'warning' ? 'bg-yellow-50 border-yellow-100 text-yellow-700' : 
-                                        'bg-blue-50 border-blue-100 text-blue-700'
-                                    }`}>
-                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-                                            <InformationCircleIcon className="w-6 h-6"/>
-                                        </div>
-                                        <h3 className="font-bold text-lg">Announcement</h3>
-                                    </div>
-                                    <div className="p-6 text-center">
-                                        <p className="text-gray-600 mb-6">{announcement.message || "Your announcement text here..."}</p>
-                                        {announcement.link ? (
-                                            <button className="w-full bg-black text-white py-3 rounded-xl font-bold">Read More</button>
-                                        ) : (
-                                            <button className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">Dismiss</button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
             )}
 
-            {activeTab === 'features' && (
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
-                    <div className="mb-6">
-                        <h3 className="font-bold text-lg text-gray-800">Feature Management</h3>
-                        <p className="text-sm text-gray-500">Toggle features on or off. Disabled features will show as "Soon" to users.</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {KNOWN_FEATURES.map(f => {
-                            const isEnabled = appConfig?.featureToggles?.[f.id] !== false; // Default true if undefined
-                            return (
-                                <div key={f.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isEnabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-75'}`}>
-                                    <span className="font-bold text-sm text-gray-800">{f.label}</span>
-                                    <ToggleSwitch 
-                                        checked={isEnabled} 
-                                        onChange={() => toggleFeature(f.id, isEnabled)} 
-                                        label={isEnabled ? "ON" : "OFF"}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
+            {/* --- SYSTEM TAB --- */}
             {activeTab === 'system' && (
-                <div className="space-y-8 animate-fadeIn">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-700">Auto-Refresh Logs (60s)</span>
-                            <ToggleSwitch checked={autoRefreshEnabled} onChange={setAutoRefreshEnabled} />
-                        </div>
-                        <button 
-                            onClick={handleRefreshLogs} 
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-bold transition-colors"
-                        >
-                            <RetryIcon className="w-4 h-4"/> Refresh Now
-                        </button>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col h-[500px]">
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="font-bold text-gray-800">Audit Logs</h3>
-                                <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-full">{auditLogs.length} Events</span>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                                {auditLogs.map(l => (
-                                    <div key={l.id} className="p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors text-xs font-mono">
-                                        <div className="flex justify-between text-gray-400 mb-1">
-                                            <span>{new Date(l.timestamp?.seconds*1000).toLocaleString()}</span>
-                                            <span className="font-bold text-gray-500">{l.adminEmail}</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <span className="font-bold text-blue-600">{l.action}</span>
-                                            <span className="text-gray-700">{l.details}</span>
-                                        </div>
-                                    </div>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800">System Audit Logs</h3></div>
+                    <div className="max-h-[600px] overflow-y-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+                                <tr>
+                                    <th className="p-4">Time</th>
+                                    <th className="p-4">Admin</th>
+                                    <th className="p-4">Action</th>
+                                    <th className="p-4">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {auditLogs.map(log => (
+                                    <tr key={log.id} className="hover:bg-gray-50">
+                                        <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
+                                            {log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}
+                                        </td>
+                                        <td className="p-4 font-medium text-gray-800">{log.adminEmail}</td>
+                                        <td className="p-4">
+                                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-[10px] font-bold font-mono">{log.action}</span>
+                                        </td>
+                                        <td className="p-4 text-xs text-gray-600 font-mono">{log.details}</td>
+                                    </tr>
                                 ))}
-                            </div>
-                        </div>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col h-[500px]">
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="font-bold text-red-600">API Errors</h3>
-                                <span className="text-xs font-bold bg-red-50 text-red-500 px-2 py-1 rounded-full">{apiLogs.length} Errors</span>
+            {/* --- MODALS --- */}
+            
+            {/* Credit Grant Modal */}
+            {creditModalUser && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] animate-fadeIn">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm transform transition-all scale-100">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Grant Credits</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
+                                <input type="number" value={creditAmount} onChange={(e) => setCreditAmount(parseInt(e.target.value))} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                                {apiLogs.length === 0 ? (
-                                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">No errors logged. System healthy.</div>
-                                ) : (
-                                    apiLogs.map(l => (
-                                        <div key={l.id} className="p-3 border-b border-gray-50 hover:bg-red-50/30 transition-colors text-xs font-mono">
-                                            <div className="flex justify-between text-gray-400 mb-1">
-                                                <span>{new Date(l.timestamp?.seconds*1000).toLocaleString()}</span>
-                                                <span className="font-bold">{l.endpoint}</span>
-                                            </div>
-                                            <div className="text-red-700 font-medium break-all">
-                                                {l.error}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason</label>
+                                <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setCreditModalUser(null)} className="flex-1 px-4 py-2 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
+                                <button onClick={handleGrantCredits} disabled={isLoading} className="flex-1 px-4 py-2 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">{isLoading ? '...' : 'Grant'}</button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {selectedUser && auth.user && (
-                <UserDetailModal 
-                    user={selectedUser} 
-                    onClose={()=>setSelectedUser(null)} 
-                    adminUid={auth.user.uid} 
-                    onViewAs={()=>{ 
-                        if(auth.impersonateUser) auth.impersonateUser(selectedUser); 
-                        setSelectedUser(null); 
-                    }} 
-                    onRefresh={async () => {
-                        const users = await getAllUsers();
-                        setAllUsers(users);
-                        // Update selected user view if still selected
-                        const updated = users.find(u => u.uid === selectedUser.uid);
-                        if(updated) setSelectedUser(updated);
-                    }}
-                />
+            {/* User Detail Modal */}
+            {selectedUserForDetail && (
+                <UserDetailModal user={selectedUserForDetail} onClose={() => setSelectedUserForDetail(null)} />
             )}
         </div>
     );

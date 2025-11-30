@@ -1,6 +1,5 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { logApiError, auth } from "../firebase"; // Import auth to get user ID if available
 
 /**
  * Helper function to get a fresh AI client on every call.
@@ -58,13 +57,7 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
             return callWithRetry(fn, retries - 1, baseDelay * 2);
         }
         
-        // If final attempt fails or not transient, log to Firestore and throw
-        const userId = auth?.currentUser?.uid || 'anonymous';
-        // Extract function name or call stack for endpoint context if possible, otherwise generic
-        const endpoint = 'gemini-api-call'; 
-        
-        logApiError(endpoint, message || 'Unknown API Error', userId);
-        
+        // If not transient (e.g. 400 Bad Request, Safety Filter) or no retries left, throw immediately.
         throw error;
     }
 };
