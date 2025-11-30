@@ -101,7 +101,10 @@ export const getOrCreateUserProfile = async (uid: string, name?: string | null, 
 
 // REAL-TIME LISTENER FOR USER PROFILE
 export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
-    if (!db) return () => {};
+    if (!db) {
+        callback(null);
+        return () => {};
+    }
     return db.collection("users").doc(uid).onSnapshot((doc) => {
         if (doc.exists) {
             const data = doc.data();
@@ -139,6 +142,7 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
         }
     }, (error) => {
         console.error("Error subscribing to user profile:", error);
+        callback(null);
     });
 };
 
@@ -279,7 +283,10 @@ export const getApiErrorLogs = async (limit: number = 50): Promise<ApiErrorLog[]
 };
 
 export const subscribeToAnnouncement = (callback: (announcement: Announcement | null) => void) => {
-    if (!db) return () => {};
+    if (!db) {
+        callback(null);
+        return () => {};
+    }
     return db.collection('config').doc('announcement').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as Announcement);
@@ -288,6 +295,7 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
         }
     }, (error) => {
         console.error("Error subscribing to announcement", error);
+        callback(null);
     });
 };
 
@@ -309,7 +317,7 @@ export const updateAnnouncement = async (adminUid: string, announcement: Announc
         isActive: announcement.isActive,
         type: announcement.type,
         displayStyle: announcement.displayStyle || 'banner', 
-        link: announcement.link || "" // Explicitly saving link
+        link: announcement.link || "" 
     });
     
     try {
@@ -529,28 +537,35 @@ export const saveUserBrandKit = async (uid: string, kit: any) => {
 
 // REAL-TIME LISTENER FOR APP CONFIG
 export const subscribeToAppConfig = (callback: (config: AppConfig) => void) => {
-    if (!db) return () => {};
+    const defaults: AppConfig = { featureCosts: {}, featureToggles: {}, creditPacks: [] };
+    if (!db) {
+        callback(defaults);
+        return () => {};
+    }
     return db.collection('config').doc('app_settings').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as AppConfig);
         } else {
-            // Return defaults if not set
-            callback({ featureCosts: {}, featureToggles: {}, creditPacks: [] });
+            callback(defaults);
         }
     }, (error) => {
         console.error("Error subscribing to app config:", error);
+        callback(defaults);
     });
 };
 
 export const getAppConfig = async (): Promise<AppConfig> => {
     if (!db) return { featureCosts: {}, featureToggles: {}, creditPacks: [] };
-    const doc = await db.collection('config').doc('app_settings').get();
-    return doc.exists ? (doc.data() as AppConfig) : { featureCosts: {}, featureToggles: {}, creditPacks: [] };
+    try {
+        const doc = await db.collection('config').doc('app_settings').get();
+        return doc.exists ? (doc.data() as AppConfig) : { featureCosts: {}, featureToggles: {}, creditPacks: [] };
+    } catch(e) {
+        return { featureCosts: {}, featureToggles: {}, creditPacks: [] };
+    }
 };
 
 export const updateAppConfig = async (adminUid: string, config: AppConfig) => {
     if (!db) return;
-    // Use set with merge to be safe, though config should be complete object usually
     await db.collection('config').doc('app_settings').set(config, { merge: true });
     
     try {
@@ -632,17 +647,13 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
 
 export const get24HourCreditBurn = async () => {
     if (!db) return 0;
-    // Calculate timestamp for 24 hours ago
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
     try {
-        // Query all history documents from all users where date > yesterday
-        // Note: This requires a Collection Group Index on 'history' collection for the 'date' field.
         const query = db.collectionGroup('history').where('date', '>', yesterday);
         const snap = await query.get();
         let total = 0;
         snap.forEach(doc => {
             const data = doc.data();
-            // Sum up 'cost' field (credits spent)
             if (data.cost && typeof data.cost === 'number') {
                 total += data.cost;
             }
