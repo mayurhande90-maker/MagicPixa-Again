@@ -41,7 +41,9 @@ import {
     SystemIcon,
     EyeIcon,
     TicketIcon,
-    StarIcon
+    StarIcon,
+    FilterIcon,
+    CalendarIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -50,7 +52,7 @@ interface AdminPanelProps {
     onConfigUpdate: (config: AppConfig) => void;
 }
 
-// User Detail Modal Component
+// ... UserDetailModal Component (No changes needed, kept as is) ...
 const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void }> = ({ user: initialUser, currentUser, onClose }) => {
     // Maintain local user state to support instant refresh
     const [user, setUser] = useState<User>(initialUser);
@@ -296,6 +298,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
     const [revenueHistory, setRevenueHistory] = useState<{ date: string; amount: number }[]>([]);
 
+    // Revenue Filter State
+    const [revenueFilter, setRevenueFilter] = useState<'7d' | '30d' | '6m' | '1y' | 'lifetime' | 'custom'>('lifetime');
+    const [showRevenueFilterMenu, setShowRevenueFilterMenu] = useState(false);
+    const [customRange, setCustomRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+
     // Users Data
     const [allUsers, setAllUsers] = useState<User[]>([]); 
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -332,6 +339,94 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         if (activeTab === 'analytics') loadAnalytics();
     }, [activeTab]);
 
+    // Re-fetch revenue when filter changes
+    useEffect(() => {
+        // Only fetch if not custom, or if custom is fully set. 
+        // For standard ranges, fetch immediately.
+        if (revenueFilter !== 'custom') {
+            fetchRevenueWithFilter();
+        }
+    }, [revenueFilter]);
+
+    const fetchRevenueWithFilter = async () => {
+        let start: Date | undefined;
+        let end: Date | undefined = new Date();
+
+        if (revenueFilter === '7d') {
+            start = new Date();
+            start.setDate(start.getDate() - 7);
+        } else if (revenueFilter === '30d') {
+            start = new Date();
+            start.setDate(start.getDate() - 30);
+        } else if (revenueFilter === '6m') {
+            start = new Date();
+            start.setMonth(start.getMonth() - 6);
+        } else if (revenueFilter === '1y') {
+            start = new Date();
+            start.setFullYear(start.getFullYear() - 1);
+        } else if (revenueFilter === 'custom') {
+            if (customRange.start) start = new Date(customRange.start);
+            if (customRange.end) end = new Date(customRange.end);
+            // End of day for the end date
+            if (end) end.setHours(23, 59, 59, 999);
+        } else {
+            // Lifetime
+            start = undefined;
+            end = undefined;
+        }
+
+        try {
+            const total = await getTotalRevenue(start, end);
+            setStats(prev => ({ ...prev, revenue: total }));
+        } catch (e) {
+            console.error("Failed to fetch filtered revenue", e);
+        }
+    };
+
+    const applyCustomRange = () => {
+        if (customRange.start && customRange.end) {
+            setRevenueFilter('custom');
+            fetchRevenueWithFilter();
+            setShowRevenueFilterMenu(false);
+        }
+    };
+
+    const loadOverview = async () => {
+        try {
+            // Default to lifetime revenue initially or whatever state is
+            // Note: fetchRevenueWithFilter handles the specific revenue part based on state
+            // Here we fetch the other static overview items
+            const [signups, purchases, revHistory] = await Promise.all([
+                getRecentSignups(10),
+                getRecentPurchases(10),
+                getRevenueStats(7)
+            ]);
+            
+            // Initial Revenue fetch (defaults to lifetime)
+            const rev = await getTotalRevenue();
+
+            setStats({ revenue: rev, signups, purchases });
+            setRevenueHistory(revHistory);
+
+            const burn24 = await get24HourCreditBurn();
+            const allUsersSnap = await getAllUsers();
+            let totalAcquired = 0;
+            let totalHeld = 0;
+            allUsersSnap.forEach(u => {
+                totalAcquired += (u.totalCreditsAcquired || u.credits || 0);
+                totalHeld += (u.credits || 0);
+            });
+            const totalBurn = Math.max(0, totalAcquired - totalHeld);
+            setBurnStats({ totalBurn, burn24h: burn24 });
+
+        } catch (e) {
+            console.error("Failed to load overview", e);
+        }
+    };
+
+    // ... (Existing helper functions like loadUsers, loadLogs, etc.) ...
+    
+    // Helper for user sorting
     useEffect(() => {
         let res = [...allUsers];
         
@@ -366,33 +461,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 minute: '2-digit'
             });
         } catch (e) { return '-'; }
-    };
-
-    const loadOverview = async () => {
-        try {
-            const [rev, signups, purchases, revHistory] = await Promise.all([
-                getTotalRevenue(),
-                getRecentSignups(10),
-                getRecentPurchases(10),
-                getRevenueStats(7)
-            ]);
-            setStats({ revenue: rev, signups, purchases });
-            setRevenueHistory(revHistory);
-
-            const burn24 = await get24HourCreditBurn();
-            const allUsersSnap = await getAllUsers();
-            let totalAcquired = 0;
-            let totalHeld = 0;
-            allUsersSnap.forEach(u => {
-                totalAcquired += (u.totalCreditsAcquired || u.credits || 0);
-                totalHeld += (u.credits || 0);
-            });
-            const totalBurn = Math.max(0, totalAcquired - totalHeld);
-            setBurnStats({ totalBurn, burn24h: burn24 });
-
-        } catch (e) {
-            console.error("Failed to load overview", e);
-        }
     };
 
     const loadUsers = async () => {
@@ -475,12 +543,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             const pack = next.creditPacks[index];
             pack[field] = value;
             
-            // Auto-calc totals if numeric fields change
             if (field === 'credits' || field === 'bonus') {
                 pack.totalCredits = (parseInt(pack.credits) || 0) + (parseInt(pack.bonus) || 0);
             }
             
-            // Recalculate value metric (Price / Total)
             const newCredits = field === 'credits' ? value : pack.credits;
             const newBonus = field === 'bonus' ? value : pack.bonus;
             const newPrice = field === 'price' ? value : pack.price;
@@ -491,7 +557,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             } else {
                 pack.value = 0;
             }
-            
             return next;
         });
         setHasChanges(true);
@@ -519,7 +584,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const removePack = (index: number) => {
         if (!localConfig) return;
-        if (confirm("Delete this package? This will immediately affect the pricing page.")) {
+        if (confirm("Delete this package?")) {
             setLocalConfig(prev => {
                 if (!prev) return null;
                 const next = JSON.parse(JSON.stringify(prev));
@@ -588,6 +653,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         </button>
     );
 
+    const getFilterLabel = (f: string) => {
+        switch(f) {
+            case '7d': return 'Last 7 Days';
+            case '30d': return 'Last 30 Days';
+            case '6m': return 'Last 6 Months';
+            case '1y': return 'Last 1 Year';
+            case 'custom': return 'Custom Range';
+            default: return 'Lifetime';
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto pb-24">
             <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
@@ -607,13 +683,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                        {/* Revenue Card with Filter */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-3 bg-green-100 text-green-600 rounded-xl"><CreditCardIcon className="w-6 h-6"/></div>
-                                <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded font-bold">+12%</span>
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowRevenueFilterMenu(!showRevenueFilterMenu)}
+                                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                        title="Filter Revenue"
+                                    >
+                                        <FilterIcon className="w-5 h-5"/>
+                                    </button>
+                                    
+                                    {showRevenueFilterMenu && (
+                                        <div className="absolute top-8 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden flex flex-col animate-fadeIn">
+                                            <div className="p-2 border-b border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                                                Select Period
+                                            </div>
+                                            {['lifetime', '7d', '30d', '6m', '1y'].map((opt) => (
+                                                <button 
+                                                    key={opt}
+                                                    onClick={() => { setRevenueFilter(opt as any); setShowRevenueFilterMenu(false); }}
+                                                    className={`px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${revenueFilter === opt ? 'font-bold text-indigo-600 bg-indigo-50' : 'text-gray-600'}`}
+                                                >
+                                                    {getFilterLabel(opt)}
+                                                </button>
+                                            ))}
+                                            <div className="border-t border-gray-100 p-2">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Custom Range</p>
+                                                <div className="flex flex-col gap-1">
+                                                    <input 
+                                                        type="date" 
+                                                        value={customRange.start} 
+                                                        onChange={(e) => setCustomRange({...customRange, start: e.target.value})}
+                                                        className="text-xs border border-gray-200 rounded p-1"
+                                                    />
+                                                    <input 
+                                                        type="date" 
+                                                        value={customRange.end} 
+                                                        onChange={(e) => setCustomRange({...customRange, end: e.target.value})}
+                                                        className="text-xs border border-gray-200 rounded p-1"
+                                                    />
+                                                    <button 
+                                                        onClick={applyCustomRange}
+                                                        disabled={!customRange.start || !customRange.end}
+                                                        className="mt-1 bg-indigo-600 text-white text-xs font-bold py-1 rounded disabled:opacity-50"
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <p className="text-xs font-bold text-gray-400 uppercase">Total Revenue</p>
-                            <p className="text-2xl font-black text-[#1A1A1E]">₹{stats.revenue.toLocaleString()}</p>
+                            <div className="flex items-end gap-2">
+                                <p className="text-2xl font-black text-[#1A1A1E]">₹{stats.revenue.toLocaleString()}</p>
+                                {revenueFilter !== 'lifetime' && (
+                                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mb-1 border border-gray-200">
+                                        {getFilterLabel(revenueFilter)}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -681,6 +814,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* ... Other Tabs (Config, Users, Comms, System, Analytics) preserved ... */}
+            
             {activeTab === 'config' && (
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
                     <div className="flex justify-between items-center mb-6">

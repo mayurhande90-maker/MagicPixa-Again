@@ -53,12 +53,12 @@ export const getMissingConfigKeys = (): string[] => missingKeys;
 
 export const isConfigValid = missingKeys.length === 0;
 
-let app;
+export let app;
 // FIX: Correctly typed `auth` using the compat library's namespace.
-let auth: firebase.auth.Auth | null = null;
+export let auth: firebase.auth.Auth | null = null;
 // DEFINITIVE FIX: Switched the Firestore instance to use the 'compat' API to match the app initialization and eliminate library conflicts.
-let db: firebase.firestore.Firestore | null = null;
-let storage: firebase.storage.Storage | null = null;
+export let db: firebase.firestore.Firestore | null = null;
+export let storage: firebase.storage.Storage | null = null;
 
 if (isConfigValid) {
   try {
@@ -692,7 +692,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Eraser': 1, 
           'Magic Realty': 4, 
           'Merchant Studio': 15,
-          'Magic Ads': 4, // Brand Stylist AI renamed
+          'Magic Ads': 4, 
         },
         featureToggles: {
           'studio': true, 'thumbnail_studio': true, 'brand_kit': true, 'brand_stylist': true,
@@ -708,6 +708,12 @@ export const getAppConfig = async (): Promise<AppConfig> => {
     };
     if (docSnap.exists) {
       const dbConfig = docSnap.data() as AppConfig;
+      // Remove obsolete features from config immediately
+      if (dbConfig.featureCosts) {
+          delete dbConfig.featureCosts['Magic Scanner'];
+          delete dbConfig.featureCosts['Magic Notes'];
+          delete dbConfig.featureCosts['BrandKit AI']; // Replaced by Merchant Studio / Magic Ads
+      }
       return {
           ...defaultConfig,
           ...dbConfig,
@@ -725,6 +731,92 @@ export const updateAppConfig = async (newConfig: Partial<AppConfig>): Promise<vo
     if (!db) throw new Error("Firestore is not initialized.");
     const configRef = db.collection("config").doc("main");
     await configRef.set(newConfig, { merge: true });
+};
+
+export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
+    if (!db) { callback(null); return () => {}; }
+    return db.collection("config").doc("main").onSnapshot((doc) => {
+        if (doc.exists) {
+            const dbConfig = doc.data() as AppConfig;
+            // Use same defaults as getAppConfig (re-defined here for simplicity or scoped variable)
+            const defaultConfig: AppConfig = {
+                featureCosts: {
+                  'Magic Photo Studio': 2, 
+                  'Model Shot': 3, 
+                  'Thumbnail Studio': 5, 
+                  'Magic Soul': 3, 
+                  'Magic Photo Colour': 2, 
+                  'CaptionAI': 1, 
+                  'Magic Interior': 2, 
+                  'Magic Apparel': 3,
+                  'Magic Mockup': 2, 
+                  'Magic Eraser': 1, 
+                  'Magic Realty': 4, 
+                  'Merchant Studio': 15,
+                  'Magic Ads': 4, 
+                },
+                featureToggles: {
+                  'studio': true, 'thumbnail_studio': true, 'brand_kit': true, 'brand_stylist': true,
+                  'soul': true, 'colour': true, 'caption': true, 'interior': true, 'apparel': true,
+                  'scanner': false, 'mockup': true, 'notes': false, 'magic_realty': true,
+                },
+                creditPacks: [
+                    { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
+                    { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: 'For creators & influencers — extra credits included!', popular: true, value: 1.51 },
+                    { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
+                    { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
+                ],
+            };
+            
+            // Clean up obsolete keys
+            if (dbConfig.featureCosts) {
+                delete dbConfig.featureCosts['Magic Scanner'];
+                delete dbConfig.featureCosts['Magic Notes'];
+                delete dbConfig.featureCosts['BrandKit AI'];
+            }
+
+            const mergedConfig = {
+                ...defaultConfig,
+                ...dbConfig,
+                featureCosts: { ...defaultConfig.featureCosts, ...(dbConfig.featureCosts || {}) },
+                featureToggles: { ...defaultConfig.featureToggles, ...(dbConfig.featureToggles || {}) },
+                creditPacks: dbConfig.creditPacks || defaultConfig.creditPacks
+            };
+            callback(mergedConfig);
+        } else {
+            // Document doesn't exist, create it? Or just return defaults.
+            // Returning defaults seems safer for a listener.
+            const defaultConfig: AppConfig = {
+                featureCosts: {
+                  'Magic Photo Studio': 2, 
+                  'Model Shot': 3, 
+                  'Thumbnail Studio': 5, 
+                  'Magic Soul': 3, 
+                  'Magic Photo Colour': 2, 
+                  'CaptionAI': 1, 
+                  'Magic Interior': 2, 
+                  'Magic Apparel': 3,
+                  'Magic Mockup': 2, 
+                  'Magic Eraser': 1, 
+                  'Magic Realty': 4, 
+                  'Merchant Studio': 15,
+                  'Magic Ads': 4, 
+                },
+                featureToggles: {
+                  'studio': true, 'thumbnail_studio': true, 'brand_kit': true, 'brand_stylist': true,
+                  'soul': true, 'colour': true, 'caption': true, 'interior': true, 'apparel': true,
+                  'scanner': false, 'mockup': true, 'notes': false, 'magic_realty': true,
+                },
+                creditPacks: [
+                    { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
+                    { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: 'For creators & influencers — extra credits included!', popular: true, value: 1.51 },
+                    { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
+                    { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
+                ],
+            };
+            callback(defaultConfig);
+        }
+    });
 };
 
 export const getRecentSignups = async (limit: number = 20): Promise<User[]> => {
@@ -746,10 +838,18 @@ export const getRecentPurchases = async (limit: number = 5): Promise<Purchase[]>
     return snapshot.docs.map(doc => doc.data() as Purchase);
 };
 
-export const getTotalRevenue = async (): Promise<number> => {
+export const getTotalRevenue = async (startDate?: Date, endDate?: Date): Promise<number> => {
     if (!db) throw new Error("Firestore is not initialized.");
-    const purchasesRef = db.collection('purchases');
-    const snapshot = await purchasesRef.get();
+    let query: firebase.firestore.Query = db.collection('purchases');
+
+    if (startDate) {
+        query = query.where('purchaseDate', '>=', startDate);
+    }
+    if (endDate) {
+        query = query.where('purchaseDate', '<=', endDate);
+    }
+
+    const snapshot = await query.get();
     let total = 0;
     snapshot.forEach(doc => {
         total += doc.data().amountPaid || 0;
@@ -1047,6 +1147,30 @@ export const get24HourCreditBurn = async (): Promise<number> => {
     }
 };
 
+export const getGlobalFeatureUsage = async (): Promise<{feature: string, count: number}[]> => {
+    if (!db) return [];
+    try {
+        const snap = await db.collectionGroup('transactions')
+            .orderBy('date', 'desc')
+            .limit(500)
+            .get();
+            
+        const counts: Record<string, number> = {};
+        snap.forEach(doc => {
+            const data = doc.data();
+            const feature = data.feature;
+            if (feature) {
+                counts[feature] = (counts[feature] || 0) + 1;
+            }
+        });
+        
+        return Object.entries(counts).map(([feature, count]) => ({ feature, count })).sort((a, b) => b.count - a.count);
+    } catch (e) {
+        console.error("Failed to get feature usage", e);
+        return [];
+    }
+};
+
 export const getAnnouncement = async (): Promise<Announcement | null> => {
     if (!db) return null;
     try {
@@ -1097,53 +1221,34 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
     if (!db) { callback(null); return () => {}; }
     
     // Name Initials Helper inside closure
-    const getInitials = (name: string): string => {
-        if (!name) return '';
-        return name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
     };
 
-    return db.collection("users").doc(uid).onSnapshot(
+    return db.collection('users').doc(uid).onSnapshot(
         (doc) => {
             if (doc.exists) {
-                const data = doc.data() as User;
-                // Add avatar if missing
-                if (!data.avatar && data.name) {
-                    data.avatar = getInitials(data.name);
+                const data = doc.data();
+                if (data) {
+                    const userWithId = {
+                        uid: doc.id,
+                        ...data,
+                        avatar: getInitials(data.name || 'User')
+                    } as User;
+                    callback(userWithId);
                 }
-                callback({ ...data, uid: doc.id });
             } else {
                 callback(null);
             }
         },
-        (error) => { console.error("User profile subscription error", error); callback(null); }
+        (error) => {
+            console.error("Profile subscription error", error);
+            // Don't nuke the user state on transient errors, just log
+        }
     );
 };
-
-export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
-    if (!db) { callback(null); return () => {}; }
-    return db.collection("config").doc("main").onSnapshot(
-        (doc) => callback(doc.exists ? doc.data() as AppConfig : null),
-        (error) => { console.error("App config subscription error", error); callback(null); }
-    );
-};
-
-export const getGlobalFeatureUsage = async (): Promise<{feature: string, count: number}[]> => {
-    if (!db) return [];
-    try {
-        const snap = await db.collectionGroup('transactions').orderBy('date', 'desc').limit(500).get();
-        const counts: {[key:string]: number} = {};
-        snap.forEach(doc => {
-            const data = doc.data();
-            if (data.feature && !data.feature.includes('Purchase') && !data.feature.includes('Admin')) {
-                const f = data.feature.split(':')[0].trim();
-                counts[f] = (counts[f] || 0) + 1;
-            }
-        });
-        return Object.entries(counts).map(([feature, count]) => ({ feature, count })).sort((a,b) => b.count - a.count);
-    } catch (e) {
-        console.warn("Analytics fetch failed", e);
-        return [];
-    }
-};
-
-export { app, auth, db, storage };
