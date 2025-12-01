@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog } from '../types';
 import { 
@@ -353,6 +352,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         setCurrentPage(1);
     }, [searchTerm, allUsers, sortMode]);
 
+    const formatTableDate = (timestamp: any) => {
+        if (!timestamp) return '-';
+        try {
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
+            return date.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                hour: 'numeric', 
+                minute: '2-digit'
+            });
+        } catch (e) { return '-'; }
+    };
+
     const loadOverview = async () => {
         try {
             const [rev, signups, purchases, revHistory] = await Promise.all([
@@ -467,10 +479,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const exportUsersCSV = () => {
-        const headers = ["UID", "Name", "Email", "Credits", "Plan", "Joined"];
+        const headers = ["UID", "Name", "Email", "Credits", "Plan", "Joined", "Last Active"];
         const rows = allUsers.map(u => [
             u.uid, u.name, u.email, u.credits, u.plan || 'Free', 
-            u.signUpDate ? new Date((u.signUpDate as any).seconds * 1000).toISOString() : ''
+            u.signUpDate ? new Date((u.signUpDate as any).seconds * 1000).toISOString() : '',
+            u.lastActive ? new Date((u.lastActive as any).seconds * 1000).toISOString() : ''
         ]);
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -641,12 +654,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                     <th className="p-4">Plan</th>
                                     <th className="p-4">Credits</th>
                                     <th className="p-4">Spent</th>
+                                    <th className="p-4">Last Login</th>
                                     <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
-                                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+                                    <tr><td colSpan={6} className="p-8 text-center text-gray-400">Loading...</td></tr>
                                 ) : currentUsers.map(u => (
                                     <tr key={u.uid} className={`hover:bg-gray-50 transition-colors ${u.isBanned ? 'bg-red-50' : ''}`}>
                                         <td className="p-4">
@@ -661,6 +675,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                         <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{u.plan || 'Free'}</span></td>
                                         <td className="p-4 font-mono font-bold">{u.credits}</td>
                                         <td className="p-4 font-mono text-green-600 font-bold">₹{u.totalSpent || 0}</td>
+                                        <td className="p-4 text-xs text-gray-500 font-medium whitespace-nowrap">{formatTableDate(u.lastActive)}</td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button 
