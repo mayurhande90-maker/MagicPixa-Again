@@ -67,10 +67,10 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
         );
     }
 
-    // 2. PILL (Floating Dynamic Island)
+    // 2. PILL (Floating Dynamic Island - Bottom Center)
     if (style === 'pill') {
         return (
-            <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
+            <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                 <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full pl-6 pr-10 py-3 flex items-center justify-center gap-4 min-w-[320px] max-w-md relative">
                     <div className={`p-1.5 rounded-full shrink-0 ${theme.bg} ${theme.iconColor}`}>
                         <theme.Icon className="w-5 h-5" />
