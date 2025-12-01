@@ -93,6 +93,8 @@ export interface User {
       amount: number;
       message: string;
       timestamp: any;
+      type?: 'credit' | 'package'; // Added type
+      packageName?: string;        // Added package name
   } | null;
 }
 

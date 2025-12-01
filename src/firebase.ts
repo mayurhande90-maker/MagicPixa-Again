@@ -1,3 +1,4 @@
+
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -938,7 +939,8 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
             creditGrantNotification: {
                 amount: safeAmount,
                 message: reason,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: 'credit' // Added type
             }
         });
         
@@ -980,8 +982,10 @@ export const grantPackageToUser = async (adminUid: string, targetUid: string, pa
             // We set notification for visual feedback on dashboard
             creditGrantNotification: {
                 amount: pack.totalCredits,
-                message: message || `Granted: ${pack.name}`,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                message: message, // Use exact custom message
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: 'package', // Added type
+                packageName: pack.name // Added package name
             }
         };
 

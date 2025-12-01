@@ -390,6 +390,8 @@ const App: React.FC = () => {
               userId={activeUser.uid}
               amount={activeUser.creditGrantNotification.amount}
               message={activeUser.creditGrantNotification.message}
+              type={activeUser.creditGrantNotification.type}
+              packageName={activeUser.creditGrantNotification.packageName}
           />
       )}
       
