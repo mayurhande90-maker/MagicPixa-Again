@@ -364,11 +364,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                          {tx.feature === 'MagicPixa Credit Grant' ? (
                                                              <>
                                                                 <p className="font-bold text-gray-800">{tx.reason}</p>
-                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">Admin Grant</p>
+                                                                <p className="text-[10px] font-medium text-gray-400 mt-0.5">MagicPixa Grant</p>
                                                              </>
                                                          ) : (
                                                              <>
-                                                                <p className="font-bold text-gray-800">{tx.feature}</p>
+                                                                <p className="font-bold text-gray-800">{tx.feature.replace('Admin Grant', 'MagicPixa Grant')}</p>
                                                                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                              </>
                                                          )}

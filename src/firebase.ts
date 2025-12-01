@@ -1019,7 +1019,7 @@ export const grantPackageToUser = async (adminUid: string, targetUid: string, pa
         transaction.update(userRef, updates);
         
         transaction.set(newTransactionRef, {
-            feature: `Admin Grant: ${pack.name}`,
+            feature: `MagicPixa Grant: ${pack.name}`,
             creditChange: `+${pack.totalCredits}`,
             reason: message,
             grantedBy: adminUid,
