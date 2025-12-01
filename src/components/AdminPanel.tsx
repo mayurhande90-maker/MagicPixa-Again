@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog } from '../types';
 import { 
@@ -284,7 +285,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'comms' | 'system'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'comms' | 'system' | 'config'>('overview');
     
     // Overview Data
     const [stats, setStats] = useState<{ revenue: number, signups: User[], purchases: Purchase[] }>({
@@ -441,7 +442,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         setLocalConfig(prev => {
             if(!prev) return null;
             const next = JSON.parse(JSON.stringify(prev));
-            if (section === 'featureToggles') next.featureToggles[key] = value;
+            if (section === 'featureToggles') {
+                next.featureToggles[key] = value;
+            } else if (section === 'featureCosts') {
+                next.featureCosts[key] = value;
+            }
             return next;
         });
         setHasChanges(true);
@@ -516,6 +521,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     <TabButton id="analytics" label="Analytics" icon={ImageIcon} />
                     <TabButton id="users" label="Users" icon={UsersIcon} />
                     <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
+                    <TabButton id="config" label="Config" icon={CogIcon} />
                     <TabButton id="system" label="System" icon={SystemIcon} />
                 </div>
             </div>
@@ -567,7 +573,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                             <h3 className="font-bold text-gray-800 mb-6">Revenue Trend (Last 7 Days)</h3>
                             <div className="h-48 flex items-end justify-between gap-2">
                                 {revenueHistory.length > 0 ? (
@@ -593,28 +599,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
 
-                        {localConfig && (
-                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-gray-800">Feature Control</h3>
-                                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold animate-pulse">Save</button>}
-                                </div>
-                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2 max-h-[250px]">
-                                    {Object.entries(localConfig.featureToggles || {}).map(([key, enabled]) => (
-                                        <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                            <span className="text-xs font-bold text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                                            <button 
-                                                onClick={() => handleConfigChange('featureToggles', key, !enabled)}
-                                                className={`w-10 h-5 rounded-full relative transition-colors ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${enabled ? 'left-6' : 'left-1'}`}></div>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+            {activeTab === 'config' && (
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2>
+                            <p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p>
+                        </div>
+                        {hasChanges && (
+                            <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">
+                                Save Changes
+                            </button>
                         )}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* PRICING SECTION */}
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <CreditCardIcon className="w-4 h-4"/> Credit Pricing
+                            </h3>
+                            <div className="space-y-3">
+                                {Object.entries(localConfig?.featureCosts || {}).map(([feature, cost]) => (
+                                    <div key={feature} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                        <span className="text-sm font-bold text-gray-700">{feature}</span>
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                type="number" 
+                                                value={cost} 
+                                                min="0"
+                                                onChange={(e) => handleConfigChange('featureCosts', feature, parseInt(e.target.value) || 0)}
+                                                className="w-16 p-2 text-right border border-gray-200 rounded-lg font-mono font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="text-xs font-bold text-gray-400">CR</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* TOGGLES SECTION */}
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <ShieldCheckIcon className="w-4 h-4"/> Feature Toggles
+                            </h3>
+                            <div className="space-y-3">
+                                {Object.entries(localConfig?.featureToggles || {}).map(([key, enabled]) => (
+                                    <div key={key} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                        <span className="text-sm font-bold text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                                        <button 
+                                            onClick={() => handleConfigChange('featureToggles', key, !enabled)}
+                                            className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                        >
+                                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-transform duration-300 ${enabled ? 'left-7' : 'left-1'}`}></div>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -834,7 +880,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                             <span className="text-gray-500">{item.count} gens</span>
                                         </div>
                                         <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: `${percent}%` }}></div>
                                         </div>
                                     </div>
                                 );
