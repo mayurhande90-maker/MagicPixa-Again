@@ -186,6 +186,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Profile Stats</h3>
                                     <div className="space-y-3">
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Credits</span><span className="text-sm font-bold text-gray-800">{user.credits}</span></div>
+                                        <div className="flex justify-between"><span className="text-sm text-gray-600">Total Acquired</span><span className="text-sm font-bold text-gray-800">{user.totalCreditsAcquired || user.credits}</span></div>
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Lifetime Gens</span><span className="text-sm font-bold text-purple-600">{user.lifetimeGenerations || 0}</span></div>
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Total Spent</span><span className="text-sm font-bold text-green-600">₹{user.totalSpent || 0}</span></div>
                                         <div className="flex justify-between"><span className="text-sm text-gray-600">Plan</span><span className="text-sm font-bold bg-blue-50 text-blue-600 px-2 rounded">{user.plan || 'Free'}</span></div>

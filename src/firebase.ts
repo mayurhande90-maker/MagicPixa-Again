@@ -412,6 +412,10 @@ export const deductCredits = async (uid: string, amount: number, feature: string
             cost: 0,
             date: firebase.firestore.FieldValue.serverTimestamp(),
           });
+          // FIX: Increment totalCreditsAcquired for the bonus so burn calc remains accurate
+          transaction.update(userRef, {
+              totalCreditsAcquired: firebase.firestore.FieldValue.increment(bonusCredits)
+          });
       }
     });
     const updatedDoc = await userRef.get();
@@ -679,7 +683,6 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Photo Studio': 2, 
           'Model Shot': 3, 
           'Thumbnail Studio': 5, 
-          'Brand Stylist AI': 4,
           'Magic Soul': 3, 
           'Magic Photo Colour': 2, 
           'CaptionAI': 1, 
@@ -689,6 +692,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Eraser': 1, 
           'Magic Realty': 4, 
           'Merchant Studio': 15,
+          'Magic Ads': 4, // Brand Stylist AI renamed
         },
         featureToggles: {
           'studio': true, 'thumbnail_studio': true, 'brand_kit': true, 'brand_stylist': true,
@@ -1026,9 +1030,10 @@ export const get24HourCreditBurn = async (): Promise<number> => {
             //    Deductions have 'cost' as credits, and NO creditChange field (or empty).
             
             const isPositiveChange = data.creditChange && data.creditChange.includes('+');
+            const cost = Number(data.cost);
             
-            if (data.cost > 0 && !isPositiveChange) {
-                totalBurn += data.cost;
+            if (!isNaN(cost) && cost > 0 && !isPositiveChange) {
+                totalBurn += cost;
             }
         });
         return totalBurn;
