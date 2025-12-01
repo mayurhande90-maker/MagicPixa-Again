@@ -143,7 +143,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
             year: 'numeric', 
             month: 'short', 
             day: 'numeric',
-            hour: 'numeric',
+            hour: 'numeric', 
             minute: '2-digit',
             hour12: true
         });
@@ -453,6 +453,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         setHasChanges(true);
     };
 
+    const removeCostKey = (key: string) => {
+        if (!localConfig) return;
+        if (confirm(`Are you sure you want to remove the pricing for "${key}"? This will be deleted from the database configuration.`)) {
+            setLocalConfig(prev => {
+                if (!prev) return null;
+                const next = JSON.parse(JSON.stringify(prev));
+                delete next.featureCosts[key];
+                return next;
+            });
+            setHasChanges(true);
+        }
+    };
+
     const handlePackChange = (index: number, field: keyof CreditPack, value: any) => {
         if (!localConfig) return;
         setLocalConfig(prev => {
@@ -689,8 +702,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                             </h3>
                             <div className="space-y-3">
                                 {Object.entries(localConfig?.featureCosts || {}).map(([feature, cost]) => (
-                                    <div key={feature} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                                        <span className="text-sm font-bold text-gray-700">{feature}</span>
+                                    <div key={feature} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm group">
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => removeCostKey(feature)}
+                                                className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
+                                                title="Delete this feature cost"
+                                            >
+                                                <TrashIcon className="w-4 h-4"/>
+                                            </button>
+                                            <span className="text-sm font-bold text-gray-700">{feature}</span>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <input 
                                                 type="number" 

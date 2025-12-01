@@ -676,9 +676,19 @@ export const getAppConfig = async (): Promise<AppConfig> => {
     const docSnap = await configRef.get();
     const defaultConfig: AppConfig = {
         featureCosts: {
-          'Magic Photo Studio': 2, 'Model Shot': 3, 'Thumbnail Studio': 5, 'BrandKit AI': 15, 'Brand Stylist AI': 4,
-          'Magic Soul': 3, 'Magic Photo Colour': 2, 'CaptionAI': 1, 'Magic Interior': 2, 'Magic Apparel': 3,
-          'Magic Mockup': 2, 'Magic Eraser': 1, 'Magic Scanner': 1, 'Magic Notes': 2, 'Magic Realty': 4, 'Merchant Studio': 15,
+          'Magic Photo Studio': 2, 
+          'Model Shot': 3, 
+          'Thumbnail Studio': 5, 
+          'Brand Stylist AI': 4,
+          'Magic Soul': 3, 
+          'Magic Photo Colour': 2, 
+          'CaptionAI': 1, 
+          'Magic Interior': 2, 
+          'Magic Apparel': 3,
+          'Magic Mockup': 2, 
+          'Magic Eraser': 1, 
+          'Magic Realty': 4, 
+          'Merchant Studio': 15,
         },
         featureToggles: {
           'studio': true, 'thumbnail_studio': true, 'brand_kit': true, 'brand_stylist': true,
