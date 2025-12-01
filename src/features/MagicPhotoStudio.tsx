@@ -21,6 +21,7 @@ import {
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
 import { saveCreation, deductCredits } from '../firebase';
+import { PixaMascot } from '../components/PixaMascot';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
@@ -338,11 +339,12 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {loading && (
-                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md animate-fadeIn">
+                                <PixaMascot mode="processing" size="lg" />
+                                <div className="w-64 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner mt-6">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                <p className="text-sm font-bold text-indigo-900 tracking-widest uppercase animate-pulse mt-4">{loadingText}</p>
                             </div>
                         )}
 

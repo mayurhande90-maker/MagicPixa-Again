@@ -8,6 +8,7 @@ import { downloadImage } from '../utils/imageUtils';
 import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
 import { ImageModal } from '../components/FeatureLayout';
 import { CreatorRanksModal } from '../components/CreatorRanksModal';
+import { PixaMascot } from '../components/PixaMascot';
 import { 
     PhotoStudioIcon, 
     SparklesIcon, 
@@ -293,16 +294,24 @@ export const DashboardHome: React.FC<{
                             </div>
                         </div>
                     ) : (
-                        <div className="h-full bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col justify-center items-start text-white relative overflow-hidden">
+                        <div className="h-full bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col md:flex-row justify-between items-center text-white relative overflow-hidden">
                              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                             <h2 className="text-3xl font-bold mb-4 relative z-10">Start your creative journey</h2>
-                             <p className="text-gray-400 mb-8 max-w-md relative z-10">You haven't generated anything yet. Try our Magic Photo Studio to transform your first image.</p>
-                             <button 
-                                onClick={() => setActiveView('studio')}
-                                className="bg-[#F9D230] text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors relative z-10"
-                             >
-                                Create Now
-                             </button>
+                             
+                             <div className="relative z-10 max-w-md">
+                                 <h2 className="text-3xl font-bold mb-4">Start your creative journey</h2>
+                                 <p className="text-gray-400 mb-8">You haven't generated anything yet. I'm ready to help you create magic!</p>
+                                 <button 
+                                    onClick={() => setActiveView('studio')}
+                                    className="bg-[#F9D230] text-[#1A1A1E] px-6 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-colors relative z-10"
+                                 >
+                                    Create Now
+                                 </button>
+                             </div>
+                             
+                             {/* Pixa Mascot Greeting */}
+                             <div className="relative z-10 mt-6 md:mt-0 md:mr-8 hidden md:block">
+                                <PixaMascot mode="idle" size="lg" />
+                             </div>
                         </div>
                     )}
                 </div>
