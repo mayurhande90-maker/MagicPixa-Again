@@ -19,7 +19,8 @@ import {
     getApiErrorLogs,
     get24HourCreditBurn,
     getRevenueStats,
-    getUser
+    getUser,
+    grantPackageToUser
 } from '../firebase';
 import { 
     UsersIcon, 
@@ -43,7 +44,8 @@ import {
     TicketIcon,
     StarIcon,
     FilterIcon,
-    CalendarIcon
+    CalendarIcon,
+    GiftIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -52,8 +54,8 @@ interface AdminPanelProps {
     onConfigUpdate: (config: AppConfig) => void;
 }
 
-// ... UserDetailModal Component (No changes needed, kept as is) ...
-const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void }> = ({ user: initialUser, currentUser, onClose }) => {
+// ... UserDetailModal Component
+const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => void; appConfig: AppConfig | null }> = ({ user: initialUser, currentUser, onClose, appConfig }) => {
     // Maintain local user state to support instant refresh
     const [user, setUser] = useState<User>(initialUser);
     
@@ -65,6 +67,10 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
     const [creditsToAdd, setCreditsToAdd] = useState(10);
     const [creditReason, setCreditReason] = useState('Customer Support');
     
+    // Package Grant State
+    const [selectedPackIndex, setSelectedPackIndex] = useState<string>("");
+    const [packMessage, setPackMessage] = useState("Complimentary Upgrade");
+
     // Notification State
     const [notifTitle, setNotifTitle] = useState(''); // New Title State
     const [notifMessage, setNotifMessage] = useState('');
@@ -115,6 +121,25 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
             } else {
                 alert(`Failed to grant credits: ${e.message}`);
             }
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    const handleGrantPackage = async () => {
+        if(!user.uid || !currentUser.uid || selectedPackIndex === "") return;
+        
+        const pack = appConfig?.creditPacks[parseInt(selectedPackIndex)];
+        if (!pack) return;
+
+        setIsActionLoading(true);
+        try {
+            await grantPackageToUser(currentUser.uid, user.uid, pack, packMessage);
+            alert(`Success! Granted ${pack.name} to ${user.name}.`);
+            await refreshUserData();
+        } catch (e: any) {
+            console.error("Grant Package Error:", e);
+            alert(`Failed to grant package: ${e.message}`);
         } finally {
             setIsActionLoading(false);
         }
@@ -198,7 +223,7 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
                                 </div>
                                 
                                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Grant Credits</h3>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Grant Custom Credits</h3>
                                     <div className="space-y-3">
                                         <input type="number" value={creditsToAdd} onChange={(e) => setCreditsToAdd(Number(e.target.value))} className="w-full p-2 border rounded-lg text-sm" placeholder="Amount" />
                                         <input type="text" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Reason" />
@@ -211,6 +236,43 @@ const UserDetailModal: React.FC<{ user: User; currentUser: User; onClose: () => 
 
                             {/* Actions */}
                             <div className="space-y-6">
+                                {/* Grant Package Section */}
+                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <GiftIcon className="w-4 h-4 text-purple-500" />
+                                        Grant Package
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <select 
+                                            value={selectedPackIndex} 
+                                            onChange={(e) => setSelectedPackIndex(e.target.value)} 
+                                            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-purple-500 outline-none"
+                                        >
+                                            <option value="" disabled>Select Package</option>
+                                            {appConfig?.creditPacks.map((pack, idx) => (
+                                                <option key={idx} value={idx}>{pack.name} ({pack.totalCredits} Cr)</option>
+                                            ))}
+                                        </select>
+                                        <input 
+                                            type="text" 
+                                            value={packMessage} 
+                                            onChange={(e) => setPackMessage(e.target.value)} 
+                                            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-purple-500 outline-none" 
+                                            placeholder="Custom Message (e.g. Bonus)" 
+                                        />
+                                        <button 
+                                            onClick={handleGrantPackage} 
+                                            disabled={isActionLoading || selectedPackIndex === ""} 
+                                            className="w-full bg-purple-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {isActionLoading ? 'Processing...' : 'Grant Package'}
+                                        </button>
+                                        <p className="text-[10px] text-gray-400">
+                                            This will update the user's plan name and unlock storage tiers if applicable (Studio/Agency).
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Send In-App Notification</h3>
                                     <div className="space-y-4">
@@ -1209,7 +1271,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {selectedUserForDetail && auth.user && <UserDetailModal user={selectedUserForDetail} currentUser={auth.user} onClose={() => setSelectedUserForDetail(null)} />}
+            {selectedUserForDetail && auth.user && <UserDetailModal user={selectedUserForDetail} currentUser={auth.user} appConfig={localConfig} onClose={() => setSelectedUserForDetail(null)} />}
         </div>
     );
 };

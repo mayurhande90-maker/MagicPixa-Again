@@ -1,13 +1,9 @@
-
-// FIX: The build process was failing because it could not resolve scoped Firebase packages like '@firebase/auth'.
-// Changed imports to the standard Firebase v9+ modular format (e.g., 'firebase/auth') which Vite can resolve from the installed 'firebase' package.
-// FIX: Switched to using the compat library for app initialization to resolve module errors. This is a robust way to handle potential version conflicts or build tool issues without a full rewrite.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 // FIX: Import AppConfig for use in getAppConfig function.
-import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog } from './types';
+import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack } from './types';
 import { resizeImage } from './utils/imageUtils';
 
 // DEFINITIVE FIX: Use `import.meta.env` for all Vite-exposed variables.
@@ -966,6 +962,74 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     
     const updatedDoc = await userRef.get();
     return updatedDoc.data();
+};
+
+export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const userRef = db.collection("users").doc(targetUid);
+    const newTransactionRef = db.collection(`users/${targetUid}/transactions`).doc();
+    
+    await db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists) throw new Error("Target user profile does not exist.");
+        const userData = userDoc.data();
+        
+        const updates: any = {
+            credits: firebase.firestore.FieldValue.increment(pack.totalCredits),
+            totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits),
+            // We set notification for visual feedback on dashboard
+            creditGrantNotification: {
+                amount: pack.totalCredits,
+                message: message || `Granted: ${pack.name}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }
+        };
+
+        const lowerPackName = pack.name.toLowerCase();
+        const isHighTier = lowerPackName.includes("studio") || lowerPackName.includes("agency");
+
+        if (isHighTier) {
+            updates.storageTier = 'unlimited';
+            updates.lastTierPurchaseDate = firebase.firestore.FieldValue.serverTimestamp();
+            updates.basePlan = pack.name;
+            updates.plan = pack.name;
+        } else {
+            // Check if they already have a high tier active
+            const now = new Date();
+            const sixMonthsMs = 1000 * 60 * 60 * 24 * 30 * 6;
+            let hasValidHighTier = false;
+            if (userData?.lastTierPurchaseDate) {
+                const lastDate = userData.lastTierPurchaseDate.toDate();
+                if ((now.getTime() - lastDate.getTime()) < sixMonthsMs) {
+                    hasValidHighTier = true;
+                }
+            }
+            // Only overwrite plan name if they don't have a high tier, or update suffix
+            if (!hasValidHighTier) {
+                updates.plan = pack.name;
+                updates.basePlan = null;
+                updates.storageTier = 'limited';
+            }
+        }
+
+        transaction.update(userRef, updates);
+        
+        transaction.set(newTransactionRef, {
+            feature: `Admin Grant: ${pack.name}`,
+            creditChange: `+${pack.totalCredits}`,
+            reason: message,
+            grantedBy: adminUid,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            cost: 0 
+        });
+    });
+
+    try {
+        const adminSnap = await db.collection('users').doc(adminUid).get();
+        await logAdminAction(adminSnap.data()?.email || 'Admin', 'GRANT_PACKAGE', `Granted ${pack.name} to ${targetUid}`);
+    } catch (e) {
+        console.warn("Audit logging failed", e);
+    }
 };
 
 export const clearCreditGrantNotification = async (uid: string) => {
