@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog } from '../types';
+import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog, CreditPack } from '../types';
 import { 
     getAllUsers, 
     addCreditsToUser, 
@@ -19,7 +19,7 @@ import {
     getApiErrorLogs,
     get24HourCreditBurn,
     getRevenueStats,
-    getUser // New helper
+    getUser
 } from '../firebase';
 import { 
     UsersIcon, 
@@ -34,13 +34,14 @@ import {
     TrashIcon,
     FlagIcon,
     AudioWaveIcon,
-    DocumentTextIcon,
     ImageIcon,
     ArrowLeftIcon,
     ArrowRightIcon,
     DownloadIcon,
     SystemIcon,
-    EyeIcon
+    EyeIcon,
+    TicketIcon,
+    StarIcon
 } from './icons';
 
 interface AdminPanelProps {
@@ -452,13 +453,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         setHasChanges(true);
     };
 
+    const handlePackChange = (index: number, field: keyof CreditPack, value: any) => {
+        if (!localConfig) return;
+        setLocalConfig(prev => {
+            if (!prev) return null;
+            const next = JSON.parse(JSON.stringify(prev));
+            const pack = next.creditPacks[index];
+            pack[field] = value;
+            
+            // Auto-calc totals if numeric fields change
+            if (field === 'credits' || field === 'bonus') {
+                pack.totalCredits = (parseInt(pack.credits) || 0) + (parseInt(pack.bonus) || 0);
+            }
+            
+            // Recalculate value metric (Price / Total)
+            const newCredits = field === 'credits' ? value : pack.credits;
+            const newBonus = field === 'bonus' ? value : pack.bonus;
+            const newPrice = field === 'price' ? value : pack.price;
+            const total = (parseInt(newCredits) || 0) + (parseInt(newBonus) || 0);
+            
+            if (total > 0 && newPrice > 0) {
+                 pack.value = parseFloat((newPrice / total).toFixed(2));
+            } else {
+                pack.value = 0;
+            }
+            
+            return next;
+        });
+        setHasChanges(true);
+    };
+
+    const addPack = () => {
+        if (!localConfig) return;
+        setLocalConfig(prev => {
+            if (!prev) return null;
+            const next = JSON.parse(JSON.stringify(prev));
+            next.creditPacks.push({
+                name: 'New Pack',
+                price: 0,
+                credits: 0,
+                totalCredits: 0,
+                bonus: 0,
+                tagline: 'Best value',
+                popular: false,
+                value: 0
+            });
+            return next;
+        });
+        setHasChanges(true);
+    };
+
+    const removePack = (index: number) => {
+        if (!localConfig) return;
+        if (confirm("Delete this package? This will immediately affect the pricing page.")) {
+            setLocalConfig(prev => {
+                if (!prev) return null;
+                const next = JSON.parse(JSON.stringify(prev));
+                next.creditPacks.splice(index, 1);
+                return next;
+            });
+            setHasChanges(true);
+        }
+    };
+
     const saveConfig = async () => {
         if (!localConfig) return;
         try {
             await updateAppConfig(localConfig);
             onConfigUpdate(localConfig);
             setHasChanges(false);
-            alert("Configuration saved.");
+            alert("Configuration updated successfully.");
         } catch (e) {
             console.error("Config save error", e);
             alert("Failed to save config. Check permissions.");
@@ -660,6 +724,101 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* CREDIT PACKAGES SECTION */}
+                    <div className="mt-8 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <TicketIcon className="w-4 h-4"/> Credit Packages
+                            </h3>
+                            <button onClick={addPack} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                                <PlusIcon className="w-3 h-3"/> Add Pack
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {localConfig?.creditPacks?.map((pack, index) => (
+                                <div key={index} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative group hover:border-indigo-200 transition-colors">
+                                    <button 
+                                        onClick={() => removePack(index)} 
+                                        className="absolute top-2 right-2 text-gray-300 hover:text-red-500 p-1 transition-colors"
+                                        title="Remove Pack"
+                                    >
+                                        <XIcon className="w-4 h-4"/>
+                                    </button>
+
+                                    <div className="space-y-3">
+                                        {/* Name & Popular Toggle */}
+                                        <div className="flex items-center gap-2 pr-6">
+                                            <input 
+                                                type="text" 
+                                                value={pack.name} 
+                                                onChange={(e) => handlePackChange(index, 'name', e.target.value)}
+                                                className="w-full p-2 border border-gray-200 rounded font-bold text-gray-800 text-sm focus:border-indigo-500 outline-none"
+                                                placeholder="Pack Name"
+                                            />
+                                            <button 
+                                                onClick={() => handlePackChange(index, 'popular', !pack.popular)}
+                                                className={`p-1.5 rounded-full transition-colors ${pack.popular ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-300 hover:text-yellow-400'}`}
+                                                title="Toggle 'Popular' Badge"
+                                            >
+                                                <StarIcon className="w-4 h-4 fill-current"/>
+                                            </button>
+                                        </div>
+
+                                        {/* Tagline */}
+                                        <input 
+                                            type="text" 
+                                            value={pack.tagline} 
+                                            onChange={(e) => handlePackChange(index, 'tagline', e.target.value)}
+                                            className="w-full p-2 border border-gray-200 rounded text-xs text-gray-600 focus:border-indigo-500 outline-none"
+                                            placeholder="Tagline (e.g. Best for beginners)"
+                                        />
+
+                                        {/* Pricing Row */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label className="text-[9px] text-gray-400 uppercase font-bold block mb-1">Price (₹)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={pack.price} 
+                                                    min="0"
+                                                    onChange={(e) => handlePackChange(index, 'price', parseInt(e.target.value) || 0)}
+                                                    className="w-full p-2 border border-gray-200 rounded text-sm font-bold focus:border-indigo-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] text-gray-400 uppercase font-bold block mb-1">Credits</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={pack.credits} 
+                                                    min="0"
+                                                    onChange={(e) => handlePackChange(index, 'credits', parseInt(e.target.value) || 0)}
+                                                    className="w-full p-2 border border-gray-200 rounded text-sm font-bold focus:border-indigo-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] text-gray-400 uppercase font-bold block mb-1">Bonus</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={pack.bonus} 
+                                                    min="0"
+                                                    onChange={(e) => handlePackChange(index, 'bonus', parseInt(e.target.value) || 0)}
+                                                    className="w-full p-2 border border-gray-200 rounded text-sm font-bold text-green-600 focus:border-indigo-500 outline-none bg-green-50/50"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Totals Readout */}
+                                        <div className="flex justify-between items-center text-[10px] font-mono text-gray-400 pt-2 border-t border-gray-100">
+                                            <span>Total: <span className="text-gray-600 font-bold">{pack.totalCredits}</span> Cr</span>
+                                            <span>Value: <span className="text-gray-600 font-bold">₹{pack.value}</span>/Cr</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
