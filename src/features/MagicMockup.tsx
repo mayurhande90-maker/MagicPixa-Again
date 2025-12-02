@@ -67,7 +67,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Mapping Surface Geometry...", "Simulating Physics...", "Calculating Reflections...", "Rendering Textures...", "Final Polish..."];
+            const steps = ["Pixa is mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {

@@ -89,7 +89,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Structure...", "Generating Model...", "Adjusting Lighting...", "Applying Physics...", "Polishing Pixels..."];
+            const steps = ["Pixa is analyzing structure...", "Pixa is generating model...", "Pixa is adjusting lighting...", "Pixa is applying physics...", "Pixa is polishing pixels..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -365,7 +365,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 )}
                                 <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight">
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Generating Suggestions...' : 'Scanning Image...'}</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Pixa is Thinking...' : 'Pixa Vision Scanning...'}</span>
                                 </div>
                             </div>
                         )}
@@ -525,16 +525,16 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                     <div className={`transition-all duration-300 mb-6`}>
                                         {(isAnalyzing || isAnalyzingModel) ? (
                                             <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Generating Suggestions...</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pixa is Thinking...</p>
                                             </div>
                                         ) : (
                                             <div>
                                                 <div className="flex items-center justify-between mb-3 ml-1">
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Suggestions</label>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pixa's Ideas</label>
                                                     {selectedPrompt ? (
                                                         <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear Selection</button>
                                                     ) : (
-                                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold tracking-wide">Pixa Recommends</span>
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col gap-2">

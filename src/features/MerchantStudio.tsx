@@ -221,7 +221,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Mapping Surface Geometry...", "Simulating Physics...", "Calculating Reflections...", "Rendering Textures...", "Final Polish..."];
+            const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -597,7 +597,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                         }`}
                                                     >
                                                         <SparklesIcon className="w-5 h-5 mb-1"/>
-                                                        <span className="text-xs font-bold">AI Model</span>
+                                                        <span className="text-xs font-bold">Pixa Model</span>
                                                     </button>
                                                     <button 
                                                         onClick={() => setModelSource('upload')}

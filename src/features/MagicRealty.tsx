@@ -388,7 +388,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: designMode === 'auto' ? "Auto-Design Ad" : "Generate Ad"
+                    label: designMode === 'auto' ? "Pixa Auto-Design" : "Generate Ad"
                 }}
                 scrollRef={scrollRef}
                 customActionButtons={
@@ -406,7 +406,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div className="h-full bg-gradient-to-r from-indigo-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">
-                                    {designMode === 'auto' ? "Researching Trends & Designing..." : "Cloning Layout & Rendering..."}
+                                    {designMode === 'auto' ? "Pixa is researching trends..." : "Pixa is cloning layout..."}
                                 </p>
                             </div>
                         ) : (
@@ -499,7 +499,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
                                     <StepCard title="Reference" description="Clone a layout" icon={<LightbulbIcon className="w-5 h-5"/>} selected={designMode === 'reference'} onClick={() => setDesignMode('reference')} />
-                                    <StepCard title="AI Auto-Design" description="Best practices 2025" icon={<MagicWandIcon className="w-5 h-5"/>} selected={designMode === 'auto'} onClick={() => { setDesignMode('auto'); setReferenceImage(null); }} />
+                                    <StepCard title="Pixa Auto-Design" description="Best practices 2025" icon={<MagicWandIcon className="w-5 h-5"/>} selected={designMode === 'auto'} onClick={() => { setDesignMode('auto'); setReferenceImage(null); }} />
                                 </div>
                                 
                                 {designMode === 'reference' && (
@@ -515,7 +515,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 )}
                                 {designMode === 'auto' && (
                                     <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-xs text-indigo-800 leading-relaxed">
-                                        <p><strong>AI Agent Active:</strong> We will research current luxury real estate design trends and automatically generate a high-conversion layout for you.</p>
+                                        <p><strong>Pixa Agent Active:</strong> We will research current luxury real estate design trends and automatically generate a high-conversion layout for you.</p>
                                     </div>
                                 )}
                             </div>
@@ -548,7 +548,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <InputField label={<LabelWithBadge label="Project Name" detected={detectedFields?.hasProjectName} />} placeholder="e.g. Skyline Towers" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
                                         <InputField label={<LabelWithBadge label="Unit Size" detected={detectedFields?.hasUnitType} />} placeholder="e.g. 2 BHK" value={texts.unitType} onChange={(e: any) => setTexts({...texts, unitType: e.target.value})} />
                                     </div>
-                                    <TextAreaField label="Context (AI will create title)" placeholder="e.g. 'Sea facing, Luxury'" value={texts.marketingContext} onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})} rows={3} />
+                                    <TextAreaField label="Context (Pixa will create title)" placeholder="e.g. 'Sea facing, Luxury'" value={texts.marketingContext} onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})} rows={3} />
                                     <InputField label={<LabelWithBadge label="Price (Optional)" detected={detectedFields?.hasPrice} />} placeholder="e.g. ₹1.5 Cr+" value={texts.price} onChange={(e: any) => setTexts({...texts, price: e.target.value})} />
                                 </div>
                             </div>

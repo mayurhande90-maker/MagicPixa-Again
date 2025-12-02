@@ -114,7 +114,7 @@ export const ThumbnailStudio: React.FC<{
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing Trend Data...", "Enhancing Photos...", "Designing Layout...", "Rendering Text...", "Final Polish..."];
+            const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is designing layout...", "Pixa is rendering text...", "Pixa is polishing..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -427,7 +427,7 @@ export const ThumbnailStudio: React.FC<{
                                             onChange={(e: any) => setCustomText(e.target.value)} 
                                         />
                                         <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                            If you leave this blank, AI will generate a viral clickbait title for you.
+                                            If you leave this blank, Pixa will generate a viral clickbait title for you.
                                         </p>
                                     </div>
                                 </div>

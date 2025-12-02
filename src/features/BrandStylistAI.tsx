@@ -97,7 +97,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setLoadingText("Analyzing, Relighting & Harmonizing...");
+        setLoadingText("Pixa is Analyzing, Relighting & Harmonizing...");
         // Clear result image to show loading state on the canvas and indicate a FRESH start
         setResultImage(null);
         
