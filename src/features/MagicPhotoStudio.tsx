@@ -338,16 +338,16 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
-            resultHeightClass="h-[600px]" // Reduced height to approx 60% of previous (approx 600px)
-            hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
+            resultHeightClass="h-[850px]" // RESTORED: Standard layout height
+            hideGenerateButton={isLowCredits}
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
-            scrollRef={scrollRef} // Pass the scroll ref to enable auto-scroll
+            scrollRef={scrollRef}
             leftContent={
                 image ? (
-                    <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                    <div className="relative h-full w-full flex items-center justify-center bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md animate-fadeIn">
                                 <div className="w-64 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner mt-6">
