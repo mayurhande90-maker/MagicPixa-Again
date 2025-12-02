@@ -46,7 +46,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Pixa Vision scanning structure...", "Pixa is mapping perspective...", "Pixa is applying style...", "Pixa is rendering furniture...", "Pixa is finalizing lighting..."];
+            const steps = ["Identifying Room Structure...", "Mapping Perspective...", "Applying Style...", "Rendering Furniture...", "Finalizing Lighting..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -179,7 +179,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         <>
             <FeatureLayout 
                 title="Magic Interior"
-                description="Redesign any room in seconds. Choose a style and watch Pixa transform your space."
+                description="Redesign any room in seconds. Choose a style and watch your space transform."
                 icon={<HomeIcon className="w-6 h-6 text-indigo-500"/>}
                 creditCost={cost}
                 isGenerating={loading}

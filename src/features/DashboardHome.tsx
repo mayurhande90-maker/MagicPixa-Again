@@ -8,6 +8,7 @@ import { downloadImage } from '../utils/imageUtils';
 import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
 import { ImageModal } from '../components/FeatureLayout';
 import { CreatorRanksModal } from '../components/CreatorRanksModal';
+import { PixaMascot } from '../components/PixaMascot';
 import { 
     PhotoStudioIcon, 
     SparklesIcon, 
@@ -305,6 +306,11 @@ export const DashboardHome: React.FC<{
                                  >
                                     Create Now
                                  </button>
+                             </div>
+                             
+                             {/* Pixa Mascot Greeting */}
+                             <div className="relative z-10 mt-6 md:mt-0 md:mr-8 hidden md:block">
+                                <PixaMascot mode="idle" size="lg" />
                              </div>
                         </div>
                     )}
