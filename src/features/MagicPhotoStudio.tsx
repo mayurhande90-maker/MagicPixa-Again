@@ -287,9 +287,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            // Use new name "Pixa Product Shots" or "Model Shot"
-            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Model Shot' : 'Pixa Product Shots');
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Pixa Product Shots');
+            // Use new name "Pixa Product Shots" or "Pixa Model Shot"
+            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shot' : 'Pixa Product Shots');
+            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Pixa Model Shot' : 'Pixa Product Shots');
             
              // Check for milestone bonus in updated user object
             if (updatedUser.lifetimeGenerations) {
@@ -492,20 +492,22 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
-                                <button onClick={() => handleModeSelect('product')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors"><CubeIcon className="w-6 h-6"/></div>
-                                        <span className="text-lg font-bold text-gray-800">Product Shot</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Studio lighting, podiums, and nature settings.</p>
-                                </button>
-                                <button onClick={() => handleModeSelect('model')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors"><UsersIcon className="w-6 h-6"/></div>
-                                        <span className="text-lg font-bold text-gray-800">Model Shot</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 pl-[4.5rem]">Realistic human models holding or wearing your product.</p>
-                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button onClick={() => handleModeSelect('product')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors"><CubeIcon className="w-6 h-6"/></div>
+                                            <span className="text-lg font-bold text-gray-800">Product Shot</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Studio lighting, podiums, and nature settings.</p>
+                                    </button>
+                                    <button onClick={() => handleModeSelect('model')} className="group relative p-6 bg-white border-2 border-gray-100 hover:border-purple-500 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1">
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors"><UsersIcon className="w-6 h-6"/></div>
+                                            <span className="text-lg font-bold text-gray-800">Model Shot</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Realistic human models holding or wearing your product.</p>
+                                    </button>
+                                </div>
                             </div>
                         )}
 
