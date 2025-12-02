@@ -10,7 +10,8 @@ import {
     ArrowLeftIcon,
     XIcon,
     UploadIcon,
-    ArrowUpCircleIcon
+    ArrowUpCircleIcon,
+    CheckIcon
 } from '../components/icons';
 import { 
     FeatureLayout, 
@@ -483,143 +484,188 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         </button>
                     </div>
                 ) : (
-                    <div className="space-y-6 p-1 animate-fadeIn">
-                        
-                        {/* 1. Mode Selection */}
-                        <div>
-                            <div className="flex items-center justify-between mb-3 ml-1">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Mode</label>
-                            </div>
-                            <div className="flex gap-3 p-1">
-                                <button 
-                                    onClick={() => handleModeSelect('product')}
-                                    className={`flex-1 py-4 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 flex flex-col items-center gap-2 ${
-                                        studioMode === 'product' 
-                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-lg scale-105' 
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                    }`}
-                                >
-                                    <CubeIcon className="w-5 h-5" />
-                                    <span>Product Shot</span>
-                                </button>
-                                <button 
-                                    onClick={() => handleModeSelect('model')}
-                                    className={`flex-1 py-4 rounded-xl text-sm font-bold border transition-all duration-300 transform active:scale-95 flex flex-col items-center gap-2 ${
-                                        studioMode === 'model' 
-                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent shadow-lg scale-105' 
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                                    }`}
-                                >
-                                    <UsersIcon className="w-5 h-5" />
-                                    <span>Model Shot</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* 2. Pixa Recommendations (Animated Gradient Capsules) */}
-                        {studioMode && (
-                            <div className="animate-fadeIn">
-                                <div className="flex items-center justify-between mb-3 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        2. Pixa Suggestions
-                                    </label>
-                                    {(isAnalyzing || isAnalyzingModel) && <span className="text-[10px] text-blue-500 font-bold animate-pulse">Scanning...</span>}
+                    <div className="flex flex-col h-full">
+                        <div className="space-y-8 p-2">
+                            
+                            {/* 1. Mode Selection - Professional Cards */}
+                            <section>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">1</div>
+                                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Choose Workflow</h3>
                                 </div>
-                                
-                                <div className="grid grid-cols-1 gap-3">
-                                    {studioMode === 'product' ? (
-                                        suggestedPrompts.length > 0 ? suggestedPrompts.map((p, i) => (
-                                            <button 
-                                                key={i}
-                                                onClick={() => handlePromptSelect(p)}
-                                                // Staggered fade-in animation via style
-                                                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
-                                                className={`
-                                                    group relative rounded-full p-[2px] transition-all duration-300 hover:scale-[1.02] active:scale-95 text-left
-                                                    ${selectedPrompt === p 
-                                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md' 
-                                                        : 'bg-gradient-to-r from-blue-200 via-purple-200 to-indigo-200 hover:from-blue-400 hover:to-indigo-400'
-                                                    }
-                                                `}
-                                            >
-                                                <div className={`
-                                                    w-full h-full rounded-full px-5 py-3 flex items-center
-                                                    ${selectedPrompt === p ? 'bg-transparent' : 'bg-white'}
-                                                `}>
-                                                    <span className={`text-xs italic font-semibold tracking-wide ${
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button 
+                                        onClick={() => handleModeSelect('product')}
+                                        className={`relative group p-4 rounded-2xl border-2 text-left transition-all duration-300 ${
+                                            studioMode === 'product' 
+                                            ? 'border-blue-600 bg-blue-50/50 shadow-md' 
+                                            : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
+                                        }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors ${
+                                            studioMode === 'product' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                                        }`}>
+                                            <CubeIcon className="w-5 h-5" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className={`text-sm font-bold ${studioMode === 'product' ? 'text-blue-900' : 'text-gray-700'}`}>Product Shot</p>
+                                            <p className="text-[10px] text-gray-500 font-medium leading-tight">Studio lighting, podiums, nature scenes.</p>
+                                        </div>
+                                        {studioMode === 'product' && (
+                                            <div className="absolute top-3 right-3 text-blue-600">
+                                                <CheckIcon className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                    </button>
+
+                                    <button 
+                                        onClick={() => handleModeSelect('model')}
+                                        className={`relative group p-4 rounded-2xl border-2 text-left transition-all duration-300 ${
+                                            studioMode === 'model' 
+                                            ? 'border-purple-600 bg-purple-50/50 shadow-md' 
+                                            : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
+                                        }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors ${
+                                            studioMode === 'model' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                                        }`}>
+                                            <UsersIcon className="w-5 h-5" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className={`text-sm font-bold ${studioMode === 'model' ? 'text-purple-900' : 'text-gray-700'}`}>Model Shot</p>
+                                            <p className="text-[10px] text-gray-500 font-medium leading-tight">AI human models, lifestyle scenes.</p>
+                                        </div>
+                                        {studioMode === 'model' && (
+                                            <div className="absolute top-3 right-3 text-purple-600">
+                                                <CheckIcon className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
+                            </section>
+
+                            {/* 2. Pixa Recommendations (Animated Gradient Capsules) */}
+                            {studioMode && (
+                                <section className="animate-fadeIn">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">2</div>
+                                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Pixa Suggestions</h3>
+                                        </div>
+                                        {(isAnalyzing || isAnalyzingModel) && (
+                                            <span className="flex items-center gap-1.5 bg-blue-50 text-blue-600 px-2 py-1 rounded-md text-[10px] font-bold border border-blue-100">
+                                                <SparklesIcon className="w-3 h-3 animate-spin-slow" /> Analyzing...
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        {studioMode === 'product' ? (
+                                            suggestedPrompts.length > 0 ? suggestedPrompts.map((p, i) => (
+                                                <button 
+                                                    key={i}
+                                                    onClick={() => handlePromptSelect(p)}
+                                                    style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
+                                                    className="group relative w-full"
+                                                >
+                                                    {/* Outer Gradient Border */}
+                                                    <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
                                                         selectedPrompt === p 
-                                                        ? 'text-white' 
-                                                        : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-700 to-gray-900 group-hover:from-blue-600 group-hover:to-purple-600'
-                                                    }`}>
-                                                        ✨ {p}
-                                                    </span>
+                                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 opacity-100 shadow-md' 
+                                                        : 'bg-gradient-to-r from-gray-200 to-gray-300 opacity-60 group-hover:opacity-100'
+                                                    }`}></div>
+                                                    
+                                                    {/* Inner Content Area */}
+                                                    <div className="relative m-[2px] bg-white rounded-[10px] px-4 py-3 flex items-center transition-all h-full">
+                                                        <div className={`mr-3 transition-transform duration-300 ${selectedPrompt === p ? 'scale-110' : 'scale-100 opacity-40'}`}>
+                                                            {selectedPrompt === p 
+                                                                ? <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
+                                                                : <div className="w-4 h-4 rounded-full border-2 border-gray-300"></div>
+                                                            }
+                                                        </div>
+                                                        <span className={`text-xs font-medium italic leading-relaxed text-left ${
+                                                            selectedPrompt === p 
+                                                            ? 'text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-purple-700 font-bold' 
+                                                            : 'text-gray-600 group-hover:text-gray-900'
+                                                        }`}>
+                                                            "{p}"
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            )) : (
+                                                <div className="p-6 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic border border-dashed border-gray-200">
+                                                    Analysis in progress...
                                                 </div>
-                                            </button>
-                                        )) : (
-                                            <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic">
-                                                Select mode to analyze...
-                                            </div>
-                                        )
-                                    ) : (
-                                        suggestedModelPrompts.length > 0 ? suggestedModelPrompts.map((p, i) => (
-                                            <button 
-                                                key={i}
-                                                onClick={() => handlePromptSelect(p.prompt)}
-                                                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
-                                                className={`
-                                                    group relative rounded-full p-[2px] transition-all duration-300 hover:scale-[1.02] active:scale-95 text-left
-                                                    ${selectedPrompt === p.prompt 
-                                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-md' 
-                                                        : 'bg-gradient-to-r from-purple-200 via-pink-200 to-rose-200 hover:from-purple-400 hover:to-pink-400'
-                                                    }
-                                                `}
-                                            >
-                                                <div className={`
-                                                    w-full h-full rounded-full px-5 py-3 flex items-center
-                                                    ${selectedPrompt === p.prompt ? 'bg-transparent' : 'bg-white'}
-                                                `}>
-                                                    <span className={`text-xs italic font-semibold tracking-wide ${
+                                            )
+                                        ) : (
+                                            suggestedModelPrompts.length > 0 ? suggestedModelPrompts.map((p, i) => (
+                                                <button 
+                                                    key={i}
+                                                    onClick={() => handlePromptSelect(p.prompt)}
+                                                    style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
+                                                    className="group relative w-full"
+                                                >
+                                                    <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
                                                         selectedPrompt === p.prompt 
-                                                        ? 'text-white' 
-                                                        : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-700 to-gray-900 group-hover:from-purple-600 group-hover:to-pink-600'
-                                                    }`}>
-                                                        👤 {p.display}
-                                                    </span>
+                                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 opacity-100 shadow-md' 
+                                                        : 'bg-gradient-to-r from-gray-200 to-gray-300 opacity-60 group-hover:opacity-100'
+                                                    }`}></div>
+                                                    
+                                                    <div className="relative m-[2px] bg-white rounded-[10px] px-4 py-3 flex items-center transition-all h-full">
+                                                        <div className={`mr-3 transition-transform duration-300 ${selectedPrompt === p.prompt ? 'scale-110' : 'scale-100 opacity-40'}`}>
+                                                            {selectedPrompt === p.prompt 
+                                                                ? <div className="w-4 h-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
+                                                                : <div className="w-4 h-4 rounded-full border-2 border-gray-300"></div>
+                                                            }
+                                                        </div>
+                                                        <span className={`text-xs font-medium italic leading-relaxed text-left ${
+                                                            selectedPrompt === p.prompt 
+                                                            ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700 font-bold' 
+                                                            : 'text-gray-600 group-hover:text-gray-900'
+                                                        }`}>
+                                                            👤 {p.display}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            )) : (
+                                                <div className="p-6 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic border border-dashed border-gray-200">
+                                                    Analysis in progress...
                                                 </div>
-                                            </button>
-                                        )) : (
-                                            <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic">
-                                                Select mode to analyze...
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                                            )
+                                        )}
+                                    </div>
+                                </section>
+                            )}
 
-                        {/* 3. Manual Refinement (Hidden until analysis is done and NO suggestion selected) */}
-                        {hasSuggestions && !selectedPrompt && (
-                            <div className="animate-fadeIn pt-6 border-t border-gray-100 mt-2">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">OR CUSTOMIZE MANUALLY</p>
-                                
-                                {studioMode === 'product' ? (
-                                    <div className="space-y-4">
-                                        <SelectionGrid label="Category" options={categories} value={category} onChange={handleCategorySelect} />
-                                        {category && <SelectionGrid label="Visual Style" options={visualTypes} value={visualType} onChange={(v) => { setVisualType(v); autoScroll(); }} />}
-                                        {visualType && <SelectionGrid label="Brand Vibe" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />}
+                            {/* 3. Manual Refinement (Hidden until analysis is done and NO suggestion selected) */}
+                            {hasSuggestions && !selectedPrompt && (
+                                <section className="animate-fadeIn pt-6 border-t border-gray-100 mt-2">
+                                    <div className="flex items-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
+                                        <div className="w-6 h-6 rounded-full border-2 border-gray-300 text-gray-400 flex items-center justify-center text-[10px] font-bold">3</div>
+                                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Manual Control (Optional)</h3>
                                     </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={(v) => { setModelType(v); autoScroll(); }} />
-                                        {modelType && <SelectionGrid label="Ethnicity / Region" options={modelRegions} value={modelRegion} onChange={setModelRegion} />}
-                                        {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={setSkinTone} />}
-                                        {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />}
-                                        {bodyType && <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />}
-                                        {modelComposition && <SelectionGrid label="Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
+                                    
+                                    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                                        {studioMode === 'product' ? (
+                                            <div className="space-y-4">
+                                                <SelectionGrid label="Category" options={categories} value={category} onChange={handleCategorySelect} />
+                                                {category && <SelectionGrid label="Visual Style" options={visualTypes} value={visualType} onChange={(v) => { setVisualType(v); autoScroll(); }} />}
+                                                {visualType && <SelectionGrid label="Brand Vibe" options={brandStyles} value={brandStyle} onChange={handleBrandStyleSelect} />}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <SelectionGrid label="Model Type" options={modelTypes} value={modelType} onChange={(v) => { setModelType(v); autoScroll(); }} />
+                                                {modelType && <SelectionGrid label="Ethnicity / Region" options={modelRegions} value={modelRegion} onChange={setModelRegion} />}
+                                                {modelRegion && <SelectionGrid label="Skin Tone" options={skinTones} value={skinTone} onChange={setSkinTone} />}
+                                                {skinTone && <SelectionGrid label="Body Type" options={bodyTypes} value={bodyType} onChange={setBodyType} />}
+                                                {bodyType && <SelectionGrid label="Composition" options={compositionTypes} value={modelComposition} onChange={setModelComposition} />}
+                                                {modelComposition && <SelectionGrid label="Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                </section>
+                            )}
+                        </div>
                     </div>
                 )
             }
