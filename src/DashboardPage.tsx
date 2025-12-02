@@ -1,24 +1,11 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense, lazy } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Billing } from './components/Billing';
 import { AdminPanel } from './components/AdminPanel';
 import { ReferralModal } from './components/ReferralModal';
-import { MagicPhotoStudio } from './features/MagicPhotoStudio';
-import { MagicInterior } from './features/MagicInterior';
-import { MagicApparel } from './features/MagicApparel';
-import { MagicMockup } from './features/MagicMockup';
-import { DashboardHome } from './features/DashboardHome';
-import { Creations } from './features/Creations';
-import { CaptionAI } from './features/CaptionAI';
-import { DailyMissionStudio } from './features/DailyMissionStudio';
-import { ThumbnailStudio } from './features/ThumbnailStudio';
-import { MerchantStudio } from './features/MerchantStudio'; // Renamed import
-import { BrandStylistAI } from './features/BrandStylistAI';
-import { MagicRealty } from './features/MagicRealty';
-import { BrandKitManager } from './features/BrandKitManager'; 
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -40,6 +27,32 @@ import {
     PaletteIcon,
     PencilIcon,
 } from './components/icons';
+
+// --- LAZY LOADED FEATURES ---
+// This splits the code so users only download the tools they actually use.
+const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio').then(module => ({ default: module.MagicPhotoStudio })));
+const MagicInterior = lazy(() => import('./features/MagicInterior').then(module => ({ default: module.MagicInterior })));
+const MagicApparel = lazy(() => import('./features/MagicApparel').then(module => ({ default: module.MagicApparel })));
+const MagicMockup = lazy(() => import('./features/MagicMockup').then(module => ({ default: module.MagicMockup })));
+const DashboardHome = lazy(() => import('./features/DashboardHome').then(module => ({ default: module.DashboardHome })));
+const Creations = lazy(() => import('./features/Creations').then(module => ({ default: module.Creations })));
+const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ default: module.CaptionAI })));
+const DailyMissionStudio = lazy(() => import('./features/DailyMissionStudio').then(module => ({ default: module.DailyMissionStudio })));
+const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio').then(module => ({ default: module.ThumbnailStudio })));
+const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(module => ({ default: module.MerchantStudio })));
+const BrandStylistAI = lazy(() => import('./features/BrandStylistAI').then(module => ({ default: module.BrandStylistAI })));
+const MagicRealty = lazy(() => import('./features/MagicRealty').then(module => ({ default: module.MagicRealty })));
+const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
+
+// Loading Spinner for Suspense Fallback
+const PageLoader = () => (
+    <div className="h-full w-full flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p className="text-gray-400 text-sm font-medium animate-pulse">Loading Feature...</p>
+        </div>
+    </div>
+);
 
 interface DashboardPageProps {
     navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -239,7 +252,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     openReferralModal={() => setShowReferralModal(true)}
                 />
                 <main className="flex-1 overflow-y-auto bg-white custom-scrollbar relative">
-                    {renderContent()}
+                    <Suspense fallback={<PageLoader />}>
+                        {renderContent()}
+                    </Suspense>
                 </main>
             </div>
             
@@ -257,4 +272,3 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 };
 
 export default DashboardPage;
-    

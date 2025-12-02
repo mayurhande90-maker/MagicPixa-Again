@@ -22,36 +22,62 @@ import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, deductCredits } from '../firebase';
 
 // Helper Card for Mode Selection
+// Fixed: Using static classes instead of dynamic string construction to fix Tailwind JIT bug
 const ModeCard: React.FC<{
     title: string;
     description: string;
     icon: React.ReactNode;
     selected: boolean;
     onClick: () => void;
-    color: string;
-}> = ({ title, description, icon, selected, onClick, color }) => (
-    <button 
-        onClick={onClick}
-        className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all w-full group relative overflow-hidden text-center h-32 ${
-            selected 
-            ? `border-${color}-500 bg-${color}-50 shadow-md` 
-            : `border-gray-100 bg-white hover:border-${color}-200 hover:bg-gray-50`
-        }`}
-    >
-        <div className={`mb-2 transition-transform group-hover:scale-110 ${selected ? `text-${color}-600` : `text-gray-400`}`}>
-            {icon}
-        </div>
-        <h3 className={`font-bold text-sm mb-0.5 ${selected ? `text-${color}-900` : 'text-gray-700'}`}>{title}</h3>
-        <p className={`text-[10px] ${selected ? `text-${color}-700` : 'text-gray-400'}`}>{description}</p>
-        
-        {/* Checkmark for selected */}
-        {selected && (
-            <div className={`absolute top-2 right-2 bg-${color}-500 text-white p-0.5 rounded-full`}>
-                <CheckIcon className="w-3 h-3" />
+    color: 'blue' | 'purple';
+}> = ({ title, description, icon, selected, onClick, color }) => {
+    
+    // Static mapping for colors
+    const colorStyles = {
+        blue: {
+            selected: 'border-blue-500 bg-blue-50 shadow-md',
+            hover: 'hover:border-blue-200 hover:bg-gray-50',
+            iconSelected: 'text-blue-600',
+            textSelected: 'text-blue-900',
+            descSelected: 'text-blue-700',
+            badge: 'bg-blue-500'
+        },
+        purple: {
+            selected: 'border-purple-500 bg-purple-50 shadow-md',
+            hover: 'hover:border-purple-200 hover:bg-gray-50',
+            iconSelected: 'text-purple-600',
+            textSelected: 'text-purple-900',
+            descSelected: 'text-purple-700',
+            badge: 'bg-purple-500'
+        }
+    };
+
+    const currentStyle = colorStyles[color];
+
+    return (
+        <button 
+            onClick={onClick}
+            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all w-full group relative overflow-hidden text-center h-32 ${
+                selected 
+                ? currentStyle.selected
+                : `border-gray-100 bg-white ${currentStyle.hover}`
+            }`}
+        >
+            <div className={`mb-2 transition-transform group-hover:scale-110 ${selected ? currentStyle.iconSelected : `text-gray-400`}`}>
+                {icon}
             </div>
-        )}
-    </button>
-);
+            <h3 className={`font-bold text-sm mb-0.5 ${selected ? currentStyle.textSelected : 'text-gray-700'}`}>{title}</h3>
+            <p className={`text-[10px] ${selected ? currentStyle.descSelected : 'text-gray-400'}`}>{description}</p>
+            
+            {/* Checkmark for selected */}
+            {selected && (
+                <div className={`absolute top-2 right-2 text-white p-0.5 rounded-full ${currentStyle.badge}`}>
+                    <CheckIcon className="w-3 h-3" />
+                </div>
+            )}
+        </button>
+    );
+};
 
 // New Pack Selection Card
 const PackCard: React.FC<{
@@ -449,7 +475,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             <p className="text-gray-500 mb-6 max-w-xs text-sm">
                                 The selected pack requires {cost} credits.
                             </p>
-                            <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] shadow-lg">Recharge</button>
+                            <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge</button>
                         </div>
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
