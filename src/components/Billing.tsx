@@ -81,9 +81,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         return <ThumbnailIcon className="w-10 h-10" />;
     }
 
-    // Explicit check for Pixa Realty Ads
+    // Explicit check for Pixa Realty Ads (Standalone icon mode)
     if (feature.includes('Magic Realty') || feature.includes('Pixa Realty Ads')) {
-        return <div className="p-2 bg-indigo-100 rounded-full"><BuildingIcon className={`${iconClass} text-indigo-600`} /></div>;
+        return <BuildingIcon className="w-10 h-10" />; 
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {

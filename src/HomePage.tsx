@@ -47,10 +47,10 @@ const features = [
     },
     {
         id: 'magic_realty',
-        icon: <BuildingIcon className="w-10 h-10 text-white" />,
-        title: "Pixa Realty Ads", // Renamed
+        icon: <BuildingIcon className="w-16 h-16" />, // Increased size
+        title: "Pixa Realty Ads", 
         description: "Create luxury real estate flyers with AI-enhanced photos, lifestyle fusion, and auto-layout.",
-        color: "bg-indigo-500",
+        color: "", // Removed background color
         disabled: false,
     },
     {

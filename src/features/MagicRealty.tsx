@@ -376,7 +376,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             <FeatureLayout
                 title="Pixa Realty Ads" // Updated Title
                 description="Create luxury Real Estate ads with Lifestyle Fusion and Golden Hour enhancement."
-                icon={<BuildingIcon className="w-6 h-6 text-indigo-600" />}
+                icon={<BuildingIcon className="w-14 h-14"/>} // Larger Icon
+                rawIcon={true} // Standalone Mode
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}

@@ -199,7 +199,7 @@ export const DashboardHome: React.FC<{
         { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
-        { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: 'bg-indigo-500' }, // Renamed
+        { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, // Removed background color
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },

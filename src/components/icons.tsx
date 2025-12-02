@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 // Common SVG Props interface
@@ -147,10 +146,93 @@ export const HomeIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
+// Updated BuildingIcon with new SVG
 export const BuildingIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path fillRule="evenodd" d="M3 2.25a.75.75 0 01.75.75v.54l1.838-.46a9.75 9.75 0 016.725.738l.108.054a8.25 8.25 0 005.58.652l3.109-.732a.75.75 0 01.917.81 47.784 47.784 0 00.005 10.337.75.75 0 01-.574.812l-3.114.733a9.75 9.75 0 01-6.594-.158l-.108-.054a8.25 8.25 0 00-5.69-.625l-2.202.55V21a.75.75 0 01-1.5 0V3A.75.75 0 013 2.25z" clipRule="evenodd" />
-        <path d="M4.5 4.5a.75.75 0 00-1.5 0v15a.75.75 0 001.5 0v-15z" />
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g fill="none">
+            <path fill="url(#fluentColorBuildingMultiple240)" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
+            <path fill="url(#fluentColorBuildingMultiple241)" fillOpacity=".2" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
+            <path fill="url(#fluentColorBuildingMultiple242)" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
+            <path fill="url(#fluentColorBuildingMultiple243)" d="M8 6a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple244)" d="M8 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple245)" d="M8 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple246)" d="M8 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple247)" d="M8 18a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple248)" d="M18.75 5A2.25 2.25 0 0 1 21 7.25v14a.75.75 0 0 1-.75.75h-9.247A1 1 0 0 1 10 21V7.25A2.25 2.25 0 0 1 12.25 5z"/>
+            <path fill="url(#fluentColorBuildingMultiple249)" d="M13 19a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3h-5z"/>
+            <path fill="url(#fluentColorBuildingMultiple24a)" d="M15 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple24b)" d="M15 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple24c)" d="M15 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple24d)" d="M18 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple24e)" d="M18 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <path fill="url(#fluentColorBuildingMultiple24f)" d="M18 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
+            <defs>
+                <linearGradient id="fluentColorBuildingMultiple240" x1="3.393" x2="15.293" y1="5.75" y2="12.55" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#A3A3FF"/>
+                    <stop offset="1" stopColor="#5750E2"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple241" x1="6.85" x2="10.7" y1="4.5" y2="4.5" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#30116E" stopOpacity="0"/>
+                    <stop offset="1" stopColor="#30116E"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple242" x1="10.838" x2="10.66" y1="8.094" y2="2.001" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#A3A3FF" stopOpacity="0"/>
+                    <stop offset="1" stopColor="#A3A3FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple243" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#D1D1FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple244" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#D1D1FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple245" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#D1D1FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple246" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#D1D1FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple247" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#D1D1FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple248" x1="10" x2="25.941" y1="5.531" y2="18.736" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#3BD5FF"/>
+                    <stop offset="1" stopColor="#2764E7"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple249" x1="13.804" x2="16.474" y1="18.75" y2="22.218" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#0067BF"/>
+                    <stop offset="1" stopColor="#003580"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24a" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24b" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24c" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24d" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24e" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorBuildingMultiple24f" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FDFDFD"/>
+                    <stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+            </defs>
+        </g>
     </svg>
 );
 
