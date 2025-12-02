@@ -4,7 +4,7 @@ import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
-    PixaProductIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon
+    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon
 } from './icons';
 
 interface BillingProps {
@@ -73,8 +73,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
-        'Pixa Product Shots': <div className="p-2 bg-blue-100 rounded-full"><PixaProductIcon className={`${iconClass} text-blue-600`} /></div>,
-        'Magic Photo Studio': <div className="p-2 bg-blue-100 rounded-full"><PixaProductIcon className={`${iconClass} text-blue-600`} /></div>, // Legacy support
+        'Magic Photo Studio': <div className="p-2 bg-blue-100 rounded-full"><PhotoStudioIcon className={`${iconClass} text-blue-600`} /></div>,
         'Magic Soul': <div className="p-2 bg-pink-100 rounded-full"><UsersIcon className={`${iconClass} text-pink-600`} /></div>,
         'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,
