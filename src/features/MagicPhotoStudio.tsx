@@ -319,6 +319,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setSelectedPrompt(null);
     };
 
+    // Check if suggestions are ready
+    const hasSuggestions = suggestedPrompts.length > 0 || suggestedModelPrompts.length > 0;
+
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
         studioMode === 'product' 
             ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType))
@@ -338,7 +341,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultImage={result}
             onResetResult={() => setResult(null)}
             onNewSession={handleNewSession}
-            resultHeightClass="h-[850px]" // RESTORED: Standard layout height
+            resultHeightClass="h-[850px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -367,7 +370,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 )}
                                 <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight">
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">Analyzing...</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">Pixa Vision Scanning...</span>
                                 </div>
                             </div>
                         )}
@@ -406,6 +409,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 0% { width: 0%; margin-left: 0; }
                                 50% { width: 100%; margin-left: 0; }
                                 100% { width: 0%; margin-left: 100%; }
+                            }
+                            @keyframes fadeInUp {
+                                from { opacity: 0; transform: translateY(10px); }
+                                to { opacity: 1; transform: translateY(0); }
                             }
                         `}</style>
                     </div>
@@ -509,29 +516,44 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             </div>
                         </div>
 
-                        {/* 2. AI Analysis & Suggestions */}
+                        {/* 2. Pixa Recommendations (Animated Gradient Capsules) */}
                         {studioMode && (
                             <div className="animate-fadeIn">
                                 <div className="flex items-center justify-between mb-3 ml-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        2. AI Analysis & Suggestions
+                                        2. Pixa Suggestions
                                     </label>
                                     {(isAnalyzing || isAnalyzingModel) && <span className="text-[10px] text-blue-500 font-bold animate-pulse">Scanning...</span>}
                                 </div>
                                 
-                                <div className="grid grid-cols-1 gap-2">
+                                <div className="grid grid-cols-1 gap-3">
                                     {studioMode === 'product' ? (
                                         suggestedPrompts.length > 0 ? suggestedPrompts.map((p, i) => (
                                             <button 
                                                 key={i}
                                                 onClick={() => handlePromptSelect(p)}
-                                                className={`text-left px-4 py-3 rounded-xl text-xs font-medium border transition-all duration-200 ${
-                                                    selectedPrompt === p 
-                                                    ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
-                                                    : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-600'
-                                                }`}
+                                                // Staggered fade-in animation via style
+                                                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
+                                                className={`
+                                                    group relative rounded-full p-[2px] transition-all duration-300 hover:scale-[1.02] active:scale-95 text-left
+                                                    ${selectedPrompt === p 
+                                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md' 
+                                                        : 'bg-gradient-to-r from-blue-200 via-purple-200 to-indigo-200 hover:from-blue-400 hover:to-indigo-400'
+                                                    }
+                                                `}
                                             >
-                                                ✨ "{p}"
+                                                <div className={`
+                                                    w-full h-full rounded-full px-5 py-3 flex items-center
+                                                    ${selectedPrompt === p ? 'bg-transparent' : 'bg-white'}
+                                                `}>
+                                                    <span className={`text-xs italic font-semibold tracking-wide ${
+                                                        selectedPrompt === p 
+                                                        ? 'text-white' 
+                                                        : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-700 to-gray-900 group-hover:from-blue-600 group-hover:to-purple-600'
+                                                    }`}>
+                                                        ✨ {p}
+                                                    </span>
+                                                </div>
                                             </button>
                                         )) : (
                                             <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic">
@@ -543,13 +565,27 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             <button 
                                                 key={i}
                                                 onClick={() => handlePromptSelect(p.prompt)}
-                                                className={`text-left px-4 py-3 rounded-xl text-xs font-medium border transition-all duration-200 ${
-                                                    selectedPrompt === p.prompt 
-                                                    ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-sm' 
-                                                    : 'bg-white border-gray-100 hover:border-purple-200 hover:bg-gray-50 text-gray-600'
-                                                }`}
+                                                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s forwards`, opacity: 0 }}
+                                                className={`
+                                                    group relative rounded-full p-[2px] transition-all duration-300 hover:scale-[1.02] active:scale-95 text-left
+                                                    ${selectedPrompt === p.prompt 
+                                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-md' 
+                                                        : 'bg-gradient-to-r from-purple-200 via-pink-200 to-rose-200 hover:from-purple-400 hover:to-pink-400'
+                                                    }
+                                                `}
                                             >
-                                                👤 {p.display}
+                                                <div className={`
+                                                    w-full h-full rounded-full px-5 py-3 flex items-center
+                                                    ${selectedPrompt === p.prompt ? 'bg-transparent' : 'bg-white'}
+                                                `}>
+                                                    <span className={`text-xs italic font-semibold tracking-wide ${
+                                                        selectedPrompt === p.prompt 
+                                                        ? 'text-white' 
+                                                        : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-700 to-gray-900 group-hover:from-purple-600 group-hover:to-pink-600'
+                                                    }`}>
+                                                        👤 {p.display}
+                                                    </span>
+                                                </div>
                                             </button>
                                         )) : (
                                             <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-400 text-center italic">
@@ -561,9 +597,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             </div>
                         )}
 
-                        {/* 3. Manual Refinement (Fallback) */}
-                        {studioMode && !selectedPrompt && (
-                            <div className="animate-fadeIn pt-4 border-t border-gray-100">
+                        {/* 3. Manual Refinement (Hidden until analysis is done and NO suggestion selected) */}
+                        {hasSuggestions && !selectedPrompt && (
+                            <div className="animate-fadeIn pt-6 border-t border-gray-100 mt-2">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">OR CUSTOMIZE MANUALLY</p>
                                 
                                 {studioMode === 'product' ? (
