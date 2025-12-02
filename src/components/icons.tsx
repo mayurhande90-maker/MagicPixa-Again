@@ -81,13 +81,44 @@ export const ChevronDownIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />} />
 );
 
-// Custom Photo Studio Icon (Camera with Layers)
-export const PhotoStudioIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-        <path stroke="currentColor" strokeLinejoin="round" strokeWidth="2" d="M4 18V8a1 1 0 0 1 1-1h1.5l1.707-1.707A1 1 0 0 1 8.914 5h6.172a1 1 0 0 1 .707.293L17.5 7H19a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/>
-        <path stroke="currentColor" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+// New Pixa Product Icon (Replaces PhotoStudioIcon in UI)
+export const PixaProductIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g fill="none">
+            <path fill="url(#fluentColorCamera240)" d="M2 8.25A3.25 3.25 0 0 1 5.25 5H7l1.332-1.998A2.25 2.25 0 0 1 10.204 2h3.592a2.25 2.25 0 0 1 1.872 1.002L17 5h1.75A3.25 3.25 0 0 1 22 8.25v9.5A3.25 3.25 0 0 1 18.75 21H5.25A3.25 3.25 0 0 1 2 17.75z"/>
+            <path fill="url(#fluentColorCamera241)" fillOpacity=".5" d="M2 8.25A3.25 3.25 0 0 1 5.25 5H7l1.332-1.998A2.25 2.25 0 0 1 10.204 2h3.592a2.25 2.25 0 0 1 1.872 1.002L17 5h1.75A3.25 3.25 0 0 1 22 8.25v9.5A3.25 3.25 0 0 1 18.75 21H5.25A3.25 3.25 0 0 1 2 17.75z"/>
+            <path fill="url(#fluentColorCamera243)" fillRule="evenodd" d="M12 17a4.5 4.5 0 1 0 0-9a4.5 4.5 0 0 0 0 9" clipRule="evenodd"/>
+            <path fill="url(#fluentColorCamera242)" d="M15 12.5a3 3 0 1 1-6 0a3 3 0 0 1 6 0"/>
+            <path fill="url(#fluentColorCamera244)" d="M18.5 10a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3"/>
+            <defs>
+                <radialGradient id="fluentColorCamera240" cx="0" cy="0" r="1" gradientTransform="rotate(41.108 -4.919 .133)scale(29.8616 62.1235)" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#F08AF4"/>
+                    <stop offset=".535" stopColor="#9C6CFE"/>
+                    <stop offset="1" stopColor="#4E44DB"/>
+                </radialGradient>
+                <radialGradient id="fluentColorCamera241" cx="0" cy="0" r="1" gradientTransform="matrix(.5 6.9091 -7.19332 .52057 14.5 14.09)" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#312A9A"/>
+                    <stop offset="1" stopColor="#312A9A" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="fluentColorCamera242" cx="0" cy="0" r="1" gradientTransform="matrix(5.5 6.5 -6.5 5.5 8 8)" gradientUnits="userSpaceOnUse">
+                    <stop offset=".243" stopColor="#3BD5FF"/>
+                    <stop offset="1" stopColor="#2052CB"/>
+                </radialGradient>
+                <linearGradient id="fluentColorCamera243" x1="9.193" x2="13.693" y1="8" y2="18.688" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#fff"/>
+                    <stop offset="1" stopColor="#DECBFF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorCamera244" x1="17" x2="20" y1="7.75" y2="10" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#F08AF4"/>
+                    <stop offset="1" stopColor="#F462AB"/>
+                </linearGradient>
+            </defs>
+        </g>
     </svg>
 );
+
+// Alias for backward compatibility if needed, though we will try to use PixaProductIcon
+export const PhotoStudioIcon = PixaProductIcon;
 
 // Custom Apparel Icon
 export const ApparelIcon: React.FC<IconProps> = ({ className }) => (

@@ -9,7 +9,7 @@ import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
 import { ImageModal } from '../components/FeatureLayout';
 import { CreatorRanksModal } from '../components/CreatorRanksModal';
 import { 
-    PhotoStudioIcon, 
+    PixaProductIcon, 
     SparklesIcon, 
     DownloadIcon, 
     ProjectsIcon,
@@ -26,7 +26,8 @@ import {
     GiftIcon,
     InformationCircleIcon,
     ApparelIcon,
-    MagicAdsIcon
+    MagicAdsIcon,
+    UploadTrayIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -200,7 +201,8 @@ export const DashboardHome: React.FC<{
     // Helper to map feature name to view ID for "Generate Another"
     const getFeatureViewId = (featureName: string): View => {
         const map: Record<string, View> = {
-            'Magic Photo Studio': 'studio',
+            'Pixa Product Shots': 'studio', // New name
+            'Magic Photo Studio': 'studio', // Legacy name
             'Model Shot': 'studio',
             'BrandKit AI': 'brand_kit',
             'Brand Stylist AI': 'brand_stylist',
@@ -222,8 +224,8 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
-        { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'brand_kit', label: 'BrandKit AI', icon: BrandKitIcon, color: 'bg-green-500' },
+        { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: 'bg-blue-500' },
+        { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },

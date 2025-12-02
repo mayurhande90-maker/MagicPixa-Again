@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon } from './icons';
+import { LayoutGridIcon, PixaProductIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -50,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
-    { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, disabled: false },
+    { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, disabled: false },
     { id: 'magic_realty', label: 'Magic Realty', icon: BuildingIcon, disabled: false },
     // Renamed ID 'brand_kit' label to 'Merchant Studio' and icon to UploadTray

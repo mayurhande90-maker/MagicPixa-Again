@@ -677,7 +677,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
     const docSnap = await configRef.get();
     const defaultConfig: AppConfig = {
         featureCosts: {
-          'Magic Photo Studio': 2, 
+          'Pixa Product Shots': 2, 
           'Model Shot': 3, 
           'Thumbnail Studio': 5, 
           'Magic Soul': 3, 
@@ -710,6 +710,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           delete dbConfig.featureCosts['Magic Scanner'];
           delete dbConfig.featureCosts['Magic Notes'];
           delete dbConfig.featureCosts['BrandKit AI']; // Replaced by Merchant Studio / Magic Ads
+          delete dbConfig.featureCosts['Magic Photo Studio']; // Renamed
       }
       return {
           ...defaultConfig,
@@ -738,7 +739,7 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
             // Use same defaults as getAppConfig (re-defined here for simplicity or scoped variable)
             const defaultConfig: AppConfig = {
                 featureCosts: {
-                  'Magic Photo Studio': 2, 
+                  'Pixa Product Shots': 2, 
                   'Model Shot': 3, 
                   'Thumbnail Studio': 5, 
                   'Magic Soul': 3, 
@@ -770,6 +771,7 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
                 delete dbConfig.featureCosts['Magic Scanner'];
                 delete dbConfig.featureCosts['Magic Notes'];
                 delete dbConfig.featureCosts['BrandKit AI'];
+                delete dbConfig.featureCosts['Magic Photo Studio']; // Renamed
             }
 
             const mergedConfig = {
@@ -785,7 +787,7 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
             // Returning defaults seems safer for a listener.
             const defaultConfig: AppConfig = {
                 featureCosts: {
-                  'Magic Photo Studio': 2, 
+                  'Pixa Product Shots': 2, 
                   'Model Shot': 3, 
                   'Thumbnail Studio': 5, 
                   'Magic Soul': 3, 
