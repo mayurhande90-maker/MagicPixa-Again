@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -16,8 +16,8 @@ interface HomePageProps {
 const features = [
     {
         id: 'studio',
-        icon: <PhotoStudioIcon className="w-16 h-16" />,
-        title: "Magic Photo Studio",
+        icon: <PixaProductIcon className="w-16 h-16" />,
+        title: "Pixa Product Shots",
         description: "Transform simple photos into professional, studio-quality product shots in one click.",
         color: "",
         disabled: false,
@@ -134,7 +134,7 @@ const reviews = [
     {
         name: "Anjali Desai",
         location: "Delhi",
-        review: "I run a small boutique and creating marketing content was always a struggle. MagicPixa's Photo Studio is a lifesaver. It’s so easy to use, and the results are incredibly professional.",
+        review: "I run a small boutique and creating marketing content was always a struggle. Pixa Product Shots is a lifesaver. It’s so easy to use, and the results are incredibly professional.",
     },
      {
         name: "Vikram Singh",

@@ -7,11 +7,11 @@ import {
     UsersIcon, 
     CreditCardIcon, 
     SparklesIcon, 
-    ArrowLeftIcon,
-    XIcon,
-    UploadIcon,
-    ArrowUpCircleIcon,
-    PixaProductIcon // Import the new icon component alias
+    ArrowLeftIcon, 
+    XIcon, 
+    UploadIcon, 
+    ArrowUpCircleIcon, 
+    PixaProductIcon 
 } from '../components/icons';
 import { 
     FeatureLayout, 
@@ -28,9 +28,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
 
     // Determine cost based on current mode selection. Default to base studio cost if no mode selected yet.
+    // Updated to use new key 'Pixa Product Shots' with fallback
     const currentCost = studioMode === 'model' 
         ? (appConfig?.featureCosts['Model Shot'] || 3) 
-        : (appConfig?.featureCosts['Magic Photo Studio'] || 2);
+        : (appConfig?.featureCosts['Pixa Product Shots'] || appConfig?.featureCosts['Magic Photo Studio'] || 2);
 
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -286,8 +287,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+            // Use new name "Pixa Product Shots" or "Model Shot"
+            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Model Shot' : 'Pixa Product Shots');
+            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Pixa Product Shots');
             
              // Check for milestone bonus in updated user object
             if (updatedUser.lifetimeGenerations) {
