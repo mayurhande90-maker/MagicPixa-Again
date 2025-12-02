@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -13,7 +14,7 @@ import {
     PaletteIcon,
     ArrowUpCircleIcon
 } from '../components/icons';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
 import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -76,6 +77,13 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
         return () => clearInterval(interval);
     }, [loading]);
+
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (resultImage) URL.revokeObjectURL(resultImage);
+        };
+    }, [resultImage]);
 
     const autoScroll = () => {
         if (scrollRef.current) {
@@ -152,10 +160,11 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 objectColor
             );
 
-            const url = `data:image/png;base64,${res}`;
-            setResultImage(url);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResultImage(blobUrl);
             
-            saveCreation(auth.user.uid, url, 'Magic Mockup');
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, 'Magic Mockup');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Mockup');
             
             if (updatedUser.lifetimeGenerations) {

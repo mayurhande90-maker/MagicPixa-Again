@@ -10,7 +10,7 @@ import {
     UploadTrayIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, deductCredits } from '../firebase';
 
@@ -101,6 +101,13 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
         return () => clearInterval(interval);
     }, [loading]);
+
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (result) URL.revokeObjectURL(result);
+        };
+    }, [result]);
 
     // Auto-scroll helper
     const autoScroll = () => {
@@ -218,10 +225,11 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 }
             );
             
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
             
-            saveCreation(auth.user.uid, url, 'Magic Apparel');
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, 'Magic Apparel');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Apparel');
             
             if (updatedUser.lifetimeGenerations) {

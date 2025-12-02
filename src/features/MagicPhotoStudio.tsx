@@ -18,7 +18,7 @@ import {
     MilestoneSuccessModal, 
     checkMilestone 
 } from '../components/FeatureLayout';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
 import { saveCreation, deductCredits } from '../firebase';
 import { PixaMascot } from '../components/PixaMascot';
@@ -100,6 +100,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         }
         return () => clearInterval(interval);
     }, [loading]);
+
+    // Cleanup result blob URL
+    useEffect(() => {
+        return () => {
+            if (result) URL.revokeObjectURL(result);
+        };
+    }, [result]);
 
     const autoScroll = () => {
         if (scrollRef.current) {
@@ -275,9 +282,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
             }
 
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
-            saveCreation(auth.user.uid, url, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
+            
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
             const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Model Shot' : 'Magic Photo Studio');
             
              // Check for milestone bonus in updated user object

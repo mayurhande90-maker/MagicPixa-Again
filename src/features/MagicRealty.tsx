@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
 import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, BrandKitIcon } from '../components/icons';
-import { fileToBase64, Base64File, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -203,6 +203,13 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         loadBrandAssets();
     }, [brandStrategy, auth.user?.brandKit]);
 
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (resultImage) URL.revokeObjectURL(resultImage);
+        };
+    }, [resultImage]);
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -302,10 +309,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 } : undefined
             });
 
-            const finalImageUrl = `data:image/png;base64,${assetUrl}`;
-            setResultImage(finalImageUrl);
+            const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png');
+            setResultImage(blobUrl);
             
-            saveCreation(auth.user.uid, finalImageUrl, 'Magic Realty');
+            const dataUri = `data:image/png;base64,${assetUrl}`;
+            saveCreation(auth.user.uid, dataUri, 'Magic Realty');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Realty');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 

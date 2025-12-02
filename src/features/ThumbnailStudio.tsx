@@ -11,7 +11,7 @@ import {
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { MagicEditorModal } from '../components/MagicEditorModal';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { saveCreation, deductCredits } from '../firebase';
 
@@ -125,6 +125,13 @@ export const ThumbnailStudio: React.FC<{
         return () => clearInterval(interval);
     }, [loading]);
 
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (result) URL.revokeObjectURL(result);
+        };
+    }, [result]);
+
     const autoScroll = () => {
         if (scrollRef.current) {
             setTimeout(() => {
@@ -169,10 +176,11 @@ export const ThumbnailStudio: React.FC<{
                 guestImage: guestImage?.base64
             });
 
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
             
-            saveCreation(auth.user.uid, url, 'Thumbnail Studio');
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, 'Thumbnail Studio');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Thumbnail Studio');
             
             if (updatedUser.lifetimeGenerations) {
@@ -211,10 +219,11 @@ export const ThumbnailStudio: React.FC<{
                 guestImage: guestImage?.base64
             });
 
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
             
-            saveCreation(auth.user.uid, url, 'Thumbnail Studio (Regen)');
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, 'Thumbnail Studio (Regen)');
             const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Thumbnail Studio (Regen)');
             
             if (updatedUser.lifetimeGenerations) {

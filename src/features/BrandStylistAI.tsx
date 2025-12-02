@@ -1,9 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon } from '../components/icons';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -121,9 +121,10 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 'Modern Sans' // Default font
             );
             
-            const finalImageUrl = `data:image/png;base64,${assetUrl}`;
-            setResultImage(finalImageUrl);
+            const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png');
+            setResultImage(blobUrl);
             
+            const finalImageUrl = `data:image/png;base64,${assetUrl}`;
             saveCreation(auth.user.uid, finalImageUrl, 'Magic Ads');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Ads');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -167,6 +168,13 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         }
     };
+
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (resultImage) URL.revokeObjectURL(resultImage);
+        };
+    }, [resultImage]);
 
     // Added check for description
     const canGenerate = !!productImage && !!referenceImage && !isLowCredits && !!description;

@@ -1149,8 +1149,23 @@ export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
 };
 
 // --- API ERROR MONITORING ---
+// New throttle cache
+const errorLogCache: Record<string, number> = {};
+const THROTTLE_WINDOW_MS = 60000; // 1 minute
+
 export const logApiError = async (endpoint: string, errorMsg: string, userId?: string) => {
     if (!db) return;
+    
+    const key = `${endpoint}:${errorMsg}:${userId || 'anon'}`;
+    const now = Date.now();
+    
+    if (errorLogCache[key] && now - errorLogCache[key] < THROTTLE_WINDOW_MS) {
+        console.warn("Skipping duplicate error log", key);
+        return;
+    }
+    
+    errorLogCache[key] = now;
+    
     try {
         await db.collection('api_errors').add({
             endpoint,

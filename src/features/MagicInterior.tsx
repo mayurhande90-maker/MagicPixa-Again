@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCardIcon, SparklesIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { fileToBase64, Base64File } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
 import { saveCreation, deductCredits } from '../firebase';
 
@@ -55,6 +56,13 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
         return () => clearInterval(interval);
     }, [loading]);
+
+    // Cleanup blob URL
+    useEffect(() => {
+        return () => {
+            if (result) URL.revokeObjectURL(result);
+        };
+    }, [result]);
 
     const autoScroll = () => {
         if (scrollRef.current) {
@@ -134,10 +142,11 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 roomType
             );
             
-            const url = `data:image/png;base64,${res}`;
-            setResult(url);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
             
-            saveCreation(auth.user.uid, url, 'Magic Interior');
+            const dataUri = `data:image/png;base64,${res}`;
+            saveCreation(auth.user.uid, dataUri, 'Magic Interior');
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Interior');
             
             if (updatedUser.lifetimeGenerations) {
@@ -343,7 +352,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+            <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
     );
