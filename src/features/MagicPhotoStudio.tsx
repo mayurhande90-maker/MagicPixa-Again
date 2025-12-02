@@ -10,7 +10,8 @@ import {
     ArrowLeftIcon,
     XIcon,
     UploadIcon,
-    ArrowUpCircleIcon
+    ArrowUpCircleIcon,
+    PixaProductIcon // Import the new icon component alias
 } from '../components/icons';
 import { 
     FeatureLayout, 
@@ -326,9 +327,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     return (
         <>
         <FeatureLayout 
-            title="Magic Photo Studio"
+            title="Pixa Product Shots" // Updated Title
             description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
-            icon={<PhotoStudioIcon className="w-6 h-6 text-blue-500"/>}
+            icon={<PixaProductIcon className="w-14 h-14"/>} // Larger, colorful icon without wrapper
+            rawIcon={true} // Enable transparent layout mode for icon
             creditCost={currentCost}
             isGenerating={loading}
             canGenerate={canGenerate}

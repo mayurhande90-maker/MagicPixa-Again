@@ -26,7 +26,9 @@ import {
     GiftIcon,
     InformationCircleIcon,
     ApparelIcon,
-    MagicAdsIcon
+    MagicAdsIcon,
+    PixaProductIcon,
+    UploadTrayIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -201,9 +203,9 @@ export const DashboardHome: React.FC<{
     const getFeatureViewId = (featureName: string): View => {
         const map: Record<string, View> = {
             'Magic Photo Studio': 'studio',
+            'Pixa Product Shots': 'studio',
             'Model Shot': 'studio',
-            'BrandKit AI': 'brand_kit',
-            'Brand Stylist AI': 'brand_stylist',
+            'Merchant Studio': 'brand_kit',
             'Magic Ads': 'brand_stylist',
             'Thumbnail Studio': 'thumbnail_studio',
             'Magic Soul': 'soul',
@@ -222,8 +224,8 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
-        { id: 'studio', label: 'Magic Photo Studio', icon: PhotoStudioIcon, color: 'bg-blue-500' },
-        { id: 'brand_kit', label: 'BrandKit AI', icon: BrandKitIcon, color: 'bg-green-500' },
+        { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, // Color empty to indicate transparent/standalone
+        { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
@@ -363,6 +365,9 @@ export const DashboardHome: React.FC<{
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {tools.map(tool => {
                         const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
+                        // Special handling for Pixa Product Shots (transparent icon)
+                        const isTransparent = tool.color === ''; 
+
                         return (
                             <button
                                 key={tool.id}
@@ -374,9 +379,15 @@ export const DashboardHome: React.FC<{
                                     : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1'
                                 }`}
                             >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
-                                    <tool.icon className="w-6 h-6 text-white" />
-                                </div>
+                                {isTransparent ? (
+                                    <div className="mb-4 transition-transform group-hover:scale-110">
+                                        <tool.icon className="w-14 h-14" />
+                                    </div>
+                                ) : (
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
+                                        <tool.icon className="w-6 h-6 text-white" />
+                                    </div>
+                                )}
                                 <span className="text-sm font-bold text-gray-800 group-hover:text-black">{tool.label}</span>
                                 {isDisabled && <span className="mt-2 text-[10px] font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>}
                             </button>

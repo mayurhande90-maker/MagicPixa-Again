@@ -264,12 +264,13 @@ export const FeatureLayout: React.FC<{
     disableScroll?: boolean;
     scrollRef?: React.RefObject<HTMLDivElement>;
     resultOverlay?: React.ReactNode;
-    customActionButtons?: React.ReactNode; // New prop for additional action buttons
+    customActionButtons?: React.ReactNode;
+    rawIcon?: boolean; // New Prop to remove default icon container
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
-    disableScroll, scrollRef, resultOverlay, customActionButtons
+    disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     
@@ -281,9 +282,15 @@ export const FeatureLayout: React.FC<{
             {/* Header */}
             <div className="mb-5 border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-4 mb-2">
-                    <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                        {icon}
-                    </div>
+                    {rawIcon ? (
+                        <div className="transition-transform hover:scale-105">
+                            {icon}
+                        </div>
+                    ) : (
+                        <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                            {icon}
+                        </div>
+                    )}
                     <h1 className="text-2xl font-bold text-[#1A1A1E]">{title}</h1>
                 </div>
                 {description && <p className="text-sm text-gray-500 font-medium max-w-2xl">{description}</p>}
