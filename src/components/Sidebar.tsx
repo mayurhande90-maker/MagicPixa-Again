@@ -52,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
-    { id: 'magic_realty', label: 'Magic Realty', icon: BuildingIcon, disabled: false },
+    { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, disabled: false }, // Renamed
     { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, disabled: false }, 
     { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },

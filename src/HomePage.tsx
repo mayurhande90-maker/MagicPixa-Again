@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -49,7 +48,7 @@ const features = [
     {
         id: 'magic_realty',
         icon: <BuildingIcon className="w-10 h-10 text-white" />,
-        title: "Magic Realty",
+        title: "Pixa Realty Ads", // Renamed
         description: "Create luxury real estate flyers with AI-enhanced photos, lifestyle fusion, and auto-layout.",
         color: "bg-indigo-500",
         disabled: false,

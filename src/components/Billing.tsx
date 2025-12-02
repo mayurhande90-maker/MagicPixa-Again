@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
-    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon
+    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon
 } from './icons';
 
 interface BillingProps {
@@ -80,6 +79,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     // Explicit check for Pixa Thumbnail Pro
     if (feature.includes('Thumbnail Studio') || feature.includes('Pixa Thumbnail Pro')) {
         return <ThumbnailIcon className="w-10 h-10" />;
+    }
+
+    // Explicit check for Pixa Realty Ads
+    if (feature.includes('Magic Realty') || feature.includes('Pixa Realty Ads')) {
+        return <div className="p-2 bg-indigo-100 rounded-full"><BuildingIcon className={`${iconClass} text-indigo-600`} /></div>;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
@@ -258,7 +262,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       <div className="p-4 sm:p-6 lg:p-8 pb-20 w-full max-w-7xl mx-auto">
         <div className='mb-10 text-center sm:text-left'>
           <h2 className="text-3xl font-bold text-[#1A1A1E]">Billing & Credits</h2>
-          <p className="text-[#5F6368] mt-2">Manage your subscription and credit usage.</p>
+          <p className="text-lg text-[#5F6368] mt-2">Manage your subscription and credit usage.</p>
         </div>
 
         {/* Restored Rectangular Design - Increased padding to fix clipping */}
@@ -382,7 +386,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                                         ? 'Pixa Model Shots' 
                                                                         : (tx.feature === 'Thumbnail Studio' || tx.feature.includes('Thumbnail Studio') || tx.feature.includes('Pixa Thumbnail Pro')
                                                                             ? 'Pixa Thumbnail Pro'
-                                                                            : tx.feature.replace('Admin Grant', 'MagicPixa Grant'))
+                                                                            : (tx.feature === 'Magic Realty' || tx.feature.includes('Pixa Realty Ads')
+                                                                                ? 'Pixa Realty Ads'
+                                                                                : tx.feature.replace('Admin Grant', 'MagicPixa Grant')))
                                                                     }
                                                                 </p>
                                                                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
@@ -144,7 +143,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
 
-    const cost = appConfig?.featureCosts['Magic Realty'] || 4;
+    // Updated cost lookup
+    const cost = appConfig?.featureCosts['Pixa Realty Ads'] || appConfig?.featureCosts['Magic Realty'] || 4;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
@@ -313,8 +313,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${assetUrl}`;
-            saveCreation(auth.user.uid, dataUri, 'Magic Realty');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Realty');
+            // Save as Pixa Realty Ads
+            saveCreation(auth.user.uid, dataUri, 'Pixa Realty Ads');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Realty Ads');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -348,7 +349,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleEditorSave = (newUrl: string) => {
         setResultImage(newUrl);
-        saveCreation(auth.user!.uid, newUrl, 'Magic Realty (Edited)');
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Realty Ads (Edited)');
     };
 
     const handleDeductEditCredit = async () => {
@@ -373,7 +374,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     return (
         <>
             <FeatureLayout
-                title="Magic Realty"
+                title="Pixa Realty Ads" // Updated Title
                 description="Create luxury Real Estate ads with Lifestyle Fusion and Golden Hour enhancement."
                 icon={<BuildingIcon className="w-6 h-6 text-indigo-600" />}
                 creditCost={cost}
