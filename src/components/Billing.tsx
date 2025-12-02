@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -78,7 +79,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
 
     // Explicit check for Pixa Thumbnail Pro
     if (feature.includes('Thumbnail Studio') || feature.includes('Pixa Thumbnail Pro')) {
-        return <div className="p-2 bg-red-100 rounded-full"><ThumbnailIcon className={`${iconClass} text-red-600`} /></div>;
+        return <ThumbnailIcon className="w-10 h-10" />;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {

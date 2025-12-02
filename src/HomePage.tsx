@@ -40,10 +40,10 @@ const features = [
     },
     {
         id: 'thumbnail_studio',
-        icon: <ThumbnailIcon className="w-10 h-10 text-white" />,
-        title: "Thumbnail Studio",
+        icon: <ThumbnailIcon className="w-16 h-16" />,
+        title: "Pixa Thumbnail Pro",
         description: "Create click-worthy YouTube thumbnails in seconds. No design skills needed.",
-        color: "bg-red-500",
+        color: "",
         disabled: false,
     },
     {

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -250,9 +251,10 @@ export const ThumbnailStudio: React.FC<{
     return (
         <>
             <FeatureLayout 
-                title="Pixa Thumbnail Pro" // Updated Display Title
+                title="Pixa Thumbnail Pro" 
                 description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results."
-                icon={<ThumbnailIcon className="w-6 h-6 text-red-600"/>}
+                icon={<ThumbnailIcon className="w-14 h-14"/>}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={hasRequirements && !isLowCredits}

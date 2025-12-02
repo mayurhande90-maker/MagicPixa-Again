@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -10,13 +11,14 @@ import { CreatorRanksModal } from '../components/CreatorRanksModal';
 import { 
     SparklesIcon, 
     DownloadIcon, 
-    ProjectsIcon,
+    ProjectsIcon, 
     UsersIcon,
     ThumbnailIcon,
     PaletteIcon,
     HomeIcon,
     MockupIcon,
     CaptionIcon,
+    BrandKitIcon,
     FlagIcon,
     CheckIcon,
     GiftIcon,
@@ -195,7 +197,7 @@ export const DashboardHome: React.FC<{
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
-        { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: 'bg-red-500' }, // Renamed here
+        { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, // No background for standalone look
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
