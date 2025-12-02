@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -70,11 +69,7 @@ export const ThumbnailStudio: React.FC<{
     
     // Images
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    // Standard Mode Images
     const [subjectImage, setSubjectImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    // Podcast Mode Images
     const [hostImage, setHostImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [guestImage, setGuestImage] = useState<{ url: string; base64: Base64File } | null>(null);
 
@@ -85,24 +80,19 @@ export const ThumbnailStudio: React.FC<{
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
 
-    // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Config
-    const cost = appConfig?.featureCosts['Thumbnail Studio'] || 5;
+    // Config: Updated cost lookup to prioritize new name
+    const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || appConfig?.featureCosts['Thumbnail Studio'] || 5;
     const regenCost = 3;
     const editCost = 1;
     const userCredits = auth.user?.credits || 0;
     
-    // Requirement Check
     const isPodcast = category === 'Podcast';
-    // Podcast: Needs Host + Guest + Title. Reference is optional.
-    // Standard: Needs Title. Subject is optional. Reference is optional.
     const hasRequirements = isPodcast 
         ? (!!hostImage && !!guestImage && !!title)
         : (!!title); 
         
-    // Immediate credit check: Block UI if user doesn't have enough credits to start
     const isLowCredits = userCredits < cost;
 
     const categories = [
@@ -110,7 +100,6 @@ export const ThumbnailStudio: React.FC<{
         'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'
     ];
 
-    // Animation
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -125,7 +114,6 @@ export const ThumbnailStudio: React.FC<{
         return () => clearInterval(interval);
     }, [loading]);
 
-    // Cleanup blob URL
     useEffect(() => {
         return () => {
             if (result) URL.revokeObjectURL(result);
@@ -143,7 +131,6 @@ export const ThumbnailStudio: React.FC<{
         }
     };
 
-    // File Handling
     const processFile = async (file: File): Promise<{ url: string; base64: Base64File }> => {
         const base64 = await fileToBase64(file);
         return { url: URL.createObjectURL(file), base64 };
@@ -169,7 +156,7 @@ export const ThumbnailStudio: React.FC<{
             const res = await generateThumbnail({
                 category,
                 title,
-                customText: customText || undefined, // Pass custom text if present
+                customText: customText || undefined,
                 referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
@@ -180,8 +167,9 @@ export const ThumbnailStudio: React.FC<{
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Thumbnail Studio');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Thumbnail Studio');
+            // Use updated name 'Pixa Thumbnail Pro'
+            saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail Pro');
             
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
@@ -199,11 +187,7 @@ export const ThumbnailStudio: React.FC<{
 
     const handleRegenerate = async () => {
         if (!hasRequirements || !auth.user) return;
-        
-        if (userCredits < regenCost) { 
-            alert("Insufficient credits for regeneration (3 credits required)."); 
-            return; 
-        }
+        if (userCredits < regenCost) { alert("Insufficient credits."); return; }
 
         setLoading(true);
         setResult(null);
@@ -212,7 +196,7 @@ export const ThumbnailStudio: React.FC<{
             const res = await generateThumbnail({
                 category,
                 title,
-                customText: customText || undefined, // Pass custom text here too
+                customText: customText || undefined,
                 referenceImage: referenceImage?.base64,
                 subjectImage: subjectImage?.base64,
                 hostImage: hostImage?.base64,
@@ -223,8 +207,8 @@ export const ThumbnailStudio: React.FC<{
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Thumbnail Studio (Regen)');
-            const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Thumbnail Studio (Regen)');
+            saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)');
+            const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)');
             
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
@@ -251,10 +235,9 @@ export const ThumbnailStudio: React.FC<{
         setCategory('');
     };
 
-    // Logic for Magic Editor
     const handleEditorSave = (newUrl: string) => {
         setResult(newUrl);
-        saveCreation(auth.user!.uid, newUrl, 'Thumbnail Studio (Edited)');
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Thumbnail Pro (Edited)');
     };
 
     const handleDeductEditCredit = async () => {
@@ -267,7 +250,7 @@ export const ThumbnailStudio: React.FC<{
     return (
         <>
             <FeatureLayout 
-                title="Thumbnail Studio"
+                title="Pixa Thumbnail Pro" // Updated Display Title
                 description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results."
                 icon={<ThumbnailIcon className="w-6 h-6 text-red-600"/>}
                 creditCost={cost}
@@ -277,7 +260,7 @@ export const ThumbnailStudio: React.FC<{
                 resultImage={result}
                 onResetResult={handleRegenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[850px]" // Increased height to accommodate extra field
+                resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -285,7 +268,6 @@ export const ThumbnailStudio: React.FC<{
                     label: "Generate Thumbnail"
                 }}
                 scrollRef={scrollRef}
-                // Pass Magic Editor Button via new custom action slot
                 customActionButtons={
                     result ? (
                         <button 
@@ -297,7 +279,6 @@ export const ThumbnailStudio: React.FC<{
                         </button>
                     ) : null
                 }
-                // Left Content: Result Canvas
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading ? (
@@ -319,7 +300,6 @@ export const ThumbnailStudio: React.FC<{
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
-                // Right Content: Control Panel
                 rightContent={
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
@@ -327,108 +307,37 @@ export const ThumbnailStudio: React.FC<{
                                 <CreditCardIcon className="w-10 h-10 text-red-500" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
-                            <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">
-                                This generation requires <span className="font-bold text-gray-800">{cost} credits</span>, but you only have <span className="font-bold text-red-500">{userCredits}</span>.
-                            </p>
-                            <button
-                                onClick={() => navigateTo('dashboard', 'billing')}
-                                className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg shadow-yellow-500/20 hover:scale-105 flex items-center gap-2"
-                            >
-                                <SparklesIcon className="w-5 h-5" />
-                                Recharge Now
-                            </button>
-                            <p className="text-xs text-gray-400 mt-4">Or earn credits by referring friends!</p>
+                            <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
-                            {/* 1. Category Selection */}
-                            <SelectionGrid 
-                                label="1. Select Category" 
-                                options={categories} 
-                                value={category} 
-                                onChange={(val) => { setCategory(val); autoScroll(); }} 
-                            />
-
+                            <SelectionGrid label="1. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
                             {category && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="h-px w-full bg-gray-200"></div>
-                                    
-                                    {/* 2. Uploads */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Assets</label>
-                                        
                                         {isPodcast ? (
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <CompactUpload 
-                                                        label="Host Photo" 
-                                                        image={hostImage} 
-                                                        onUpload={handleUpload(setHostImage)} 
-                                                        onClear={() => setHostImage(null)}
-                                                        icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>}
-                                                    />
-                                                    <CompactUpload 
-                                                        label="Guest Photo" 
-                                                        image={guestImage} 
-                                                        onUpload={handleUpload(setGuestImage)} 
-                                                        onClear={() => setGuestImage(null)}
-                                                        icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>}
-                                                    />
+                                                    <CompactUpload label="Host Photo" image={hostImage} onUpload={handleUpload(setHostImage)} onClear={() => setHostImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>} />
+                                                    <CompactUpload label="Guest Photo" image={guestImage} onUpload={handleUpload(setGuestImage)} onClear={() => setGuestImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>} />
                                                 </div>
-                                                <CompactUpload 
-                                                    label="Reference Thumbnail" 
-                                                    image={referenceImage} 
-                                                    onUpload={handleUpload(setReferenceImage)} 
-                                                    onClear={() => setReferenceImage(null)}
-                                                    icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
-                                                    heightClass="h-40"
-                                                    optional={true}
-                                                />
+                                                <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
-                                                <CompactUpload 
-                                                    label="Your Photo" 
-                                                    image={subjectImage} 
-                                                    onUpload={handleUpload(setSubjectImage)} 
-                                                    onClear={() => setSubjectImage(null)}
-                                                    icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>}
-                                                    optional={true}
-                                                />
-                                                <CompactUpload 
-                                                    label="Reference Thumbnail" 
-                                                    image={referenceImage} 
-                                                    onUpload={handleUpload(setReferenceImage)} 
-                                                    onClear={() => setReferenceImage(null)}
-                                                    icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>}
-                                                    heightClass="h-40"
-                                                    optional={true}
-                                                />
+                                                <CompactUpload label="Your Photo" image={subjectImage} onUpload={handleUpload(setSubjectImage)} onClear={() => setSubjectImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} optional={true} />
+                                                <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* 3. Title Input (Context) */}
                                     <div className="animate-fadeIn">
-                                        <InputField 
-                                            label="3. What is the video about? (Context)" 
-                                            placeholder={isPodcast ? "e.g. Interview with Sam Altman about AGI" : "e.g. I spent 24 hours in a haunted house"} 
-                                            value={title} 
-                                            onChange={(e: any) => setTitle(e.target.value)} 
-                                        />
+                                        <InputField label="3. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} />
                                     </div>
-
-                                    {/* 4. Custom Text Input (Optional Override) */}
                                     <div className="animate-fadeIn">
-                                        <InputField 
-                                            label="4. Exact Title Text (Optional)" 
-                                            placeholder="e.g. DONT WATCH THIS" 
-                                            value={customText} 
-                                            onChange={(e: any) => setCustomText(e.target.value)} 
-                                        />
-                                        <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">
-                                            If you leave this blank, Pixa will generate a viral clickbait title for you.
-                                        </p>
+                                        <InputField label="4. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} />
+                                        <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p>
                                     </div>
                                 </div>
                             )}
@@ -437,15 +346,8 @@ export const ThumbnailStudio: React.FC<{
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            
-            {/* Magic Editor Modal */}
             {showMagicEditor && result && (
-                <MagicEditorModal 
-                    imageUrl={result} 
-                    onClose={() => setShowMagicEditor(false)} 
-                    onSave={handleEditorSave}
-                    deductCredit={handleDeductEditCredit}
-                />
+                <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />
             )}
         </>
     );

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
 import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon } from './icons';
@@ -52,9 +51,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
-    { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, disabled: false },
+    { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
     { id: 'magic_realty', label: 'Magic Realty', icon: BuildingIcon, disabled: false },
-    // Renamed ID 'brand_kit' label to 'Merchant Studio' and icon to UploadTray
     { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, disabled: false }, 
     { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Magic Soul', icon: UsersIcon, disabled: false },
@@ -71,11 +69,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
 
   const navStructure = allNavItems.map(item => {
     if (item.id && appConfig?.featureToggles && item.id in appConfig.featureToggles) {
-        // A feature is disabled if its toggle is explicitly set to false
         const isDisabled = appConfig.featureToggles[item.id] === false;
         return { ...item, disabled: isDisabled };
     }
-    // Respect the hardcoded disabled status for items not in the config
     return item;
   });
 
@@ -87,7 +83,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     if (!user?.lastAttendanceClaim) return false;
     const last = user.lastAttendanceClaim.toDate();
     const now = new Date();
-    // Calculate difference in hours
     const diffMs = now.getTime() - last.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     return diffHours < 24;
@@ -110,7 +105,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   return (
     <aside className="hidden lg:flex w-72 bg-[#F4F6F8] border-r border-gray-200/80 p-4 flex-col overflow-y-auto custom-scrollbar">
         
-        {/* Daily Check-in Card */}
         {user && (
             <div className="mb-6 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg flex-shrink-0">
                 <div className="flex justify-between items-center mb-2">
@@ -154,7 +148,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
             );
             })}
             
-            {/* Referral Button placed nicely in nav */}
             <button 
                 onClick={openReferralModal}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left text-purple-600 hover:bg-purple-50 mt-4"

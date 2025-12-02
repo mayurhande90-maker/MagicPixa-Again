@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
-    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon
+    PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon
 } from './icons';
 
 interface BillingProps {
@@ -75,6 +74,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     // Explicitly check for Magic Photo Studio / Pixa Product Shots / Pixa Model Shot first to return the standalone icon
     if (feature.includes('Magic Photo Studio') || feature.includes('Pixa Product Shots') || feature.includes('Pixa Model Shot') || feature.includes('Pixa Model Shots') || feature === 'Model Shot') {
         return <PhotoStudioIcon className="w-10 h-10" />;
+    }
+
+    // Explicit check for Pixa Thumbnail Pro
+    if (feature.includes('Thumbnail Studio') || feature.includes('Pixa Thumbnail Pro')) {
+        return <div className="p-2 bg-red-100 rounded-full"><ThumbnailIcon className={`${iconClass} text-red-600`} /></div>;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
@@ -375,7 +379,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                                 <p className="font-bold text-gray-800">
                                                                     {(tx.feature === 'Model Shot' || tx.feature === 'Pixa Model Shot' || tx.feature === 'Pixa Model Shots')
                                                                         ? 'Pixa Model Shots' 
-                                                                        : tx.feature.replace('Admin Grant', 'MagicPixa Grant')
+                                                                        : (tx.feature === 'Thumbnail Studio' || tx.feature.includes('Thumbnail Studio') || tx.feature.includes('Pixa Thumbnail Pro')
+                                                                            ? 'Pixa Thumbnail Pro'
+                                                                            : tx.feature.replace('Admin Grant', 'MagicPixa Grant'))
                                                                     }
                                                                 </p>
                                                                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>

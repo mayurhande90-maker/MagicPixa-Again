@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -9,18 +8,15 @@ import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
 import { ImageModal } from '../components/FeatureLayout';
 import { CreatorRanksModal } from '../components/CreatorRanksModal';
 import { 
-    PhotoStudioIcon, 
     SparklesIcon, 
     DownloadIcon, 
     ProjectsIcon,
     UsersIcon,
-    LightbulbIcon,
     ThumbnailIcon,
     PaletteIcon,
     HomeIcon,
     MockupIcon,
     CaptionIcon,
-    BrandKitIcon,
     FlagIcon,
     CheckIcon,
     GiftIcon,
@@ -37,7 +33,6 @@ const DailyQuest: React.FC<{
 }> = ({ user, navigateTo }) => {
     const [timeLeft, setTimeLeft] = useState('');
     const mission = getDailyMission();
-    // Use strict server-based locking logic
     const isLocked = useMemo(() => isMissionLocked(user), [user]);
 
     useEffect(() => {
@@ -138,7 +133,6 @@ export const DashboardHome: React.FC<{
         }
     }, [user]);
 
-    // Greeting Logic
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return "Good Morning";
@@ -146,60 +140,34 @@ export const DashboardHome: React.FC<{
         return "Good Evening";
     };
 
-    // Stats Logic
-    const totalGenerations = creations.length;
-    const featureCounts: Record<string, number> = {};
-    creations.forEach(c => {
-        featureCounts[c.feature] = (featureCounts[c.feature] || 0) + 1;
-    });
-    const sortedFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
-    const mostUsedFeature = sortedFeatures.length > 0 ? sortedFeatures[0][0] : "None yet";
-
-    // Progress Logic for Loyalty Bonus (New Logic: 10, 25, 50, 75, 100, then every 100)
     const lifetimeGens = user?.lifetimeGenerations || 0;
     let nextMilestone = 10;
     let prevMilestone = 0;
     let nextReward = 5;
 
     if (lifetimeGens < 10) {
-        nextMilestone = 10;
-        prevMilestone = 0;
-        nextReward = 5;
+        nextMilestone = 10; prevMilestone = 0; nextReward = 5;
     } else if (lifetimeGens < 25) {
-        nextMilestone = 25;
-        prevMilestone = 10;
-        nextReward = 10;
+        nextMilestone = 25; prevMilestone = 10; nextReward = 10;
     } else if (lifetimeGens < 50) {
-        nextMilestone = 50;
-        prevMilestone = 25;
-        nextReward = 15;
+        nextMilestone = 50; prevMilestone = 25; nextReward = 15;
     } else if (lifetimeGens < 75) {
-        nextMilestone = 75;
-        prevMilestone = 50;
-        nextReward = 20;
+        nextMilestone = 75; prevMilestone = 50; nextReward = 20;
     } else if (lifetimeGens < 100) {
-        nextMilestone = 100;
-        prevMilestone = 75;
-        nextReward = 30;
+        nextMilestone = 100; prevMilestone = 75; nextReward = 30;
     } else {
-        // After 100, rewards every 100 generations
         const hundreds = Math.floor(lifetimeGens / 100);
-        // If lifetimeGens is exactly 100, hundreds=1. prev=100, next=200.
         prevMilestone = hundreds * 100;
         nextMilestone = (hundreds + 1) * 100;
         nextReward = 30;
     }
     
-    // Calculate percent within the current gap
     let progressPercent = 0;
     if (nextMilestone > prevMilestone) {
         progressPercent = ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
     }
-    // Clamp
     progressPercent = Math.min(100, Math.max(0, progressPercent));
 
-
-    // Helper to map feature name to view ID for "Generate Another"
     const getFeatureViewId = (featureName: string): View => {
         const map: Record<string, View> = {
             'Magic Photo Studio': 'studio',
@@ -208,6 +176,7 @@ export const DashboardHome: React.FC<{
             'Merchant Studio': 'brand_kit',
             'Magic Ads': 'brand_stylist',
             'Thumbnail Studio': 'thumbnail_studio',
+            'Pixa Thumbnail Pro': 'thumbnail_studio',
             'Magic Soul': 'soul',
             'Magic Photo Colour': 'colour',
             'CaptionAI': 'caption',
@@ -215,7 +184,6 @@ export const DashboardHome: React.FC<{
             'Magic Apparel': 'apparel',
             'Magic Mockup': 'mockup'
         };
-        // Try exact match first, then check if it contains the feature name
         if (map[featureName]) return map[featureName];
         const key = Object.keys(map).find(k => featureName.includes(k));
         return key ? map[key] : 'studio';
@@ -224,10 +192,10 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
-        { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, // Color empty to indicate transparent/standalone
+        { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'brand_kit', label: 'Merchant Studio', icon: UploadTrayIcon, color: 'bg-green-500' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
-        { id: 'thumbnail_studio', label: 'Thumbnail Studio', icon: ThumbnailIcon, color: 'bg-red-500' },
+        { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: 'bg-red-500' }, // Renamed here
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
@@ -238,7 +206,6 @@ export const DashboardHome: React.FC<{
 
     return (
         <div className="p-6 lg:p-10 max-w-[1600px] mx-auto animate-fadeIn">
-            {/* Header with Greeting */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[#1A1A1E]">
@@ -255,10 +222,7 @@ export const DashboardHome: React.FC<{
                 </button>
             </div>
 
-            {/* Hero Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
-                
-                {/* Left: Hero Banner (60% -> 3/5) */}
                 <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[450px]">
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
@@ -267,7 +231,6 @@ export const DashboardHome: React.FC<{
                             className="relative h-full group cursor-zoom-in"
                             onClick={() => setZoomedImage(latestCreation.imageUrl)}
                         >
-                            {/* Use Medium URL (800px) if available, fallback to Full URL. Do not use Thumbnail (300px) here. */}
                             <img src={(latestCreation as any).mediumUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
@@ -312,11 +275,8 @@ export const DashboardHome: React.FC<{
                     )}
                 </div>
 
-                {/* Right: Boxy Layout (40% -> 2/5) */}
                 <div className="lg:col-span-2 flex flex-col gap-4 h-full">
-                    {/* Row 1: Loyalty Bonus (Full Width Box) */}
                     <div className="shrink-0 h-[155px] bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
-                        {/* Decorative BG */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
                         
                         <div className="relative z-10 flex items-center justify-between">
@@ -352,20 +312,17 @@ export const DashboardHome: React.FC<{
                         </div>
                     </div>
 
-                    {/* Row 2: Daily Mission (Tray) */}
                     <div className="flex-1 min-h-[140px]">
                          <DailyQuest user={user} navigateTo={(page, view) => view && setActiveView(view)} />
                     </div>
                 </div>
             </div>
 
-            {/* All Tools Grid */}
             <div>
                 <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">All Creative Tools</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {tools.map(tool => {
                         const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
-                        // Special handling for Pixa Product Shots (transparent icon)
                         const isTransparent = tool.color === ''; 
 
                         return (
@@ -396,10 +353,8 @@ export const DashboardHome: React.FC<{
                 </div>
             </div>
             
-            {/* Image Modal for Zoom */}
             {zoomedImage && <ImageModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />}
             
-            {/* Ranks Modal */}
             {showRanksModal && <CreatorRanksModal currentGens={lifetimeGens} onClose={() => setShowRanksModal(false)} />}
         </div>
     );
