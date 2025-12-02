@@ -21,7 +21,6 @@ import {
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
 import { saveCreation, deductCredits } from '../firebase';
-import { PixaMascot } from '../components/PixaMascot';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
@@ -349,7 +348,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md animate-fadeIn">
-                                <PixaMascot mode="processing" size="lg" />
                                 <div className="w-64 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner mt-6">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
