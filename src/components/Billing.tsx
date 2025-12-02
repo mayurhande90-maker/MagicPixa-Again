@@ -72,8 +72,12 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
+    // Explicitly check for Magic Photo Studio / Pixa Product Shots first to return the standalone icon
+    if (feature.includes('Magic Photo Studio') || feature.includes('Pixa Product Shots')) {
+        return <PhotoStudioIcon className="w-10 h-10" />;
+    }
+    
     const featureIconMap: { [key: string]: React.ReactNode } = {
-        'Magic Photo Studio': <div className="p-2 bg-blue-100 rounded-full"><PhotoStudioIcon className={`${iconClass} text-blue-600`} /></div>,
         'Magic Soul': <div className="p-2 bg-pink-100 rounded-full"><UsersIcon className={`${iconClass} text-pink-600`} /></div>,
         'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,

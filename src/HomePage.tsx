@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -15,10 +16,10 @@ interface HomePageProps {
 const features = [
     {
         id: 'studio',
-        icon: <PhotoStudioIcon className="w-10 h-10 text-white" />,
+        icon: <PhotoStudioIcon className="w-16 h-16" />,
         title: "Magic Photo Studio",
         description: "Transform simple photos into professional, studio-quality product shots in one click.",
-        color: "bg-blue-500",
+        color: "",
         disabled: false,
     },
     {
