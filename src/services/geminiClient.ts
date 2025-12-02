@@ -1,6 +1,11 @@
-
 import { GoogleGenAI } from "@google/genai";
-import { logApiError, auth } from '../firebase';
+import { logApiError, auth, app } from '../firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
+// --- SECURITY TOGGLE ---
+// Set this to TRUE once you have deployed the functions folder to Firebase.
+// While FALSE, it will continue to use the frontend key to keep your site working.
+const USE_SECURE_BACKEND = false; 
 
 /**
  * Helper function to get a fresh AI client on every call.
@@ -61,5 +66,33 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
         
         // Re-throw to be handled by the UI
         throw error;
+    }
+};
+
+/**
+ * FUTURE-PROOFING:
+ * Use this wrapper when you are ready to switch to the secure backend.
+ */
+export const secureGenerateContent = async (params: { 
+    model: string; 
+    contents: any; 
+    config?: any;
+    cost?: number;
+    featureName?: string;
+}) => {
+    if (USE_SECURE_BACKEND) {
+        // Call Cloud Function
+        const functions = getFunctions(app);
+        const generateFunction = httpsCallable(functions, 'generateSecureContent');
+        const result = await generateFunction(params);
+        return result.data as any; // Returns the Gemini response structure
+    } else {
+        // Fallback to Client-Side (Current Method)
+        const ai = getAiClient();
+        return await ai.models.generateContent({
+            model: params.model,
+            contents: params.contents,
+            config: params.config
+        });
     }
 };
