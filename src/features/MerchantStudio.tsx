@@ -251,10 +251,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setResults([]); 
 
         try {
-            // Deduct Credits First
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-
+            // 1. Generate First (Don't charge yet)
             const outputBase64Images = await generateMerchantBatch({
                 type: mode,
                 mainImage: mainImage.base64,
@@ -272,7 +269,11 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 packSize: packSize
             });
 
-            // CRITICAL MEMORY OPTIMIZATION: Convert Base64 strings to Blob URLs immediately
+            if (!outputBase64Images || outputBase64Images.length === 0) {
+                throw new Error("Generation failed. Please try again.");
+            }
+
+            // 2. Convert to Blobs for Display
             const blobUrls: string[] = [];
             for (const b64 of outputBase64Images) {
                 const blobUrl = await base64ToBlobUrl(b64, 'image/jpeg');
@@ -280,22 +281,30 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             }
             setResults(blobUrls);
 
-            // Save to history (Batch save or individually? Let's save individually)
-            // Note: We use the raw Base64 for saving to Firestore/Storage, but the UI state only holds the Blob URL
+            // 3. Save Creations
             for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode);
                 const dataUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
                 saveCreation(auth.user.uid, dataUri, `Merchant: ${label}`);
             }
 
+            // 4. Deduct Credits (Only if we have results)
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
                 if (bonus !== false) setMilestoneBonus(bonus);
             }
+            
+            // Warn if partial
+            if (outputBase64Images.length < packSize) {
+                alert(`Note: ${outputBase64Images.length}/${packSize} images generated successfully. API load is high.`);
+            }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Generation process had issues. Some images might not have generated.");
+            alert(`Generation failed: ${e.message || "Unknown error"}. No credits were deducted.`);
         } finally {
             setLoading(false);
         }

@@ -131,14 +131,23 @@ const generateVariant = async (
 
 /**
  * Helper to run tasks in chunks to avoid Rate Limits (429)
+ * Updated to use Promise.allSettled to handle partial failures
  */
 const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurrency: number = 2): Promise<T[]> => {
     const results: T[] = [];
     for (let i = 0; i < tasks.length; i += concurrency) {
         const chunk = tasks.slice(i, i + concurrency);
         // Execute chunk in parallel
-        const chunkResults = await Promise.all(chunk.map(task => task()));
-        results.push(...chunkResults);
+        // Using allSettled to ensure one failure doesn't kill the whole batch
+        const chunkResults = await Promise.allSettled(chunk.map(task => task()));
+        
+        chunkResults.forEach(result => {
+            if (result.status === 'fulfilled') {
+                results.push(result.value);
+            } else {
+                console.warn("Batch item failed:", result.reason);
+            }
+        });
     }
     return results;
 };
