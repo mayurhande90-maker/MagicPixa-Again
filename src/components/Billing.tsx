@@ -73,7 +73,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     }
     
     // Explicitly check for Magic Photo Studio / Pixa Product Shots / Pixa Model Shot first to return the standalone icon
-    if (feature.includes('Magic Photo Studio') || feature.includes('Pixa Product Shots') || feature.includes('Pixa Model Shot') || feature === 'Model Shot') {
+    if (feature.includes('Magic Photo Studio') || feature.includes('Pixa Product Shots') || feature.includes('Pixa Model Shot') || feature.includes('Pixa Model Shots') || feature === 'Model Shot') {
         return <PhotoStudioIcon className="w-10 h-10" />;
     }
     
@@ -373,8 +373,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                          ) : (
                                                              <>
                                                                 <p className="font-bold text-gray-800">
-                                                                    {tx.feature === 'Model Shot' 
-                                                                        ? 'Pixa Model Shot' 
+                                                                    {(tx.feature === 'Model Shot' || tx.feature === 'Pixa Model Shot' || tx.feature === 'Pixa Model Shots')
+                                                                        ? 'Pixa Model Shots' 
                                                                         : tx.feature.replace('Admin Grant', 'MagicPixa Grant')
                                                                     }
                                                                 </p>

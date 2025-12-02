@@ -287,9 +287,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            // Use new name "Pixa Product Shots" or "Pixa Model Shot"
-            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shot' : 'Pixa Product Shots');
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Pixa Model Shot' : 'Pixa Product Shots');
+            // Use new name "Pixa Product Shots" or "Pixa Model Shots"
+            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
+            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
             
              // Check for milestone bonus in updated user object
             if (updatedUser.lifetimeGenerations) {
@@ -355,7 +355,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 <div className="w-64 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner mt-6">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-indigo-900 tracking-widest uppercase animate-pulse mt-4">{loadingText}</p>
+                                <p className="text-sm font-bold text-indigo-900 tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
                         )}
 
