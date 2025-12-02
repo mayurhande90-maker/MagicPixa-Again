@@ -1,15 +1,15 @@
+
 import { GoogleGenAI } from "@google/genai";
-import { logApiError, auth, app } from '../firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { logApiError, auth } from '../firebase';
 
 // --- SECURITY TOGGLE ---
-// Set this to TRUE once you have deployed the functions folder to Firebase.
-// While FALSE, it will continue to use the frontend key to keep your site working.
+// Set to TRUE to use the secure Vercel backend (api/generate.ts)
+// Set to FALSE to use the exposed client-side key (Development/Fallback)
 const USE_SECURE_BACKEND = false; 
 
 /**
  * Helper function to get a fresh AI client on every call.
- * This ensures the latest API key is used.
+ * This is used ONLY when USE_SECURE_BACKEND is false.
  */
 export const getAiClient = (): GoogleGenAI => {
     const apiKey = import.meta.env.VITE_API_KEY;
@@ -21,9 +21,6 @@ export const getAiClient = (): GoogleGenAI => {
 
 /**
  * Executes an async operation with Smart Retries (Exponential Backoff + Jitter).
- * @param fn The async function to execute
- * @param retries Number of retries (default 3)
- * @param baseDelay Initial delay in ms (default 2000)
  */
 export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> => {
     try {
@@ -33,11 +30,6 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
 
-        // Retry Conditions:
-        // 1. 503 (Service Unavailable / Overloaded)
-        // 2. 429 (Too Many Requests / Rate Limit)
-        // 3. "Overloaded" text in message
-        // 4. "Fetch failed" (Network blip)
         const isTransientError = 
             status === 503 || 
             status === 429 || 
@@ -47,31 +39,22 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
             message.includes('network error');
 
         if (retries > 0 && isTransientError) {
-            // Smart Delay: Exponential Backoff + Jitter
             const jitter = Math.random() * 1000;
             const delay = baseDelay + jitter;
-            
-            console.warn(`Gemini API Busy/Error (${status}). Retrying in ${Math.round(delay)}ms... (${retries} attempts left)`);
-            
+            console.warn(`API Busy/Error (${status}). Retrying in ${Math.round(delay)}ms... (${retries} attempts left)`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            
-            // Recursive call with doubled base delay for next attempt
             return callWithRetry(fn, retries - 1, baseDelay * 2);
         }
         
-        // If final failure (or non-retriable), log to Firestore for Admin Panel
         const userId = auth?.currentUser?.uid;
-        // Don't await this log, let it happen in background
         logApiError('Gemini API', message || 'Unknown Error', userId).catch(e => console.error("Logging failed", e));
-        
-        // Re-throw to be handled by the UI
         throw error;
     }
 };
 
 /**
- * FUTURE-PROOFING:
- * Use this wrapper when you are ready to switch to the secure backend.
+ * The Main Entry Point for AI Generation.
+ * Switches between Secure Backend and Client-Side based on configuration.
  */
 export const secureGenerateContent = async (params: { 
     model: string; 
@@ -81,13 +64,35 @@ export const secureGenerateContent = async (params: {
     featureName?: string;
 }) => {
     if (USE_SECURE_BACKEND) {
-        // Call Cloud Function
-        const functions = getFunctions(app);
-        const generateFunction = httpsCallable(functions, 'generateSecureContent');
-        const result = await generateFunction(params);
-        return result.data as any; // Returns the Gemini response structure
+        // 1. Get current user token for authentication
+        const user = auth?.currentUser;
+        if (!user) throw new Error("You must be logged in to use this feature.");
+        
+        const token = await user.getIdToken();
+
+        // 2. Call Vercel API Route
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(params)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // The backend returns the raw Gemini response object.
+        // We pass it back as-is so the services don't need to change.
+        return data;
+
     } else {
-        // Fallback to Client-Side (Current Method)
+        // Fallback to Client-Side (Insecure but works for dev)
         const ai = getAiClient();
         return await ai.models.generateContent({
             model: params.model,
