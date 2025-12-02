@@ -17,7 +17,7 @@ import {
     TicketIcon,
     StarIcon
 } from '../components/icons';
-import { fileToBase64, Base64File, downloadImage } from '../utils/imageUtils';
+import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, deductCredits } from '../firebase';
 
@@ -170,7 +170,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     // Results
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
-    const [results, setResults] = useState<string[]>([]); // Array of data URLs
+    const [results, setResults] = useState<string[]>([]); // Array of BLOB URLs (not Base64)
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     
     // View Modal State - now using index to support navigation
@@ -183,6 +183,13 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Revoke object URLs on cleanup to avoid memory leaks
+    useEffect(() => {
+        return () => {
+            results.forEach(url => URL.revokeObjectURL(url));
+        };
+    }, [results]);
 
     // Animation Effect
     useEffect(() => {
@@ -213,6 +220,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
+        // Clean up previous results before generating new ones
+        results.forEach(url => URL.revokeObjectURL(url));
         setResults([]); 
 
         try {
@@ -220,7 +229,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
-            const outputImages = await generateMerchantBatch({
+            const outputBase64Images = await generateMerchantBatch({
                 type: mode,
                 mainImage: mainImage.base64,
                 backImage: backImage?.base64,
@@ -237,14 +246,20 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 packSize: packSize
             });
 
-            // Process results (Add Base64 prefix)
-            const processedResults = outputImages.map(img => `data:image/png;base64,${img}`);
-            setResults(processedResults);
+            // CRITICAL MEMORY OPTIMIZATION: Convert Base64 strings to Blob URLs immediately
+            const blobUrls: string[] = [];
+            for (const b64 of outputBase64Images) {
+                const blobUrl = await base64ToBlobUrl(b64, 'image/jpeg');
+                blobUrls.push(blobUrl);
+            }
+            setResults(blobUrls);
 
             // Save to history (Batch save or individually? Let's save individually)
-            for (let i = 0; i < processedResults.length; i++) {
+            // Note: We use the raw Base64 for saving to Firestore/Storage, but the UI state only holds the Blob URL
+            for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode);
-                saveCreation(auth.user.uid, processedResults[i], `Merchant: ${label}`);
+                const dataUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
+                saveCreation(auth.user.uid, dataUri, `Merchant: ${label}`);
             }
 
             if (updatedUser.lifetimeGenerations) {
@@ -261,6 +276,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     };
 
     const handleNewSession = () => {
+        // Revoke URLs on new session
+        results.forEach(url => URL.revokeObjectURL(url));
+        
         setMainImage(null);
         setBackImage(null);
         setModelImage(null);
