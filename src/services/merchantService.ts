@@ -131,29 +131,41 @@ const generateVariant = async (
 };
 
 /**
- * Helper to run tasks in chunks to avoid Rate Limits (429)
- * Updated to use Promise.allSettled to handle partial failures
+ * Optimized Worker Pool Executor.
+ * Instead of waiting for chunks, this starts a new task immediately as one finishes.
+ * This significantly reduces total batch time by eliminating idle waits.
  */
-const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurrency: number = 2): Promise<T[]> => {
-    const results: T[] = [];
-    for (let i = 0; i < tasks.length; i += concurrency) {
-        const chunk = tasks.slice(i, i + concurrency);
-        // Execute chunk in parallel
-        // Using allSettled to ensure one failure doesn't kill the whole batch
-        const chunkResults = await Promise.allSettled(chunk.map(task => task()));
-        
-        chunkResults.forEach(result => {
-            if (result.status === 'fulfilled') {
-                results.push(result.value);
-            } else {
-                // Log failed items to Firestore
-                console.warn("Batch item failed:", result.reason);
+const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurrency: number = 3): Promise<T[]> => {
+    const results: (T | undefined)[] = new Array(tasks.length).fill(undefined);
+    let taskIndex = 0;
+
+    const worker = async () => {
+        while (true) {
+            // Atomically grab the next index
+            const i = taskIndex++;
+            if (i >= tasks.length) break;
+            
+            try {
+                // Execute task
+                const res = await tasks[i]();
+                results[i] = res;
+            } catch (error) {
+                console.warn(`Batch Task ${i} failed`, error);
                 const userId = auth?.currentUser?.uid;
-                logApiError('Merchant Batch Item', (result.reason as any)?.message || 'Unknown Batch Error', userId);
+                logApiError('Merchant Batch Item', (error as any)?.message || 'Unknown Batch Error', userId);
+                // We do NOT stop the other workers. We just log the failure.
             }
-        });
-    }
-    return results;
+        }
+    };
+
+    // Spawn workers
+    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker());
+    
+    // Wait for all workers to drain the queue
+    await Promise.all(workers);
+
+    // Return only successful results
+    return results.filter((r): r is T => r !== undefined);
 };
 
 /**
@@ -227,9 +239,9 @@ export const generateMerchantBatch = async (inputs: MerchantInputs): Promise<str
         () => generateVariant(def.role, def.prompt, inputs, optMain, optBack, optModel)
     );
 
-    // Execute with Concurrency Limit of 2 to allow thinking time and prevent rate limits
-    // Note: Concurrency of 2 is safe for "Pro" tiers.
-    const results = await runBatchWithConcurrency(taskThunks, 2);
+    // Execute with Worker Pool.
+    // Concurrency set to 3 to optimize speed while remaining safe for most API keys.
+    const results = await runBatchWithConcurrency(taskThunks, 3);
     
     return results;
 };

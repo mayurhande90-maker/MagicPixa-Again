@@ -3,11 +3,11 @@ import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1280px (HD) for Gemini 3 Pro
-const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
+// Helper: Resize to custom width (default 1280px for HD generation, lower for analysis)
+const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const resizedUri = await resizeImage(dataUri, width, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -23,7 +23,8 @@ export const analyzeProductImage = async (
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
-        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+        // Optimization: Use 512px for analysis to speed up upload & processing
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
         const prompt = `Analyse the uploaded product image. 
         Based on the "3% Design Rule" (Small tweaks driving results), generate 4 conversational requests that focus on **Visual Hierarchy** and **Context**.
@@ -39,7 +40,7 @@ export const analyzeProductImage = async (
         Return ONLY a JSON array of strings.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash', // Switched to Flash for instant analysis
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },
@@ -79,7 +80,8 @@ export const analyzeProductForModelPrompts = async (
 ): Promise<{ display: string; prompt: string }[]> => {
     const ai = getAiClient();
     try {
-        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+        // Optimization: Use 512px for analysis
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
         const prompt = `Analyse the product. Generate 4 model scenarios based on **Visual Storytelling**.
         
@@ -92,7 +94,7 @@ export const analyzeProductForModelPrompts = async (
         Return a JSON array of objects with "display" (natural question) and "prompt" (detailed technical description).`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash', // Switched to Flash for instant analysis
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },
@@ -140,7 +142,8 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+    // Keep 1280px for Generation to ensure High Quality
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1280);
 
     // "World Class" System Prompt with Design Logic Injection
     let prompt = `TASK: Professional Product Photography Generation.
@@ -197,7 +200,8 @@ export const generateModelShot = async (
   ): Promise<string> => {
     const ai = getAiClient();
     try {
-      const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
+      // Keep 1280px for Generation to ensure High Quality
+      const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1280);
 
       let userSelectionPart = "";
       if (inputs.freeformPrompt) {
