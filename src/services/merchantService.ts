@@ -2,6 +2,7 @@
 import { Modality, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
+import { logApiError, auth } from '../firebase';
 
 // Optimize images to 1024px for balanced quality/speed
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -145,7 +146,10 @@ const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurren
             if (result.status === 'fulfilled') {
                 results.push(result.value);
             } else {
+                // Log failed items to Firestore
                 console.warn("Batch item failed:", result.reason);
+                const userId = auth?.currentUser?.uid;
+                logApiError('Merchant Batch Item', (result.reason as any)?.message || 'Unknown Batch Error', userId);
             }
         });
     }

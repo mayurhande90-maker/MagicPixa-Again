@@ -19,7 +19,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits } from '../firebase';
+import { saveCreation, deductCredits, logApiError } from '../firebase';
 
 // Helper Card for Mode Selection
 // Fixed: Using static classes instead of dynamic string construction to fix Tailwind JIT bug
@@ -304,6 +304,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
         } catch (e: any) {
             console.error(e);
+            // ADDED: Log High-level failure to Firestore
+            const uid = auth.user?.uid;
+            logApiError('Merchant Studio UI', e.message || 'Generation Failed', uid);
             alert(`Generation failed: ${e.message || "Unknown error"}. No credits were deducted.`);
         } finally {
             setLoading(false);

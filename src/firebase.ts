@@ -1151,7 +1151,7 @@ export const getAuditLogs = async (limit: number = 50): Promise<AuditLog[]> => {
 // --- API ERROR MONITORING ---
 // New throttle cache
 const errorLogCache: Record<string, number> = {};
-const THROTTLE_WINDOW_MS = 60000; // 1 minute
+const THROTTLE_WINDOW_MS = 5000; // Reduced to 5 seconds for better debugging visibility
 
 export const logApiError = async (endpoint: string, errorMsg: string, userId?: string) => {
     if (!db) return;
@@ -1160,13 +1160,14 @@ export const logApiError = async (endpoint: string, errorMsg: string, userId?: s
     const now = Date.now();
     
     if (errorLogCache[key] && now - errorLogCache[key] < THROTTLE_WINDOW_MS) {
-        console.warn("Skipping duplicate error log", key);
+        console.warn("Skipping duplicate error log (Throttled)", key);
         return;
     }
     
     errorLogCache[key] = now;
     
     try {
+        console.log(`[FIREBASE LOG] Reporting Error: ${endpoint} - ${errorMsg}`); // Audit log to console
         await db.collection('api_errors').add({
             endpoint,
             error: errorMsg,
@@ -1174,7 +1175,7 @@ export const logApiError = async (endpoint: string, errorMsg: string, userId?: s
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
     } catch (e) {
-        console.error("Failed to log API error", e);
+        console.error("Failed to log API error to Firestore", e);
     }
 };
 
