@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -243,7 +244,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         ) : (
                             <div className="text-center opacity-50 select-none">
                                 <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${genMode === 'remix' ? 'bg-purple-50' : 'bg-blue-50'}`}>
-                                    <UploadTrayIcon className={`w-10 h-10 ${genMode === 'remix' ? 'text-purple-500' : 'text-blue-500'}`} />
+                                    <MagicAdsIcon className={`w-10 h-10 ${genMode === 'remix' ? 'text-purple-500' : 'text-blue-500'}`} />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">Upload Product & Reference to preview.</p>
