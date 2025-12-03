@@ -30,7 +30,8 @@ import {
     PixaEcommerceIcon,
     PixaTogetherIcon,
     PixaRestoreIcon,
-    PixaCaptionIcon
+    PixaCaptionIcon,
+    PixaInteriorIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -215,7 +216,7 @@ export const DashboardHome: React.FC<{
         { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, color: '' },
         { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, color: '' },
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
-        { id: 'interior', label: 'Pixa Interior Design', icon: HomeIcon, color: 'bg-orange-500' },
+        { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, color: '' },
         { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
         { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
     ];
