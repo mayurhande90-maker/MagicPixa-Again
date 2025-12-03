@@ -178,11 +178,12 @@ export const DashboardHome: React.FC<{
             'Pixa Ecommerce Kit': 'brand_kit',
             'Merchant Studio': 'brand_kit',
             'Magic Ads': 'brand_stylist',
-            'Pixa AdMaker': 'brand_stylist', // Added Mapping
+            'Pixa AdMaker': 'brand_stylist', 
+            'Brand Stylist': 'brand_stylist',
             'Thumbnail Studio': 'thumbnail_studio',
             'Pixa Thumbnail Pro': 'thumbnail_studio',
             'Magic Realty': 'magic_realty',
-            'Pixa Realty Ads': 'magic_realty', // Mapped
+            'Pixa Realty Ads': 'magic_realty',
             'Magic Soul': 'soul',
             'Magic Photo Colour': 'colour',
             'CaptionAI': 'caption',
@@ -202,7 +203,7 @@ export const DashboardHome: React.FC<{
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
         { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: '' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
-        { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, // Removed background color
+        { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, 
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },
         { id: 'colour', label: 'Photo Colour', icon: PaletteIcon, color: 'bg-rose-500' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
