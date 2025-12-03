@@ -32,7 +32,7 @@ const features = [
     {
         id: 'brand_stylist',
         icon: <MagicAdsIcon className="w-10 h-10 text-white" />,
-        title: "Magic Ads",
+        title: "Pixa AdMaker",
         description: "Generate high-converting ad creatives instantly by replicating or reimagining successful designs.",
         color: "bg-yellow-500",
         disabled: false,

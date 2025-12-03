@@ -178,6 +178,7 @@ export const DashboardHome: React.FC<{
             'Pixa Ecommerce Kit': 'brand_kit',
             'Merchant Studio': 'brand_kit',
             'Magic Ads': 'brand_stylist',
+            'Pixa AdMaker': 'brand_stylist', // Added Mapping
             'Thumbnail Studio': 'thumbnail_studio',
             'Pixa Thumbnail Pro': 'thumbnail_studio',
             'Magic Realty': 'magic_realty',
@@ -199,7 +200,7 @@ export const DashboardHome: React.FC<{
     const tools = [
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
-        { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
+        { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
         { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, // Removed background color
         { id: 'soul', label: 'Magic Soul', icon: UsersIcon, color: 'bg-pink-500' },

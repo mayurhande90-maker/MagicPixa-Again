@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -74,7 +73,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     
     const [showMagicEditor, setShowMagicEditor] = useState(false);
 
-    const cost = appConfig?.featureCosts['Brand Stylist AI'] || 4;
+    const cost = appConfig?.featureCosts['Brand Stylist AI'] || appConfig?.featureCosts['Pixa AdMaker'] || 4;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
@@ -125,8 +124,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             setResultImage(blobUrl);
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
-            saveCreation(auth.user.uid, finalImageUrl, 'Magic Ads');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Ads');
+            saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -159,7 +158,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     // Logic for Magic Editor
     const handleEditorSave = (newUrl: string) => {
         setResultImage(newUrl);
-        saveCreation(auth.user!.uid, newUrl, 'Magic Ads (Edited)');
+        saveCreation(auth.user!.uid, newUrl, 'Pixa AdMaker (Edited)');
     };
 
     const handleDeductEditCredit = async () => {
@@ -182,7 +181,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     return (
         <>
             <FeatureLayout
-                title="Magic Ads"
+                title="Pixa AdMaker"
                 description="Turn your product photos into high-converting ad creatives by mimicking successful styles."
                 icon={<MagicAdsIcon className="w-6 h-6 text-blue-500" />}
                 creditCost={cost}

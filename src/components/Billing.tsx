@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon
+    PixaEcommerceIcon, MagicAdsIcon
 } from './icons';
 
 interface BillingProps {
@@ -91,6 +90,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     // Explicit check for Pixa Ecommerce Kit
     if (feature.includes('Pixa Ecommerce Kit') || feature.includes('Merchant Studio') || feature.includes('Ecommerce Kit')) {
         return <PixaEcommerceIcon className="w-10 h-10" />;
+    }
+
+    // Explicit check for Pixa AdMaker
+    if (feature.includes('Pixa AdMaker') || feature.includes('Magic Ads')) {
+        return <MagicAdsIcon className="w-10 h-10" />;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
@@ -397,8 +401,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                                                 ? 'Pixa Realty Ads'
                                                                                 : (tx.feature.includes('Merchant Studio') || tx.feature.includes('Ecommerce Kit')
                                                                                     ? 'Pixa Ecommerce Kit'
-                                                                                    : tx.feature.replace('Admin Grant', 'MagicPixa Grant'))))
-                                                                    }
+                                                                                    : (tx.feature.includes('Magic Ads') || tx.feature.includes('Pixa AdMaker')
+                                                                                        ? 'Pixa AdMaker'
+                                                                                        : tx.feature.replace('Admin Grant', 'MagicPixa Grant')))))}
                                                                 </p>
                                                                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                              </>
