@@ -183,7 +183,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             <FeatureLayout
                 title="Pixa AdMaker"
                 description="Turn your product photos into high-converting ad creatives by mimicking successful styles."
-                icon={<MagicAdsIcon className="w-6 h-6 text-blue-500" />}
+                icon={<MagicAdsIcon className="w-14 h-14" />}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}

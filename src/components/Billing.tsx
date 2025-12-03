@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
@@ -92,8 +93,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         return <PixaEcommerceIcon className="w-10 h-10" />;
     }
 
-    // Explicit check for Pixa AdMaker
-    if (feature.includes('Pixa AdMaker') || feature.includes('Magic Ads')) {
+    // Explicit check for Pixa AdMaker (including legacy names)
+    if (feature.includes('Pixa AdMaker') || feature.includes('Magic Ads') || feature.includes('Brand Stylist')) {
         return <MagicAdsIcon className="w-10 h-10" />;
     }
     
@@ -401,7 +402,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                                                 ? 'Pixa Realty Ads'
                                                                                 : (tx.feature.includes('Merchant Studio') || tx.feature.includes('Ecommerce Kit')
                                                                                     ? 'Pixa Ecommerce Kit'
-                                                                                    : (tx.feature.includes('Magic Ads') || tx.feature.includes('Pixa AdMaker')
+                                                                                    : (tx.feature.includes('Magic Ads') || tx.feature.includes('Pixa AdMaker') || tx.feature.includes('Brand Stylist')
                                                                                         ? 'Pixa AdMaker'
                                                                                         : tx.feature.replace('Admin Grant', 'MagicPixa Grant')))))}
                                                                 </p>
