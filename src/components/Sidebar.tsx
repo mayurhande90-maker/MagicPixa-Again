@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, disabled: false },
     { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, disabled: false },
     { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, disabled: false },
-    { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
+    { id: 'interior', label: 'Pixa Interior Design', icon: HomeIcon, disabled: false },
     { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, disabled: false },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },

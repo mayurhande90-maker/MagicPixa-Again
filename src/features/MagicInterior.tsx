@@ -27,7 +27,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Cost calculation
-    const cost = appConfig?.featureCosts['Magic Interior'] || 2;
+    const cost = appConfig?.featureCosts['Pixa Interior Design'] || appConfig?.featureCosts['Magic Interior'] || 2;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < cost;
 
@@ -146,8 +146,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Magic Interior');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Interior');
+            saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design');
             
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
@@ -178,7 +178,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Magic Interior"
+                title="Pixa Interior Design"
                 description="Redesign any room in seconds. Choose a style and watch Pixa transform your space."
                 icon={<HomeIcon className="w-6 h-6 text-indigo-500"/>}
                 creditCost={cost}

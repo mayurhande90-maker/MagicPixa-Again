@@ -220,7 +220,7 @@ export const generateInteriorDesign = async (
     const styleMicroPrompt = STYLE_PROMPTS[style] || `${style} style.`;
     const curtainDef = CURTAIN_STYLES[style] || "neutral, photorealistic curtains fitting the style";
 
-    const prompt = `You are Magic Interiors — a hyper-realistic Interior rendering AI using Gemini 3 Pro.
+    const prompt = `You are Pixa Interior Design — a hyper-realistic Interior rendering AI using Gemini 3 Pro.
     
     *** CRITICAL INPUT: ARCHITECT'S BLUEPRINT ***
     ${renovationBlueprint}

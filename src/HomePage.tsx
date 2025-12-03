@@ -81,7 +81,7 @@ const features = [
     {
         id: 'interior',
         icon: <HomeIcon className="w-10 h-10 text-white" />,
-        title: "Magic Interior",
+        title: "Pixa Interior Design",
         description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
         color: "bg-orange-500",
         disabled: false,
