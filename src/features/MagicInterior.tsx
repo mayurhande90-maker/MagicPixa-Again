@@ -249,7 +249,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 }`}
                             >
                                 <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <HomeIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
+                                    <PixaInteriorIcon className="w-12 h-12 text-indigo-300 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
