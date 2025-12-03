@@ -1,3 +1,4 @@
+
 # MagicPixa - AI Image Generation Platform
 
 MagicPixa is a modern web application that leverages the power of Google's Gemini AI to provide a suite of tools for image generation and enhancement. Users can transform product photos, design interiors, colourize vintage pictures, try on apparel virtually, and much more.
@@ -7,7 +8,7 @@ MagicPixa is a modern web application that leverages the power of Google's Gemin
 - **Magic Photo Studio**: Create professional, studio-quality product shots from simple photos.
 - **Product Studio**: Automatically generate a complete, marketplace-ready product pack including hero shots, lifestyle mockups, and SEO-optimized text from just a product photo.
 - **Magic Interior**: Redesign any room by uploading a photo and choosing a style.
-- **Magic Photo Colour**: Colourize and restore old black and white photos.
+- **Pixa Photo Restore**: Colourize and restore old black and white photos.
 - **Magic Soul**: Combine two people into a single, hyper-realistic photo in a chosen theme.
 - **Magic Apparel**: Virtually try on clothing on a person from a photo.
 - **Magic Mockup**: Generate realistic mockups for your logos and designs on various products.

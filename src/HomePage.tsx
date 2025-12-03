@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -64,7 +65,7 @@ const features = [
     {
         id: 'colour',
         icon: <PaletteIcon className="w-10 h-10 text-white" />,
-        title: "Magic Photo Colour",
+        title: "Pixa Photo Restore",
         description: "Breathe new life into vintage photos. Convert old black and white images into spotless, high-resolution color.",
         color: "bg-rose-500",
         disabled: false,

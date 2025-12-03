@@ -205,7 +205,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'soul':
                  return <StandardFeature title="Pixa Together" description="Merge two subjects." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} cost={appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
             case 'colour':
-                 return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
+                 return <StandardFeature title="Pixa Photo Restore" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
             case 'interior':
                  return <MagicInterior auth={auth} appConfig={appConfig} />;
             case 'apparel':

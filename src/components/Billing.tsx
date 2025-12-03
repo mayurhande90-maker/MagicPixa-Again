@@ -104,6 +104,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
+        'Pixa Photo Restore': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,
         'Magic Interior': <div className="p-2 bg-orange-100 rounded-full"><HomeIcon className={`${iconClass} text-orange-600`} /></div>,
