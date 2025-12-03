@@ -45,7 +45,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const redoFileInputRef = useRef<HTMLInputElement>(null);
 
     // Cost
-    const cost = appConfig?.featureCosts['Magic Mockup'] || 2;
+    const cost = appConfig?.featureCosts['Pixa Mockups'] || appConfig?.featureCosts['Magic Mockup'] || 2;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
@@ -164,8 +164,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Magic Mockup');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Mockup');
+            saveCreation(auth.user.uid, dataUri, 'Pixa Mockups');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Mockups');
             
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
@@ -193,7 +193,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleEditorSave = (newUrl: string) => {
         setResultImage(newUrl);
-        saveCreation(auth.user!.uid, newUrl, 'Magic Mockup (Edited)');
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Mockups (Edited)');
     };
 
     const handleDeductEditCredit = async () => {
@@ -209,7 +209,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     return (
         <>
             <FeatureLayout 
-                title="Magic Mockup"
+                title="Pixa Mockups"
                 description="The Reality Engine. Turn flat designs into photorealistic physical objects with accurate material physics."
                 icon={<MockupIcon className="w-6 h-6 text-indigo-600"/>}
                 creditCost={cost}

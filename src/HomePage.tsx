@@ -97,7 +97,7 @@ const features = [
     {
         id: 'mockup',
         icon: <MockupIcon className="w-10 h-10 text-white" />,
-        title: "Magic Mockup",
+        title: "Pixa Mockups",
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "bg-indigo-500",
         disabled: false,

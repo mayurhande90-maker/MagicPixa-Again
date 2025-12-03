@@ -200,7 +200,8 @@ export const DashboardHome: React.FC<{
             'Pixa Interior Design': 'interior',
             'Magic Apparel': 'apparel',
             'Pixa TryOn': 'apparel',
-            'Magic Mockup': 'mockup'
+            'Magic Mockup': 'mockup',
+            'Pixa Mockups': 'mockup'
         };
         if (map[featureName]) return map[featureName];
         const key = Object.keys(map).find(k => featureName.includes(k));
@@ -220,7 +221,7 @@ export const DashboardHome: React.FC<{
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
         { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, color: '' },
         { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, color: '' },
-        { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
+        { id: 'mockup', label: 'Pixa Mockups', icon: MockupIcon, color: 'bg-indigo-500' },
     ];
 
     return (
