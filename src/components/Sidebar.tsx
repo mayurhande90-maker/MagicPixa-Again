@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon } from './icons';
+import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, disabled: false },
     { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, disabled: false },
-    { id: 'caption', label: 'Pixa Caption Pro', icon: CaptionIcon, disabled: false },
+    { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, disabled: false },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },

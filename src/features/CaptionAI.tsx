@@ -5,7 +5,7 @@ import { generateCaptions } from '../services/captionService';
 import { deductCredits } from '../firebase';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
 import { FeatureLayout, SelectionGrid } from '../components/FeatureLayout';
-import { CaptionIcon, CopyIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CheckIcon } from '../components/icons';
+import { CaptionIcon, CopyIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CheckIcon, PixaCaptionIcon } from '../components/icons';
 
 export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -184,7 +184,8 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
             <FeatureLayout
                 title="Pixa Caption Pro"
                 description="Get viral, research-backed captions optimized for engagement and organic reach."
-                icon={<CaptionIcon className="w-6 h-6 text-indigo-500"/>}
+                icon={<PixaCaptionIcon className="w-14 h-14"/>}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -257,7 +258,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                 }`}
                             >
                                 <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                    <CaptionIcon className="w-12 h-12 text-indigo-400 group-hover:text-indigo-600 transition-colors duration-300" />
+                                    <PixaCaptionIcon className="w-12 h-12 text-indigo-400 group-hover:text-indigo-600 transition-colors duration-300" />
                                 </div>
                                 
                                 <div className="relative z-10 mt-6 text-center space-y-2 px-6">
@@ -385,7 +386,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                     )
                 }
             />
-            <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*" />
+            <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         </>
     );
 };

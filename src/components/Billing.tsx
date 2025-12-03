@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon
 } from './icons';
 
 interface BillingProps {
@@ -110,7 +110,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
 
     // Explicit check for Pixa Caption Pro (including legacy CaptionAI)
     if (feature.includes('Pixa Caption Pro') || feature.includes('CaptionAI')) {
-        return <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>;
+        return <PixaCaptionIcon className="w-10 h-10" />;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
