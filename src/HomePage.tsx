@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -55,10 +55,10 @@ const features = [
     },
     {
         id: 'soul',
-        icon: <UsersIcon className="w-10 h-10 text-white" />,
+        icon: <PixaTogetherIcon className="w-16 h-16" />,
         title: "Pixa Together",
         description: "Combine two people into one hyper-realistic photo, choosing a theme and environment.",
-        color: "bg-pink-500",
+        color: "",
         disabled: false,
     },
     {

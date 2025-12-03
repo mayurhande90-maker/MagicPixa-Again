@@ -26,6 +26,7 @@ import {
     UsersIcon,
     PaletteIcon,
     PencilIcon,
+    PixaTogetherIcon
 } from './components/icons';
 
 // --- LAZY LOADED FEATURES ---
@@ -73,7 +74,8 @@ const StandardFeature: React.FC<{
     cost: number;
     auth: AuthProps;
     onGenerate: (image: { base64: string; mimeType: string }, prompt?: string) => Promise<string>;
-}> = ({ title, description, icon, cost, auth, onGenerate }) => {
+    rawIcon?: boolean;
+}> = ({ title, description, icon, cost, auth, onGenerate, rawIcon }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<string | null>(null);
@@ -130,6 +132,7 @@ const StandardFeature: React.FC<{
                 title={title}
                 description={description}
                 icon={icon}
+                rawIcon={rawIcon}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={!!image}
@@ -200,7 +203,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'magic_realty':
                  return <MagicRealty auth={auth} appConfig={appConfig} />;
             case 'soul':
-                 return <StandardFeature title="Pixa Together" description="Merge two subjects." icon={<UsersIcon className="w-6 h-6 text-pink-500"/>} cost={appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
+                 return <StandardFeature title="Pixa Together" description="Merge two subjects." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} cost={appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
             case 'colour':
                  return <StandardFeature title="Photo Colour" description="Colourize B&W photos." icon={<PaletteIcon className="w-6 h-6 text-rose-500"/>} cost={appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
             case 'interior':

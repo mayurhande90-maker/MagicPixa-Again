@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon
 } from './icons';
 
 interface BillingProps {
@@ -100,7 +100,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
 
     // Explicit check for Pixa Together (including legacy Magic Soul)
     if (feature.includes('Pixa Together') || feature.includes('Magic Soul')) {
-        return <div className="p-2 bg-pink-100 rounded-full"><UsersIcon className={`${iconClass} text-pink-600`} /></div>;
+        return <PixaTogetherIcon className="w-10 h-10" />;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
