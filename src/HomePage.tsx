@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -88,10 +88,10 @@ const features = [
     },
     {
         id: 'apparel',
-        icon: <ApparelIcon className="w-10 h-10 text-white" />,
+        icon: <PixaTryOnIcon className="w-16 h-16" />,
         title: "Pixa TryOn",
         description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds.",
-        color: "bg-blue-500",
+        color: "",
         disabled: false,
     },
     {

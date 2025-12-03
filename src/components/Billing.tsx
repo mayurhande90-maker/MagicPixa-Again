@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon
 } from './icons';
 
 interface BillingProps {
@@ -117,10 +117,13 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Pixa Interior Design') || feature.includes('Magic Interior')) {
         return <PixaInteriorIcon className="w-10 h-10" />;
     }
+
+    // Explicit check for Pixa TryOn (including legacy Magic Apparel)
+    if (feature.includes('Pixa TryOn') || feature.includes('Magic Apparel')) {
+        return <PixaTryOnIcon className="w-10 h-10" />;
+    }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
-        'Pixa TryOn': <div className="p-2 bg-blue-100 rounded-full"><ApparelIcon className={`${iconClass} text-blue-600`} /></div>,
-        'Magic Apparel': <div className="p-2 bg-blue-100 rounded-full"><ApparelIcon className={`${iconClass} text-blue-600`} /></div>, // Backward compat
         'Magic Mockup': <div className="p-2 bg-indigo-100 rounded-full"><MockupIcon className={`${iconClass} text-indigo-600`} /></div>,
     };
     
