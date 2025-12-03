@@ -198,6 +198,7 @@ export const DashboardHome: React.FC<{
             'Magic Interior': 'interior',
             'Pixa Interior Design': 'interior',
             'Magic Apparel': 'apparel',
+            'Pixa TryOn': 'apparel',
             'Magic Mockup': 'mockup'
         };
         if (map[featureName]) return map[featureName];
@@ -217,7 +218,7 @@ export const DashboardHome: React.FC<{
         { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, color: '' },
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
         { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, color: '' },
-        { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
+        { id: 'apparel', label: 'Pixa TryOn', icon: ApparelIcon, color: 'bg-blue-500' },
         { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
     ];
 

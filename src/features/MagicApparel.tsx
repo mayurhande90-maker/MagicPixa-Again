@@ -81,7 +81,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const personInputRef = useRef<HTMLInputElement>(null);
 
     // Cost
-    const cost = appConfig?.featureCosts['Magic Apparel'] || 3;
+    const cost = appConfig?.featureCosts['Pixa TryOn'] || appConfig?.featureCosts['Magic Apparel'] || 3;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = auth.user && userCredits < cost;
 
@@ -222,8 +222,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Magic Apparel');
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Magic Apparel');
+            saveCreation(auth.user.uid, dataUri, 'Pixa TryOn');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn');
             
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
@@ -254,7 +254,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     return (
         <>
             <FeatureLayout 
-                title="Magic Apparel"
+                title="Pixa TryOn"
                 description="Virtually try-on clothing on any person. Realistic fabric physics and lighting adaptation."
                 icon={<ApparelIcon className="w-6 h-6 text-blue-500"/>}
                 creditCost={cost}
