@@ -12,7 +12,8 @@ import {
     MagicWandIcon, 
     TrashIcon,
     PaletteIcon,
-    ArrowUpCircleIcon
+    ArrowUpCircleIcon,
+    PixaMockupIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
@@ -211,7 +212,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             <FeatureLayout 
                 title="Pixa Mockups"
                 description="The Reality Engine. Turn flat designs into photorealistic physical objects with accurate material physics."
-                icon={<MockupIcon className="w-6 h-6 text-indigo-600"/>}
+                icon={<PixaMockupIcon className="w-14 h-14"/>}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
@@ -242,41 +244,23 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             {loading && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                        <div className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                     </div>
                                     <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                                 </div>
                             )}
                             
-                            <img src={designImage.url} className={`max-w-full max-h-full object-contain shadow-sm transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Design Preview" />
+                            <img src={designImage.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Design" />
                             
                             {!loading && (
-                                <>
-                                    <div className="absolute top-4 left-0 w-full px-4 flex justify-between pointer-events-none">
-                                         <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">
-                                            SOURCE DESIGN
-                                         </span>
-                                    </div>
-                                    
-                                    <button 
-                                        onClick={handleNewSession} 
-                                        className="absolute top-4 right-4 pointer-events-auto bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"
-                                        title="Clear All"
-                                    >
-                                        <XIcon className="w-5 h-5"/>
-                                    </button>
-                                    
-                                    <button 
-                                        onClick={() => redoFileInputRef.current?.click()} 
-                                        className="absolute top-4 left-4 pointer-events-auto bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
-                                        title="Change Design"
-                                    >
-                                        <UploadIcon className="w-5 h-5"/>
-                                    </button>
-                                </>
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
+                                    title="Change Design"
+                                >
+                                    <UploadIcon className="w-5 h-5"/>
+                                </button>
                             )}
-                            <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                            <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
                         <div 
@@ -292,21 +276,16 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             }`}
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                <MockupIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
+                                <PixaMockupIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
                             </div>
                             
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Design</p>
-                                <div className="inline-block p-[2px] rounded-full bg-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-300">
-                                    <div className="bg-gray-50 rounded-full px-3 py-1">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-colors">
-                                            Click or Drop (PNG/JPG)
-                                        </p>
-                                    </div>
+                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Design / Logo</p>
+                                <div className="bg-gray-50 rounded-full px-3 py-1 inline-block">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p>
                                 </div>
                             </div>
 
-                            {/* Drag Overlay */}
                             {isDragging && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
                                     <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
@@ -319,18 +298,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                     )
                 }
-
-                // Right: Config
                 rightContent={
-                    !designImage ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100">
-                                <ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/>
-                            </div>
-                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                            <p className="text-sm text-gray-400">Upload a design to start.</p>
-                        </div>
-                    ) : isLowCredits ? (
+                    isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                             <CreditCardIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
@@ -339,88 +308,81 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
                             
-                            {/* 1. Target Object Selection */}
-                            <div className="animate-fadeIn">
-                                <SelectionGrid 
-                                    label="1. Target Object" 
-                                    options={objectOptions} 
-                                    value={targetObject} 
-                                    onChange={(val) => { setTargetObject(val); autoScroll(); }} 
-                                />
-                                {/* Conditional Input for Custom Object */}
+                            {/* 1. Target Object */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3 ml-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Item</label>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {objectOptions.map(opt => (
+                                        <button 
+                                            key={opt}
+                                            onClick={() => { setTargetObject(opt); if(opt !== 'Other / Custom') autoScroll(); }}
+                                            className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
+                                                targetObject === opt 
+                                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'
+                                            }`}
+                                        >
+                                            {opt}
+                                        </button>
+                                    ))}
+                                </div>
                                 {targetObject === 'Other / Custom' && (
-                                    <div className="mt-4 animate-fadeIn">
-                                        <InputField 
-                                            label="Describe Your Object"
-                                            placeholder="e.g. Vintage Lunchbox, Surfboard, Space Helmet..."
-                                            value={customObject}
-                                            onChange={(e: any) => setCustomObject(e.target.value)}
-                                        />
+                                    <div className="mt-3 animate-fadeIn">
+                                        <InputField placeholder="Describe object (e.g. Vintage Leather Bag)" value={customObject} onChange={(e: any) => setCustomObject(e.target.value)} />
                                     </div>
                                 )}
                             </div>
 
-                            {/* 2. Product Color */}
-                            {(targetObject && (targetObject !== 'Other / Custom' || customObject)) && (
+                            {/* 2. Color Selection (Optional) */}
+                            {targetObject && (
                                 <div className="animate-fadeIn">
                                     <div className="flex items-center justify-between mb-3 ml-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Product Color</label>
+                                        {objectColor && <button onClick={() => setObjectColor('')} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>}
                                     </div>
-                                    <div className="space-y-3">
-                                        <div className="flex gap-2">
-                                            {commonColors.map(color => (
-                                                <button
-                                                    key={color.name}
-                                                    onClick={() => setObjectColor(color.name)}
-                                                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 shadow-sm ${color.border} ${objectColor === color.name ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : ''}`}
-                                                    style={{ backgroundColor: color.value }}
-                                                    title={color.name}
-                                                />
-                                            ))}
-                                        </div>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <PaletteIcon className="w-4 h-4 text-gray-400"/>
-                                            </div>
-                                            <input 
-                                                type="text"
-                                                placeholder="Or type custom color (e.g. Neon Green)..."
-                                                value={objectColor}
-                                                onChange={(e) => setObjectColor(e.target.value)}
-                                                className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                    <div className="flex gap-2">
+                                        {commonColors.map(c => (
+                                            <button
+                                                key={c.name}
+                                                onClick={() => setObjectColor(c.name)}
+                                                className={`w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 shadow-sm ${
+                                                    objectColor === c.name ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110' : ''
+                                                } ${c.border}`}
+                                                style={{ backgroundColor: c.value }}
+                                                title={c.name}
                                             />
-                                        </div>
+                                        ))}
+                                        <button className="w-8 h-8 rounded-full border-2 border-gray-200 bg-gradient-to-br from-red-500 via-green-500 to-blue-500 flex items-center justify-center text-[8px] font-bold text-white shadow-sm hover:scale-110 transition-transform">
+                                            Custom
+                                        </button>
                                     </div>
                                 </div>
                             )}
 
-                            {/* 3. Material Physics */}
-                            {objectColor && (
-                                <SelectionGrid 
-                                    label="3. Material Physics" 
-                                    options={materialOptions} 
-                                    value={material} 
-                                    onChange={(val) => { setMaterial(val); autoScroll(); }} 
-                                />
-                            )}
-
-                            {/* 4. Scene Vibe */}
-                            {material && (
-                                <SelectionGrid 
-                                    label="4. Scene Vibe" 
-                                    options={vibeOptions} 
-                                    value={sceneVibe} 
-                                    onChange={(val) => { setSceneVibe(val); autoScroll(); }} 
-                                />
+                            {/* 3. Physics & Vibe */}
+                            {targetObject && (
+                                <div className="animate-fadeIn space-y-6">
+                                    <SelectionGrid label="3. Material Physics" options={materialOptions} value={material} onChange={(val) => { setMaterial(val); autoScroll(); }} />
+                                    {material && <SelectionGrid label="4. Scene Lighting" options={vibeOptions} value={sceneVibe} onChange={(val) => { setSceneVibe(val); autoScroll(); }} />}
+                                </div>
                             )}
                         </div>
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={handleUpload} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
             {showMagicEditor && resultImage && (
-                <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />
+                <MagicEditorModal 
+                    imageUrl={resultImage} 
+                    onClose={() => setShowMagicEditor(false)} 
+                    onSave={handleEditorSave}
+                    deductCredit={handleDeductEditCredit}
+                />
             )}
         </>
     );

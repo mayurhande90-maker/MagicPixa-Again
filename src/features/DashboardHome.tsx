@@ -32,7 +32,8 @@ import {
     PixaRestoreIcon,
     PixaCaptionIcon,
     PixaInteriorIcon,
-    PixaTryOnIcon
+    PixaTryOnIcon,
+    PixaMockupIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -221,7 +222,7 @@ export const DashboardHome: React.FC<{
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
         { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, color: '' },
         { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, color: '' },
-        { id: 'mockup', label: 'Pixa Mockups', icon: MockupIcon, color: 'bg-indigo-500' },
+        { id: 'mockup', label: 'Pixa Mockups', icon: PixaMockupIcon, color: '' },
     ];
 
     return (
