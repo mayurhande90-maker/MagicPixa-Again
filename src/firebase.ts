@@ -1,3 +1,4 @@
+
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -106,26 +107,40 @@ export const updateUserProfile = async (uid: string, data: Partial<User>) => {
 };
 
 export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
-    if (!db) return () => {};
+    if (!db) {
+        console.warn("Firestore not initialized, returning null for user profile.");
+        callback(null);
+        return () => {};
+    }
     return db.collection('users').doc(uid).onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as User);
         } else {
             callback(null);
         }
+    }, (error) => {
+        console.error("Error subscribing to user profile:", error);
+        callback(null);
     });
 };
 
 // --- Config & System ---
 
 export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
-    if (!db) return () => {};
+    if (!db) {
+        console.warn("Firestore not initialized, returning null for app config.");
+        callback(null);
+        return () => {};
+    }
     return db.collection('system').doc('config').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as AppConfig);
         } else {
             callback(null);
         }
+    }, (error) => {
+        console.error("Error subscribing to app config:", error);
+        callback(null);
     });
 };
 
@@ -135,13 +150,19 @@ export const updateAppConfig = async (config: AppConfig) => {
 };
 
 export const subscribeToAnnouncement = (callback: (announcement: Announcement | null) => void) => {
-    if (!db) return () => {};
+    if (!db) {
+        callback(null);
+        return () => {};
+    }
     return db.collection('system').doc('announcement').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as Announcement);
         } else {
             callback(null);
         }
+    }, (error) => {
+        console.warn("Announcement subscription failed (likely benign):", error);
+        callback(null);
     });
 };
 
