@@ -12,7 +12,7 @@ MagicPixa is a modern web application that leverages the power of Google's Gemin
 - **Magic Soul**: Combine two people into a single, hyper-realistic photo in a chosen theme.
 - **Magic Apparel**: Virtually try on clothing on a person from a photo.
 - **Magic Mockup**: Generate realistic mockups for your logos and designs on various products.
-- **CaptionAI**: Instantly generate social media captions and hashtags for any image.
+- **Pixa Caption Pro**: Instantly generate social media captions and hashtags for any image.
 - **Firebase Authentication**: Secure sign-in with Google.
 - **Credit System**: Pay-as-you-go credit system for using AI features, managed with Firestore.
 - **Payment Gateway**: Integrated with Razorpay for purchasing credit packs.

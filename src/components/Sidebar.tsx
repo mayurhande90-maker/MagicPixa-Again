@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, disabled: false },
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, disabled: false },
     { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, disabled: false },
-    { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, disabled: false },
+    { id: 'caption', label: 'Pixa Caption Pro', icon: CaptionIcon, disabled: false },
     { id: 'interior', label: 'Magic Interior', icon: HomeIcon, disabled: false },
     { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, disabled: false },
     { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, disabled: false },

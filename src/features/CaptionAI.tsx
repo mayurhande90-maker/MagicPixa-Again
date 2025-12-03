@@ -27,8 +27,8 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const scrollRef = useRef<HTMLDivElement>(null);
     const resultsRef = useRef<HTMLDivElement>(null);
 
-    // Determine Cost
-    const cost = appConfig?.featureCosts['CaptionAI'] || 1;
+    // Determine Cost (New name with fallback)
+    const cost = appConfig?.featureCosts['Pixa Caption Pro'] || appConfig?.featureCosts['CaptionAI'] || 1;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < cost;
 
@@ -148,7 +148,8 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 (captionType as any) || 'SEO Friendly'
             );
             setCaptions(res);
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'CaptionAI');
+            // Use new feature name for billing
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             scrollToResults();
         } catch (e) {
@@ -181,7 +182,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     return (
         <>
             <FeatureLayout
-                title="CaptionAI"
+                title="Pixa Caption Pro"
                 description="Get viral, research-backed captions optimized for engagement and organic reach."
                 icon={<CaptionIcon className="w-6 h-6 text-indigo-500"/>}
                 creditCost={cost}

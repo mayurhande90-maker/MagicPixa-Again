@@ -192,6 +192,7 @@ export const DashboardHome: React.FC<{
             'Magic Photo Colour': 'colour',
             'Pixa Photo Restore': 'colour',
             'CaptionAI': 'caption',
+            'Pixa Caption Pro': 'caption',
             'Magic Interior': 'interior',
             'Magic Apparel': 'apparel',
             'Magic Mockup': 'mockup'
@@ -211,7 +212,7 @@ export const DashboardHome: React.FC<{
         { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, 
         { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, color: '' },
         { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, color: '' },
-        { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
+        { id: 'caption', label: 'Pixa Caption Pro', icon: CaptionIcon, color: 'bg-amber-500' },
         { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
         { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
         { id: 'mockup', label: 'Magic Mockup', icon: MockupIcon, color: 'bg-indigo-500' },
