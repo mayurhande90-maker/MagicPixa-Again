@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon
 } from './icons';
 
 interface BillingProps {
@@ -102,10 +102,13 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Pixa Together') || feature.includes('Magic Soul')) {
         return <PixaTogetherIcon className="w-10 h-10" />;
     }
+
+    // Explicit check for Pixa Photo Restore
+    if (feature.includes('Pixa Photo Restore') || feature.includes('Magic Photo Colour')) {
+        return <PixaRestoreIcon className="w-10 h-10" />;
+    }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
-        'Pixa Photo Restore': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
-        'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,
         'Magic Interior': <div className="p-2 bg-orange-100 rounded-full"><HomeIcon className={`${iconClass} text-orange-600`} /></div>,
         'Magic Apparel': <div className="p-2 bg-blue-100 rounded-full"><ApparelIcon className={`${iconClass} text-blue-600`} /></div>,

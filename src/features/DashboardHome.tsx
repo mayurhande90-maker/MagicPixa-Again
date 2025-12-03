@@ -28,7 +28,8 @@ import {
     UploadTrayIcon,
     BuildingIcon,
     PixaEcommerceIcon,
-    PixaTogetherIcon
+    PixaTogetherIcon,
+    PixaRestoreIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -209,7 +210,7 @@ export const DashboardHome: React.FC<{
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
         { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, 
         { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, color: '' },
-        { id: 'colour', label: 'Pixa Photo Restore', icon: PaletteIcon, color: 'bg-rose-500' },
+        { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, color: '' },
         { id: 'caption', label: 'CaptionAI', icon: CaptionIcon, color: 'bg-amber-500' },
         { id: 'interior', label: 'Magic Interior', icon: HomeIcon, color: 'bg-orange-500' },
         { id: 'apparel', label: 'Magic Apparel', icon: ApparelIcon, color: 'bg-blue-500' },
