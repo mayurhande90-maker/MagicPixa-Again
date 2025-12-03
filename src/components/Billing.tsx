@@ -97,9 +97,13 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Pixa AdMaker') || feature.includes('Magic Ads') || feature.includes('Brand Stylist')) {
         return <MagicAdsIcon className="w-10 h-10" />;
     }
+
+    // Explicit check for Pixa Together (including legacy Magic Soul)
+    if (feature.includes('Pixa Together') || feature.includes('Magic Soul')) {
+        return <div className="p-2 bg-pink-100 rounded-full"><UsersIcon className={`${iconClass} text-pink-600`} /></div>;
+    }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
-        'Magic Soul': <div className="p-2 bg-pink-100 rounded-full"><UsersIcon className={`${iconClass} text-pink-600`} /></div>,
         'Magic Photo Colour': <div className="p-2 bg-rose-100 rounded-full"><PaletteIcon className={`${iconClass} text-rose-600`} /></div>,
         'CaptionAI': <div className="p-2 bg-amber-100 rounded-full"><CaptionIcon className={`${iconClass} text-amber-600`} /></div>,
         'Magic Interior': <div className="p-2 bg-orange-100 rounded-full"><HomeIcon className={`${iconClass} text-orange-600`} /></div>,
@@ -404,7 +408,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                                                                     ? 'Pixa Ecommerce Kit'
                                                                                     : (tx.feature.includes('Magic Ads') || tx.feature.includes('Pixa AdMaker') || tx.feature.includes('Brand Stylist')
                                                                                         ? 'Pixa AdMaker'
-                                                                                        : tx.feature.replace('Admin Grant', 'MagicPixa Grant')))))}
+                                                                                        : (tx.feature.includes('Magic Soul') || tx.feature.includes('Pixa Together')
+                                                                                            ? 'Pixa Together'
+                                                                                            : tx.feature.replace('Admin Grant', 'MagicPixa Grant'))))))}
                                                                 </p>
                                                                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">{(tx.date as any).toDate ? (tx.date as any).toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : new Date((tx.date as any).seconds * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                                                              </>

@@ -85,7 +85,7 @@ export const generateMagicSoul = async (
         optimizeImage(personBBase64, personBMimeType)
     ]);
 
-    const prompt = `Task: Magic Soul - Hyper-realistic Couple Composition.
+    const prompt = `Task: Pixa Together - Hyper-realistic Couple Composition.
     
     Input: Two separate portraits (Subject A and Subject B).
     Goal: Combine them into a SINGLE cohesive photograph.

@@ -56,7 +56,7 @@ const features = [
     {
         id: 'soul',
         icon: <UsersIcon className="w-10 h-10 text-white" />,
-        title: "Magic Soul",
+        title: "Pixa Together",
         description: "Combine two people into one hyper-realistic photo, choosing a theme and environment.",
         color: "bg-pink-500",
         disabled: false,
