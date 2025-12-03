@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -48,10 +48,10 @@ const features = [
     },
     {
         id: 'magic_realty',
-        icon: <BuildingIcon className="w-16 h-16" />, 
+        icon: <BuildingIcon className="w-16 h-16" />, // Increased size
         title: "Pixa Realty Ads", 
         description: "Create luxury real estate flyers with AI-enhanced photos, lifestyle fusion, and auto-layout.",
-        color: "", 
+        color: "", // Removed background color
         disabled: false,
     },
     {
@@ -80,10 +80,10 @@ const features = [
     },
     {
         id: 'interior',
-        icon: <PixaInteriorIcon className="w-16 h-16" />,
+        icon: <HomeIcon className="w-10 h-10 text-white" />,
         title: "Pixa Interior Design",
         description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style.",
-        color: "",
+        color: "bg-orange-500",
         disabled: false,
     },
     {
@@ -181,6 +181,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
     if (f.id && appConfig?.featureToggles && f.id in appConfig.featureToggles) {
         return { ...f, disabled: !appConfig.featureToggles[f.id] };
     }
+    // For items with hardcoded `disabled: true`, respect that setting.
     return f;
   });
 
