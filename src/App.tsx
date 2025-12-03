@@ -21,7 +21,7 @@ import ConfigurationError from './components/ConfigurationError';
 import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
 import { ShieldCheckIcon, EyeIcon, InformationCircleIcon, XIcon } from './components/icons';
 import { CreditGrantModal } from './components/CreditGrantModal';
-import { NotificationDisplay } from './components/NotificationDisplay'; // Import new component
+import { NotificationDisplay } from './components/NotificationDisplay';
 
 const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -125,7 +125,10 @@ const App: React.FC = () => {
 
   // Auth & User Profile Subscription
   useEffect(() => {
+    // Guard against auth being null if config is invalid but we passed the isConfigValid check
+    // (e.g. if config keys exist but are garbage)
     if (!auth) {
+      console.warn("Firebase Auth not initialized correctly.");
       setIsLoadingAuth(false);
       return;
     }

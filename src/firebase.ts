@@ -1,10 +1,8 @@
-
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
-import { resizeImage } from './utils/imageUtils';
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
@@ -19,7 +17,7 @@ export const firebaseConfig = {
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
-    return !!value && value !== 'undefined';
+    return !!value && value !== 'undefined' && value !== '';
 };
 
 const allConfigKeys = {
@@ -40,7 +38,7 @@ export const getMissingConfigKeys = (): string[] => missingKeys;
 
 export const isConfigValid = missingKeys.length === 0;
 
-export let app;
+export let app: firebase.app.App | null = null;
 export let auth: firebase.auth.Auth | null = null;
 export let db: firebase.firestore.Firestore | null = null;
 export let storage: firebase.storage.Storage | null = null;
@@ -53,6 +51,8 @@ if (isConfigValid) {
     storage = firebase.storage();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
+    // Even if config is technically present, if initialization fails, we treat it as invalid
+    // so the UI can show an error instead of crashing.
   }
 } else {
   console.error("Configuration is missing or incomplete. Please check your environment variables. Missing:", missingKeys.join(', '));
@@ -147,9 +147,7 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
 
 export const updateAnnouncement = async (uid: string, announcement: Announcement) => {
     if (!db) return;
-    // Basic admin check logic or rely on Firestore rules
     await db.collection('system').doc('announcement').set(announcement);
-    // Log action
     await logAudit(uid, 'Update Announcement', `Updated global announcement: ${announcement.title}`);
 };
 
@@ -167,7 +165,7 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
         imageUrl,
         feature,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        storagePath: '' // Ideally store in storage and keep path, but for base64/url...
+        storagePath: ''
     });
 };
 
@@ -182,7 +180,6 @@ export const getCreations = async (uid: string) => {
 export const deleteCreation = async (uid: string, creation: Creation) => {
     if (!db) return;
     await db.collection('users').doc(uid).collection('creations').doc(creation.id).delete();
-    // If we had storage path, delete from storage here too.
 };
 
 export const deductCredits = async (uid: string, amount: number, featureName: string) => {
@@ -202,14 +199,12 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
         
         const newCredits = currentCredits - amount;
         
-        // Update user credits
         transaction.update(userRef, { 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
             lastActive: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Add transaction log
         const transactionRef = userRef.collection('transactions').doc();
         transaction.set(transactionRef, {
             feature: featureName,
@@ -238,8 +233,7 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
-        plan: packName, // Update displayed plan
-        // Grant "Studio" or "Agency" tier if applicable (simplified logic)
+        plan: packName,
         ...(packName.includes('Studio') || packName.includes('Agency') ? { 
             storageTier: 'unlimited', 
             basePlan: packName,
@@ -247,16 +241,14 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         } : {})
     });
 
-    // Log transaction (purchase is a credit gain)
     await userRef.collection('transactions').add({
         feature: `Purchase: ${packName}`,
-        cost: 0, // It's a gain, cost is 0 in terms of credit spend logic usually, or handle differently
+        cost: 0,
         creditChange: `+${credits}`,
         date: firebase.firestore.FieldValue.serverTimestamp(),
         pricePaid: price
     });
 
-    // Record Global Purchase Log
     await db.collection('purchases').add({
         userId: uid,
         packName,
@@ -275,13 +267,11 @@ export const claimDailyAttendance = async (uid: string) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
     
-    // Check handled in UI or transaction, simplified here
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(1),
         lastAttendanceClaim: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    // Log
     await userRef.collection('transactions').add({
         feature: 'Daily Check-in',
         creditChange: '+1',
@@ -297,7 +287,6 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
     
-    // Calculate next unlock time (tomorrow midnight? or 24h from now? usually reset time)
     const nextUnlock = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     await userRef.update({
@@ -325,7 +314,6 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
 export const claimReferralCode = async (uid: string, code: string) => {
     if (!db) throw new Error("DB not initialized");
     
-    // Find referrer
     const snapshot = await db.collection('users').where('referralCode', '==', code).get();
     if (snapshot.empty) {
         throw new Error("Invalid referral code.");
@@ -335,14 +323,11 @@ export const claimReferralCode = async (uid: string, code: string) => {
 
     if (referrerId === uid) throw new Error("Cannot refer yourself.");
 
-    // Update current user
     const userRef = db.collection('users').doc(uid);
     const userSnap = await userRef.get();
     if (userSnap.data()?.referredBy) throw new Error("You have already claimed a referral.");
 
-    // Transaction to update both
     await db.runTransaction(async (t) => {
-        // Update User
         t.update(userRef, {
             referredBy: code,
             credits: firebase.firestore.FieldValue.increment(10)
@@ -354,7 +339,6 @@ export const claimReferralCode = async (uid: string, code: string) => {
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Update Referrer
         const refUserRef = db.collection('users').doc(referrerId);
         t.update(refUserRef, {
             referralCount: firebase.firestore.FieldValue.increment(1),
@@ -380,7 +364,6 @@ export const saveUserBrandKit = async (uid: string, brandKit: BrandKit) => {
 
 export const uploadBrandAsset = async (uid: string, dataUri: string, type: string) => {
     if (!storage) throw new Error("Storage not initialized");
-    // Convert dataUri to Blob
     const response = await fetch(dataUri);
     const blob = await response.blob();
     
@@ -393,7 +376,7 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
 
 export const getAllUsers = async () => {
     if (!db) return [];
-    const snapshot = await db.collection('users').limit(100).get(); // Limit for safety
+    const snapshot = await db.collection('users').limit(100).get(); 
     return snapshot.docs.map(doc => doc.data() as User);
 };
 
@@ -430,8 +413,7 @@ export const grantPackageToUser = async (adminUid: string, targetUid: string, pa
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(pack.totalCredits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits),
-        plan: pack.name, // Upgrade plan name
-        // Grant unlimited storage for higher tiers
+        plan: pack.name,
         ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? {
             storageTier: 'unlimited',
             basePlan: pack.name,
@@ -446,7 +428,6 @@ export const grantPackageToUser = async (adminUid: string, targetUid: string, pa
         }
     });
 
-    // Transaction Log
     await userRef.collection('transactions').add({
         feature: `Grant: ${pack.name}`,
         reason: message,
@@ -478,10 +459,10 @@ export const getRecentSignups = async (limit = 10) => {
     return snap.docs.map(d => d.data() as User);
 };
 
-export const getRecentPurchases = async (limit = 10) => {
+export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => {
     if (!db) return [];
     const snap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(limit).get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase));
 };
 
 export const getTotalRevenue = async (startDate?: Date, endDate?: Date) => {
@@ -502,17 +483,14 @@ export const getTotalRevenue = async (startDate?: Date, endDate?: Date) => {
 };
 
 export const getRevenueStats = async (days = 7) => {
-    // Return empty or simple data structure as aggregating logic is complex
     return []; 
 };
 
 export const get24HourCreditBurn = async () => {
-    // Expensive query on client. Return 0 placeholder.
     return 0;
 };
 
 export const getGlobalFeatureUsage = async () => {
-    // Assuming we maintain a 'stats/features' doc
     if (!db) return [];
     const doc = await db.collection('system').doc('stats').get();
     if (doc.exists && doc.data()?.featureUsage) {
@@ -523,7 +501,7 @@ export const getGlobalFeatureUsage = async () => {
 
 // Logs
 
-const logAudit = async (adminUid: string, action: string, details: string) => {
+export const logAudit = async (adminUid: string, action: string, details: string) => {
     if (!db) return;
     await db.collection('auditLogs').add({
         adminEmail: auth?.currentUser?.email || adminUid,
