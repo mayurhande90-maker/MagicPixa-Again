@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField, ImageModal } from '../components/FeatureLayout';
@@ -285,11 +284,11 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode);
                 const dataUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
-                saveCreation(auth.user.uid, dataUri, `Merchant: ${label}`);
+                saveCreation(auth.user.uid, dataUri, `Ecommerce Kit: ${label}`);
             }
 
             // 4. Deduct Credits (Only if we have results)
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Merchant Studio');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Ecommerce Kit');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
             if (updatedUser.lifetimeGenerations) {
@@ -306,7 +305,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             console.error(e);
             // ADDED: Log High-level failure to Firestore
             const uid = auth.user?.uid;
-            logApiError('Merchant Studio UI', e.message || 'Generation Failed', uid);
+            logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', uid);
             alert(`Generation failed: ${e.message || "Unknown error"}. No credits were deducted.`);
         } finally {
             setLoading(false);
@@ -364,7 +363,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     return (
         <>
             <FeatureLayout
-                title="Merchant Studio"
+                title="Pixa Ecommerce Kit"
                 description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click."
                 icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500" />}
                 creditCost={cost}

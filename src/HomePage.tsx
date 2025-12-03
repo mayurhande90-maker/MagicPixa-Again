@@ -24,7 +24,7 @@ const features = [
     {
         id: 'brand_kit',
         icon: <UploadTrayIcon className="w-10 h-10 text-white" />,
-        title: "Merchant Studio",
+        title: "Pixa Ecommerce Kit",
         description: "Generate complete E-commerce product packs (Hero, Lifestyle, Detail) in one go.",
         color: "bg-green-500",
         disabled: false,

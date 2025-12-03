@@ -378,7 +378,7 @@ export const getAppConfig = async (): Promise<AppConfig> => {
           'Magic Mockup': 2, 
           'Magic Eraser': 1, 
           'Pixa Realty Ads': 4, // Renamed from Magic Realty
-          'Merchant Studio': 15,
+          'Pixa Ecommerce Kit': 15,
           'Magic Ads': 4, 
         },
         featureToggles: {
@@ -520,7 +520,7 @@ let errorLogThrottle: Record<string, number> = {};
 export const logApiError = async (endpoint: string, error: string, userId?: string) => { if (!db) return; const key = `${userId || 'anon'}_${endpoint}_${error}`; const now = Date.now(); if (errorLogThrottle[key] && now - errorLogThrottle[key] < 5000) return; errorLogThrottle[key] = now; console.error(`[API ERROR LOG] ${endpoint}: ${error}`); try { await db.collection('api_error_logs').add({ endpoint, error, userId: userId || 'anonymous', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch (e) { console.error("Failed to write to api_error_logs", e); } };
 export const getApiErrorLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('api_error_logs').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog)); };
 export const get24HourCreditBurn = async () => { if (!db) return 0; return 0; };
-export const getGlobalFeatureUsage = async () => { return [ { feature: 'Pixa Product Shots', count: 120 }, { feature: 'Merchant Studio', count: 85 }, { feature: 'Magic Ads', count: 64 }, { feature: 'Pixa Thumbnail Pro', count: 42 } ]; };
+export const getGlobalFeatureUsage = async () => { return [ { feature: 'Pixa Product Shots', count: 120 }, { feature: 'Pixa Ecommerce Kit', count: 85 }, { feature: 'Magic Ads', count: 64 }, { feature: 'Pixa Thumbnail Pro', count: 42 } ]; };
 export const getAnnouncement = async () => { if (!db) return null; const doc = await db.collection('config').doc('announcement').get(); return doc.exists ? (doc.data() as Announcement) : null; };
 export const updateAnnouncement = async (adminUid: string, data: Announcement) => { if (!db) return; await db.collection('config').doc('announcement').set(data); await logAdminAction(adminUid, 'Update Announcement', `Title: ${data.title}`); };
 export const subscribeToAnnouncement = (callback: (data: Announcement | null) => void) => { if (!db) { callback(null); return () => {}; } return db.collection('config').doc('announcement').onSnapshot(doc => { callback(doc.exists ? (doc.data() as Announcement) : null); }); };
