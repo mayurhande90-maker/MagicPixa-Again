@@ -14,7 +14,8 @@ import {
     CheckIcon,
     MagicWandIcon,
     TicketIcon,
-    StarIcon
+    StarIcon,
+    PixaEcommerceIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
@@ -365,7 +366,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             <FeatureLayout
                 title="Pixa Ecommerce Kit"
                 description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click."
-                icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500" />}
+                icon={<PixaEcommerceIcon className="w-14 h-14" />}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}

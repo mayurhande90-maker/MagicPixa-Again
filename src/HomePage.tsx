@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon
 } from './components/icons';
 
 interface HomePageProps {
@@ -23,10 +23,10 @@ const features = [
     },
     {
         id: 'brand_kit',
-        icon: <UploadTrayIcon className="w-10 h-10 text-white" />,
+        icon: <PixaEcommerceIcon className="w-16 h-16" />,
         title: "Pixa Ecommerce Kit",
         description: "Generate complete E-commerce product packs (Hero, Lifestyle, Detail) in one go.",
-        color: "bg-green-500",
+        color: "",
         disabled: false,
     },
     {

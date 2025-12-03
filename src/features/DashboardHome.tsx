@@ -25,7 +25,8 @@ import {
     MagicAdsIcon,
     PixaProductIcon,
     UploadTrayIcon,
-    BuildingIcon
+    BuildingIcon,
+    PixaEcommerceIcon
 } from '../components/icons';
 
 const DailyQuest: React.FC<{ 
@@ -197,7 +198,7 @@ export const DashboardHome: React.FC<{
 
     const tools = [
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
-        { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: UploadTrayIcon, color: 'bg-green-500' },
+        { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
         { id: 'brand_stylist', label: 'Magic Ads', icon: MagicAdsIcon, color: 'bg-yellow-500' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
         { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, // Removed background color
