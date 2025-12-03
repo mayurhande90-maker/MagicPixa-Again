@@ -231,7 +231,6 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     </button>
                                 </>
                             )}
-                            <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                             <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
@@ -353,6 +352,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )
                 }
             />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
         </>
