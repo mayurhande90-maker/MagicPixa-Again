@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField, ImageModal } from '../components/FeatureLayout';
@@ -401,7 +402,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         {!loading && results.length === 0 && (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
                                 <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <CubeIcon className="w-10 h-10 text-indigo-300" />
+                                    <PixaEcommerceIcon className="w-10 h-10 text-indigo-300" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-400">Ready to Create</h3>
                                 <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
