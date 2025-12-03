@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCardIcon, SparklesIcon } from '../components/icons';
+import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCardIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
@@ -180,7 +180,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <FeatureLayout 
                 title="Pixa Interior Design"
                 description="Redesign any room in seconds. Choose a style and watch Pixa transform your space."
-                icon={<HomeIcon className="w-6 h-6 text-indigo-500"/>}
+                icon={<PixaInteriorIcon className="w-14 h-14"/>}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}

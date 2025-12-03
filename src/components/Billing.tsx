@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon
 } from './icons';
 
 interface BillingProps {
@@ -115,7 +115,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
 
     // Explicit check for Pixa Interior Design (including legacy Magic Interior)
     if (feature.includes('Pixa Interior Design') || feature.includes('Magic Interior')) {
-        return <div className="p-2 bg-orange-100 rounded-full"><HomeIcon className={`${iconClass} text-orange-600`} /></div>;
+        return <PixaInteriorIcon className="w-10 h-10" />;
     }
     
     const featureIconMap: { [key: string]: React.ReactNode } = {
