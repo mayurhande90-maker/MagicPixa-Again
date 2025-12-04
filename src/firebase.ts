@@ -78,12 +78,18 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     const userRef = db.collection('users').doc(uid);
     const doc = await userRef.get();
     
+    // Generate initials for avatar (Fix for missing profile picture)
+    const initials = name
+        ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+        : email?.substring(0, 2).toUpperCase() || 'U';
+
     if (!doc.exists) {
         // New User
         const newUser: Partial<User> = {
             uid,
             name,
             email: email || '',
+            avatar: initials, // Added avatar
             credits: 10, // Signup bonus
             totalCreditsAcquired: 10,
             plan: 'Free',
@@ -98,7 +104,16 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         await userRef.set(newUser);
         return newUser;
     }
-    return doc.data() as User;
+    
+    const userData = doc.data() as User;
+    
+    // Migration: Ensure existing users have an avatar in DB
+    if (!userData.avatar) {
+        await userRef.update({ avatar: initials });
+        return { ...userData, avatar: initials };
+    }
+
+    return userData;
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
