@@ -460,7 +460,14 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     const userRef = db.collection('users').doc(targetUid);
     
     await userRef.update({
-        credits: firebase.firestore.FieldValue.increment(amount)
+        credits: firebase.firestore.FieldValue.increment(amount),
+        // Add notification payload to trigger the user-side modal
+        creditGrantNotification: {
+            amount: amount,
+            message: reason || 'Admin Grant',
+            type: 'credit',
+            timestamp: firebase.firestore.Timestamp.now()
+        }
     });
     
     await userRef.collection('transactions').add({

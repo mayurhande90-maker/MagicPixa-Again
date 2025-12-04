@@ -59,9 +59,13 @@ const UserDetailModal: React.FC<{
     const [creditAmount, setCreditAmount] = useState(0);
     const [creditReason, setCreditReason] = useState('');
     const [selectedPackIndex, setSelectedPackIndex] = useState(0);
+    
+    // Notification State
     const [notificationMsg, setNotificationMsg] = useState('');
     const [notificationTitle, setNotificationTitle] = useState('');
     const [notificationLink, setNotificationLink] = useState('');
+    const [notificationStyle, setNotificationStyle] = useState<'banner' | 'pill' | 'toast' | 'modal'>('banner');
+    
     const [isLoading, setIsLoading] = useState(false);
 
     const handleGrantCredits = async () => {
@@ -105,8 +109,8 @@ const UserDetailModal: React.FC<{
                 notificationTitle || 'System Message', 
                 notificationMsg, 
                 'info', 
-                'modal',
-                notificationLink // Pass link
+                notificationStyle, // Use selected style
+                notificationLink
             );
             alert('Notification sent.');
             setNotificationMsg('');
@@ -196,9 +200,30 @@ const UserDetailModal: React.FC<{
 
                     <div className="border-t border-gray-100 pt-6">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FlagIcon className="w-5 h-5"/> Send Notification</h3>
-                        <input type="text" placeholder="Title" value={notificationTitle} onChange={(e) => setNotificationTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500"/>
-                        <textarea placeholder="Message" value={notificationMsg} onChange={(e) => setNotificationMsg(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500" rows={2}/>
-                        <input type="text" placeholder="Link / Action URL (Optional)" value={notificationLink} onChange={(e) => setNotificationLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500"/>
+                        
+                        {/* Style Selector */}
+                        <div className="mb-4">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-2">Visual Style</label>
+                            <div className="flex gap-2">
+                                {['banner', 'pill', 'toast', 'modal'].map((s) => (
+                                    <button 
+                                        key={s} 
+                                        onClick={() => setNotificationStyle(s as any)} 
+                                        className={`flex-1 py-2 text-xs font-bold rounded-lg capitalize border transition-all ${
+                                            notificationStyle === s 
+                                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700' 
+                                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <input type="text" placeholder="Title (e.g. Welcome Back)" value={notificationTitle} onChange={(e) => setNotificationTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500 text-sm font-bold"/>
+                        <textarea placeholder="Message body..." value={notificationMsg} onChange={(e) => setNotificationMsg(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500 text-sm" rows={2}/>
+                        <input type="text" placeholder="Link / Action URL (Optional)" value={notificationLink} onChange={(e) => setNotificationLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500 text-sm"/>
                         <button onClick={handleSendNotification} disabled={isLoading || !notificationMsg} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm w-full hover:bg-blue-700 disabled:opacity-50">Send Message</button>
                     </div>
                 </div>
