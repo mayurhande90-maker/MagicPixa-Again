@@ -1,10 +1,12 @@
 
+// ... existing imports ...
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
 
+// ... existing configuration code ...
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 
@@ -57,8 +59,7 @@ if (isConfigValid) {
   console.error("Configuration is missing or incomplete. Please check your environment variables. Missing:", missingKeys.join(', '));
 }
 
-// --- Auth Helpers ---
-
+// ... existing Auth Helpers ...
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -226,8 +227,7 @@ export const getAnnouncement = async () => {
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
-// --- Creations & Credits ---
-
+// ... existing Creations & Credits ...
 export const saveCreation = async (uid: string, imageUrl: string, feature: string) => {
     if (!db) return;
     await db.collection('users').doc(uid).collection('creations').add({
@@ -330,8 +330,7 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
     return userSnap.data() as User;
 };
 
-// --- Daily Mission & Attendance ---
-
+// ... Daily Mission & Attendance ...
 export const claimDailyAttendance = async (uid: string) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
@@ -378,8 +377,7 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
     return snap.data() as User;
 };
 
-// --- Referrals ---
-
+// ... Referrals ...
 export const claimReferralCode = async (uid: string, code: string) => {
     if (!db) throw new Error("DB not initialized");
     
@@ -424,8 +422,7 @@ export const claimReferralCode = async (uid: string, code: string) => {
     return (await userRef.get()).data();
 };
 
-// --- Brand Kit ---
-
+// ... Brand Kit ...
 export const saveUserBrandKit = async (uid: string, brandKit: BrandKit) => {
     if (!db) return;
     await db.collection('users').doc(uid).update({ brandKit });
@@ -618,7 +615,8 @@ export const sendSystemNotification = async (
     title: string, 
     message: string, 
     type: string, 
-    style: string
+    style: string,
+    link?: string // Added link parameter
 ) => {
     if (!db) return;
     await db.collection('users').doc(targetUid).update({
@@ -627,11 +625,12 @@ export const sendSystemNotification = async (
             message,
             type,
             style,
+            link: link || null, // Added link to payload
             read: false,
             timestamp: firebase.firestore.Timestamp.now()
         }
     });
-    await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title}`);
+    await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title} ${link ? `(Link: ${link})` : ''}`);
 };
 
 export const clearCreditGrantNotification = async (uid: string) => {

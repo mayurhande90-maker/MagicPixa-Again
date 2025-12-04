@@ -84,6 +84,7 @@ export interface User {
       message: string;
       type: 'info' | 'warning' | 'success';
       style?: 'banner' | 'pill' | 'toast' | 'modal';
+      link?: string | null;
       read: boolean;
       timestamp: any;
   };

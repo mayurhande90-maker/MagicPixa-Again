@@ -61,6 +61,7 @@ const UserDetailModal: React.FC<{
     const [selectedPackIndex, setSelectedPackIndex] = useState(0);
     const [notificationMsg, setNotificationMsg] = useState('');
     const [notificationTitle, setNotificationTitle] = useState('');
+    const [notificationLink, setNotificationLink] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleGrantCredits = async () => {
@@ -98,14 +99,41 @@ const UserDetailModal: React.FC<{
         if (!notificationMsg) return;
         setIsLoading(true);
         try {
-            await sendSystemNotification(currentUser.uid, user.uid, notificationTitle || 'System Message', notificationMsg, 'info', 'modal');
+            await sendSystemNotification(
+                currentUser.uid, 
+                user.uid, 
+                notificationTitle || 'System Message', 
+                notificationMsg, 
+                'info', 
+                'modal',
+                notificationLink // Pass link
+            );
             alert('Notification sent.');
             setNotificationMsg('');
             setNotificationTitle('');
+            setNotificationLink('');
         } catch (e: any) {
             alert('Failed to send notification: ' + e.message);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return 'Never';
+        try {
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+            return date.toLocaleString('en-US', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        } catch (e) {
+            return 'Invalid Date';
         }
     };
 
@@ -126,6 +154,14 @@ const UserDetailModal: React.FC<{
                         <div className="bg-gray-50 p-4 rounded-xl">
                             <p className="text-xs text-gray-500 uppercase font-bold">Plan</p>
                             <p className="text-2xl font-black text-[#1A1A1E]">{user.plan || 'Free'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Joined On</p>
+                            <p className="text-sm font-medium text-gray-800">{formatDate(user.signUpDate)}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Last Seen</p>
+                            <p className="text-sm font-medium text-gray-800">{formatDate(user.lastActive)}</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl">
                             <p className="text-xs text-gray-500 uppercase font-bold">UID</p>
@@ -162,6 +198,7 @@ const UserDetailModal: React.FC<{
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FlagIcon className="w-5 h-5"/> Send Notification</h3>
                         <input type="text" placeholder="Title" value={notificationTitle} onChange={(e) => setNotificationTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500"/>
                         <textarea placeholder="Message" value={notificationMsg} onChange={(e) => setNotificationMsg(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500" rows={2}/>
+                        <input type="text" placeholder="Link / Action URL (Optional)" value={notificationLink} onChange={(e) => setNotificationLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500"/>
                         <button onClick={handleSendNotification} disabled={isLoading || !notificationMsg} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm w-full hover:bg-blue-700 disabled:opacity-50">Send Message</button>
                     </div>
                 </div>
@@ -453,6 +490,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* Other Tabs Rendering... */}
             {activeTab === 'config' && (
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
                     <div className="flex justify-between items-center mb-6"><div><h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2><p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p></div>{hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">Save Changes</button>}</div>
@@ -491,6 +529,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* Other tabs like Comms, System, Analytics remain the same */}
             {activeTab === 'comms' && (
                 <div className="max-w-2xl mx-auto animate-fadeIn bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div><h3 className="text-xl font-bold text-gray-800">Global Announcement</h3></div>

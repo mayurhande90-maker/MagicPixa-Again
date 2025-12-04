@@ -1,332 +1,206 @@
 
-import React, { useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
-import EditProfileModal from './components/EditProfileModal';
-import ToastNotification from './components/ToastNotification';
-import { 
-  auth, 
-  isConfigValid, 
-  getMissingConfigKeys, 
-  signInWithGoogle, 
-  updateUserProfile, 
-  getOrCreateUserProfile, 
-  subscribeToAppConfig,
-  subscribeToAnnouncement,
-  subscribeToUserProfile
-} from './firebase'; 
-import ConfigurationError from './components/ConfigurationError';
-import { Page, View, User, AuthProps, AppConfig, Announcement } from './types';
-import { ShieldCheckIcon, EyeIcon, InformationCircleIcon, XIcon } from './components/icons';
-import { CreditGrantModal } from './components/CreditGrantModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
+import { CreditGrantModal } from './components/CreditGrantModal';
+import ConfigurationError from './components/ConfigurationError';
+import { 
+    auth as firebaseAuth, 
+    signInWithGoogle, 
+    getOrCreateUserProfile, 
+    subscribeToUserProfile,
+    subscribeToAnnouncement,
+    subscribeToAppConfig,
+    updateUserProfile,
+    getMissingConfigKeys,
+    isConfigValid
+} from './firebase';
+import { User, Page, View, AuthProps, AppConfig, Announcement } from './types';
+import { ShieldCheckIcon } from './components/icons';
 
-const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-red-100">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ShieldCheckIcon className="w-10 h-10 text-red-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Suspended</h1>
-            <p className="text-gray-500 mb-4">
-                Your account has been suspended due to a violation of our terms of service.
-            </p>
-            <div className="bg-red-50 p-3 rounded-lg mb-6 text-sm text-red-700 border border-red-100">
-                Contact Support: <br/>
-                <a href="mailto:support@magicpixa.com" className="font-bold underline">support@magicpixa.com</a>
-            </div>
-            <button 
-                onClick={onLogout}
-                className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
-            >
-                Sign Out
-            </button>
-        </div>
-    </div>
-);
+// --- Inline Components for Admin Features ---
 
 const ImpersonationBanner: React.FC<{ originalUser: User; targetUser: User; onExit: () => void }> = ({ originalUser, targetUser, onExit }) => (
-    <div className="bg-orange-500 text-white px-4 py-3 relative flex items-center justify-center shadow-md z-[110]">
-        <div className="flex items-center gap-3 text-sm font-bold">
-            <EyeIcon className="w-5 h-5" />
-            <span>Viewing as: <span className="underline">{targetUser.email}</span> ({targetUser.name})</span>
-            <button 
-                onClick={onExit}
-                className="ml-4 bg-white text-orange-600 px-3 py-1 rounded-full text-xs hover:bg-orange-50 transition-colors uppercase tracking-wider"
-            >
-                Exit View Mode
-            </button>
+    <div className="bg-orange-500 text-white px-4 py-2 flex justify-between items-center z-[100] relative">
+        <div className="flex items-center gap-2">
+            <ShieldCheckIcon className="w-5 h-5" />
+            <span className="font-bold text-sm">
+                Admin Mode: Viewing as {targetUser.name} ({targetUser.email})
+            </span>
         </div>
+        <button 
+            onClick={onExit}
+            className="bg-white text-orange-600 px-3 py-1 rounded text-xs font-bold hover:bg-gray-100"
+        >
+            Exit View
+        </button>
     </div>
 );
 
-const App: React.FC = () => {
-  if (!isConfigValid) {
-    const missingKeys = getMissingConfigKeys();
-    return <ConfigurationError missingKeys={missingKeys} />;
-  }
+const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <ShieldCheckIcon className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Suspended</h1>
+        <p className="text-gray-600 text-center max-w-md mb-8">
+            Your account has been suspended for violating our terms of service. 
+            If you believe this is a mistake, please contact support.
+        </p>
+        <button 
+            onClick={onLogout}
+            className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black transition-colors"
+        >
+            Sign Out
+        </button>
+    </div>
+);
 
+// --- Main App Component ---
+
+function App() {
+  // Config Validation
+  const [missingKeys] = useState<string[]>(getMissingConfigKeys());
+  
+  // Navigation State
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [activeView, setActiveView] = useState<View>('home_dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentView, setCurrentView] = useState<View>('home_dashboard'); // Default view
   
-  // Auth State
-  const [user, setUser] = useState<User | null>(null); // The actual logged-in user
-  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // The admin is viewing this user
+  // User State
+  const [user, setUser] = useState<User | null>(null); // The logged-in user
+  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // Admin impersonation target
+  const [loading, setLoading] = useState(true);
   
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
-  const [isConversationOpen, setIsConversationOpen] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [authError, setAuthError] = useState<ReactNode | null>(null);
+  // Auth Modal State
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // App Configuration State
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
-  const [isConfigLoading, setIsConfigLoading] = useState(true);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [showBanner, setShowBanner] = useState(true);
-  
-  // Toast Notification State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'logout'>('success');
 
-  // Computed User: If impersonating, the app sees the target user. Otherwise, the real user.
+  // Gemini Live Conversation State (Global)
+  const [isConversationOpen, setIsConversationOpen] = useState(false);
+
+  // Computed Active User (Impersonated or Real)
   const activeUser = impersonatedUser || user;
 
-  // Real-time Subscriptions for Config & Announcements
+  // --- Effects ---
+
+  // 1. App Config Subscription
   useEffect(() => {
-    // 1. App Configuration
-    const unsubConfig = subscribeToAppConfig((config) => {
-        setAppConfig(config);
-        setIsConfigLoading(false);
-    });
-
-    // 2. Global Announcements
-    const unsubAnnounce = subscribeToAnnouncement((ann) => {
-        setAnnouncement(ann);
-        if (ann?.isActive) setShowBanner(true);
-    });
-
-    return () => {
-        unsubConfig();
-        unsubAnnounce();
-    };
+      const unsubscribe = subscribeToAppConfig((config) => {
+          if (config) setAppConfig(config);
+      });
+      return () => unsubscribe();
   }, []);
 
-  // Capture referral code from URL
+  // 2. Announcement Subscription
   useEffect(() => {
-      const params = new URLSearchParams(window.location.search);
-      const refCode = params.get('ref');
-      if (refCode) {
-          window.sessionStorage.setItem('referralCode', refCode);
-          console.log("Captured referral code:", refCode);
-      }
+      const unsubscribe = subscribeToAnnouncement((ann) => {
+          setAnnouncement(ann);
+          setShowBanner(true); // Re-show banner on update
+      });
+      return () => unsubscribe();
   }, []);
 
-  // Auth & User Profile Subscription
+  // 3. Auth Listener
   useEffect(() => {
-    // Guard against auth being null if config is invalid but we passed the isConfigValid check
-    // (e.g. if config keys exist but are garbage)
-    if (!auth) {
-      console.warn("Firebase Auth not initialized correctly.");
-      setIsLoadingAuth(false);
-      return;
+    if (!firebaseAuth) {
+        setLoading(false);
+        return;
     }
-  
-    let userUnsubscribe: (() => void) | null = null;
-
-    const authUnsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      // Clear previous user listener if any
-      if (userUnsubscribe) {
-          userUnsubscribe();
-          userUnsubscribe = null;
-      }
-
+    const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        try {
-          // 1. Get Claims (Admin Status)
-          const idTokenResult = await firebaseUser.getIdTokenResult();
-          const isAdmin = !!idTokenResult.claims.isAdmin || firebaseUser.email === 'mayurhande90@gmail.com';
-          
-          // 2. Ensure Profile Exists (Run migration/creation logic once)
-          await getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'New User', firebaseUser.email);
-          await updateUserProfile(firebaseUser.uid, { lastActive: new Date() });
-
-          // 3. Subscribe to Real-time Profile Updates
-          userUnsubscribe = subscribeToUserProfile(firebaseUser.uid, (firestoreUser) => {
-              if (firestoreUser) {
-                  // Merge Auth Data with Firestore Data
-                  const userToSet: User = {
-                      ...firestoreUser,
-                      isAdmin: isAdmin,
-                      // Prefer Auth email as it's authoritative
-                      email: firebaseUser.email || firestoreUser.email,
-                      // Fallback name
-                      name: firestoreUser.name || firebaseUser.displayName || 'User',
-                  };
-                  setUser(userToSet);
-                  setIsAuthenticated(true);
-                  setAuthError(null);
-              } else {
-                  // Should rare, but handle if doc missing
-                  setUser(null);
-                  setIsAuthenticated(false);
-              }
-              setIsLoadingAuth(false);
-          });
-
-        } catch (error) {
-          console.error("Error in onAuthStateChanged handler:", error);
-          setAuthError("Failed to load your user profile. Please try signing in again.");
-          setUser(null);
-          setImpersonatedUser(null);
-          setIsAuthenticated(false);
-          setIsLoadingAuth(false);
-        }
+        subscribeToUserProfile(firebaseUser.uid, (profile) => {
+            if (profile) {
+                setUser(profile);
+            } else {
+                getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'User', firebaseUser.email)
+                    .then((newProfile) => setUser(newProfile as User));
+            }
+            setLoading(false);
+        });
       } else {
         setUser(null);
         setImpersonatedUser(null);
-        setIsAuthenticated(false);
-        setIsLoadingAuth(false);
+        setLoading(false);
       }
     });
-  
-    return () => {
-        authUnsubscribe();
-        if (userUnsubscribe) userUnsubscribe();
-    };
+
+    return () => unsubscribe();
   }, []);
 
-  const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
-    if (page === 'dashboard' && !isAuthenticated) {
-      setAuthModalOpen(true);
-      return;
-    }
+  // --- Handlers ---
 
-    const performNavigation = () => {
-        if (view) {
-            setActiveView(view);
-        } else if (page === 'dashboard') {
-            setActiveView('home_dashboard');
-        }
-        setCurrentPage(page);
-
-        if (sectionId) {
-            setTimeout(() => {
-                document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
-            }, 50);
-        } else {
-            window.scrollTo(0, 0);
-        }
-    };
-    
-    if (currentPage !== page) {
-        performNavigation();
-    } else {
-        if (sectionId) {
-            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
-        } else {
-             window.scrollTo(0, 0);
-        }
-        if (view) setActiveView(view);
-    }
-  }, [isAuthenticated, currentPage]);
-
-
-  useEffect(() => {
-    if (isAuthenticated && authModalOpen) {
-      setAuthModalOpen(false);
-      navigateTo('dashboard');
-    }
-  }, [isAuthenticated, authModalOpen, navigateTo]);
-
-  useEffect(() => {
-    if (authError) {
-      setAuthModalOpen(true);
-    }
-  }, [authError]);
-
-  const handleGoogleSignIn = async (): Promise<void> => {
+  const handleGoogleSignIn = async () => {
     try {
+      setAuthError(null);
       await signInWithGoogle();
-      setToastMessage("Successfully signed in!");
-      setToastType('success');
+      setIsAuthModalOpen(false);
     } catch (error: any) {
-       console.error("Google Sign-In Error:", error);
-       if (error.code === 'auth/unauthorized-domain') {
-          // ... error handling logic ...
-          setAuthError("Domain not authorized. Please check console.");
-       } else if (error.code === 'auth/account-exists-with-different-credential') {
-            setAuthError('An account already exists with this email address.');
-       } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-         setAuthError("Failed to sign in with Google. Please try again.");
-       }
-       throw error;
+      console.error("Sign in error", error);
+      setAuthError(error.message);
+      throw error; 
     }
   };
 
   const handleLogout = async () => {
-    try {
-      if (auth) await auth.signOut();
-      setCurrentPage('home');
-      window.scrollTo(0, 0);
-      setToastMessage("Successfully logged out!");
-      setToastType('logout');
-    } catch (error) {
-      console.error("Error signing out: ", error);
+    if (firebaseAuth) {
+        await firebaseAuth.signOut();
+        setUser(null);
+        setImpersonatedUser(null);
+        setCurrentPage('home');
     }
   };
-  
-  const handleSaveProfile = async (newName: string) => {
-    if (activeUser && newName.trim() && activeUser.name !== newName) {
-      try {
-        await updateUserProfile(activeUser.uid, { name: newName });
-        // No need to manually update state here, subscription will handle it!
-        setEditProfileModalOpen(false);
-      } catch (error) {
-        console.error("Failed to update profile:", error);
-      }
+
+  const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
+    setCurrentPage(page);
+    if (view) setCurrentView(view);
+    
+    // Handle scrolling for home page sections
+    if (page === 'home' && sectionId) {
+        setTimeout(() => {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
+    } else {
+        window.scrollTo(0, 0);
     }
-  };
-  
-  // Impersonation Handler
+  }, []);
+
   const handleImpersonate = (targetUser: User | null) => {
-      setImpersonatedUser(targetUser);
-      if (targetUser) {
-          setToastMessage(`Now viewing as ${targetUser.name}`);
-          setToastType('info');
-          // Reset to home dashboard view when switching users to avoid broken states
-          navigateTo('dashboard', 'home_dashboard');
-      } else {
-          setToastMessage(`Exited View Mode`);
-          setToastType('success');
-          // Return admin to admin panel
-          navigateTo('dashboard', 'admin');
+      if (user?.isAdmin) {
+          setImpersonatedUser(targetUser);
+          if (targetUser) {
+              navigateTo('dashboard', 'dashboard');
+          }
       }
   };
 
-  const openAuthModal = () => setAuthModalOpen(true);
-  const closeAuthModal = () => {
-      setAuthModalOpen(false);
-      setTimeout(() => setAuthError(null), 300);
+  // Helper to clear notification
+  const clearNotification = async () => {
+      if (activeUser) {
+          await updateUserProfile(activeUser.uid, { systemNotification: null as any });
+      }
   };
 
-  const authProps: AuthProps = {
-    isAuthenticated,
-    user: activeUser, // Pass the effective user (either real or impersonated)
-    setUser: impersonatedUser ? setImpersonatedUser : setUser, // Allow updates to flow to the correct state
-    handleLogout,
-    openAuthModal,
-    impersonateUser: handleImpersonate
-  };
+  // --- Render ---
 
-  if (isLoadingAuth || isConfigLoading) {
+  if (!isConfigValid) {
+      return <ConfigurationError missingKeys={missingKeys} />;
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
-        <svg className="animate-spin h-8 w-8 text-[#0079F2]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -347,15 +221,17 @@ const App: React.FC = () => {
       );
   }
 
-  // Helper to clear notification
-  const clearNotification = async () => {
-      if (auth && activeUser) {
-          await updateUserProfile(activeUser.uid, { systemNotification: null });
-      }
+  const authProps: AuthProps = {
+    isAuthenticated: !!activeUser,
+    user: activeUser,
+    setUser: impersonatedUser ? (() => {}) : setUser, // Disable local updates if impersonating
+    handleLogout,
+    openAuthModal: () => setIsAuthModalOpen(true),
+    impersonateUser: user?.isAdmin ? handleImpersonate : undefined
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col font-sans text-slate-900">
       {impersonatedUser && user && (
           <ImpersonationBanner 
             originalUser={user} 
@@ -367,10 +243,10 @@ const App: React.FC = () => {
       {/* 1. Global Announcement Display */}
       {showBanner && announcement && announcement.isActive && (
           <NotificationDisplay 
-              title={announcement.title} // Pass Title
+              title={announcement.title}
               message={announcement.message}
               type={announcement.type}
-              style={announcement.style || 'banner'} // Default fallback
+              style={announcement.style || 'banner'}
               link={announcement.link}
               onClose={() => setShowBanner(false)}
           />
@@ -379,10 +255,11 @@ const App: React.FC = () => {
       {/* 2. User System Notification Display */}
       {activeUser?.systemNotification && !activeUser.systemNotification.read && (
           <NotificationDisplay 
-              title={activeUser.systemNotification.title} // Pass Title
+              title={activeUser.systemNotification.title}
               message={activeUser.systemNotification.message}
               type={activeUser.systemNotification.type}
-              style={activeUser.systemNotification.style || 'banner'} // Default fallback
+              style={activeUser.systemNotification.style || 'banner'}
+              link={activeUser.systemNotification.link || undefined}
               onClose={clearNotification}
           />
       )}
@@ -397,34 +274,45 @@ const App: React.FC = () => {
               packageName={activeUser.creditGrantNotification.packageName}
           />
       )}
-      
-      {currentPage === 'home' && <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
-      {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
-      {currentPage === 'dashboard' && <DashboardPage navigateTo={navigateTo} auth={authProps} activeView={activeView} setActiveView={setActiveView} openEditProfileModal={() => setEditProfileModalOpen(true)} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} appConfig={appConfig} setAppConfig={setAppConfig} />}
-      
-      {authModalOpen && (
+
+      {currentPage === 'home' && (
+        <HomePage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
+        />
+      )}
+
+      {currentPage === 'about' && (
+        <AboutUsPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'dashboard' && (
+        <DashboardPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            activeView={currentView}
+            setActiveView={setCurrentView}
+            openEditProfileModal={() => {}} // Placeholder if needed
+            isConversationOpen={isConversationOpen}
+            setIsConversationOpen={setIsConversationOpen}
+            appConfig={appConfig}
+            setAppConfig={setAppConfig as any}
+        />
+      )}
+
+      {isAuthModalOpen && (
         <AuthModal 
-          onClose={closeAuthModal} 
-          onGoogleSignIn={handleGoogleSignIn}
-          error={authError}
-        />
-      )}
-      {editProfileModalOpen && activeUser && (
-        <EditProfileModal
-          user={activeUser}
-          onClose={() => setEditProfileModalOpen(false)}
-          onSave={handleSaveProfile}
-        />
-      )}
-      {toastMessage && (
-        <ToastNotification 
-            message={toastMessage} 
-            type={toastType} 
-            onClose={() => setToastMessage(null)} 
+            onClose={() => setIsAuthModalOpen(false)} 
+            onGoogleSignIn={handleGoogleSignIn}
+            error={authError}
         />
       )}
     </div>
   );
-};
+}
 
 export default App;
