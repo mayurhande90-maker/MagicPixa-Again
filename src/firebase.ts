@@ -52,8 +52,6 @@ if (isConfigValid) {
     storage = firebase.storage();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
-    // Even if config is technically present, if initialization fails, we treat it as invalid
-    // so the UI can show an error instead of crashing.
   }
 } else {
   console.error("Configuration is missing or incomplete. Please check your environment variables. Missing:", missingKeys.join(', '));
@@ -83,13 +81,17 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
 
+    // SUPER ADMIN CHECK: Ensure DB permissions match Frontend Logic
+    const SUPER_ADMIN_EMAIL = 'mayurhande90@gmail.com';
+    const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
+
     if (!doc.exists) {
         // New User
         const newUser: Partial<User> = {
             uid,
             name,
             email: email || '',
-            avatar: initials, // Added avatar
+            avatar: initials, 
             credits: 10, // Signup bonus
             totalCreditsAcquired: 10,
             plan: 'Free',
@@ -98,7 +100,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             storageTier: 'limited',
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
             referralCount: 0,
-            isAdmin: false,
+            isAdmin: isSuperAdmin, // Force Admin status in DB for Super Admin
             isBanned: false,
         };
         await userRef.set(newUser);
@@ -106,6 +108,13 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     }
     
     const userData = doc.data() as User;
+    
+    // Auto-Promote Super Admin in DB if missing permissions (Critical for Security Rules)
+    if (isSuperAdmin && !userData.isAdmin) {
+        console.log("Promoting super admin in database...");
+        await userRef.update({ isAdmin: true });
+        return { ...userData, isAdmin: true };
+    }
     
     // Migration: Ensure existing users have an avatar in DB
     if (!userData.avatar) {
