@@ -1,76 +1,20 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { logApiError, auth } from '../firebase';
 
 // --- SECURITY TOGGLE ---
 // Set to TRUE to use the secure Vercel backend (api/generate.ts)
-// This protects your API Key from being stolen.
-const USE_SECURE_BACKEND = true; 
+// Set to FALSE to use the exposed client-side key (Development/Fallback)
+const USE_SECURE_BACKEND = false; 
 
 /**
  * Helper function to get a fresh AI client on every call.
- * Returns a Proxy if USE_SECURE_BACKEND is true.
+ * This is used ONLY when USE_SECURE_BACKEND is false.
  */
 export const getAiClient = (): GoogleGenAI => {
-    if (USE_SECURE_BACKEND) {
-        // Return a Proxy that redirects generateContent to the secure endpoint
-        return {
-            models: {
-                generateContent: async (params: any) => {
-                    return secureGenerateContent({
-                        model: params.model,
-                        contents: params.contents,
-                        config: params.config
-                    });
-                },
-                generateVideos: async (params: any) => {
-                     // Fallback to client-side key for Video if available, 
-                     // as the current backend endpoint might only handle generateContent.
-                     // If no client key, this will fail safely.
-                     const apiKey = import.meta.env.VITE_API_KEY;
-                     if(apiKey && apiKey !== 'undefined') {
-                         const realAi = new GoogleGenAI({ apiKey });
-                         return realAi.models.generateVideos(params);
-                     }
-                     throw new Error("Video generation requires a configured backend endpoint or client-side key.");
-                }
-            },
-            chats: {
-                create: (config: any) => {
-                    const history = config.history || [];
-                    return {
-                        sendMessage: async (msgParams: { message: string }) => {
-                            const contents = [
-                                ...history,
-                                { role: 'user', parts: [{ text: msgParams.message }] }
-                            ];
-                            const response = await secureGenerateContent({
-                                model: config.model,
-                                contents: contents,
-                                config: config.config
-                            });
-                            
-                            // Update local history
-                            history.push({ role: 'user', parts: [{ text: msgParams.message }] });
-                            if (response.text) {
-                                history.push({ role: 'model', parts: [{ text: response.text }] });
-                            }
-                            return response;
-                        }
-                    }
-                }
-            },
-            live: {
-                connect: () => {
-                     throw new Error("Live API is not supported via secure backend proxy yet.");
-                }
-            }
-        } as unknown as GoogleGenAI;
-    }
-
     const apiKey = import.meta.env.VITE_API_KEY;
     if (!apiKey || apiKey === 'undefined') {
-      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable.");
+      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
     }
     return new GoogleGenAI({ apiKey });
 };
@@ -109,8 +53,8 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
 };
 
 /**
- * The Main Entry Point for Secure AI Generation.
- * Calls the backend API route.
+ * The Main Entry Point for AI Generation.
+ * Switches between Secure Backend and Client-Side based on configuration.
  */
 export const secureGenerateContent = async (params: { 
     model: string; 
@@ -119,46 +63,41 @@ export const secureGenerateContent = async (params: {
     cost?: number;
     featureName?: string;
 }) => {
-    // 1. Authenticate: Get current user token
-    const user = auth?.currentUser;
-    if (!user) throw new Error("You must be logged in to use this feature.");
-    
-    const token = await user.getIdToken();
+    if (USE_SECURE_BACKEND) {
+        // 1. Get current user token for authentication
+        const user = auth?.currentUser;
+        if (!user) throw new Error("You must be logged in to use this feature.");
+        
+        const token = await user.getIdToken();
 
-    // 2. Call Backend API Route
-    // We send cost: 0 to prevent the backend from deducting credits, 
-    // as the frontend handles the specific cost logic for each feature.
-    const payload = { ...params, cost: 0 };
+        // 2. Call Vercel API Route
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(params)
+        });
 
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // 3. Hydrate response to match SDK behavior (add getters like .text)
-    // The backend returns raw JSON, so we must manually add the helper property.
-    Object.defineProperty(data, 'text', {
-        get() {
-            if (this.candidates && this.candidates.length > 0) {
-                const parts = this.candidates[0].content?.parts;
-                if (parts && parts.length > 0 && parts[0].text) {
-                    return parts[0].text;
-                }
-            }
-            return undefined;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server Error: ${response.status}`);
         }
-    });
 
-    return data as GenerateContentResponse;
+        const data = await response.json();
+        
+        // The backend returns the raw Gemini response object.
+        // We pass it back as-is so the services don't need to change.
+        return data;
+
+    } else {
+        // Fallback to Client-Side (Insecure but works for dev)
+        const ai = getAiClient();
+        return await ai.models.generateContent({
+            model: params.model,
+            contents: params.contents,
+            config: params.config
+        });
+    }
 };
