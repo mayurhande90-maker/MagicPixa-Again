@@ -389,11 +389,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Separate useEffects to prevent config overwrites while editing
     useEffect(() => {
-        if (appConfig) setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
+        if (appConfig && !hasChanges) {
+            setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
+        }
+    }, [appConfig]); // removed hasChanges from deps so it doesn't trigger on user edit
+
+    useEffect(() => {
         loadOverview();
         fetchAnnouncement();
-    }, [appConfig]);
+    }, []); // Run once on mount
 
     useEffect(() => {
         if (activeTab === 'users') loadUsers();
@@ -455,16 +461,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const loadOverview = async () => {
         try {
-            // Default to lifetime revenue initially or whatever state is
-            // Note: fetchRevenueWithFilter handles the specific revenue part based on state
-            // Here we fetch the other static overview items
             const [signups, purchases, revHistory] = await Promise.all([
                 getRecentSignups(10),
                 getRecentPurchases(10),
                 getRevenueStats(7)
             ]);
             
-            // Initial Revenue fetch (defaults to lifetime)
             const rev = await getTotalRevenue();
 
             setStats({ revenue: rev, signups, purchases });
@@ -486,8 +488,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         }
     };
 
-    // ... (Existing helper functions like loadUsers, loadLogs, etc.) ...
-    
     // Helper for user sorting
     useEffect(() => {
         let res = [...allUsers];
@@ -565,16 +565,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const fetchAnnouncement = async () => {
-        const ann = await getAnnouncement();
-        if (ann) {
-            setAnnouncement({
-                title: ann.title ?? '',
-                message: ann.message ?? '',
-                isActive: ann.isActive ?? false,
-                type: ann.type ?? 'info',
-                link: ann.link ?? '',
-                style: ann.style ?? 'banner'
-            });
+        try {
+            const ann = await getAnnouncement();
+            if (ann) {
+                // Ensure default values to prevent uncontrolled input warnings
+                setAnnouncement({
+                    title: ann.title ?? '',
+                    message: ann.message ?? '',
+                    isActive: ann.isActive ?? false,
+                    type: ann.type ?? 'info',
+                    link: ann.link ?? '',
+                    style: ann.style ?? 'banner'
+                });
+            } else {
+                // Set defaults if no announcement found in DB
+                setAnnouncement({
+                    title: '',
+                    message: '',
+                    isActive: false,
+                    type: 'info',
+                    link: '',
+                    style: 'banner'
+                });
+            }
+        } catch (e) {
+            console.error("Failed to fetch announcement", e);
         }
     };
 
@@ -691,9 +706,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         try {
             await updateAnnouncement(auth.user.uid, announcement);
             alert("Announcement updated successfully.");
-        } catch (e) {
+        } catch (e: any) {
             console.error("Announcement Update Error:", e);
-            alert("Failed to update announcement. Check console.");
+            alert(`Failed to update announcement: ${e.message || "Unknown error"}. Check console.`);
         }
     };
 
@@ -923,7 +938,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                         <div className="flex items-center gap-2">
                                             <input 
                                                 type="number" 
-                                                value={cost} 
+                                                value={cost ?? 0} 
                                                 min="0"
                                                 onChange={(e) => handleConfigChange('featureCosts', feature, parseInt(e.target.value) || 0)}
                                                 className="w-16 p-2 text-right border border-gray-200 rounded-lg font-mono font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
