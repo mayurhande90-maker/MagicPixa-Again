@@ -2,10 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
-    FeatureLayout, 
-    UploadPlaceholder
-} from '../components/FeatureLayout';
-import { 
     saveCreation, 
     completeDailyMission
 } from '../firebase';
@@ -16,7 +12,9 @@ import {
     UploadIcon, 
     FlagIcon,
     CheckIcon,
-    SparklesIcon
+    SparklesIcon,
+    XIcon,
+    ArrowLeftIcon
 } from '../components/icons';
 
 // --- Mission Success Modal ---
@@ -73,6 +71,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     const [result, setResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mission = getDailyMission();
@@ -84,6 +83,23 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
             setResult(null);
+        }
+        e.target.value = '';
+    };
+
+    // Drag & Drop Handlers
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                const base64 = await fileToBase64(file);
+                setImage({ url: URL.createObjectURL(file), base64 });
+                setResult(null);
+            }
         }
     };
 
@@ -116,57 +132,138 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         }
     };
 
+    const handleReset = () => {
+        setImage(null);
+        setResult(null);
+    };
+
     return (
-        <>
-            <FeatureLayout
-                title={mission.title}
-                description={mission.description}
-                icon={<FlagIcon className="w-6 h-6 text-indigo-500" />}
-                creditCost={0}
-                isGenerating={loading}
-                canGenerate={!!image && !isLocked}
-                onGenerate={handleExecute}
-                resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={() => { setImage(null); setResult(null); }}
-                resultHeightClass="h-[500px]"
-                hideGenerateButton={isLocked}
-                generateButtonStyle={{
-                    className: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg border-none hover:scale-[1.02]",
-                    hideIcon: false,
-                    label: "Complete Mission"
-                }}
-                leftContent={
-                    image ? (
-                        <div className="relative h-full w-full flex items-center justify-center p-4">
-                            <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md object-contain" alt="Source" />
-                            {!loading && (
-                                <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-gray-100">
-                                    <UploadIcon className="w-5 h-5 text-gray-600" />
+        <div className="p-6 lg:p-12 max-w-4xl mx-auto min-h-screen animate-fadeIn pb-32">
+            
+            {/* Header / Brief */}
+            <div className="text-center mb-10">
+                <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border border-indigo-100 shadow-sm">
+                    <FlagIcon className="w-4 h-4" /> Daily Challenge
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black text-[#1A1A1E] mb-4 tracking-tight">{mission.title}</h1>
+                <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">{mission.description}</p>
+            </div>
+
+            {/* Mission Card */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden relative transition-all duration-500">
+                
+                {/* Reward Banner */}
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-bold opacity-90">
+                        <SparklesIcon className="w-5 h-5"/> Reward:
+                    </div>
+                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm font-bold border border-white/10 shadow-sm">
+                        <span className="text-yellow-300 text-lg">+ {mission.reward}</span> Credits
+                    </div>
+                </div>
+
+                {/* Main Interaction Area */}
+                <div className="p-8 md:p-12 bg-gray-50/50">
+                    
+                    {/* STATE 1: RESULT */}
+                    {result ? (
+                        <div className="animate-fadeIn">
+                            <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border-4 border-white mx-auto max-w-2xl group">
+                                <img src={result} className="w-full h-full object-cover" alt="Mission Result" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
+                                    <p className="text-white font-bold tracking-widest text-sm uppercase">Mission Accomplished</p>
+                                </div>
+                            </div>
+                            <div className="text-center mt-8">
+                                <button 
+                                    onClick={() => navigateTo('dashboard', 'home_dashboard')}
+                                    className="bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:scale-105"
+                                >
+                                    Return to Dashboard
                                 </button>
-                            )}
+                            </div>
                         </div>
                     ) : (
-                        <UploadPlaceholder label="Upload Photo" onClick={() => fileInputRef.current?.click()} />
-                    )
-                }
-                rightContent={
-                    <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 h-full flex flex-col justify-center text-center">
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                            <SparklesIcon className="w-8 h-8 text-indigo-500" />
+                        // STATE 2: UPLOAD & ACTION
+                        <div className="max-w-xl mx-auto">
+                            {/* Upload Zone */}
+                            <div className="relative aspect-[4/3] mb-8">
+                                {image ? (
+                                    <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 group bg-white">
+                                        <img src={image.url} className="w-full h-full object-contain" alt="Preview" />
+                                        
+                                        {!loading && (
+                                            <button 
+                                                onClick={handleReset}
+                                                className="absolute top-3 right-3 bg-white/90 p-2 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors"
+                                            >
+                                                <XIcon className="w-5 h-5"/>
+                                            </button>
+                                        )}
+
+                                        {loading && (
+                                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                                                <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                                                <p className="text-indigo-900 font-bold animate-pulse">Pixa is working...</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDragOver={handleDragOver}
+                                        onDragEnter={handleDragEnter}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        className={`w-full h-full border-3 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group ${
+                                            isDragging 
+                                            ? 'border-indigo-500 bg-indigo-50' 
+                                            : 'border-gray-300 bg-white hover:border-indigo-400 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${isDragging ? 'bg-white' : 'bg-gray-50'}`}>
+                                            <UploadIcon className={`w-10 h-10 ${isDragging ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-500'}`} />
+                                        </div>
+                                        <p className="text-lg font-bold text-gray-700">Upload Photo</p>
+                                        <p className="text-sm text-gray-400 mt-1">or drag and drop</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Action Button */}
+                            <button
+                                onClick={handleExecute}
+                                disabled={!image || loading || isLocked}
+                                className={`w-full py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all shadow-xl ${
+                                    isLocked
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                    : !image 
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                        : loading 
+                                            ? 'bg-indigo-400 text-white cursor-wait'
+                                            : 'bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] hover:scale-[1.02] hover:shadow-yellow-500/20'
+                                }`}
+                            >
+                                {isLocked 
+                                    ? 'Mission Locked' 
+                                    : loading 
+                                        ? 'Completing Mission...' 
+                                        : 'Complete Mission'
+                                }
+                            </button>
+                            
+                            {isLocked && (
+                                <p className="text-center text-sm text-gray-400 mt-4 font-medium">
+                                    Come back tomorrow for a new challenge!
+                                </p>
+                            )}
                         </div>
-                        <h3 className="font-bold text-indigo-900 mb-2">Mission Brief</h3>
-                        <p className="text-sm text-indigo-700 leading-relaxed mb-6">
-                            {mission.description}
-                        </p>
-                        <div className="bg-white px-4 py-3 rounded-xl border border-indigo-100 inline-block mx-auto shadow-sm">
-                            <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">REWARD</p>
-                            <p className="text-2xl font-black text-indigo-600">+{mission.reward} Credits</p>
-                        </div>
-                    </div>
-                }
-            />
+                    )}
+                </div>
+            </div>
+
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*" />
+            
             {showSuccess && (
                 <MissionSuccessModal 
                     reward={mission.reward} 
@@ -176,7 +273,6 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                     }} 
                 />
             )}
-        </>
+        </div>
     );
 };
-    
