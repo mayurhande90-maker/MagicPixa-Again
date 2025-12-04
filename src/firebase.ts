@@ -183,8 +183,10 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
 
 export const updateAnnouncement = async (uid: string, announcement: Announcement) => {
     if (!db) return;
-    await db.collection('system').doc('announcement').set(announcement);
-    await logAudit(uid, 'Update Announcement', `Updated global announcement: ${announcement.title}`);
+    // Sanitize payload to remove undefined fields which Firestore rejects
+    const safeAnnouncement = JSON.parse(JSON.stringify(announcement));
+    await db.collection('system').doc('announcement').set(safeAnnouncement);
+    await logAudit(uid, 'Update Announcement', `Updated global announcement: ${announcement.title || 'Untitled'}`);
 };
 
 export const getAnnouncement = async () => {

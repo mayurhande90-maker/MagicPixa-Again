@@ -566,7 +566,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
     const fetchAnnouncement = async () => {
         const ann = await getAnnouncement();
-        if (ann) setAnnouncement(ann);
+        if (ann) {
+            setAnnouncement({
+                title: ann.title ?? '',
+                message: ann.message ?? '',
+                isActive: ann.isActive ?? false,
+                type: ann.type ?? 'info',
+                link: ann.link ?? '',
+                style: ann.style ?? 'banner'
+            });
+        }
     };
 
     const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => {
