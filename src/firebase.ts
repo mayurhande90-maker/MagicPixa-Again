@@ -80,8 +80,6 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
 
-    // SUPER ADMIN CHECK: Ensure DB permissions match Frontend Logic
-    // This email must match the one in your Firestore Security Rules
     const SUPER_ADMIN_EMAIL = 'mayurhande90@gmail.com';
     const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
 
@@ -108,15 +106,12 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     
     const userData = doc.data() as User;
     
-    // FORCE ADMIN STATUS FOR SUPER USER
     if (isSuperAdmin && userData.isAdmin !== true) {
-        console.log("Promoting super admin in database...");
         try {
             await userRef.set({ isAdmin: true }, { merge: true });
             return { ...userData, isAdmin: true };
         } catch (e) {
             console.error("Failed to promote Super Admin (DB permission issue?)", e);
-            // If DB update fails (likely due to rules), we still return admin true for frontend
             return { ...userData, isAdmin: true };
         }
     }
@@ -158,7 +153,7 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
         callback(null);
         return () => {};
     }
-    // Fixed: 'system' -> 'config' collection, 'config' -> 'main' doc (based on rules)
+    // Fixed: 'system' -> 'config'
     return db.collection('config').doc('main').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as AppConfig);
@@ -173,7 +168,7 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
 
 export const updateAppConfig = async (config: AppConfig) => {
     if (!db) return;
-    // Fixed: 'system' -> 'config', 'config' -> 'main'
+    // Fixed: 'system' -> 'config'
     await db.collection('config').doc('main').set(config, { merge: true });
 };
 
@@ -208,7 +203,7 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
     };
 
     try {
-        // Fixed: 'system' -> 'config'
+        // Fixed: 'system' -> 'config' to match Firestore Rules
         await db.collection('config').doc('announcement').set(cleanPayload);
         
         try {
@@ -218,7 +213,7 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
     } catch (error: any) {
         console.error("Update Announcement FAILED:", error);
         if (error.code === 'permission-denied') {
-            throw new Error(`Permission Denied. Ensure your email matches the rule 'mayurhande90@gmail.com' and collections match 'config'.`);
+            throw new Error(`Permission Denied. Ensure your email matches the rule 'mayurhande90@gmail.com'.`);
         }
         throw error;
     }
@@ -450,14 +445,17 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
 
 export const getAllUsers = async () => {
     if (!db) return [];
+    // Ensure we are fetching from 'users' collection
     const snapshot = await db.collection('users').limit(100).get(); 
-    return snapshot.docs.map(doc => doc.data() as User);
+    // CRITICAL: Map the doc.id to the 'uid' field to ensure the object is complete
+    // even if the uid wasn't explicitly saved as a field in the document.
+    return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
 };
 
 export const getUser = async (uid: string) => {
     if (!db) return null;
     const doc = await db.collection('users').doc(uid).get();
-    return doc.exists ? (doc.data() as User) : null;
+    return doc.exists ? ({ uid: doc.id, ...doc.data() } as User) : null;
 };
 
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => {
@@ -530,7 +528,7 @@ export const updateUserPlan = async (uid: string, plan: string) => {
 export const getRecentSignups = async (limit = 10) => {
     if (!db) return [];
     const snap = await db.collection('users').orderBy('signUpDate', 'desc').limit(limit).get();
-    return snap.docs.map(d => d.data() as User);
+    return snap.docs.map(d => ({ uid: d.id, ...d.data() } as User));
 };
 
 export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => {
@@ -566,7 +564,7 @@ export const get24HourCreditBurn = async () => {
 
 export const getGlobalFeatureUsage = async () => {
     if (!db) return [];
-    // Fixed: 'system' -> 'config' to match rules
+    // Fixed: 'system' -> 'config'
     const doc = await db.collection('config').doc('stats').get();
     if (doc.exists && doc.data()?.featureUsage) {
         return Object.entries(doc.data()!.featureUsage).map(([k, v]) => ({ feature: k, count: v as number }));
@@ -578,7 +576,7 @@ export const getGlobalFeatureUsage = async () => {
 
 export const logAudit = async (adminUid: string, action: string, details: string) => {
     if (!db) return;
-    // Fixed: 'auditLogs' -> 'audit_logs' (snake_case from rules)
+    // Fixed: 'auditLogs' -> 'audit_logs' (snake_case)
     await db.collection('audit_logs').add({
         adminEmail: auth?.currentUser?.email || adminUid,
         action,
@@ -596,7 +594,7 @@ export const getAuditLogs = async (limit = 50) => {
 
 export const logApiError = async (endpoint: string, error: string, userId?: string) => {
     if (!db) return;
-    // Fixed: 'apiErrors' -> 'api_errors' (snake_case from rules)
+    // Fixed: 'apiErrors' -> 'api_errors' (snake_case)
     await db.collection('api_errors').add({
         endpoint,
         error,

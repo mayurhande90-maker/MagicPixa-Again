@@ -1,4 +1,4 @@
-// ... existing imports ...
+
 import React, { useState, useEffect } from 'react';
 import { AuthProps, AppConfig, User, Purchase, AuditLog, Announcement, ApiErrorLog, CreditPack } from '../types';
 import { 
@@ -9,20 +9,16 @@ import {
     getRecentPurchases, 
     getTotalRevenue,
     toggleUserBan,
-    updateUserPlan,
     getAuditLogs,
     getAnnouncement,
     updateAnnouncement,
     getGlobalFeatureUsage,
-    getCreations,
     sendSystemNotification,
     getApiErrorLogs,
     get24HourCreditBurn,
     getRevenueStats,
-    getUser,
     grantPackageToUser
 } from '../firebase';
-// ... icon imports ...
 import { 
     UsersIcon, 
     CreditCardIcon, 
@@ -45,14 +41,136 @@ import {
     TicketIcon,
     StarIcon,
     FilterIcon,
-    CalendarIcon,
     GiftIcon
 } from './icons';
 
-// ... (Rest of UserDetailModal and helper components same as before) ...
+interface AdminPanelProps {
+    auth: AuthProps;
+    appConfig: AppConfig | null;
+    onConfigUpdate: (config: AppConfig) => void;
+}
+
+const UserDetailModal: React.FC<{
+    user: User;
+    currentUser: User;
+    appConfig: AppConfig | null;
+    onClose: () => void;
+}> = ({ user, currentUser, appConfig, onClose }) => {
+    const [creditAmount, setCreditAmount] = useState(0);
+    const [creditReason, setCreditReason] = useState('');
+    const [selectedPackIndex, setSelectedPackIndex] = useState(0);
+    const [notificationMsg, setNotificationMsg] = useState('');
+    const [notificationTitle, setNotificationTitle] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleGrantCredits = async () => {
+        if (creditAmount <= 0) return;
+        setIsLoading(true);
+        try {
+            await addCreditsToUser(currentUser.uid, user.uid, creditAmount, creditReason || 'Admin Grant');
+            alert(`Granted ${creditAmount} credits.`);
+            setCreditAmount(0);
+            setCreditReason('');
+        } catch (e: any) {
+            alert('Failed to grant credits: ' + e.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGrantPack = async () => {
+        if (!appConfig?.creditPacks?.[selectedPackIndex]) return;
+        const pack = appConfig.creditPacks[selectedPackIndex];
+        if(confirm(`Grant ${pack.name} to ${user.email}?`)) {
+            setIsLoading(true);
+            try {
+                await grantPackageToUser(currentUser.uid, user.uid, pack, 'Admin Gift');
+                alert(`Granted ${pack.name}.`);
+            } catch (e: any) {
+                alert('Failed to grant package: ' + e.message);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    const handleSendNotification = async () => {
+        if (!notificationMsg) return;
+        setIsLoading(true);
+        try {
+            await sendSystemNotification(currentUser.uid, user.uid, notificationTitle || 'System Message', notificationMsg, 'info', 'modal');
+            alert('Notification sent.');
+            setNotificationMsg('');
+            setNotificationTitle('');
+        } catch (e: any) {
+            alert('Failed to send notification: ' + e.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                    <h2 className="text-xl font-bold text-gray-800">User Details: {user.name}</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><XIcon className="w-5 h-5"/></button>
+                </div>
+                
+                <div className="p-6 space-y-8">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Credits</p>
+                            <p className="text-2xl font-black text-[#1A1A1E]">{user.credits}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Plan</p>
+                            <p className="text-2xl font-black text-[#1A1A1E]">{user.plan || 'Free'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">UID</p>
+                            <p className="text-xs font-mono text-gray-600 break-all">{user.uid}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Email</p>
+                            <p className="text-sm font-medium text-gray-800 break-all">{user.email}</p>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><CreditCardIcon className="w-5 h-5"/> Grant Credits</h3>
+                        <div className="flex gap-2">
+                            <input type="number" placeholder="Amount" value={creditAmount || ''} onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)} className="w-24 px-3 py-2 border rounded-lg outline-none focus:border-indigo-500"/>
+                            <input type="text" placeholder="Reason (Optional)" value={creditReason} onChange={(e) => setCreditReason(e.target.value)} className="flex-1 px-3 py-2 border rounded-lg outline-none focus:border-indigo-500"/>
+                            <button onClick={handleGrantCredits} disabled={isLoading || creditAmount <= 0} className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 disabled:opacity-50">Grant</button>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><GiftIcon className="w-5 h-5"/> Grant Package</h3>
+                        <div className="flex gap-2">
+                            <select value={selectedPackIndex} onChange={(e) => setSelectedPackIndex(parseInt(e.target.value))} className="flex-1 px-3 py-2 border rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                {appConfig?.creditPacks.map((p, i) => (
+                                    <option key={i} value={i}>{p.name} ({p.totalCredits} Cr)</option>
+                                ))}
+                            </select>
+                            <button onClick={handleGrantPack} disabled={isLoading} className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-purple-700 disabled:opacity-50">Grant Pack</button>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FlagIcon className="w-5 h-5"/> Send Notification</h3>
+                        <input type="text" placeholder="Title" value={notificationTitle} onChange={(e) => setNotificationTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500"/>
+                        <textarea placeholder="Message" value={notificationMsg} onChange={(e) => setNotificationMsg(e.target.value)} className="w-full px-3 py-2 border rounded-lg mb-2 outline-none focus:border-indigo-500" rows={2}/>
+                        <button onClick={handleSendNotification} disabled={isLoading || !notificationMsg} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm w-full hover:bg-blue-700 disabled:opacity-50">Send Message</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    // ... existing state ...
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'comms' | 'system' | 'config'>('overview');
     const [stats, setStats] = useState<{ revenue: number, signups: User[], purchases: Purchase[] }>({ revenue: 0, signups: [], purchases: [] });
     const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
@@ -86,7 +204,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // ... useEffects for loading data ...
     useEffect(() => {
         if (appConfig) {
             setLocalConfig(prev => {
@@ -116,7 +233,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         }
     }, [revenueFilter]);
 
-    // ... Helper functions (fetchRevenueWithFilter, applyCustomRange, loadOverview, etc.) ...
+    useEffect(() => {
+        // Filtering logic for users
+        let result = [...allUsers];
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter(u => 
+                u.name?.toLowerCase().includes(term) || 
+                u.email?.toLowerCase().includes(term) ||
+                u.uid?.toLowerCase().includes(term)
+            );
+        }
+        
+        if (sortMode === 'newest') {
+            result.sort((a, b) => {
+                const da = a.signUpDate ? (a.signUpDate as any).seconds : 0;
+                const db = b.signUpDate ? (b.signUpDate as any).seconds : 0;
+                return db - da;
+            });
+        } else if (sortMode === 'oldest') {
+            result.sort((a, b) => {
+                const da = a.signUpDate ? (a.signUpDate as any).seconds : 0;
+                const db = b.signUpDate ? (b.signUpDate as any).seconds : 0;
+                return da - db;
+            });
+        } else if (sortMode === 'credits') {
+            result.sort((a, b) => (b.credits || 0) - (a.credits || 0));
+        }
+        
+        setFilteredUsers(result);
+        setCurrentPage(1); // Reset to first page on filter change
+    }, [allUsers, searchTerm, sortMode]);
+
     const fetchRevenueWithFilter = async () => {
         let start: Date | undefined;
         let end: Date | undefined = new Date();
@@ -145,10 +293,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         } catch (e) { console.error("Failed to load overview", e); }
     };
 
-    const loadUsers = async () => { setIsLoading(true); try { const users = await getAllUsers(); setAllUsers(users); } finally { setIsLoading(false); } };
-    const loadLogs = async () => { setIsRefreshingLogs(true); try { if (systemLogType === 'audit') { const logs = await getAuditLogs(50); setAuditLogs(logs); } else { const errors = await getApiErrorLogs(50); setApiErrors(errors); } } catch (e) { console.error("Logs permission error", e); } setIsRefreshingLogs(false); };
+    const loadUsers = async () => { 
+        setIsLoading(true); 
+        try { 
+            const users = await getAllUsers(); 
+            setAllUsers(users); 
+        } catch (e: any) {
+            console.error("Failed to load users:", e);
+            alert(`Error loading users: ${e.message}`);
+        } finally { 
+            setIsLoading(false); 
+        } 
+    };
+
+    const loadLogs = async () => { 
+        setIsRefreshingLogs(true); 
+        try { 
+            if (systemLogType === 'audit') { 
+                const logs = await getAuditLogs(50); 
+                setAuditLogs(logs); 
+            } else { 
+                const errors = await getApiErrorLogs(50); 
+                setApiErrors(errors); 
+            } 
+        } catch (e: any) { 
+            console.error("Logs permission error", e);
+        } 
+        setIsRefreshingLogs(false); 
+    };
     
-    // ... Other helpers (formatTableDate, etc) ...
     const formatTableDate = (timestamp: any) => { if (!timestamp) return '-'; try { const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp); return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return '-'; } };
     const loadAnalytics = async () => { const usage = await getGlobalFeatureUsage(); setFeatureUsage(usage); };
 
@@ -175,13 +348,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const removeCostKey = (key: string) => { if (!localConfig) return; if (confirm(`Delete pricing for "${key}"?`)) { setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); delete next.featureCosts[key]; return next; }); setHasChanges(true); } };
-    const handlePackChange = (index: number, field: keyof CreditPack, value: any) => { if (!localConfig) return; setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); const pack = next.creditPacks[index]; pack[field] = value; if (field === 'credits' || field === 'bonus') { pack.totalCredits = (parseInt(pack.credits) || 0) + (parseInt(pack.bonus) || 0); } const newCredits = field === 'credits' ? value : pack.credits; const newBonus = field === 'bonus' ? value : pack.bonus; const newPrice = field === 'price' ? value : pack.price; const total = (parseInt(newCredits) || 0) + (parseInt(newBonus) || 0); if (total > 0 && newPrice > 0) { pack.value = parseFloat((newPrice / total).toFixed(2)); } else { pack.value = 0; } return next; }); setHasChanges(true); };
+    const handlePackChange = (index: number, field: keyof CreditPack, value: any) => { if (!localConfig) return; setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); const pack = next.creditPacks[index]; (pack as any)[field] = value; if (field === 'credits' || field === 'bonus') { pack.totalCredits = (parseInt(pack.credits.toString()) || 0) + (parseInt(pack.bonus.toString()) || 0); } const newCredits = field === 'credits' ? value : pack.credits; const newBonus = field === 'bonus' ? value : pack.bonus; const newPrice = field === 'price' ? value : pack.price; const total = (parseInt(newCredits) || 0) + (parseInt(newBonus) || 0); if (total > 0 && newPrice > 0) { pack.value = parseFloat((newPrice / total).toFixed(2)); } else { pack.value = 0; } return next; }); setHasChanges(true); };
     const addPack = () => { if (!localConfig) return; setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); next.creditPacks.push({ name: 'New Pack', price: 0, credits: 0, totalCredits: 0, bonus: 0, tagline: 'Best value', popular: false, value: 0 }); return next; }); setHasChanges(true); };
     const removePack = (index: number) => { if (!localConfig) return; if (confirm("Delete this package?")) { setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); next.creditPacks.splice(index, 1); return next; }); setHasChanges(true); } };
     const saveConfig = async () => { if (!localConfig) return; try { await updateAppConfig(localConfig); onConfigUpdate(localConfig); setHasChanges(false); alert("Configuration updated successfully."); } catch (e) { console.error("Config save error", e); alert("Failed to save config. Check permissions."); } };
     const handleToggleBan = async (user: User) => { if (confirm(`Confirm ${user.isBanned ? 'UNBAN' : 'BAN'} for ${user.email}?`)) { if(auth.user) await toggleUserBan(auth.user.uid, user.uid, !user.isBanned); loadUsers(); } };
     
-    // UPDATED SAVE ANNOUNCEMENT WITH ERROR HANDLING FOR ADMINS
     const handleSaveAnnouncement = async () => {
         if(!auth.user) return;
         try {
@@ -189,10 +361,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             alert("Announcement updated successfully.");
         } catch (e: any) {
             console.error("Announcement Update Error:", e);
-            
             let errorMsg = `Failed to update announcement: ${e.message || "Unknown error"}.`;
             if (e.message && e.message.includes('Permission Denied')) {
-                errorMsg = "Database Permission Error. The server rejected the update because your user account does not have 'isAdmin: true' in the database. Please check the Firestore Console.";
+                errorMsg = "Database Permission Error. The server rejected the update because your user account does not have 'isAdmin: true' in the database.";
             }
             alert(errorMsg);
         }
@@ -223,7 +394,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 <div className="space-y-8 animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
-                            {/* ... revenue card content ... */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-3 bg-green-100 text-green-600 rounded-xl"><CreditCardIcon className="w-6 h-6"/></div>
                                 <div className="relative">
@@ -283,7 +453,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* Other Tabs Rendering... */}
             {activeTab === 'config' && (
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
                     <div className="flex justify-between items-center mb-6"><div><h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2><p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p></div>{hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">Save Changes</button>}</div>
@@ -322,7 +491,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
-            {/* Other tabs like Comms, System, Analytics remain the same */}
             {activeTab === 'comms' && (
                 <div className="max-w-2xl mx-auto animate-fadeIn bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div><h3 className="text-xl font-bold text-gray-800">Global Announcement</h3></div>
