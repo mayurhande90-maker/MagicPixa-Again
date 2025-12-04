@@ -76,23 +76,22 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     const userRef = db.collection('users').doc(uid);
     const doc = await userRef.get();
     
-    // Generate initials for avatar (Fix for missing profile picture)
     const initials = name
         ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
 
     // SUPER ADMIN CHECK: Ensure DB permissions match Frontend Logic
+    // This email must match the one in your Firestore Security Rules
     const SUPER_ADMIN_EMAIL = 'mayurhande90@gmail.com';
     const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
 
     if (!doc.exists) {
-        // New User
         const newUser: Partial<User> = {
             uid,
             name,
             email: email || '',
             avatar: initials, 
-            credits: 10, // Signup bonus
+            credits: 10,
             totalCreditsAcquired: 10,
             plan: 'Free',
             signUpDate: firebase.firestore.Timestamp.now() as any,
@@ -100,7 +99,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             storageTier: 'limited',
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
             referralCount: 0,
-            isAdmin: isSuperAdmin, // Force Admin status in DB for Super Admin
+            isAdmin: isSuperAdmin, 
             isBanned: false,
         };
         await userRef.set(newUser);
@@ -109,14 +108,19 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     
     const userData = doc.data() as User;
     
-    // Auto-Promote Super Admin in DB if missing permissions (Critical for Security Rules)
-    if (isSuperAdmin && !userData.isAdmin) {
+    // FORCE ADMIN STATUS FOR SUPER USER
+    if (isSuperAdmin && userData.isAdmin !== true) {
         console.log("Promoting super admin in database...");
-        await userRef.update({ isAdmin: true });
-        return { ...userData, isAdmin: true };
+        try {
+            await userRef.set({ isAdmin: true }, { merge: true });
+            return { ...userData, isAdmin: true };
+        } catch (e) {
+            console.error("Failed to promote Super Admin (DB permission issue?)", e);
+            // If DB update fails (likely due to rules), we still return admin true for frontend
+            return { ...userData, isAdmin: true };
+        }
     }
     
-    // Migration: Ensure existing users have an avatar in DB
     if (!userData.avatar) {
         await userRef.update({ avatar: initials });
         return { ...userData, avatar: initials };
@@ -132,7 +136,6 @@ export const updateUserProfile = async (uid: string, data: Partial<User>) => {
 
 export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
     if (!db) {
-        console.warn("Firestore not initialized, returning null for user profile.");
         callback(null);
         return () => {};
     }
@@ -148,15 +151,15 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
     });
 };
 
-// --- Config & System ---
+// --- Config & System (FIXED COLLECTION NAMES TO MATCH RULES) ---
 
 export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
     if (!db) {
-        console.warn("Firestore not initialized, returning null for app config.");
         callback(null);
         return () => {};
     }
-    return db.collection('system').doc('config').onSnapshot((doc) => {
+    // Fixed: 'system' -> 'config' collection, 'config' -> 'main' doc (based on rules)
+    return db.collection('config').doc('main').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as AppConfig);
         } else {
@@ -170,7 +173,8 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
 
 export const updateAppConfig = async (config: AppConfig) => {
     if (!db) return;
-    await db.collection('system').doc('config').set(config, { merge: true });
+    // Fixed: 'system' -> 'config', 'config' -> 'main'
+    await db.collection('config').doc('main').set(config, { merge: true });
 };
 
 export const subscribeToAnnouncement = (callback: (announcement: Announcement | null) => void) => {
@@ -178,14 +182,15 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
         callback(null);
         return () => {};
     }
-    return db.collection('system').doc('announcement').onSnapshot((doc) => {
+    // Fixed: 'system' -> 'config'
+    return db.collection('config').doc('announcement').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as Announcement);
         } else {
             callback(null);
         }
     }, (error) => {
-        console.warn("Announcement subscription failed (likely benign):", error);
+        console.warn("Announcement subscription failed:", error);
         callback(null);
     });
 };
@@ -193,8 +198,6 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
 export const updateAnnouncement = async (uid: string, announcement: Announcement) => {
     if (!db) return;
     
-    // STRICT SANITIZATION: Construct a clean object to ensure no undefined values are passed.
-    // Firestore rules often reject writes if expected fields are missing or undefined.
     const cleanPayload = {
         title: announcement.title || "",
         message: announcement.message || "",
@@ -205,23 +208,26 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
     };
 
     try {
-        await db.collection('system').doc('announcement').set(cleanPayload);
+        // Fixed: 'system' -> 'config'
+        await db.collection('config').doc('announcement').set(cleanPayload);
         
-        // Log audit separately so failure doesn't block the main update
         try {
-            await logAudit(uid, 'Update Announcement', `Updated global announcement: ${cleanPayload.title}`);
-        } catch (auditError) {
-            console.warn("Failed to log audit for announcement update:", auditError);
+            await logAudit(uid, 'Update Announcement', `Updated: ${cleanPayload.title}`);
+        } catch (e) { console.warn("Audit log failed (non-fatal)", e); }
+
+    } catch (error: any) {
+        console.error("Update Announcement FAILED:", error);
+        if (error.code === 'permission-denied') {
+            throw new Error(`Permission Denied. Ensure your email matches the rule 'mayurhande90@gmail.com' and collections match 'config'.`);
         }
-    } catch (error) {
-        console.error("Update Announcement Error:", error);
         throw error;
     }
 };
 
 export const getAnnouncement = async () => {
     if (!db) return null;
-    const doc = await db.collection('system').doc('announcement').get();
+    // Fixed: 'system' -> 'config'
+    const doc = await db.collection('config').doc('announcement').get();
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
@@ -560,7 +566,8 @@ export const get24HourCreditBurn = async () => {
 
 export const getGlobalFeatureUsage = async () => {
     if (!db) return [];
-    const doc = await db.collection('system').doc('stats').get();
+    // Fixed: 'system' -> 'config' to match rules
+    const doc = await db.collection('config').doc('stats').get();
     if (doc.exists && doc.data()?.featureUsage) {
         return Object.entries(doc.data()!.featureUsage).map(([k, v]) => ({ feature: k, count: v as number }));
     }
@@ -571,7 +578,8 @@ export const getGlobalFeatureUsage = async () => {
 
 export const logAudit = async (adminUid: string, action: string, details: string) => {
     if (!db) return;
-    await db.collection('auditLogs').add({
+    // Fixed: 'auditLogs' -> 'audit_logs' (snake_case from rules)
+    await db.collection('audit_logs').add({
         adminEmail: auth?.currentUser?.email || adminUid,
         action,
         details,
@@ -581,13 +589,15 @@ export const logAudit = async (adminUid: string, action: string, details: string
 
 export const getAuditLogs = async (limit = 50) => {
     if (!db) return [];
-    const snap = await db.collection('auditLogs').orderBy('timestamp', 'desc').limit(limit).get();
+    // Fixed: 'auditLogs' -> 'audit_logs'
+    const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as AuditLog));
 };
 
 export const logApiError = async (endpoint: string, error: string, userId?: string) => {
     if (!db) return;
-    await db.collection('apiErrors').add({
+    // Fixed: 'apiErrors' -> 'api_errors' (snake_case from rules)
+    await db.collection('api_errors').add({
         endpoint,
         error,
         userId: userId || 'anonymous',
@@ -597,7 +607,8 @@ export const logApiError = async (endpoint: string, error: string, userId?: stri
 
 export const getApiErrorLogs = async (limit = 50) => {
     if (!db) return [];
-    const snap = await db.collection('apiErrors').orderBy('timestamp', 'desc').limit(limit).get();
+    // Fixed: 'apiErrors' -> 'api_errors'
+    const snap = await db.collection('api_errors').orderBy('timestamp', 'desc').limit(limit).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog));
 };
 
