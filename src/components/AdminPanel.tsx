@@ -385,16 +385,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [hasChanges, setHasChanges] = useState(false);
 
     // Other
-    const [announcement, setAnnouncement] = useState<Announcement>({ title: '', message: '', isActive: false, type: 'info', link: '', style: 'banner' });
+    // Ensure default state has all fields to prevent uncontrolled/controlled switching
+    const [announcement, setAnnouncement] = useState<Announcement>({ 
+        title: '', 
+        message: '', 
+        isActive: false, 
+        type: 'info', 
+        link: '', 
+        style: 'banner' 
+    });
     const [featureUsage, setFeatureUsage] = useState<{feature: string, count: number}[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Separate useEffects to prevent config overwrites while editing
+    // ROBUST CONFIG INITIALIZATION
     useEffect(() => {
-        if (appConfig && !hasChanges) {
+        // 1. Initial Load: If localConfig is empty and we have appConfig, set it.
+        if (appConfig && !localConfig) {
             setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
         }
-    }, [appConfig]); // removed hasChanges from deps so it doesn't trigger on user edit
+        // 2. Background Updates: If appConfig changes (e.g. from server) AND user has NO unsaved changes, sync it.
+        // This prevents the user's typing from being overwritten if a background update happens.
+        else if (appConfig && !hasChanges) {
+             // Simple deep compare to avoid unnecessary re-renders
+             if (JSON.stringify(appConfig) !== JSON.stringify(localConfig)) {
+                 setLocalConfig(JSON.parse(JSON.stringify(appConfig)));
+             }
+        }
+    }, [appConfig, hasChanges, localConfig]);
 
     useEffect(() => {
         loadOverview();
@@ -567,27 +584,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const fetchAnnouncement = async () => {
         try {
             const ann = await getAnnouncement();
-            if (ann) {
-                // Ensure default values to prevent uncontrolled input warnings
-                setAnnouncement({
-                    title: ann.title ?? '',
-                    message: ann.message ?? '',
-                    isActive: ann.isActive ?? false,
-                    type: ann.type ?? 'info',
-                    link: ann.link ?? '',
-                    style: ann.style ?? 'banner'
-                });
-            } else {
-                // Set defaults if no announcement found in DB
-                setAnnouncement({
-                    title: '',
-                    message: '',
-                    isActive: false,
-                    type: 'info',
-                    link: '',
-                    style: 'banner'
-                });
-            }
+            // Explicitly map all fields with defaults to ensure state is complete
+            setAnnouncement({
+                title: ann?.title || '',
+                message: ann?.message || '',
+                isActive: ann?.isActive || false,
+                type: ann?.type || 'info',
+                link: ann?.link || '',
+                style: ann?.style || 'banner'
+            });
         } catch (e) {
             console.error("Failed to fetch announcement", e);
         }

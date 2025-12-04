@@ -184,15 +184,23 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
 export const updateAnnouncement = async (uid: string, announcement: Announcement) => {
     if (!db) return;
     
+    // STRICT SANITIZATION: Construct a clean object to ensure no undefined values are passed.
+    // Firestore rules often reject writes if expected fields are missing or undefined.
+    const cleanPayload = {
+        title: announcement.title || "",
+        message: announcement.message || "",
+        isActive: !!announcement.isActive,
+        type: announcement.type || "info",
+        link: announcement.link || "",
+        style: announcement.style || "banner"
+    };
+
     try {
-        // Sanitize payload to remove undefined fields which Firestore rejects
-        // Using JSON.parse/stringify removes all keys with 'undefined' values
-        const safeAnnouncement = JSON.parse(JSON.stringify(announcement));
-        await db.collection('system').doc('announcement').set(safeAnnouncement);
+        await db.collection('system').doc('announcement').set(cleanPayload);
         
         // Log audit separately so failure doesn't block the main update
         try {
-            await logAudit(uid, 'Update Announcement', `Updated global announcement: ${announcement.title || 'Untitled'}`);
+            await logAudit(uid, 'Update Announcement', `Updated global announcement: ${cleanPayload.title}`);
         } catch (auditError) {
             console.warn("Failed to log audit for announcement update:", auditError);
         }
