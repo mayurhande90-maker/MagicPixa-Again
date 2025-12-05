@@ -232,48 +232,57 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const loadChatHistory = async () => {
         if (!auth.user) return;
         setLoadingHistory(true);
+        
+        let allMessages: ChatMessage[] = [];
+        
         try {
-            await cleanupSupportHistory(auth.user.uid);
+            // Attempt cleanup (don't block on error)
+            await cleanupSupportHistory(auth.user.uid).catch(e => console.warn("Chat cleanup skipped:", e));
+            
+            // Attempt fetch
             const rawHistory = await getSupportHistory(auth.user.uid);
-            const allMessages = rawHistory as ChatMessage[];
-
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000;
-            
-            const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
-            const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
-
-            if (recent.length === 0) {
-                const greeting = getGreeting();
-                const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
-                
-                const welcomeMsg: ChatMessage = {
-                    id: 'welcome_' + Date.now(),
-                    role: 'model',
-                    content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I'm here to help you with:\n\n- Troubleshooting & Bugs\n- Billing & Credits\n- Feature Guides\n\nHow can I assist you today?`,
-                    timestamp: Date.now()
-                };
-                setMessages([welcomeMsg]);
-                setShowQuickActions(true);
-                saveSupportMessage(auth.user.uid, welcomeMsg);
-            } else {
-                setMessages(recent);
-                if (recent.length <= 1) setShowQuickActions(true);
-            }
-            
-            setOlderMessages(older);
-
+            allMessages = rawHistory as ChatMessage[];
         } catch (e) {
-            console.error("Failed to load chat history", e);
-        } finally {
-            setLoadingHistory(false);
+            console.error("Chat history fetch failed (likely permissions), failing gracefully.", e);
+            // Proceed with empty array so welcome message still shows
         }
+
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        
+        const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
+        const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
+
+        if (recent.length === 0) {
+            const greeting = getGreeting();
+            const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
+            
+            const welcomeMsg: ChatMessage = {
+                id: 'welcome_' + Date.now(),
+                role: 'model',
+                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I'm here to help you with:\n\n- Troubleshooting & Bugs\n- Billing & Credits\n- Feature Guides\n\nHow can I assist you today?`,
+                timestamp: Date.now()
+            };
+            setMessages([welcomeMsg]);
+            setShowQuickActions(true);
+            
+            // Try saving, but don't crash if it fails
+            saveSupportMessage(auth.user.uid, welcomeMsg).catch(e => console.warn("Welcome msg save failed", e));
+        } else {
+            setMessages(recent);
+            if (recent.length <= 1) setShowQuickActions(true);
+        }
+        
+        setOlderMessages(older);
+        setLoadingHistory(false);
     };
 
     const loadTickets = async () => {
         if (!auth.user) return;
-        const data = await getUserTickets(auth.user.uid);
-        setTickets(data);
+        try {
+            const data = await getUserTickets(auth.user.uid);
+            setTickets(data);
+        } catch(e) { console.error("Ticket load failed", e); }
     };
 
     const handleLoadOlder = () => {
@@ -296,7 +305,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setIsTyping(true);
-        saveSupportMessage(auth.user.uid, userMsg);
+        
+        saveSupportMessage(auth.user.uid, userMsg).catch(e => console.warn("User msg save failed", e));
 
         try {
             const response = await sendSupportMessage(
@@ -304,10 +314,11 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 { name: auth.user.name, email: auth.user.email, credits: auth.user.credits }
             );
             setMessages(prev => [...prev, response]);
-            saveSupportMessage(auth.user.uid, response);
+            saveSupportMessage(auth.user.uid, response).catch(e => console.warn("Bot msg save failed", e));
 
         } catch (e) {
             console.error(e);
+            // Add error feedback in chat if needed
         } finally {
             setIsTyping(false);
         }
@@ -327,7 +338,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             };
 
             setMessages(prev => [...prev, confirmationMsg]);
-            saveSupportMessage(auth.user.uid, confirmationMsg);
+            saveSupportMessage(auth.user.uid, confirmationMsg).catch(e => console.warn("Save failed", e));
             
             loadTickets();
         } catch (e: any) {
@@ -353,7 +364,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
-            saveSupportMessage(auth.user!.uid, userMsg);
+            saveSupportMessage(auth.user!.uid, userMsg).catch(e => console.warn("Save failed", e));
             
             setIsTyping(true);
 
@@ -364,7 +375,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits }
             );
             setMessages(prev => [...prev, response]);
-            saveSupportMessage(auth.user!.uid, response);
+            saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
             
             setIsTyping(false);
         }
@@ -402,8 +413,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 lg:p-8 items-start">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                {/* Main Glassmorphism Container with strict height control */}
-                <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[500px] bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/50 overflow-hidden relative group">
+                {/* Main Glassmorphism Container with updated height limits */}
+                <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[400px] bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/50 overflow-hidden relative group">
                     
                     {/* Decorative Background Blur */}
                     <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply"></div>
@@ -520,7 +531,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
                 {/* RIGHT: TICKET HISTORY */}
                 {/* Glassmorphism Sidebar */}
-                <div className="hidden lg:flex flex-col h-[50vh] min-h-[500px]">
+                <div className="hidden lg:flex flex-col h-[50vh] min-h-[400px]">
                     <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-xl border border-white/80 ring-1 ring-white/50 h-full flex flex-col overflow-hidden relative">
                         {/* Header */}
                         <div className="p-6 border-b border-white/50 bg-white/40 backdrop-blur-md sticky top-0 z-10">
