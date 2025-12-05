@@ -7,7 +7,7 @@ import { Ticket } from '../types';
 
 // --- KNOWLEDGE BASE ---
 const SYSTEM_INSTRUCTION = `
-You are the "Pixa Concierge", an advanced AI support agent for MagicPixa.
+You are "Pixa Support", an advanced AI support agent for MagicPixa.
 Your goal: Solve the user's problem INSTANTLY via chat. Only suggest a ticket if you cannot solve it (e.g., refunds, technical bugs).
 
 **YOUR KNOWLEDGE BASE:**
@@ -113,7 +113,7 @@ export const sendSupportMessage = async (
         };
 
     } catch (e) {
-        console.error("Concierge Error", e);
+        console.error("Support Agent Error", e);
         return {
             id: Date.now().toString(),
             role: 'model',

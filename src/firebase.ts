@@ -438,6 +438,33 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
     return await ref.getDownloadURL();
 };
 
+// --- SUPPORT CHAT PERSISTENCE ---
+
+export const saveSupportMessage = async (uid: string, message: any) => {
+    if (!db) return;
+    await db.collection('users').doc(uid).collection('support_chat').doc(message.id).set(message);
+};
+
+export const getSupportHistory = async (uid: string) => {
+    if (!db) return [];
+    const snap = await db.collection('users').doc(uid).collection('support_chat').orderBy('timestamp', 'asc').get();
+    return snap.docs.map(d => d.data());
+};
+
+export const cleanupSupportHistory = async (uid: string) => {
+    if (!db) return;
+    const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 Days ago
+    const snap = await db.collection('users').doc(uid).collection('support_chat')
+        .where('timestamp', '<', cutoff)
+        .get();
+    
+    if (snap.empty) return;
+
+    const batch = db.batch();
+    snap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+};
+
 // --- Admin ---
 
 export const getAllUsers = async () => {

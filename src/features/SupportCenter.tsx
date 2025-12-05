@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket, Transaction } from '../types';
 import { sendSupportMessage, createTicket, getUserTickets, ChatMessage, analyzeErrorScreenshot } from '../services/supportService';
-import { getCreditHistory } from '../firebase';
 import { fileToBase64 } from '../utils/imageUtils';
+import { saveSupportMessage, getSupportHistory, cleanupSupportHistory } from '../firebase';
 import { 
     LifebuoyIcon, 
     SparklesIcon, 
@@ -98,17 +98,12 @@ const TicketProposalCard: React.FC<{
 
 export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     // Chat State
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        {
-            id: 'welcome',
-            role: 'model',
-            content: `Hello ${auth.user?.name.split(' ')[0]}! I'm your Pixa Concierge. Ask me anything about features, credits, or issues. How can I help?`,
-            timestamp: Date.now()
-        }
-    ]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+    const [loadingHistory, setLoadingHistory] = useState(true);
     
     // Sidebar Data
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -117,18 +112,68 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (auth.user) loadTickets();
+        if (auth.user) {
+            loadTickets();
+            loadChatHistory();
+        }
     }, [auth.user]);
 
     // Auto-scroll to bottom of chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping]);
+    }, [messages, isTyping, olderMessages]); // Re-scroll when older messages loaded too
+
+    const loadChatHistory = async () => {
+        if (!auth.user) return;
+        setLoadingHistory(true);
+        try {
+            await cleanupSupportHistory(auth.user.uid);
+            const rawHistory = await getSupportHistory(auth.user.uid);
+            // Convert any Firestore timestamps if necessary, but data() usually returns JSON-like objects
+            // Assuming getSupportHistory returns ChatMessage[]
+            const allMessages = rawHistory as ChatMessage[];
+
+            if (allMessages.length === 0) {
+                // Initial Welcome if fresh
+                const welcomeMsg: ChatMessage = {
+                    id: 'welcome_' + Date.now(),
+                    role: 'model',
+                    content: `Hello ${auth.user?.name.split(' ')[0]}! I'm Pixa Support. Ask me anything about features, credits, or issues. How can I help?`,
+                    timestamp: Date.now()
+                };
+                setMessages([welcomeMsg]);
+                saveSupportMessage(auth.user.uid, welcomeMsg);
+            } else {
+                const now = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000;
+                
+                const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
+                const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
+
+                setOlderMessages(older);
+                
+                // If user has history but no recent chat, show a welcome back message or empty state?
+                // Let's just show recent. If empty, the user sees nothing but can type. 
+                // Or we can add a 'welcome back' ephemeral message.
+                // For now, adhering to instructions: "only show chat of last 24 hours".
+                setMessages(recent);
+            }
+        } catch (e) {
+            console.error("Failed to load chat history", e);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
 
     const loadTickets = async () => {
         if (!auth.user) return;
         const data = await getUserTickets(auth.user.uid);
         setTickets(data);
+    };
+
+    const handleLoadOlder = () => {
+        setMessages(prev => [...olderMessages, ...prev]);
+        setOlderMessages([]);
     };
 
     const handleSendMessage = async () => {
@@ -141,17 +186,27 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             timestamp: Date.now()
         };
 
+        // Optimistic Update
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setIsTyping(true);
+        
+        // Persist User Message
+        saveSupportMessage(auth.user.uid, userMsg);
 
         try {
             // Call Smart Agent
+            // We pass ALL visible messages for context, or maybe limit context window for tokens. 
+            // Passing last 10-20 messages is usually safe.
             const response = await sendSupportMessage(
                 [...messages, userMsg], 
                 { name: auth.user.name, email: auth.user.email, credits: auth.user.credits }
             );
             setMessages(prev => [...prev, response]);
+            
+            // Persist Bot Message
+            saveSupportMessage(auth.user.uid, response);
+
         } catch (e) {
             console.error(e);
         } finally {
@@ -165,13 +220,16 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             await createTicket(auth.user.uid, auth.user.email, draft);
             
-            // Add confirmation message
-            setMessages(prev => [...prev, {
+            const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'model',
                 content: "Ticket created successfully! I've added it to your history.",
                 timestamp: Date.now()
-            }]);
+            };
+
+            // Add confirmation message
+            setMessages(prev => [...prev, confirmationMsg]);
+            saveSupportMessage(auth.user.uid, confirmationMsg);
             
             // Remove the proposal message from view (optional, or just disable it) - here we keep history but re-fetch tickets
             loadTickets();
@@ -200,6 +258,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
+            saveSupportMessage(auth.user!.uid, userMsg);
+            
             setIsTyping(true);
 
             // Analyze error first
@@ -211,6 +271,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits }
             );
             setMessages(prev => [...prev, response]);
+            saveSupportMessage(auth.user!.uid, response);
+            
             setIsTyping(false);
         }
     };
@@ -239,10 +301,30 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             <div className="flex-1 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
                 
                 {/* LEFT: CHAT INTERFACE (2 cols) */}
-                <div className="lg:col-span-2 flex flex-col h-[calc(100vh-200px)] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
+                {/* Updated Height to 50vh as requested */}
+                <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[500px] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
                     
                     {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#ffffff]">
+                        
+                        {/* Load Previous Chat Button */}
+                        {olderMessages.length > 0 && (
+                            <div className="flex justify-center mb-4">
+                                <button 
+                                    onClick={handleLoadOlder}
+                                    className="bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 text-xs font-bold px-4 py-1.5 rounded-full transition-colors border border-gray-200"
+                                >
+                                    Load History ({olderMessages.length} older messages)
+                                </button>
+                            </div>
+                        )}
+
+                        {loadingHistory && (
+                            <div className="flex justify-center py-4">
+                                <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                            </div>
+                        )}
+
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`flex items-start gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -333,7 +415,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
 
                 {/* RIGHT: TICKET HISTORY (1 col) */}
-                <div className="hidden lg:flex flex-col h-[calc(100vh-200px)]">
+                {/* Matched height with chat container */}
+                <div className="hidden lg:flex flex-col h-[50vh] min-h-[500px]">
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
                         <div className="p-5 border-b border-gray-100 bg-gray-50/50">
                             <h3 className="font-bold text-gray-900 flex items-center gap-2">
