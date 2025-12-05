@@ -119,8 +119,8 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     return (
         <>
             <FeatureLayout
-                title={mission.title}
-                description={mission.description}
+                title="Daily Mission"
+                description="Complete the daily challenge to earn free credits."
                 icon={<FlagIcon className="w-6 h-6 text-indigo-500" />}
                 creditCost={0}
                 isGenerating={loading}
@@ -129,7 +129,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 resultImage={result}
                 onResetResult={() => setResult(null)}
                 onNewSession={() => { setImage(null); setResult(null); }}
-                resultHeightClass="h-[500px]"
+                resultHeightClass="h-[600px]"
                 hideGenerateButton={isLocked}
                 generateButtonStyle={{
                     className: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg border-none hover:scale-[1.02]",
@@ -151,17 +151,68 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                     )
                 }
                 rightContent={
-                    <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 h-full flex flex-col justify-center text-center">
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                            <SparklesIcon className="w-8 h-8 text-indigo-500" />
-                        </div>
-                        <h3 className="font-bold text-indigo-900 mb-2">Mission Brief</h3>
-                        <p className="text-sm text-indigo-700 leading-relaxed mb-6">
-                            {mission.description}
-                        </p>
-                        <div className="bg-white px-4 py-3 rounded-xl border border-indigo-100 inline-block mx-auto shadow-sm">
-                            <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">REWARD</p>
-                            <p className="text-2xl font-black text-indigo-600">+{mission.reward} Credits</p>
+                    <div className="h-full w-full relative overflow-hidden rounded-2xl bg-[#0f172a] shadow-2xl flex flex-col border border-slate-800">
+                        {/* Animated Background Gradients */}
+                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[100px] -mr-20 -mt-20 pointer-events-none animate-pulse"></div>
+                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-purple-500/10 rounded-full blur-[80px] -ml-10 -mb-10 pointer-events-none"></div>
+                        
+                        {/* Content */}
+                        <div className="relative z-10 flex flex-col h-full p-8 text-left">
+                            
+                            {/* Top Badge */}
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 text-amber-900 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                                    <SparklesIcon className="w-3 h-3" />
+                                    Daily Challenge
+                                </div>
+                                {!isLocked && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="relative flex h-2 w-2">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                        <span className="text-[10px] font-bold text-green-500 tracking-wider uppercase">Active</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Typography */}
+                            <div className="mb-6">
+                                <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4 tracking-tight drop-shadow-sm">
+                                    {mission.title}
+                                </h2>
+                                <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
+                                <p className="text-slate-300 text-sm md:text-base leading-relaxed font-light border-l-2 border-slate-700 pl-4">
+                                    {mission.description}
+                                </p>
+                            </div>
+
+                            {/* Spacer */}
+                            <div className="flex-1"></div>
+
+                            {/* Premium Reward Card */}
+                            <div className="relative group mt-auto">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-amber-600 rounded-2xl opacity-30 group-hover:opacity-100 transition duration-500 blur-sm"></div>
+                                <div className="relative flex items-center justify-between bg-[#131b2e]/90 backdrop-blur-xl rounded-xl p-5 border border-white/10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                                            <CheckIcon className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Reward Bounty</p>
+                                            <p className="text-white font-bold text-sm">Upon Completion</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="flex items-baseline justify-end gap-1">
+                                            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400">
+                                                +{mission.reward}
+                                            </span>
+                                            <span className="text-xs font-bold text-yellow-500">CR</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 }
@@ -179,4 +230,3 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         </>
     );
 };
-    
