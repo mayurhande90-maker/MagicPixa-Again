@@ -5,53 +5,122 @@ import { db, logAudit } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { Ticket } from '../types';
 
+// --- KNOWLEDGE BASE ---
+const SYSTEM_INSTRUCTION = `
+You are the "Pixa Concierge", an advanced AI support agent for MagicPixa.
+Your goal: Solve the user's problem INSTANTLY via chat. Only suggest a ticket if you cannot solve it (e.g., refunds, technical bugs).
+
+**YOUR KNOWLEDGE BASE:**
+1. **Magic Photo Studio**: Generates professional product shots.
+2. **Pixa AdMaker**: Creates high-converting ad creatives using "3% Rule".
+3. **Pixa Ecommerce Kit**: Generates 5-10 assets (Hero, Lifestyle, etc.) in a batch.
+4. **Pixa Interior**: Redesigns rooms.
+5. **Credits**: Users buy packs (Starter, Creator, Studio). Credits are deducted per generation.
+6. **Billing**: Payments via Razorpay. No monthly subscriptions, only pay-as-you-go.
+
+**YOUR BEHAVIOR:**
+- **Q&A**: If the user asks "How do I...", explain it clearly. DO NOT create a ticket.
+- **Refunds**: If user mentions "lost credits", "payment failed", "didn't get image", YOU CANNOT process refunds yourself. You must generate a "Ticket Proposal" for them.
+- **Bugs**: If user reports a crash or error, generate a "Ticket Proposal".
+- **Tone**: Friendly, premium, concise, helpful.
+
+**OUTPUT FORMAT:**
+You must return a JSON object.
+{
+  "type": "message" | "proposal",
+  "text": "Your conversational response here (markdown allowed).",
+  "ticketDraft": { ... } // ONLY if type is 'proposal'
+}
+
+**Ticket Draft Structure (if proposal):**
+{
+  "subject": "Short summary",
+  "type": "refund" | "bug" | "general",
+  "description": "Cleaned up description of the issue based on user chat."
+}
+`;
+
+export interface ChatMessage {
+    id: string;
+    role: 'user' | 'model';
+    content: string; // The text to display
+    type?: 'message' | 'proposal'; // Plain text or a Ticket Draft Card
+    ticketDraft?: Partial<Ticket>; // Data if it's a proposal
+    timestamp: number;
+}
+
 /**
- * Analyzes the user's raw input to determine the type of issue.
- * This powers the "Smart Wizard".
+ * Sends a message to the Concierge and gets a smart response.
  */
-export const analyzeSupportIntent = async (text: string): Promise<{
-    category: 'refund' | 'bug' | 'general';
-    confidence: number;
-    reasoning: string;
-}> => {
+export const sendSupportMessage = async (
+    history: ChatMessage[], 
+    userContext: { name: string; email: string; credits: number }
+): Promise<ChatMessage> => {
+    const ai = getAiClient();
+    
+    // Format history for Gemini
+    const chatHistory = history.map(msg => ({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+    }));
+
+    // Add User Context to the latest message to ground the AI
+    const lastMsg = chatHistory.pop(); // Remove last user msg to re-add with context
+    const contextInjection = `\n\n[System Context: User=${userContext.name}, Credits=${userContext.credits}]`;
+    
+    if (lastMsg) {
+        chatHistory.push({
+            role: 'user',
+            parts: [{ text: lastMsg.parts[0].text + contextInjection }]
+        });
+    }
+
     try {
-        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [{ text: `Classify this user support request for an AI Image Generation App (MagicPixa).
-            
-                Input: "${text}"
-                
-                Categories:
-                - 'refund': User mentions lost credits, image not generated, deduction error, failed transaction.
-                - 'bug': User mentions glitch, UI broken, upload failed, white screen, error message.
-                - 'general': How-to questions, billing inquiry (not refund), feature request, or feedback.
-                
-                Return JSON.` }]
-            },
+            contents: chatHistory,
             config: {
+                systemInstruction: SYSTEM_INSTRUCTION,
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        category: { type: Type.STRING, enum: ['refund', 'bug', 'general'] },
-                        confidence: { type: Type.NUMBER },
-                        reasoning: { type: Type.STRING }
+                        type: { type: Type.STRING, enum: ["message", "proposal"] },
+                        text: { type: Type.STRING },
+                        ticketDraft: {
+                            type: Type.OBJECT,
+                            properties: {
+                                subject: { type: Type.STRING },
+                                type: { type: Type.STRING, enum: ["refund", "bug", "general"] },
+                                description: { type: Type.STRING }
+                            }
+                        }
                     },
-                    required: ['category', 'confidence', 'reasoning']
+                    required: ["type", "text"]
                 }
             }
         });
 
-        const result = response.text ? JSON.parse(response.text) : null;
-        if (result && result.confidence > 0.6) {
-            return result;
-        }
-        return { category: 'general', confidence: 0, reasoning: 'Fallback' };
+        const data = JSON.parse(response.text || "{}");
+
+        return {
+            id: Date.now().toString(),
+            role: 'model',
+            content: data.text,
+            type: data.type,
+            ticketDraft: data.ticketDraft,
+            timestamp: Date.now()
+        };
+
     } catch (e) {
-        console.error("Support Intent Error", e);
-        return { category: 'general', confidence: 0, reasoning: 'Error' };
+        console.error("Concierge Error", e);
+        return {
+            id: Date.now().toString(),
+            role: 'model',
+            content: "I'm having trouble connecting to the mainframe. Please try again or create a manual ticket below.",
+            type: 'message',
+            timestamp: Date.now()
+        };
     }
 };
 
@@ -89,7 +158,6 @@ export const createTicket = async (
     const ticketRef = db.collection('support_tickets').doc();
     const ticketId = ticketRef.id;
     
-    // Construct object with defaults
     const rawTicket: Ticket = {
         id: ticketId,
         userId,
@@ -105,12 +173,9 @@ export const createTicket = async (
         adminReply: undefined
     };
 
-    // Sanitize: Firestore throws error if a field value is `undefined`.
-    // We convert `undefined` to `null` or remove the key.
+    // Sanitize undefined
     const safeTicket = Object.entries(rawTicket).reduce((acc, [key, value]) => {
-        if (value === undefined) {
-            return acc; // Skip undefined keys
-        }
+        if (value === undefined) return acc;
         return { ...acc, [key]: value };
     }, {} as any);
 
@@ -146,7 +211,6 @@ export const getAllTickets = async (): Promise<Ticket[]> => {
 
 /**
  * Resolve a ticket (Admin Action).
- * Optionally process a refund if it's a refund ticket.
  */
 export const resolveTicket = async (
     adminUid: string,
@@ -165,21 +229,17 @@ export const resolveTicket = async (
         
         const ticketData = ticketDoc.data() as Ticket;
         
-        // Update Ticket
         t.update(ticketRef, {
             status: resolution,
             adminReply: reply,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Process Refund if applicable
         if (resolution === 'resolved' && refundCredits && refundCredits > 0) {
             const userRef = db.collection('users').doc(ticketData.userId);
-            
             t.update(userRef, {
                 credits: firebase.firestore.FieldValue.increment(refundCredits)
             });
-            
             const txRef = userRef.collection('transactions').doc();
             t.set(txRef, {
                 feature: 'Support Refund',
