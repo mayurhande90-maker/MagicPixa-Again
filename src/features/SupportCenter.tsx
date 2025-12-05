@@ -9,7 +9,7 @@ import {
     CheckIcon, 
     XIcon, 
     TicketIcon, 
-    UploadIcon,
+    UploadIcon, 
     CreditCoinIcon,
     LightbulbIcon,
     FlagIcon,
@@ -126,6 +126,14 @@ const TicketProposalCard: React.FC<{
         );
     }
 
+    // Determine visible types.
+    // If the draft has a specific specific type (bug, refund, feature), only show that one.
+    // Otherwise show all.
+    const allTypes = ['general', 'bug', 'refund', 'feature'];
+    const visibleTypes = (draft.type && ['bug', 'refund', 'feature'].includes(draft.type)) 
+        ? [draft.type] 
+        : allTypes;
+
     return (
         <div className="mt-4 bg-white p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm w-full ring-1 ring-indigo-50">
             <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-indigo-50 pb-3">
@@ -146,15 +154,15 @@ const TicketProposalCard: React.FC<{
                 <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Type</label>
                     <div className="flex gap-2">
-                        {['general', 'bug', 'refund', 'feature'].map(t => (
+                        {visibleTypes.map(t => (
                             <button 
                                 key={t}
-                                onClick={() => setEditedDraft({...editedDraft, type: t as any})}
+                                onClick={() => visibleTypes.length > 1 && setEditedDraft({...editedDraft, type: t as any})}
                                 className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${
                                     editedDraft.type === t 
                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
                                     : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                }`}
+                                } ${visibleTypes.length === 1 ? 'cursor-default' : 'cursor-pointer'}`}
                             >
                                 {t}
                             </button>
@@ -168,6 +176,7 @@ const TicketProposalCard: React.FC<{
                         className="w-full text-xs text-gray-700 font-medium bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[80px]"
                         value={editedDraft.description || ''}
                         onChange={e => setEditedDraft({...editedDraft, description: e.target.value})}
+                        placeholder="Please describe the details here..."
                     />
                 </div>
             </div>
@@ -253,11 +262,13 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 
 // Quick Action Pills
 const QuickActions: React.FC<{ onAction: (action: any) => void; className?: string }> = ({ onAction, className }) => {
+    // All actions now set autoSend: true to trigger the AI "Ticket Proposal" logic immediately.
+    // The prompts are phrased to ensure the AI recognizes the intent to create a ticket.
     const actions = [
-        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue: " },
-        { label: "Features", icon: LightbulbIcon, prompt: "I need help with a feature: " },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug.", autoSend: true },
-        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature.", autoSend: true }
+        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue. Create a ticket.", autoSend: true },
+        { label: "Features", icon: LightbulbIcon, prompt: "I need help with a feature. Create a ticket.", autoSend: true },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug. Create a ticket.", autoSend: true },
+        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature. Create a ticket.", autoSend: true }
     ];
 
     return (
