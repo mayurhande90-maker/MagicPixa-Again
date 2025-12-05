@@ -146,7 +146,7 @@ const TicketProposalCard: React.FC<{
                 <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Type</label>
                     <div className="flex gap-2">
-                        {['general', 'bug', 'refund'].map(t => (
+                        {['general', 'bug', 'refund', 'feature'].map(t => (
                             <button 
                                 key={t}
                                 onClick={() => setEditedDraft({...editedDraft, type: t as any})}
@@ -252,12 +252,12 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 );
 
 // Quick Action Pills
-const QuickActions: React.FC<{ onAction: (text: string) => void; className?: string }> = ({ onAction, className }) => {
+const QuickActions: React.FC<{ onAction: (action: any) => void; className?: string }> = ({ onAction, className }) => {
     const actions = [
         { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue: " },
         { label: "Features", icon: LightbulbIcon, prompt: "I need help with a feature: " },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug: " },
-        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature: " }
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug.", autoSend: true },
+        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature.", autoSend: true }
     ];
 
     return (
@@ -265,7 +265,7 @@ const QuickActions: React.FC<{ onAction: (text: string) => void; className?: str
             {actions.map((action, idx) => (
                 <button
                     key={idx}
-                    onClick={() => onAction(action.prompt)}
+                    onClick={() => onAction(action)}
                     className="group flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 whitespace-nowrap"
                 >
                     <action.icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
@@ -393,18 +393,9 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setOlderMessages([]);
     };
 
-    // Updated handleQuickAction: Sets input text and focuses, doesn't auto-send
-    const handleQuickAction = (text: string) => {
-        setInputText(text);
-        setHasInteracted(true);
-        // Focus the input field
-        setTimeout(() => {
-            inputFocusRef.current?.focus();
-        }, 100);
-    };
-
-    const handleSendMessage = async () => {
-        if (!inputText.trim() || !auth.user) return;
+    const handleSendMessage = async (textOverride?: string) => {
+        const textToSend = textOverride || inputText;
+        if (!textToSend.trim() || !auth.user) return;
 
         // Mark as interacted to move quick actions to bottom
         setHasInteracted(true);
@@ -412,12 +403,12 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             role: 'user',
-            content: inputText,
+            content: textToSend,
             timestamp: Date.now()
         };
 
         setMessages(prev => [...prev, userMsg]);
-        setInputText('');
+        if (!textOverride) setInputText('');
         setIsTyping(true);
         
         saveSupportMessage(auth.user.uid, userMsg).catch(e => console.warn("User msg save failed", e));
@@ -434,6 +425,19 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             console.error(e);
         } finally {
             setIsTyping(false);
+        }
+    };
+
+    // Updated handleQuickAction: Handles both auto-send (AI Answer) and pre-fill
+    const handleQuickAction = (action: any) => {
+        if (action.autoSend) {
+            handleSendMessage(action.prompt);
+        } else {
+            setInputText(action.prompt);
+            setHasInteracted(true);
+            setTimeout(() => {
+                inputFocusRef.current?.focus();
+            }, 100);
         }
     };
 
