@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket } from '../types';
 import { sendSupportMessage, createTicket, getUserTickets, ChatMessage, analyzeErrorScreenshot } from '../services/supportService';
@@ -262,13 +263,12 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 
 // Quick Action Pills
 const QuickActions: React.FC<{ onAction: (action: any) => void; className?: string }> = ({ onAction, className }) => {
-    // All actions now set autoSend: true to trigger the AI "Ticket Proposal" logic immediately.
-    // The prompts are phrased to ensure the AI recognizes the intent to create a ticket.
+    // UPDATED: Prompts are now questions to trigger the AI's problem-solving mode first
     const actions = [
-        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue. Create a ticket.", autoSend: true },
-        { label: "Features", icon: LightbulbIcon, prompt: "I need help with a feature. Create a ticket.", autoSend: true },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug. Create a ticket.", autoSend: true },
-        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature. Create a ticket.", autoSend: true }
+        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue. Can you explain how credits and payments work?", autoSend: true },
+        { label: "Features", icon: LightbulbIcon, prompt: "I need help understanding a feature. How do I use the tools?", autoSend: true },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I think I found a bug. What should I do?", autoSend: true },
+        { label: "New Feature", icon: SparklesIcon, prompt: "I have a feature request. How can I submit it?", autoSend: true }
     ];
 
     return (
