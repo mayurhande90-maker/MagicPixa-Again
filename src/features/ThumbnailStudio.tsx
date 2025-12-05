@@ -58,12 +58,48 @@ const CompactUpload: React.FC<{
     );
 };
 
+const FormatSelector: React.FC<{
+    selected: 'landscape' | 'portrait';
+    onSelect: (format: 'landscape' | 'portrait') => void;
+}> = ({ selected, onSelect }) => (
+    <div>
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1 block">1. Select Format</label>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+            <button
+                onClick={() => onSelect('landscape')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+                    selected === 'landscape'
+                        ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                        : 'border-gray-100 bg-white text-gray-500 hover:border-red-200'
+                }`}
+            >
+                <div className="w-10 h-6 border-2 border-current rounded-sm mb-2 opacity-80" />
+                <span className="text-xs font-bold uppercase">YouTube Landscape</span>
+                <span className="text-[9px] opacity-60 font-medium mt-0.5">16:9 Ratio</span>
+            </button>
+            <button
+                onClick={() => onSelect('portrait')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+                    selected === 'portrait'
+                        ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-sm'
+                        : 'border-gray-100 bg-white text-gray-500 hover:border-pink-200'
+                }`}
+            >
+                <div className="w-6 h-10 border-2 border-current rounded-sm mb-2 opacity-80" />
+                <span className="text-xs font-bold uppercase">Instagram Portrait</span>
+                <span className="text-[9px] opacity-60 font-medium mt-0.5">9:16 Ratio</span>
+            </button>
+        </div>
+    </div>
+);
+
 export const ThumbnailStudio: React.FC<{ 
     auth: AuthProps; 
     appConfig: AppConfig | null;
     navigateTo: (page: Page, view?: View) => void;
 }> = ({ auth, appConfig, navigateTo }) => {
     // Inputs
+    const [format, setFormat] = useState<'landscape' | 'portrait'>('landscape');
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
     const [customText, setCustomText] = useState(''); // New State for Custom Text Override
@@ -155,6 +191,7 @@ export const ThumbnailStudio: React.FC<{
 
         try {
             const res = await generateThumbnail({
+                format,
                 category,
                 title,
                 customText: customText || undefined,
@@ -195,6 +232,7 @@ export const ThumbnailStudio: React.FC<{
 
         try {
             const res = await generateThumbnail({
+                format,
                 category,
                 title,
                 customText: customText || undefined,
@@ -226,6 +264,7 @@ export const ThumbnailStudio: React.FC<{
     };
 
     const handleNewSession = () => {
+        setFormat('landscape');
         setReferenceImage(null);
         setSubjectImage(null);
         setHostImage(null);
@@ -262,7 +301,7 @@ export const ThumbnailStudio: React.FC<{
                 resultImage={result}
                 onResetResult={handleRegenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[850px]"
+                resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"}
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -296,7 +335,9 @@ export const ThumbnailStudio: React.FC<{
                                     <ThumbnailIcon className="w-10 h-10 text-red-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-1">Your generated thumbnail will appear here.</p>
+                                <p className="text-sm text-gray-300 mt-1">
+                                    {format === 'portrait' ? '9:16 Vertical Preview' : '16:9 Landscape Preview'}
+                                </p>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -313,12 +354,16 @@ export const ThumbnailStudio: React.FC<{
                         </div>
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
-                            <SelectionGrid label="1. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                            {/* Format Selection */}
+                            <FormatSelector selected={format} onSelect={setFormat} />
+
+                            <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                            
                             {category && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="h-px w-full bg-gray-200"></div>
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">2. Upload Assets</label>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
                                         {isPodcast ? (
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-2 gap-4">
@@ -335,10 +380,10 @@ export const ThumbnailStudio: React.FC<{
                                         )}
                                     </div>
                                     <div className="animate-fadeIn">
-                                        <InputField label="3. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} />
+                                        <InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} />
                                     </div>
                                     <div className="animate-fadeIn">
-                                        <InputField label="4. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} />
+                                        <InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} />
                                         <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p>
                                     </div>
                                 </div>

@@ -18,6 +18,7 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 };
 
 interface ThumbnailInputs {
+    format: 'landscape' | 'portrait';
     category: string;
     title: string;
     customText?: string; 
@@ -59,9 +60,9 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         }
 
         // Construct Highly Specific System Prompt with Design Logic
-        let prompt = `You are an Elite YouTube Thumbnail Designer using the "3% Design Rule".
+        let prompt = `You are an Elite Social Media Thumbnail Designer using the "3% Design Rule".
         
-        TASK: Create a viral, high-CTR YouTube thumbnail.
+        TASK: Create a viral, high-CTR thumbnail.
         CATEGORY: "${inputs.category}".
         CONTEXT: "${inputs.title}".
         
@@ -72,6 +73,23 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         4. **Emotion Trigger**: Use the subject's facial expression or the scene's drama to trigger curiosity immediately.
         `;
 
+        if (inputs.format === 'portrait') {
+            prompt += `
+            *** INSTAGRAM PORTRAIT PROTOCOL (9:16) ***
+            - **Format**: 9:16 Vertical (1080x1920).
+            - **Safe Zone**: CRITICAL: The main subject and hook text MUST be centered within the middle 1:1 square. This ensures it looks perfect on the Instagram Profile Grid (which crops to square).
+            - **UI Clearance**: Do NOT place crucial text in the top 15% (Header) or bottom 20% (Reels UI overlays). Keep text central.
+            - **Typography**: Use massive, bold font sizes (min 36px equivalent). Center alignment preferred.
+            `;
+        } else {
+            prompt += `
+            *** YOUTUBE LANDSCAPE PROTOCOL (16:9) ***
+            - **Format**: 16:9 Landscape.
+            - **Layout**: Use the "Rule of Thirds". Place the main subject's eyes on a power point.
+            - **Composition**: Wide cinematic framing suitable for video feeds.
+            `;
+        }
+
         if (inputs.referenceImage) {
             prompt += `
             - **REFERENCE ANALYSIS**: Copy the visual hierarchy, color boldness, and font weight from the reference. IGNORE the text content, copy the VIBE.
@@ -79,8 +97,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         }
         
         prompt += `
-        *** COMPOSITION & EXECUTION ***
-        - **Layout**: Use the "Rule of Thirds". Place the main subject's eyes on a power point.
+        *** EXECUTION ***
         - **Retouching**: Relight the subjects to pop. Fix skin tones. Add rim lighting to separate from background.
         - **Integration**: Perfect cutout and blending. No sticker look.
         `;
@@ -104,7 +121,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         - You MUST use the faces/bodies from the uploaded photos. DO NOT regenerate new people.
         - Keep the identity 100% exact.
         
-        OUTPUT: A single high-resolution thumbnail image (16:9).`;
+        OUTPUT: A single high-resolution ${inputs.format === 'portrait' ? 'vertical (9:16)' : 'horizontal (16:9)'} thumbnail image.`;
 
         parts.push({ text: prompt });
 
@@ -113,6 +130,10 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
+                imageConfig: {
+                    aspectRatio: inputs.format === 'portrait' ? '9:16' : '16:9',
+                    imageSize: '1K'
+                },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
