@@ -211,12 +211,12 @@ const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction
     ];
 
     return (
-        <div className="flex flex-wrap gap-2 mt-4 animate-fadeIn">
+        <div className="flex flex-wrap gap-2 animate-fadeIn mb-2">
             {actions.map((action, idx) => (
                 <button
                     key={idx}
                     onClick={() => onAction(action.prompt)}
-                    className="group flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                    className="group flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 whitespace-nowrap"
                 >
                     <action.icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
                     {action.label}
@@ -256,12 +256,11 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(true);
-    const [showQuickActions, setShowQuickActions] = useState(false);
+    const [showQuickActions, setShowQuickActions] = useState(true);
     
     // Ticket State
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
-    const [submittedTicketIds, setSubmittedTicketIds] = useState<Set<string>>(new Set());
     
     // UI State
     const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar toggle
@@ -317,18 +316,11 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 timestamp: Date.now()
             };
             setMessages([welcomeMsg]);
-            setShowQuickActions(true);
             
             // Save initial state so it persists
             saveSupportMessage(auth.user.uid, welcomeMsg).catch(e => console.warn("Welcome msg save failed", e));
         } else {
             setMessages(recent);
-            // If the last message was from the bot and it's short/fresh, show quick actions
-            if (recent.length > 0 && recent[recent.length - 1].role === 'model') {
-                 setShowQuickActions(false); // Only show on pure init usually, or let context decide
-            }
-            // If very few messages, show quick actions to encourage interaction
-            if (recent.length <= 1) setShowQuickActions(true);
         }
         
         setOlderMessages(older);
@@ -387,8 +379,16 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const newTicket = await createTicket(auth.user.uid, auth.user.email, draft);
             
-            // Update UI state
-            setSubmittedTicketIds(prev => new Set(prev).add(msgId));
+            // UPDATE MESSAGE STATE PERSISTENTLY
+            setMessages(prev => prev.map(m => {
+                if (m.id === msgId) {
+                    const updated = { ...m, isSubmitted: true };
+                    // Side-effect: Save to DB
+                    saveSupportMessage(auth.user!.uid, updated).catch(e => console.warn("Update save failed", e));
+                    return updated;
+                }
+                return m;
+            }));
             
             // OPTIMISTIC UPDATE: Add to sidebar immediately (newest first)
             setTickets(prev => [newTicket, ...prev]);
@@ -479,14 +479,13 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 lg:p-8 items-start h-[calc(100vh-100px)]">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                {/* Responsive Height: Use viewport height minus header, ensuring it fits perfectly */}
                 <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
                     
                     {/* Decorative Background Blur */}
                     <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     
-                    {/* Chat Area - UPDATED PADDING HERE */}
+                    {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto px-4 pt-24 pb-4 lg:px-8 lg:pt-28 lg:pb-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
                         
                         {/* History Pill */}
@@ -538,7 +537,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                                     onConfirm={() => handleCreateTicket(msg.ticketDraft!, msg.id)}
                                                     onCancel={() => handleCancelTicket(msg.id)}
                                                     isSubmitting={submittingTicketId === msg.id}
-                                                    isSubmitted={submittedTicketIds.has(msg.id)}
+                                                    isSubmitted={msg.isSubmitted || false} // Use persistent property
                                                 />
                                             )}
                                             
@@ -562,18 +561,20 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </div>
                         )}
 
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="p-4 lg:p-6 relative z-20 bg-gradient-to-t from-white/90 via-white/50 to-transparent flex flex-col gap-2">
+                        
+                        {/* Persistent Quick Actions (Above Input) */}
                         {showQuickActions && !loadingHistory && (
-                            <div className="pl-0 sm:pl-14">
+                            <div className="pb-2 px-2 flex justify-center md:justify-start">
                                 <QuickActions onAction={handleSendMessage} />
                             </div>
                         )}
 
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area - Floating Capsule Design */}
-                    <div className="p-4 lg:p-6 relative z-20 bg-gradient-to-t from-white/90 via-white/50 to-transparent">
-                        <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-indigo-200 focus-within:shadow-indigo-500/20">
+                        <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300">
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
                                 className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
@@ -584,7 +585,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             
                             <input 
                                 type="text"
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400"
+                                className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
                                 placeholder="Type your message..."
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}

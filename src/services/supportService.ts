@@ -54,6 +54,7 @@ export interface ChatMessage {
     type?: 'message' | 'proposal'; // Plain text or a Ticket Draft Card
     ticketDraft?: Partial<Ticket>; // Data if it's a proposal
     timestamp: number;
+    isSubmitted?: boolean; // Track if proposal was converted to ticket
 }
 
 /**
