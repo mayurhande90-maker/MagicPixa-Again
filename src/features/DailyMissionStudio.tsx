@@ -1,6 +1,6 @@
 <change>
 <file>src/features/DailyMissionStudio.tsx</file>
-<description>Add cool loading animation and prevent auto-navigation after mission complete</description>
+<description>Fix syntax error by removing XML tags and ensuring valid TypeScript code for Daily Mission Studio</description>
 <content><![CDATA[
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
@@ -324,8 +324,6 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                     reward={mission.reward} 
                     onClose={() => {
                         setShowSuccess(false);
-                        // Do NOT navigate away automatically. 
-                        // User stays on page to see the generated result.
                     }} 
                 />
             )}
