@@ -486,8 +486,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     
-                    {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
+                    {/* Chat Area - UPDATED PADDING HERE */}
+                    <div className="flex-1 overflow-y-auto px-4 pt-24 pb-4 lg:px-8 lg:pt-28 lg:pb-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
                         
                         {/* History Pill */}
                         {olderMessages.length > 0 && (

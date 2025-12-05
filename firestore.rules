@@ -20,18 +20,25 @@ service cloud.firestore {
       }
     }
 
-    // Support Tickets: Allow Create, Read Own
+    // Support Tickets: Allow Create, Read Own OR Admin
     match /support_tickets/{ticketId} {
       allow create: if request.auth != null;
-      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email);
-      // Allow user to update their own ticket (e.g. to add comments or close it in future)
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow user to read/write their own tickets OR the specific admin email
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email == 'mayurhande90@gmail.com'
+      );
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'mayurhande90@gmail.com'
+      );
     }
     
     // App Config: Read Only for Users (Admin writes)
     match /config/{docId} {
       allow read: if true;
-      allow write: if false; // Only Admin SDK
+      allow write: if false; // Only Admin SDK or specific admin email if needed
     }
     
     // Purchases: Create and Read Own
