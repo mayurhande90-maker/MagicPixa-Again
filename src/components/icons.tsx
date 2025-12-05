@@ -411,9 +411,9 @@ export const PencilIcon: React.FC<IconProps> = (props) => (
 );
 
 export const MagicPixaLogo: React.FC<IconProps> = ({ className }) => (
-    <div className={`flex items-center gap-1 font-sans ${className}`} style={{ fontFamily: "'Unbounded', sans-serif" }}>
-        <span className="font-extrabold text-xl tracking-tight text-[#1A1A1E]">Magic</span>
-        <span className="font-extrabold text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Pixa</span>
+    <div className={`flex items-center ${className}`} style={{ fontFamily: "'Parkinsans', sans-serif" }}>
+        <span className="font-bold text-2xl tracking-tight text-[#1A1A1E]">Magic</span>
+        <span className="font-bold text-2xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Pixa</span>
     </div>
 );
 
