@@ -204,10 +204,10 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 // Quick Action Pills
 const QuickActions: React.FC<{ onAction: (text: string) => void; className?: string }> = ({ onAction, className }) => {
     const actions = [
-        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
-        { label: "Features", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug I'd like to report." },
-        { label: "New Feature", icon: SparklesIcon, prompt: "I have a feature request." }
+        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a question about billing or credits: " },
+        { label: "Features", icon: LightbulbIcon, prompt: "How do I use " },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug: " },
+        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature: " }
     ];
 
     return (
@@ -265,6 +265,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (auth.user) {
@@ -340,6 +341,14 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const handleLoadOlder = () => {
         setMessages(prev => [...olderMessages, ...prev]);
         setOlderMessages([]);
+    };
+
+    const handleQuickAction = (text: string) => {
+        setInputText(text);
+        // Focus the input to allow user to complete the sentence
+        if (textInputRef.current) {
+            textInputRef.current.focus();
+        }
     };
 
     const handleSendMessage = async (text: string = inputText) => {
@@ -555,7 +564,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
                                     {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
                                         <div className="w-full mt-4 pl-12 sm:pl-16">
-                                            <QuickActions onAction={handleSendMessage} className="justify-start" />
+                                            <QuickActions onAction={handleQuickAction} className="justify-start" />
                                         </div>
                                     )}
                                 </div>
@@ -582,7 +591,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
                         {hasInteracted && !loadingHistory && (
                             <div className="pb-2 px-2 flex justify-center md:justify-start">
-                                <QuickActions onAction={handleSendMessage} />
+                                <QuickActions onAction={handleQuickAction} />
                             </div>
                         )}
 
@@ -596,6 +605,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </button>
                             
                             <input 
+                                ref={textInputRef}
                                 type="text"
                                 className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
                                 placeholder="Type your message..."
