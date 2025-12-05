@@ -1,7 +1,4 @@
-<change>
-<file>src/features/DailyMissionStudio.tsx</file>
-<description>Fix syntax error by removing XML metadata tags from the file content</description>
-<content><![CDATA[
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
@@ -76,28 +73,12 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [result, setResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mission = getDailyMission();
     const isLocked = isMissionLocked(auth.user);
-
-    // Animation Timer for Loading Text
-    useEffect(() => {
-        let interval: any;
-        if (loading) {
-            const steps = ["Scanning Mission Target...", "Applying Mission Parameters...", "Executing Generative Sequence...", "Finalizing Mission Assets..."];
-            let step = 0;
-            setLoadingText(steps[0]);
-            interval = setInterval(() => {
-                step = (step + 1) % steps.length;
-                setLoadingText(steps[step]);
-            }, 1500);
-        }
-        return () => clearInterval(interval);
-    }, [loading]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -181,30 +162,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                             {/* Background Glow behind image */}
                             <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-50"></div>
                             
-                            {/* Loading Overlay */}
-                            {loading && (
-                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn">
-                                    {/* Radar/Scan Effect */}
-                                    <div className="relative w-24 h-24 mb-6">
-                                         <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full"></div>
-                                         <div className="absolute inset-0 border-2 border-t-indigo-500 rounded-full animate-spin"></div>
-                                         <div className="absolute inset-4 bg-indigo-500/20 rounded-full animate-pulse"></div>
-                                    </div>
-                                    
-                                    {/* Progress Bar */}
-                                    <div className="w-48 h-1 bg-slate-700 rounded-full overflow-hidden shadow-inner mb-3">
-                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
-                                    </div>
-                                    
-                                    <p className="text-xs font-bold text-indigo-300 tracking-widest uppercase animate-pulse">{loadingText}</p>
-                                </div>
-                            )}
-
-                            <img 
-                                src={image.url} 
-                                className={`max-w-full max-h-full rounded-xl shadow-2xl object-contain relative z-10 transition-all duration-700 ${loading ? 'scale-95 opacity-20 blur-sm' : ''}`} 
-                                alt="Source" 
-                            />
+                            <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-2xl object-contain relative z-10" alt="Source" />
                             
                             {!loading && (
                                 <button 
@@ -215,13 +173,6 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                                     <UploadIcon className="w-5 h-5" />
                                 </button>
                             )}
-                            <style>{`
-                                @keyframes progress {
-                                    0% { width: 0%; margin-left: 0; }
-                                    50% { width: 100%; margin-left: 0; }
-                                    100% { width: 0%; margin-left: 100%; }
-                                }
-                            `}</style>
                         </div>
                     ) : (
                         // Custom Dark Upload Placeholder
@@ -324,11 +275,10 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                     reward={mission.reward} 
                     onClose={() => {
                         setShowSuccess(false);
+                        navigateTo('dashboard', 'home_dashboard');
                     }} 
                 />
             )}
         </>
     );
 };
-]]></content>
-</change>
