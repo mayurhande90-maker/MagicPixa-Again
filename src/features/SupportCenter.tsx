@@ -184,7 +184,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             setStep('success');
             loadHistory();
         } catch (e) {
-            alert("Failed to submit ticket.");
+            console.error("Ticket submission error:", e);
+            alert("Failed to submit ticket. Please check your connection and try again.");
         } finally {
             setLoading(false);
         }
@@ -201,12 +202,12 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     return (
         <div className="min-h-screen bg-[#FAFAFA]">
-            {/* Premium Header Background */}
+            {/* Premium Header Background - Unified Max Width */}
             <div className="bg-white border-b border-gray-200 pt-12 pb-24 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b from-indigo-50/50 to-purple-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-t from-blue-50/50 to-cyan-50/50 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
                 
-                <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+                <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest mb-6 shadow-sm">
                         <LifebuoyIcon className="w-3.5 h-3.5" />
                         Pixa Concierge
@@ -218,7 +219,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-6 -mt-12 pb-24">
+            <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* LEFT COLUMN: INTERACTIVE WIZARD (8 cols) */}

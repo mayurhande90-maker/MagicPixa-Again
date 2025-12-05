@@ -1,10 +1,9 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { db, auth, logAudit } from '../firebase';
+import { Type } from "@google/genai";
+import { getAiClient } from "./geminiClient";
+import { db, logAudit } from '../firebase';
 import firebase from 'firebase/compat/app';
-import { Ticket, Transaction } from '../types';
-
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+import { Ticket } from '../types';
 
 /**
  * Analyzes the user's raw input to determine the type of issue.
@@ -16,18 +15,21 @@ export const analyzeSupportIntent = async (text: string): Promise<{
     reasoning: string;
 }> => {
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Classify this user support request for an AI Image Generation App (MagicPixa).
+            contents: {
+                parts: [{ text: `Classify this user support request for an AI Image Generation App (MagicPixa).
             
-            Input: "${text}"
-            
-            Categories:
-            - 'refund': User mentions lost credits, image not generated, deduction error, failed transaction.
-            - 'bug': User mentions glitch, UI broken, upload failed, white screen, error message.
-            - 'general': How-to questions, billing inquiry (not refund), feature request, or feedback.
-            
-            Return JSON.`,
+                Input: "${text}"
+                
+                Categories:
+                - 'refund': User mentions lost credits, image not generated, deduction error, failed transaction.
+                - 'bug': User mentions glitch, UI broken, upload failed, white screen, error message.
+                - 'general': How-to questions, billing inquiry (not refund), feature request, or feedback.
+                
+                Return JSON.` }]
+            },
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -58,6 +60,7 @@ export const analyzeSupportIntent = async (text: string): Promise<{
  */
 export const analyzeErrorScreenshot = async (base64: string, mimeType: string): Promise<string> => {
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
@@ -86,7 +89,8 @@ export const createTicket = async (
     const ticketRef = db.collection('support_tickets').doc();
     const ticketId = ticketRef.id;
     
-    const newTicket: Ticket = {
+    // Construct object with defaults
+    const rawTicket: Ticket = {
         id: ticketId,
         userId,
         userEmail,
@@ -95,10 +99,22 @@ export const createTicket = async (
         subject: data.subject || 'New Support Request',
         description: data.description || '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        ...data // spread optional fields like relatedTransactionId, screenshotUrl
+        relatedTransactionId: data.relatedTransactionId,
+        refundAmount: data.refundAmount,
+        screenshotUrl: data.screenshotUrl,
+        adminReply: undefined
     };
 
-    await ticketRef.set(newTicket);
+    // Sanitize: Firestore throws error if a field value is `undefined`.
+    // We convert `undefined` to `null` or remove the key.
+    const safeTicket = Object.entries(rawTicket).reduce((acc, [key, value]) => {
+        if (value === undefined) {
+            return acc; // Skip undefined keys
+        }
+        return { ...acc, [key]: value };
+    }, {} as any);
+
+    await ticketRef.set(safeTicket);
     return ticketId;
 };
 
