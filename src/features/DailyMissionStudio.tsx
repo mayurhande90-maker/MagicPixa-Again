@@ -1,7 +1,4 @@
-<change>
-<file>src/features/DailyMissionStudio.tsx</file>
-<description>Redesign upload box and generate button to match premium dark theme</description>
-<content><![CDATA[
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
@@ -285,5 +282,3 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         </>
     );
 };
-]]></content>
-</change>
