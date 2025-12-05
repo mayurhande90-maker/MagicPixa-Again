@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket } from '../types';
 import { sendSupportMessage, createTicket, getUserTickets, ChatMessage, analyzeErrorScreenshot } from '../services/supportService';
@@ -97,50 +96,101 @@ const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 const TicketProposalCard: React.FC<{ 
     draft: Partial<Ticket>; 
-    onConfirm: () => void; 
+    onConfirm: (finalDraft: Partial<Ticket>) => void; 
     onCancel: () => void;
     isSubmitting: boolean;
     isSubmitted: boolean;
-}> = ({ draft, onConfirm, onCancel, isSubmitting, isSubmitted }) => (
-    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm w-full">
-        <div className="flex items-center gap-2 mb-3 text-indigo-700">
-            <div className="p-1.5 bg-indigo-100 rounded-lg">
-                <TicketIcon className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold uppercase tracking-wide">Ticket Suggestion</span>
-        </div>
-        <div className="mb-5 pl-1">
-            <p className="text-sm font-bold text-gray-900 mb-1">{draft.subject}</p>
-            <p className="text-xs text-gray-600 italic border-l-2 border-indigo-200 pl-3 py-1">
-                "{draft.description}"
-            </p>
-        </div>
-        <div className="flex gap-3">
-            {isSubmitted ? (
-                <div className="w-full bg-green-50 border border-green-200 text-green-700 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                    <CheckIcon className="w-4 h-4"/> Ticket Sent
+}> = ({ draft, onConfirm, onCancel, isSubmitting, isSubmitted }) => {
+    // Local state to allow editing before submission
+    const [editedDraft, setEditedDraft] = useState(draft);
+
+    // Update local state if prop draft changes (though mostly it won't)
+    useEffect(() => {
+        if (!isSubmitted) {
+            setEditedDraft(draft);
+        }
+    }, [draft, isSubmitted]);
+
+    if (isSubmitted) {
+        return (
+            <div className="mt-4 bg-green-50 p-5 rounded-2xl border border-green-200 shadow-sm animate-fadeIn max-w-sm w-full">
+                <div className="flex items-center gap-2 mb-3 text-green-700">
+                    <CheckIcon className="w-5 h-5" />
+                    <span className="text-xs font-bold uppercase tracking-wide">Ticket Submitted</span>
                 </div>
-            ) : (
-                <>
-                    <button 
-                        onClick={onConfirm}
-                        disabled={isSubmitting}
-                        className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
-                    >
-                        {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit Ticket"}
-                    </button>
-                    <button 
-                        onClick={onCancel}
-                        disabled={isSubmitting}
-                        className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                    >
-                        Dismiss
-                    </button>
-                </>
-            )}
+                <div className="pl-1">
+                    <p className="text-sm font-bold text-gray-900">{editedDraft.subject}</p>
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-3">{editedDraft.description}</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-4 bg-white p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm w-full ring-1 ring-indigo-50">
+            <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-indigo-50 pb-3">
+                <TicketIcon className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wide">Review & Submit Ticket</span>
+            </div>
+            
+            <div className="space-y-4 mb-5">
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Subject</label>
+                    <input 
+                        className="w-full text-sm font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                        value={editedDraft.subject || ''}
+                        onChange={e => setEditedDraft({...editedDraft, subject: e.target.value})}
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Type</label>
+                    <div className="flex gap-2">
+                        {['general', 'bug', 'refund'].map(t => (
+                            <button 
+                                key={t}
+                                onClick={() => setEditedDraft({...editedDraft, type: t as any})}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all ${
+                                    editedDraft.type === t 
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                }`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</label>
+                    <textarea 
+                        className="w-full text-xs text-gray-700 font-medium bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[80px]"
+                        value={editedDraft.description || ''}
+                        onChange={e => setEditedDraft({...editedDraft, description: e.target.value})}
+                    />
+                </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+                <button 
+                    onClick={() => onConfirm(editedDraft)}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
+                >
+                    {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit Ticket"}
+                </button>
+                <button 
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                    Dismiss
+                </button>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // Rich Text Renderer for Chat
 const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ text, isWelcome }) => {
@@ -204,10 +254,10 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 // Quick Action Pills
 const QuickActions: React.FC<{ onAction: (text: string) => void; className?: string }> = ({ onAction, className }) => {
     const actions = [
-        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
-        { label: "Features", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug I'd like to report." },
-        { label: "New Feature", icon: SparklesIcon, prompt: "I have a feature request." }
+        { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue: " },
+        { label: "Features", icon: LightbulbIcon, prompt: "I need help with a feature: " },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug: " },
+        { label: "New Feature", icon: SparklesIcon, prompt: "I'd like to request a feature: " }
     ];
 
     return (
@@ -265,6 +315,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputFocusRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (auth.user) {
@@ -342,8 +393,18 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setOlderMessages([]);
     };
 
-    const handleSendMessage = async (text: string = inputText) => {
-        if (!text.trim() || !auth.user) return;
+    // Updated handleQuickAction: Sets input text and focuses, doesn't auto-send
+    const handleQuickAction = (text: string) => {
+        setInputText(text);
+        setHasInteracted(true);
+        // Focus the input field
+        setTimeout(() => {
+            inputFocusRef.current?.focus();
+        }, 100);
+    };
+
+    const handleSendMessage = async () => {
+        if (!inputText.trim() || !auth.user) return;
 
         // Mark as interacted to move quick actions to bottom
         setHasInteracted(true);
@@ -351,7 +412,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             role: 'user',
-            content: text,
+            content: inputText,
             timestamp: Date.now()
         };
 
@@ -385,7 +446,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             // UPDATE MESSAGE STATE PERSISTENTLY
             setMessages(prev => prev.map(m => {
                 if (m.id === msgId) {
-                    const updated = { ...m, isSubmitted: true };
+                    // Update state to submitted AND update the draft with final edited values
+                    const updated = { ...m, isSubmitted: true, ticketDraft: draft };
                     // Side-effect: Save to DB
                     saveSupportMessage(auth.user!.uid, updated).catch(e => console.warn("Update save failed", e));
                     return updated;
@@ -539,10 +601,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             {msg.type === 'proposal' && msg.ticketDraft && (
                                                 <TicketProposalCard 
                                                     draft={msg.ticketDraft} 
-                                                    onConfirm={() => handleCreateTicket(msg.ticketDraft!, msg.id)}
+                                                    onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
                                                     onCancel={() => handleCancelTicket(msg.id)}
                                                     isSubmitting={submittingTicketId === msg.id}
-                                                    isSubmitted={msg.isSubmitted || false} // Use persistent property
+                                                    isSubmitted={msg.isSubmitted || false}
                                                 />
                                             )}
                                             
@@ -555,7 +617,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
                                     {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
                                         <div className="w-full mt-4 pl-12 sm:pl-16">
-                                            <QuickActions onAction={handleSendMessage} className="justify-start" />
+                                            <QuickActions onAction={handleQuickAction} className="justify-start" />
                                         </div>
                                     )}
                                 </div>
@@ -582,7 +644,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
                         {hasInteracted && !loadingHistory && (
                             <div className="pb-2 px-2 flex justify-center md:justify-start">
-                                <QuickActions onAction={handleSendMessage} />
+                                <QuickActions onAction={handleQuickAction} />
                             </div>
                         )}
 
@@ -596,6 +658,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </button>
                             
                             <input 
+                                ref={inputFocusRef}
                                 type="text"
                                 className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
                                 placeholder="Type your message..."
