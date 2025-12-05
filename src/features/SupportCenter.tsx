@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, Ticket, Transaction } from '../types';
+import { AuthProps, Ticket } from '../types';
 import { sendSupportMessage, createTicket, getUserTickets, ChatMessage, analyzeErrorScreenshot } from '../services/supportService';
 import { fileToBase64 } from '../utils/imageUtils';
 import { saveSupportMessage, getSupportHistory, cleanupSupportHistory } from '../firebase';
@@ -11,7 +11,6 @@ import {
     XIcon, 
     TicketIcon, 
     UploadIcon,
-    ArrowRightIcon,
     CreditCoinIcon,
     LightbulbIcon,
     FlagIcon,
@@ -33,9 +32,9 @@ const getGreeting = () => {
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const styles = {
-        open: 'bg-amber-100 text-amber-700 border-amber-200',
-        resolved: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-        rejected: 'bg-red-100 text-red-700 border-red-200'
+        open: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-100',
+        resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100',
+        rejected: 'bg-red-50 text-red-700 border-red-200 ring-red-100'
     };
     const indicatorColor = {
         open: 'bg-amber-500',
@@ -46,7 +45,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const c = indicatorColor[status as keyof typeof indicatorColor] || 'bg-gray-400';
 
     return (
-        <span className={`pl-2 pr-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${s} inline-flex items-center gap-1.5 shadow-sm`}>
+        <span className={`pl-2 pr-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ring-2 ring-offset-1 ring-offset-white ${s} inline-flex items-center gap-1.5 shadow-sm`}>
             <span className={`w-1.5 h-1.5 rounded-full ${c} ${status === 'open' ? 'animate-pulse' : ''}`}></span>
             {status}
         </span>
@@ -56,7 +55,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     const date = ticket.createdAt?.toDate ? ticket.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now';
     return (
-        <div className="group relative p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden">
+        <div className="group relative p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:bg-white transition-all duration-300 cursor-default overflow-hidden">
             {/* Hover Accent Line */}
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             
@@ -71,7 +70,7 @@ const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
             </div>
 
             {ticket.adminReply && (
-                <div className="mt-3 mx-2 pt-3 border-t border-gray-50 flex gap-2.5 items-start">
+                <div className="mt-3 mx-2 pt-3 border-t border-gray-100/50 flex gap-2.5 items-start">
                     <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
                         <SparklesIcon className="w-3 h-3 text-indigo-600" />
                     </div>
@@ -91,7 +90,7 @@ const TicketProposalCard: React.FC<{
     onCancel: () => void;
     isSubmitting: boolean;
 }> = ({ draft, onConfirm, onCancel, isSubmitting }) => (
-    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-lg shadow-indigo-500/5 animate-fadeIn max-w-sm">
+    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm">
         <div className="flex items-center gap-2 mb-3 text-indigo-700">
             <div className="p-1.5 bg-indigo-100 rounded-lg">
                 <TicketIcon className="w-4 h-4" />
@@ -129,7 +128,7 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
         const parts = str.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>;
+                return <strong key={i} className="font-bold text-indigo-900">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
@@ -143,13 +142,13 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
                 
                 if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
                     const cleanHeader = trimmed.replace(/^#+\s*/, '');
-                    return <h3 key={i} className="font-bold text-lg mt-1 mb-1 tracking-tight">{cleanHeader}</h3>;
+                    return <h3 key={i} className="font-bold text-lg mt-1 mb-1 tracking-tight text-gray-900">{cleanHeader}</h3>;
                 }
                 
                 if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
                      return (
                         <div key={i} className="flex gap-2.5 items-start pl-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0 opacity-60"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shrink-0"></span>
                             <span className="flex-1 leading-relaxed">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
                         </div>
                      );
@@ -162,13 +161,13 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
 
 // Icons for Chat
 const PixaBotIcon = () => (
-    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 shadow-sm">
+    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-gradient-to-br from-white to-slate-50 border border-white/50 shadow-md shadow-indigo-100">
         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 translate-y-[1px]" style={{ fontFamily: "'Parkinsans', sans-serif" }}>P</span>
     </div>
 );
 
 const UserMessageIcon = ({ user }: { user: any }) => (
-    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-gray-200 border-2 border-white shadow-sm overflow-hidden">
+    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-white shadow-md overflow-hidden">
         {user?.avatar ? (
              <span className="text-sm font-bold text-gray-600">{user.avatar}</span>
         ) : (
@@ -372,25 +371,25 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col font-sans text-slate-900">
+        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-slate-50 to-white flex flex-col font-sans text-slate-900">
             
             {/* Premium Header */}
-            <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 py-6 px-8 sticky top-0 z-30">
+            <div className="bg-white/70 backdrop-blur-xl border-b border-white/50 py-5 px-8 sticky top-0 z-30 shadow-sm">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 tracking-tight">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30 text-white">
-                                <LifebuoyIcon className="w-6 h-6" />
+                        <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
+                            <div className="p-2 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
+                                <LifebuoyIcon className="w-5 h-5" />
                             </div>
                             Support Center
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1 font-medium ml-1">AI Concierge & Premium Support</p>
+                        <p className="text-xs font-bold text-gray-400 mt-1 ml-1 uppercase tracking-wider">24/7 Intelligent Support</p>
                     </div>
                     {/* Activity Indicator / Credits */}
                     <div className="hidden sm:flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <span className="text-xs font-bold uppercase tracking-wide">Live</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 shadow-sm">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-wide">Pixa Live</span>
                         </div>
                         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
                             <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
@@ -400,14 +399,15 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 lg:p-8">
+            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 lg:p-8 items-start">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                {/* Main Glassmorphism Container */}
-                <div className="lg:col-span-2 flex flex-col h-[550px] bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-indigo-500/10 border border-white/60 ring-1 ring-gray-100 overflow-hidden relative group">
+                {/* Main Glassmorphism Container with strict height control */}
+                <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[500px] bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/50 overflow-hidden relative group">
                     
                     {/* Decorative Background Blur */}
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply"></div>
+                    <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply"></div>
                     
                     {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth relative z-10">
@@ -417,9 +417,9 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             <div className="flex justify-center mb-6">
                                 <button 
                                     onClick={handleLoadOlder}
-                                    className="bg-white/80 backdrop-blur text-gray-500 hover:text-indigo-600 text-[10px] font-bold px-5 py-2 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md hover:scale-105"
+                                    className="bg-white/90 backdrop-blur-md text-slate-500 hover:text-indigo-600 text-[10px] font-bold px-5 py-2 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md hover:-translate-y-0.5"
                                 >
-                                    Load Previous Chat
+                                    Previous chat
                                 </button>
                             </div>
                         )}
@@ -427,7 +427,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {loadingHistory && (
                             <div className="flex flex-col items-center justify-center py-12 opacity-60">
                                 <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
-                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Loading Conversation...</p>
+                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Connecting...</p>
                             </div>
                         )}
 
@@ -442,10 +442,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
                                     {/* Bubble */}
                                     <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                        <div className={`px-6 py-4 rounded-2xl shadow-sm text-sm leading-relaxed relative ${
+                                        <div className={`px-6 py-4 rounded-3xl shadow-sm text-sm leading-relaxed relative border ${
                                             msg.role === 'user' 
-                                            ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-indigo-500/20' 
-                                            : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
+                                            ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-indigo-500/20 border-transparent' 
+                                            : 'bg-white/90 text-gray-800 rounded-tl-none border-white shadow-sm'
                                         }`}>
                                             {msg.role === 'user' ? msg.content : <FormattedMessage text={msg.content} />}
                                         </div>
@@ -460,7 +460,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             />
                                         )}
                                         
-                                        <span className={`text-[9px] font-bold mt-1.5 px-1 opacity-60 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                                        <span className={`text-[9px] font-bold mt-2 px-2 opacity-40 ${msg.role === 'user' ? 'text-right text-indigo-900' : 'text-left text-gray-400'}`}>
                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
@@ -471,7 +471,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {isTyping && (
                             <div className="flex items-center gap-3 animate-fadeIn">
                                 <PixaBotIcon />
-                                <div className="bg-white px-5 py-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5">
+                                <div className="bg-white/80 px-5 py-4 rounded-3xl rounded-tl-none border border-white shadow-sm flex gap-1.5">
                                     <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
                                     <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
                                     <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
@@ -484,62 +484,65 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input Area */}
-                    <div className="p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center gap-3 relative z-20">
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="p-3.5 text-gray-400 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-indigo-100"
-                            title="Upload Screenshot"
-                        >
-                            <UploadIcon className="w-5 h-5" />
-                        </button>
-                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                        
-                        <div className="flex-1 relative">
-                            <input 
-                                type="text" 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-gray-400 text-gray-800 shadow-inner"
-                                placeholder="Type a message..."
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                            />
+                    {/* Input Area - Floating Capsule Design */}
+                    <div className="p-4 relative z-20">
+                        <div className="bg-white/90 backdrop-blur-xl border border-white shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2">
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-3 text-gray-400 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 rounded-full transition-all"
+                                title="Upload Screenshot"
+                            >
+                                <UploadIcon className="w-5 h-5" />
+                            </button>
+                            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                            
+                            <div className="flex-1 relative">
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-transparent px-2 py-3 text-sm focus:outline-none placeholder-gray-400 text-gray-800 font-medium"
+                                    placeholder="Type your message..."
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                />
+                            </div>
+                            
+                            <button 
+                                onClick={() => handleSendMessage()}
+                                disabled={!inputText.trim() || isTyping}
+                                className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none active:scale-95 transform hover:scale-105"
+                            >
+                                <PaperAirplaneIcon className="w-5 h-5" />
+                            </button>
                         </div>
-                        
-                        <button 
-                            onClick={() => handleSendMessage()}
-                            disabled={!inputText.trim() || isTyping}
-                            className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none active:scale-95 transform hover:scale-105"
-                        >
-                            <PaperAirplaneIcon className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
 
                 {/* RIGHT: TICKET HISTORY */}
-                <div className="hidden lg:flex flex-col h-[550px]">
-                    <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-white/60 ring-1 ring-gray-100 h-full flex flex-col overflow-hidden relative">
+                {/* Glassmorphism Sidebar */}
+                <div className="hidden lg:flex flex-col h-[50vh] min-h-[500px]">
+                    <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-xl border border-white/80 ring-1 ring-white/50 h-full flex flex-col overflow-hidden relative">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 backdrop-blur-md sticky top-0 z-10">
+                        <div className="p-6 border-b border-white/50 bg-white/40 backdrop-blur-md sticky top-0 z-10">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <div className="p-1.5 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                    <div className="p-1.5 bg-white border border-gray-100 rounded-lg shadow-sm">
                                         <TicketIcon className="w-4 h-4 text-indigo-500"/>
                                     </div>
-                                    Your Tickets
+                                    History
                                 </h3>
-                                <span className="text-[10px] font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{tickets.length}</span>
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full border border-indigo-100">{tickets.length}</span>
                             </div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-[#ffffff]/50">
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
                             {tickets.length > 0 ? (
                                 tickets.map(ticket => (
                                     <TicketHistoryItem key={ticket.id} ticket={ticket} />
                                 ))
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
                                         <TicketIcon className="w-8 h-8 text-gray-300" />
                                     </div>
                                     <p className="text-sm font-bold text-gray-500">No active tickets</p>
@@ -549,7 +552,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                         
                         {/* Bottom Gradient Fade */}
-                        <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
                     </div>
                 </div>
 
