@@ -1,4 +1,7 @@
-
+<change>
+<file>src/features/DailyMissionStudio.tsx</file>
+<description>Redesign upload box and generate button to match premium dark theme</description>
+<content><![CDATA[
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
@@ -16,7 +19,8 @@ import {
     UploadIcon, 
     FlagIcon,
     CheckIcon,
-    SparklesIcon
+    SparklesIcon,
+    XIcon
 } from '../components/icons';
 
 // --- Mission Success Modal ---
@@ -73,6 +77,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     const [result, setResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mission = getDailyMission();
@@ -84,6 +89,23 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
             setResult(null);
+        }
+        e.target.value = '';
+    };
+
+    // Drag and Drop Handlers
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                const base64 = await fileToBase64(file);
+                setImage({ url: URL.createObjectURL(file), base64 });
+                setResult(null);
+            }
         }
     };
 
@@ -131,23 +153,56 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 onNewSession={() => { setImage(null); setResult(null); }}
                 resultHeightClass="h-[600px]"
                 hideGenerateButton={isLocked}
+                // Redesigned Button: Premium Gold
                 generateButtonStyle={{
-                    className: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg border-none hover:scale-[1.02]",
+                    className: "bg-gradient-to-r from-amber-400 to-yellow-600 text-[#0f172a] shadow-lg shadow-amber-500/20 border-none hover:scale-[1.02] font-black uppercase tracking-wider",
                     hideIcon: false,
                     label: "Complete Mission"
                 }}
                 leftContent={
                     image ? (
-                        <div className="relative h-full w-full flex items-center justify-center p-4">
-                            <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-md object-contain" alt="Source" />
+                        <div className="relative h-full w-full flex items-center justify-center p-4 bg-[#0f172a] rounded-2xl border border-slate-800 overflow-hidden shadow-inner group">
+                            {/* Background Glow behind image */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-50"></div>
+                            
+                            <img src={image.url} className="max-w-full max-h-full rounded-xl shadow-2xl object-contain relative z-10" alt="Source" />
+                            
                             {!loading && (
-                                <button onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-gray-100">
-                                    <UploadIcon className="w-5 h-5 text-gray-600" />
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white p-2.5 rounded-full shadow-lg border border-white/10 hover:bg-white/20 transition-all z-20 group-hover:scale-110"
+                                    title="Change Photo"
+                                >
+                                    <UploadIcon className="w-5 h-5" />
                                 </button>
                             )}
                         </div>
                     ) : (
-                        <UploadPlaceholder label="Upload Photo" onClick={() => fileInputRef.current?.click()} />
+                        // Custom Dark Upload Placeholder
+                        <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            onDragOver={handleDragOver}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`w-full h-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden ${
+                                isDragging 
+                                ? 'border-indigo-500 bg-indigo-900/20' 
+                                : 'border-slate-700 bg-[#0f172a] hover:border-indigo-500/50 hover:bg-[#131b2e]'
+                            }`}
+                        >
+                            {/* Background Grid Pattern */}
+                            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                            
+                            <div className="relative z-10 p-6 bg-slate-800/50 rounded-full shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300 border border-white/5">
+                                <UploadIcon className="w-10 h-10 text-indigo-400 group-hover:text-indigo-300" />
+                            </div>
+                            
+                            <div className="relative z-10 text-center">
+                                <p className="text-lg font-bold text-slate-200 group-hover:text-white transition-colors">Upload Mission Asset</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 group-hover:text-indigo-400 transition-colors">Drag & Drop or Click</p>
+                            </div>
+                        </div>
                     )
                 }
                 rightContent={
@@ -230,3 +285,5 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         </>
     );
 };
+]]></content>
+</change>
