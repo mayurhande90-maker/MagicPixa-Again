@@ -7,7 +7,8 @@ import {
     UploadTrayIcon,
     CreditCardIcon,
     SparklesIcon,
-    MagicWandIcon
+    MagicWandIcon,
+    CheckIcon
 } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -59,35 +60,62 @@ const CompactUpload: React.FC<{
 };
 
 const FormatSelector: React.FC<{
-    selected: 'landscape' | 'portrait';
+    selected: 'landscape' | 'portrait' | null;
     onSelect: (format: 'landscape' | 'portrait') => void;
 }> = ({ selected, onSelect }) => (
-    <div>
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1 block">1. Select Format</label>
-        <div className="grid grid-cols-2 gap-3 mb-6">
+    <div className="mb-8">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 block ml-1">1. Choose Format</label>
+        <div className="grid grid-cols-2 gap-4">
+            {/* YouTube Option */}
             <button
                 onClick={() => onSelect('landscape')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+                className={`relative group p-6 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center gap-4 text-center overflow-hidden ${
                     selected === 'landscape'
-                        ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
-                        : 'border-gray-100 bg-white text-gray-500 hover:border-red-200'
+                        ? 'border-red-500 bg-gradient-to-br from-red-50 to-white shadow-xl shadow-red-500/10 scale-[1.02]'
+                        : 'border-gray-100 bg-white hover:border-red-200 hover:shadow-lg hover:-translate-y-1'
                 }`}
             >
-                <div className="w-10 h-6 border-2 border-current rounded-sm mb-2 opacity-80" />
-                <span className="text-xs font-bold uppercase">YouTube Landscape</span>
-                <span className="text-[9px] opacity-60 font-medium mt-0.5">16:9 Ratio</span>
+                {/* Visual Representation */}
+                <div className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center transition-colors shadow-sm ${selected === 'landscape' ? 'border-red-500 bg-red-100' : 'border-gray-300 bg-gray-50 group-hover:border-red-300'}`}>
+                    <div className={`w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-b-[5px] border-b-transparent ml-1 ${selected === 'landscape' ? 'border-l-red-500' : 'border-l-gray-400 group-hover:border-l-red-400'}`}></div>
+                </div>
+                
+                <div>
+                    <h3 className={`font-bold text-sm ${selected === 'landscape' ? 'text-red-600' : 'text-gray-700'}`}>YouTube Video</h3>
+                    <p className="text-[10px] text-gray-400 font-medium mt-1 tracking-wide">16:9 Landscape</p>
+                </div>
+
+                {selected === 'landscape' && (
+                    <div className="absolute top-3 right-3 bg-red-500 text-white p-1 rounded-full animate-fadeIn shadow-sm">
+                        <CheckIcon className="w-3 h-3" />
+                    </div>
+                )}
             </button>
+
+            {/* Instagram Option */}
             <button
                 onClick={() => onSelect('portrait')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+                className={`relative group p-6 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center gap-4 text-center overflow-hidden ${
                     selected === 'portrait'
-                        ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-sm'
-                        : 'border-gray-100 bg-white text-gray-500 hover:border-pink-200'
+                        ? 'border-pink-500 bg-gradient-to-br from-pink-50 to-white shadow-xl shadow-pink-500/10 scale-[1.02]'
+                        : 'border-gray-100 bg-white hover:border-pink-200 hover:shadow-lg hover:-translate-y-1'
                 }`}
             >
-                <div className="w-6 h-10 border-2 border-current rounded-sm mb-2 opacity-80" />
-                <span className="text-xs font-bold uppercase">Instagram Portrait</span>
-                <span className="text-[9px] opacity-60 font-medium mt-0.5">9:16 Ratio</span>
+                {/* Visual Representation */}
+                <div className={`w-9 h-14 rounded-xl border-2 flex flex-col items-center justify-center transition-colors shadow-sm ${selected === 'portrait' ? 'border-pink-500 bg-pink-100' : 'border-gray-300 bg-gray-50 group-hover:border-pink-300'}`}>
+                    <div className={`w-3 h-3 rounded-full border-2 ${selected === 'portrait' ? 'border-pink-400' : 'border-gray-400 group-hover:border-pink-400'}`}></div>
+                </div>
+
+                <div>
+                    <h3 className={`font-bold text-sm ${selected === 'portrait' ? 'text-pink-600' : 'text-gray-700'}`}>Reels & Stories</h3>
+                    <p className="text-[10px] text-gray-400 font-medium mt-1 tracking-wide">9:16 Vertical</p>
+                </div>
+
+                {selected === 'portrait' && (
+                    <div className="absolute top-3 right-3 bg-pink-500 text-white p-1 rounded-full animate-fadeIn shadow-sm">
+                        <CheckIcon className="w-3 h-3" />
+                    </div>
+                )}
             </button>
         </div>
     </div>
@@ -99,7 +127,7 @@ export const ThumbnailStudio: React.FC<{
     navigateTo: (page: Page, view?: View) => void;
 }> = ({ auth, appConfig, navigateTo }) => {
     // Inputs
-    const [format, setFormat] = useState<'landscape' | 'portrait'>('landscape');
+    const [format, setFormat] = useState<'landscape' | 'portrait' | null>(null);
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
     const [customText, setCustomText] = useState(''); // New State for Custom Text Override
@@ -126,9 +154,9 @@ export const ThumbnailStudio: React.FC<{
     const userCredits = auth.user?.credits || 0;
     
     const isPodcast = category === 'Podcast';
-    const hasRequirements = isPodcast 
+    const hasRequirements = format && (isPodcast 
         ? (!!hostImage && !!guestImage && !!title)
-        : (!!title); 
+        : (!!title));
         
     const isLowCredits = userCredits < cost;
 
@@ -183,7 +211,7 @@ export const ThumbnailStudio: React.FC<{
     };
 
     const handleGenerate = async () => {
-        if (!hasRequirements || !auth.user) return;
+        if (!hasRequirements || !auth.user || !format) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -224,7 +252,7 @@ export const ThumbnailStudio: React.FC<{
     };
 
     const handleRegenerate = async () => {
-        if (!hasRequirements || !auth.user) return;
+        if (!hasRequirements || !auth.user || !format) return;
         if (userCredits < regenCost) { alert("Insufficient credits."); return; }
 
         setLoading(true);
@@ -264,7 +292,7 @@ export const ThumbnailStudio: React.FC<{
     };
 
     const handleNewSession = () => {
-        setFormat('landscape');
+        setFormat(null);
         setReferenceImage(null);
         setSubjectImage(null);
         setHostImage(null);
@@ -287,6 +315,21 @@ export const ThumbnailStudio: React.FC<{
         }
     };
 
+    const handleFormatSelect = (val: 'landscape' | 'portrait') => {
+        setFormat(val);
+        // Clean reset of other fields if switching (optional, but good for UX)
+        if (val !== format) {
+            setCategory('');
+            setTitle('');
+            setCustomText('');
+            setSubjectImage(null);
+            setHostImage(null);
+            setGuestImage(null);
+            setReferenceImage(null);
+        }
+        autoScroll();
+    };
+
     return (
         <>
             <FeatureLayout 
@@ -296,7 +339,7 @@ export const ThumbnailStudio: React.FC<{
                 rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
-                canGenerate={hasRequirements && !isLowCredits}
+                canGenerate={!!hasRequirements && !isLowCredits}
                 onGenerate={handleGenerate}
                 resultImage={result}
                 onResetResult={handleRegenerate} 
@@ -336,7 +379,7 @@ export const ThumbnailStudio: React.FC<{
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">
-                                    {format === 'portrait' ? '9:16 Vertical Preview' : '16:9 Landscape Preview'}
+                                    {format === 'portrait' ? '9:16 Vertical Preview' : (format === 'landscape' ? '16:9 Landscape Preview' : 'Select a format to begin')}
                                 </p>
                             </div>
                         )}
@@ -355,37 +398,41 @@ export const ThumbnailStudio: React.FC<{
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
                             {/* Format Selection */}
-                            <FormatSelector selected={format} onSelect={setFormat} />
+                            <FormatSelector selected={format} onSelect={handleFormatSelect} />
 
-                            <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
-                            
-                            {category && (
-                                <div className="animate-fadeIn space-y-6">
-                                    <div className="h-px w-full bg-gray-200"></div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
-                                        {isPodcast ? (
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <CompactUpload label="Host Photo" image={hostImage} onUpload={handleUpload(setHostImage)} onClear={() => setHostImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>} />
-                                                    <CompactUpload label="Guest Photo" image={guestImage} onUpload={handleUpload(setGuestImage)} onClear={() => setGuestImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>} />
-                                                </div>
-                                                <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                            {format && (
+                                <div className="animate-fadeIn space-y-8">
+                                    <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                                    
+                                    {category && (
+                                        <div className="animate-fadeIn space-y-6">
+                                            <div className="h-px w-full bg-gray-200"></div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
+                                                {isPodcast ? (
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <CompactUpload label="Host Photo" image={hostImage} onUpload={handleUpload(setHostImage)} onClear={() => setHostImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>} />
+                                                            <CompactUpload label="Guest Photo" image={guestImage} onUpload={handleUpload(setGuestImage)} onClear={() => setGuestImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>} />
+                                                        </div>
+                                                        <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        <CompactUpload label="Your Photo" image={subjectImage} onUpload={handleUpload(setSubjectImage)} onClear={() => setSubjectImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} optional={true} />
+                                                        <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                                                    </div>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <div className="space-y-4">
-                                                <CompactUpload label="Your Photo" image={subjectImage} onUpload={handleUpload(setSubjectImage)} onClear={() => setSubjectImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} optional={true} />
-                                                <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                                            <div className="animate-fadeIn">
+                                                <InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} />
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="animate-fadeIn">
-                                        <InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} />
-                                    </div>
-                                    <div className="animate-fadeIn">
-                                        <InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} />
-                                        <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p>
-                                    </div>
+                                            <div className="animate-fadeIn">
+                                                <InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} />
+                                                <p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
