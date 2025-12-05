@@ -202,7 +202,7 @@ const UserMessageIcon = ({ user }: { user: any }) => (
 );
 
 // Quick Action Pills
-const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction }) => {
+const QuickActions: React.FC<{ onAction: (text: string) => void; className?: string }> = ({ onAction, className }) => {
     const actions = [
         { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
         { label: "Features", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
@@ -211,7 +211,7 @@ const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction
     ];
 
     return (
-        <div className="flex flex-wrap gap-2 animate-fadeIn mb-2">
+        <div className={`flex flex-wrap gap-2 animate-fadeIn ${className}`}>
             {actions.map((action, idx) => (
                 <button
                     key={idx}
@@ -228,22 +228,20 @@ const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction
 
 // Skeleton Loader for Chat
 const ChatSkeleton = () => (
-    <div className="space-y-6 p-4 opacity-50 animate-pulse">
-        {/* Fake Bot Message */}
-        <div className="flex gap-3">
-            <div className="w-10 h-10 bg-gray-200 rounded-2xl shrink-0"></div>
-            <div className="space-y-2">
-                <div className="w-48 h-4 bg-gray-200 rounded-full"></div>
-                <div className="w-64 h-4 bg-gray-200 rounded-full"></div>
-                <div className="w-32 h-4 bg-gray-200 rounded-full"></div>
+    <div className="space-y-6 p-4 opacity-70 animate-pulse flex flex-col items-center justify-center h-full">
+        <div className="w-full max-w-md space-y-6">
+            {/* Fake Bot Message */}
+            <div className="flex gap-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-2xl shrink-0"></div>
+                <div className="space-y-2 flex-1">
+                    <div className="w-3/4 h-4 bg-gray-200 rounded-full"></div>
+                    <div className="w-1/2 h-4 bg-gray-200 rounded-full"></div>
+                </div>
             </div>
-        </div>
-        {/* Fake User Message */}
-        <div className="flex gap-3 flex-row-reverse">
-            <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
-            <div className="space-y-2 flex flex-col items-end">
-                <div className="w-40 h-4 bg-gray-200 rounded-full"></div>
-                <div className="w-24 h-4 bg-gray-200 rounded-full"></div>
+            
+            <div className="flex flex-col items-center gap-3 pt-4">
+                <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-bold text-indigo-500 tracking-widest uppercase">Connecting to Pixa Support...</p>
             </div>
         </div>
     </div>
@@ -256,7 +254,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(true);
-    const [showQuickActions, setShowQuickActions] = useState(true);
+    const [hasInteracted, setHasInteracted] = useState(false);
     
     // Ticket State
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -278,7 +276,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     // Auto-scroll to bottom of chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping, olderMessages, showQuickActions, loadingHistory]);
+    }, [messages, isTyping, olderMessages, hasInteracted, loadingHistory]);
 
     const loadChatHistory = async () => {
         if (!auth.user) return;
@@ -287,8 +285,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         let allMessages: ChatMessage[] = [];
         
         try {
-            // Attempt cleanup (don't block on error)
-            await cleanupSupportHistory(auth.user.uid).catch(e => console.warn("Chat cleanup skipped:", e));
+            // OPTIMIZATION: Do NOT await cleanup. Fire and forget to speed up initial load.
+            cleanupSupportHistory(auth.user.uid).catch(e => console.warn("Chat cleanup background process error:", e));
             
             // Attempt fetch
             const rawHistory = await getSupportHistory(auth.user.uid);
@@ -302,6 +300,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         
         const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
         const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
+
+        // Check if user has ever sent a message in the active history
+        const userHasHistory = recent.some(m => m.role === 'user');
+        setHasInteracted(userHasHistory);
 
         if (recent.length === 0) {
             const greeting = getGreeting();
@@ -343,7 +345,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const handleSendMessage = async (text: string = inputText) => {
         if (!text.trim() || !auth.user) return;
 
-        setShowQuickActions(false);
+        // Mark as interacted to move quick actions to bottom
+        setHasInteracted(true);
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
@@ -403,6 +406,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg).catch(e => console.warn("Save failed", e));
             
+            setHasInteracted(true);
+            
         } catch (e: any) {
             alert("Failed to create ticket: " + e.message);
         } finally {
@@ -419,6 +424,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             
+            setHasInteracted(true);
+
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
@@ -501,12 +508,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         )}
 
                         {loadingHistory ? (
-                            <div className="flex flex-col h-full justify-center">
-                                <ChatSkeleton />
-                            </div>
+                            <ChatSkeleton />
                         ) : (
                             messages.map((msg, index) => (
-                                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                                <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
                                     <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                         
                                         {/* Avatar */}
@@ -546,6 +551,13 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
+                                    {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
+                                        <div className="w-full mt-4 pl-12 sm:pl-16">
+                                            <QuickActions onAction={handleSendMessage} className="justify-start" />
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -567,8 +579,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     {/* Input Area */}
                     <div className="p-4 lg:p-6 relative z-20 bg-gradient-to-t from-white/90 via-white/50 to-transparent flex flex-col gap-2">
                         
-                        {/* Persistent Quick Actions (Above Input) */}
-                        {showQuickActions && !loadingHistory && (
+                        {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
+                        {hasInteracted && !loadingHistory && (
                             <div className="pb-2 px-2 flex justify-center md:justify-start">
                                 <QuickActions onAction={handleSendMessage} />
                             </div>
