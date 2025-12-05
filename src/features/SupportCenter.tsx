@@ -17,8 +17,20 @@ import {
     ShieldCheckIcon,
     ChatBubbleLeftIcon,
     UserIcon,
-    DownloadIcon
+    DownloadIcon,
+    CreditCardIcon,
+    LightbulbIcon,
+    FlagIcon
 } from '../components/icons';
+
+// --- HELPERS ---
+
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+};
 
 // --- COMPONENTS ---
 
@@ -96,6 +108,82 @@ const TicketProposalCard: React.FC<{
     </div>
 );
 
+// Rich Text Renderer for Chat
+const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
+    const parseBold = (str: string) => {
+        const parts = str.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+    };
+
+    return (
+        <div className="space-y-1.5">
+            {text.split('\n').map((line, i) => {
+                const trimmed = line.trim();
+                if (!trimmed) return <div key={i} className="h-1"></div>;
+                
+                // Headers
+                if (trimmed.startsWith('###')) {
+                    return <h3 key={i} className="font-bold text-sm mt-3 mb-1 text-indigo-900">{parseBold(trimmed.replace(/^###\s*/, ''))}</h3>;
+                }
+                // Bullet Points
+                if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                     return (
+                        <div key={i} className="flex gap-2 ml-1 items-start">
+                            <span className="text-indigo-400 font-bold mt-1">•</span>
+                            <span className="flex-1 text-gray-700">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
+                        </div>
+                     );
+                }
+                // Regular Paragraph
+                return <p key={i} className="text-gray-700 leading-relaxed">{parseBold(line)}</p>;
+            })}
+        </div>
+    );
+};
+
+// Icons for Chat
+const PixaBotIcon = () => (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white border border-gray-100 shadow-sm overflow-hidden">
+        <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 translate-y-[1px]" style={{ fontFamily: "'Parkinsans', sans-serif" }}>P</span>
+    </div>
+);
+
+const UserMessageIcon = ({ user }: { user: any }) => (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gray-200 border border-gray-300 text-gray-600 font-bold text-xs shadow-inner">
+        {user?.avatar || 'U'}
+    </div>
+);
+
+// Quick Action Pills
+const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction }) => {
+    const actions = [
+        { label: "Billing & Credits", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
+        { label: "How to Use?", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug I'd like to report." },
+        { label: "Feature Request", icon: SparklesIcon, prompt: "I have a feature request." }
+    ];
+
+    return (
+        <div className="flex flex-wrap gap-2 mt-4 animate-fadeIn">
+            {actions.map((action, idx) => (
+                <button
+                    key={idx}
+                    onClick={() => onAction(action.prompt)}
+                    className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm"
+                >
+                    <action.icon className="w-3.5 h-3.5" />
+                    {action.label}
+                </button>
+            ))}
+        </div>
+    );
+};
+
 export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     // Chat State
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -104,6 +192,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(true);
+    const [showQuickActions, setShowQuickActions] = useState(false);
     
     // Sidebar Data
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -121,7 +210,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     // Auto-scroll to bottom of chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping, olderMessages]); // Re-scroll when older messages loaded too
+    }, [messages, isTyping, olderMessages, showQuickActions]);
 
     const loadChatHistory = async () => {
         if (!auth.user) return;
@@ -129,35 +218,38 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             await cleanupSupportHistory(auth.user.uid);
             const rawHistory = await getSupportHistory(auth.user.uid);
-            // Convert any Firestore timestamps if necessary, but data() usually returns JSON-like objects
-            // Assuming getSupportHistory returns ChatMessage[]
             const allMessages = rawHistory as ChatMessage[];
 
-            if (allMessages.length === 0) {
-                // Initial Welcome if fresh
+            // Determine if we need to show the Welcome Message
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            
+            // Only keep last 24h for active view
+            const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
+            const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
+
+            if (recent.length === 0) {
+                // Initial Welcome if fresh session (no recent messages)
+                const greeting = getGreeting();
                 const welcomeMsg: ChatMessage = {
                     id: 'welcome_' + Date.now(),
                     role: 'model',
-                    content: `Hello ${auth.user?.name.split(' ')[0]}! I'm Pixa Support. Ask me anything about features, credits, or issues. How can I help?`,
+                    content: `${greeting}, ${auth.user.name.split(' ')[0]}! I'm Pixa Support.\n\nI can help you with features, billing, or technical issues. How can I assist you today?`,
                     timestamp: Date.now()
                 };
                 setMessages([welcomeMsg]);
+                setShowQuickActions(true);
+                // We don't save ephemeral welcome messages to DB to avoid spamming history, 
+                // or we save it only if user interacts. Let's save it for consistency.
                 saveSupportMessage(auth.user.uid, welcomeMsg);
             } else {
-                const now = Date.now();
-                const oneDay = 24 * 60 * 60 * 1000;
-                
-                const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
-                const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
-
-                setOlderMessages(older);
-                
-                // If user has history but no recent chat, show a welcome back message or empty state?
-                // Let's just show recent. If empty, the user sees nothing but can type. 
-                // Or we can add a 'welcome back' ephemeral message.
-                // For now, adhering to instructions: "only show chat of last 24 hours".
                 setMessages(recent);
+                // Show quick actions only if the last message was a while ago or it's just the welcome msg
+                if (recent.length <= 1) setShowQuickActions(true);
             }
+            
+            setOlderMessages(older);
+
         } catch (e) {
             console.error("Failed to load chat history", e);
         } finally {
@@ -176,13 +268,15 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setOlderMessages([]);
     };
 
-    const handleSendMessage = async () => {
-        if (!inputText.trim() || !auth.user) return;
+    const handleSendMessage = async (text: string = inputText) => {
+        if (!text.trim() || !auth.user) return;
+
+        setShowQuickActions(false); // Hide pills once interaction starts
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             role: 'user',
-            content: inputText,
+            content: text,
             timestamp: Date.now()
         };
 
@@ -196,8 +290,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
         try {
             // Call Smart Agent
-            // We pass ALL visible messages for context, or maybe limit context window for tokens. 
-            // Passing last 10-20 messages is usually safe.
             const response = await sendSupportMessage(
                 [...messages, userMsg], 
                 { name: auth.user.name, email: auth.user.email, credits: auth.user.credits }
@@ -223,7 +315,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'model',
-                content: "Ticket created successfully! I've added it to your history.",
+                content: "Ticket created successfully! I've added it to your history sidebar.",
                 timestamp: Date.now()
             };
 
@@ -231,7 +323,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg);
             
-            // Remove the proposal message from view (optional, or just disable it) - here we keep history but re-fetch tickets
             loadTickets();
         } catch (e: any) {
             alert("Failed to create ticket: " + e.message);
@@ -240,12 +331,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    // Remove proposal from chat if cancelled
     const handleCancelTicket = (msgId: string) => {
         setMessages(prev => prev.filter(m => m.id !== msgId));
     };
 
-    // Handle Image Upload for Analysis
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -300,8 +389,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             <div className="flex-1 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
                 
-                {/* LEFT: CHAT INTERFACE (2 cols) */}
-                {/* Updated Height to 50vh as requested */}
+                {/* LEFT: CHAT INTERFACE */}
                 <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[500px] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
                     
                     {/* Chat Area */}
@@ -330,9 +418,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 <div className={`flex items-start gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     
                                     {/* Avatar */}
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${msg.role === 'model' ? 'bg-indigo-600 border-indigo-600' : 'bg-gray-100 border-gray-200'}`}>
-                                        {msg.role === 'model' ? <SparklesIcon className="w-4 h-4 text-white" /> : <UserIcon className="w-4 h-4 text-gray-500" />}
-                                    </div>
+                                    {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
 
                                     {/* Bubble */}
                                     <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -341,13 +427,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             ? 'bg-indigo-600 text-white rounded-tr-none' 
                                             : 'bg-gray-50 text-gray-800 border border-gray-100 rounded-tl-none'
                                         }`}>
-                                            {/* Render newlines properly */}
-                                            {msg.content.split('\n').map((line, i) => (
-                                                <p key={i} className="min-h-[1.2em]">{line}</p>
-                                            ))}
+                                            {msg.role === 'user' ? msg.content : <FormattedMessage text={msg.content} />}
                                         </div>
 
-                                        {/* Ticket Proposal Card (Only for model messages with type='proposal') */}
+                                        {/* Ticket Proposal Card */}
                                         {msg.type === 'proposal' && msg.ticketDraft && (
                                             <TicketProposalCard 
                                                 draft={msg.ticketDraft} 
@@ -367,9 +450,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         
                         {isTyping && (
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-                                    <SparklesIcon className="w-4 h-4 text-white" />
-                                </div>
+                                <PixaBotIcon />
                                 <div className="bg-gray-50 px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100">
                                     <div className="flex gap-1">
                                         <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
@@ -379,6 +460,13 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </div>
                             </div>
                         )}
+
+                        {showQuickActions && (
+                            <div className="pl-11">
+                                <QuickActions onAction={handleSendMessage} />
+                            </div>
+                        )}
+
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -405,7 +493,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                         
                         <button 
-                            onClick={handleSendMessage}
+                            onClick={() => handleSendMessage()}
                             disabled={!inputText.trim() || isTyping}
                             className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none active:scale-95"
                         >
@@ -415,7 +503,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
 
                 {/* RIGHT: TICKET HISTORY (1 col) */}
-                {/* Matched height with chat container */}
                 <div className="hidden lg:flex flex-col h-[50vh] min-h-[500px]">
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
                         <div className="p-5 border-b border-gray-100 bg-gray-50/50">
