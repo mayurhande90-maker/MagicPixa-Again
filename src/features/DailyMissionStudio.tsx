@@ -1,6 +1,6 @@
 <change>
 <file>src/features/DailyMissionStudio.tsx</file>
-<description>Fix syntax error by removing XML tags and ensuring valid TypeScript code for Daily Mission Studio</description>
+<description>Fix syntax error by removing XML metadata tags from the file content</description>
 <content><![CDATA[
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
