@@ -8,7 +8,7 @@ import {
     XIcon, 
     UploadTrayIcon,
     SparklesIcon, 
-    CreditCardIcon, 
+    CreditCoinIcon, 
     MagicWandIcon, 
     TrashIcon,
     PaletteIcon,
@@ -301,7 +301,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 rightContent={
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
-                            <CreditCardIcon className="w-16 h-16 text-red-400 mb-4" />
+                            <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>

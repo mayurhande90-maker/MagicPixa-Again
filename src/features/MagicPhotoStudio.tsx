@@ -5,7 +5,7 @@ import {
     PhotoStudioIcon, 
     CubeIcon, 
     UsersIcon, 
-    CreditCardIcon, 
+    CreditCoinIcon, 
     SparklesIcon, 
     ArrowLeftIcon, 
     XIcon, 
@@ -470,7 +470,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 ) : isLowCredits ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
-                            <CreditCardIcon className="w-10 h-10 text-red-500" />
+                            <CreditCoinIcon className="w-10 h-10 text-red-500" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                         <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">

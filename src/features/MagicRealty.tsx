@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCardIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, BrandKitIcon } from '../components/icons';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, BrandKitIcon } from '../components/icons';
 import { fileToBase64, Base64File, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';

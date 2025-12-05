@@ -7,7 +7,7 @@ import {
     CubeIcon, 
     UploadTrayIcon, 
     SparklesIcon, 
-    CreditCardIcon, 
+    CreditCoinIcon, 
     UserIcon, 
     XIcon, 
     DownloadIcon,
@@ -109,7 +109,7 @@ const PackCard: React.FC<{
                 {label}
             </span>
             <div className={`flex items-center gap-1 text-xs font-bold ${selected ? 'text-indigo-900' : 'text-gray-700'}`}>
-                <TicketIcon className="w-3 h-3 opacity-50"/> {cost}
+                <CreditCoinIcon className="w-3 h-3 opacity-50"/> {cost}
             </div>
         </div>
         
@@ -484,7 +484,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 rightContent={
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
-                            <CreditCardIcon className="w-16 h-16 text-red-400 mb-4" />
+                            <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <p className="text-gray-500 mb-6 max-w-xs text-sm">
                                 The selected pack requires {cost} credits.

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCardIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
+import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
@@ -283,7 +283,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     ) : isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
-                                <CreditCardIcon className="w-10 h-10 text-red-500" />
+                                <CreditCoinIcon className="w-10 h-10 text-red-500" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">
