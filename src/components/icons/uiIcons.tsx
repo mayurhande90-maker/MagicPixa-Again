@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IconProps, BaseIcon } from './types';
 
@@ -110,7 +111,7 @@ export const GoogleIcon: React.FC<IconProps> = ({ className }) => (
 // Custom MagicPixa Logo
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div className={`flex items-center ${className}`}>
-        <span className="text-2xl" style={{ fontFamily: "'Parkinsans', sans-serif", fontWeight: 700 }}>
+        <span className="text-2xl inline-flex items-center" style={{ fontFamily: "'Parkinsans', sans-serif", fontWeight: 700 }}>
             <span className="text-black dark:text-white">Magic</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Pixa</span>
         </span>
