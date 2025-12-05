@@ -51,14 +51,10 @@ export const BadgeGoldIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
-// Custom Credit Coin Icon (Filled, Gold)
+// Custom Credit Coin Icon (Filled, Gold) - UPDATED
 export const CreditCoinIcon: React.FC<IconProps> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <circle cx="12" cy="12" r="10" className="text-yellow-400" fill="currentColor" />
-      <circle cx="12" cy="12" r="8" className="text-yellow-500" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M11.5 8.5C10.5 8.5 9.5 9.5 9.5 12C9.5 14.5 10.5 15.5 11.5 15.5" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" />
-      <path d="M13 8.5C14.5 8.5 15 9.5 15 9.5" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" />
-      <path d="M13 15.5C14.5 15.5 15 14.5 15 14.5" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" />
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <path fill="#e6a00a" fillRule="evenodd" d="M256 43.839c117.821 0 213.333 95.512 213.333 213.333S373.821 470.505 256 470.505S42.667 374.993 42.667 257.172S138.179 43.838 256 43.838m21.333 62.828h-42.67v45.973c-48.686 9.884-85.33 52.929-85.33 104.532s36.644 94.647 85.33 104.532v43.629h42.67v-41.494H320v-42.667h-64l-3.76-.109c-33.596-1.946-60.24-29.807-60.24-63.891c0-35.346 28.654-64 64-64h64v-42.667h-42.667z" clipRule="evenodd"/>
     </svg>
 );
 
