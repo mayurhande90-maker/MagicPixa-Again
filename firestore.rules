@@ -21,7 +21,7 @@ service cloud.firestore {
     match /support_tickets/{ticketId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email);
-      // Optional: Allow user to close their own ticket if needed in future
+      // Allow user to update their own ticket (e.g. to add comments or close it in future)
       allow update: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     

@@ -189,8 +189,12 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             loadHistory();
         } catch (e: any) {
             console.error("Ticket submission error:", e);
-            // Display detailed error to help user debug permissions
-            alert(`Failed to submit ticket: ${e.message}. If this persists, please check Firestore Rules.`);
+            // Show explicit error to user to help debug rules issues
+            if (e.message.includes("Missing or insufficient permissions")) {
+                alert("Submission failed: Permission Denied. Please ensure Firestore Rules are updated in the Firebase Console.");
+            } else {
+                alert(`Failed to submit ticket: ${e.message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -207,8 +211,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     return (
         <div className="min-h-screen bg-[#FAFAFA]">
-            {/* Premium Header Background - Unified Max Width */}
-            <div className="bg-white border-b border-gray-200 pt-12 pb-24 relative overflow-hidden">
+            {/* Premium Header Background - Unified Max Width, Lower Z-Index */}
+            <div className="bg-white border-b border-gray-200 pt-12 pb-24 relative overflow-hidden z-0">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b from-indigo-50/50 to-purple-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-t from-blue-50/50 to-cyan-50/50 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
                 
@@ -224,8 +228,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            {/* Main Content - Added relative z-10 to fix overlap issue */}
-            <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24 relative z-10">
+            {/* Main Content - Added High Z-Index to sit on top */}
+            <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24 relative z-30">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* LEFT COLUMN: INTERACTIVE WIZARD (8 cols) */}
