@@ -53,7 +53,18 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
-    const date = ticket.createdAt?.toDate ? ticket.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now';
+    // Handle both Firestore Timestamp and regular Date objects
+    let dateStr = 'Just now';
+    if (ticket.createdAt) {
+        if ((ticket.createdAt as any).toDate) {
+            dateStr = (ticket.createdAt as any).toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } else if (ticket.createdAt instanceof Date) {
+            dateStr = ticket.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } else if (typeof ticket.createdAt === 'string') {
+            dateStr = new Date(ticket.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+
     return (
         <div className="group relative p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:bg-white transition-all duration-300 cursor-default overflow-hidden">
             {/* Hover Accent Line */}
@@ -61,7 +72,7 @@ const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
             
             <div className="flex justify-between items-start mb-2 pl-2">
                 <StatusBadge status={ticket.status} />
-                <span className="text-[10px] font-semibold text-gray-400">{date}</span>
+                <span className="text-[10px] font-semibold text-gray-400">{dateStr}</span>
             </div>
             
             <div className="pl-2">
@@ -89,8 +100,9 @@ const TicketProposalCard: React.FC<{
     onConfirm: () => void; 
     onCancel: () => void;
     isSubmitting: boolean;
-}> = ({ draft, onConfirm, onCancel, isSubmitting }) => (
-    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm">
+    isSubmitted: boolean;
+}> = ({ draft, onConfirm, onCancel, isSubmitting, isSubmitted }) => (
+    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm w-full">
         <div className="flex items-center gap-2 mb-3 text-indigo-700">
             <div className="p-1.5 bg-indigo-100 rounded-lg">
                 <TicketIcon className="w-4 h-4" />
@@ -104,20 +116,28 @@ const TicketProposalCard: React.FC<{
             </p>
         </div>
         <div className="flex gap-3">
-            <button 
-                onClick={onConfirm}
-                disabled={isSubmitting}
-                className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
-            >
-                {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit Ticket"}
-            </button>
-            <button 
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
-            >
-                Dismiss
-            </button>
+            {isSubmitted ? (
+                <div className="w-full bg-green-50 border border-green-200 text-green-700 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                    <CheckIcon className="w-4 h-4"/> Ticket Sent
+                </div>
+            ) : (
+                <>
+                    <button 
+                        onClick={onConfirm}
+                        disabled={isSubmitting}
+                        className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
+                    >
+                        {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit Ticket"}
+                    </button>
+                    <button 
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                        className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    >
+                        Dismiss
+                    </button>
+                </>
+            )}
         </div>
     </div>
 );
@@ -135,7 +155,7 @@ const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ tex
     };
 
     return (
-        <div className={`space-y-3 ${isWelcome ? 'pt-2' : ''}`}>
+        <div className={`space-y-3 ${isWelcome ? 'pt-2' : ''} break-words w-full`}>
             {text.split('\n').map((line, i) => {
                 const trimmed = line.trim();
                 if (!trimmed) return <div key={i} className="h-1"></div>;
@@ -154,11 +174,11 @@ const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ tex
                      return (
                         <div key={i} className="flex gap-3 items-start pl-1">
                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shrink-0 shadow-sm"></div>
-                            <span className="flex-1 leading-relaxed text-gray-700">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
+                            <span className="flex-1 leading-relaxed text-gray-700 whitespace-pre-wrap">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
                         </div>
                      );
                 }
-                return <p key={i} className="leading-relaxed text-gray-700">{parseBold(line)}</p>;
+                return <p key={i} className="leading-relaxed text-gray-700 whitespace-pre-wrap">{parseBold(line)}</p>;
             })}
         </div>
     );
@@ -235,13 +255,17 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [showQuickActions, setShowQuickActions] = useState(false);
     
-    // Sidebar Data
+    // Ticket State
     const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
+    const [submittedTicketIds, setSubmittedTicketIds] = useState<Set<string>>(new Set());
     
+    // UI State
+    const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar toggle
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -308,7 +332,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
         
         setOlderMessages(older);
-        // Artificial delay removed, but state update ensures skeleton sees correct loading state
         setLoadingHistory(false);
     };
 
@@ -358,11 +381,17 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    const handleCreateTicket = async (draft: Partial<Ticket>) => {
+    const handleCreateTicket = async (draft: Partial<Ticket>, msgId: string) => {
         if (!auth.user) return;
-        setIsSubmittingTicket(true);
+        setSubmittingTicketId(msgId);
         try {
-            await createTicket(auth.user.uid, auth.user.email, draft);
+            const newTicket = await createTicket(auth.user.uid, auth.user.email, draft);
+            
+            // Update UI state
+            setSubmittedTicketIds(prev => new Set(prev).add(msgId));
+            
+            // OPTIMISTIC UPDATE: Add to sidebar immediately (newest first)
+            setTickets(prev => [newTicket, ...prev]);
             
             const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
@@ -374,11 +403,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg).catch(e => console.warn("Save failed", e));
             
-            loadTickets();
         } catch (e: any) {
             alert("Failed to create ticket: " + e.message);
         } finally {
-            setIsSubmittingTicket(false);
+            setSubmittingTicketId(null);
         }
     };
 
@@ -416,7 +444,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-slate-50 to-white flex flex-col font-sans text-slate-900">
+        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-slate-50 to-white flex flex-col font-sans text-slate-900 overflow-hidden">
             
             {/* Premium Header */}
             <div className="bg-white/80 backdrop-blur-xl border-b border-white/50 py-5 px-8 sticky top-0 z-30 shadow-sm">
@@ -440,22 +468,26 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
                             <span className="text-xs font-bold text-gray-700">{auth.user?.credits} Credits</span>
                         </div>
+                        {/* Mobile Sidebar Toggle */}
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+                            <TicketIcon className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 lg:p-8 items-start">
+            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 lg:p-8 items-start h-[calc(100vh-100px)]">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                {/* Increased Height Container */}
-                <div className="lg:col-span-2 flex flex-col h-[70vh] min-h-[600px] bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
+                {/* Responsive Height: Use viewport height minus header, ensuring it fits perfectly */}
+                <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
                     
                     {/* Decorative Background Blur */}
                     <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     
                     {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
+                    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
                         
                         {/* History Pill */}
                         {olderMessages.length > 0 && (
@@ -476,7 +508,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         ) : (
                             messages.map((msg, index) => (
                                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-                                    <div className={`flex items-end gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                         
                                         {/* Avatar */}
                                         <div className="mb-1 hidden sm:block shadow-sm rounded-full">
@@ -484,8 +516,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         </div>
 
                                         {/* Bubble */}
-                                        <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                            <div className={`px-6 py-5 rounded-3xl shadow-sm text-sm leading-relaxed relative border transition-all hover:shadow-md ${
+                                        <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
+                                            <div className={`px-5 py-4 lg:px-6 lg:py-5 rounded-3xl shadow-sm text-sm leading-relaxed relative border transition-all hover:shadow-md w-full ${
                                                 msg.role === 'user' 
                                                 ? 'bg-gradient-to-br from-[#4D7CFF] to-[#3B82F6] text-white rounded-tr-none shadow-indigo-500/20 border-transparent bg-clip-padding' 
                                                 : 'bg-white text-gray-800 rounded-tl-none border-gray-100 shadow-sm'
@@ -494,7 +526,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                                 {msg.role === 'user' && <div className="absolute inset-0 bg-white/10 rounded-3xl rounded-tr-none pointer-events-none"></div>}
                                                 
                                                 {msg.role === 'user' 
-                                                    ? msg.content 
+                                                    ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                                                     : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
                                                 }
                                             </div>
@@ -503,9 +535,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             {msg.type === 'proposal' && msg.ticketDraft && (
                                                 <TicketProposalCard 
                                                     draft={msg.ticketDraft} 
-                                                    onConfirm={() => handleCreateTicket(msg.ticketDraft!)}
+                                                    onConfirm={() => handleCreateTicket(msg.ticketDraft!, msg.id)}
                                                     onCancel={() => handleCancelTicket(msg.id)}
-                                                    isSubmitting={isSubmittingTicket}
+                                                    isSubmitting={submittingTicketId === msg.id}
+                                                    isSubmitted={submittedTicketIds.has(msg.id)}
                                                 />
                                             )}
                                             
@@ -530,7 +563,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         )}
 
                         {showQuickActions && !loadingHistory && (
-                            <div className="pl-14">
+                            <div className="pl-0 sm:pl-14">
                                 <QuickActions onAction={handleSendMessage} />
                             </div>
                         )}
@@ -539,77 +572,75 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
 
                     {/* Input Area - Floating Capsule Design */}
-                    <div className="p-6 relative z-20 bg-gradient-to-t from-white/80 via-white/40 to-transparent">
+                    <div className="p-4 lg:p-6 relative z-20 bg-gradient-to-t from-white/90 via-white/50 to-transparent">
                         <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-indigo-200 focus-within:shadow-indigo-500/20">
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-3 text-gray-400 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 rounded-full transition-all"
+                                className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
                                 title="Upload Screenshot"
                             >
                                 <UploadIcon className="w-5 h-5" />
                             </button>
-                            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                             
-                            <div className="flex-1 relative">
-                                <input 
-                                    type="text" 
-                                    className="w-full bg-transparent px-2 py-3 text-sm focus:outline-none placeholder-gray-400 text-gray-800 font-medium"
-                                    placeholder="Type your message..."
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                />
-                            </div>
+                            <input 
+                                type="text"
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400"
+                                placeholder="Type your message..."
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            />
                             
                             <button 
                                 onClick={() => handleSendMessage()}
-                                disabled={!inputText.trim() || isTyping}
-                                className="p-3 bg-[#1A1A1E] text-white rounded-full hover:bg-black transition-all shadow-lg shadow-gray-300 disabled:opacity-50 disabled:shadow-none active:scale-95 transform hover:scale-105"
+                                disabled={!inputText.trim()}
+                                className={`p-3 rounded-full transition-all flex-shrink-0 shadow-sm ${inputText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' : 'bg-gray-100 text-gray-300'}`}
                             >
                                 <PaperAirplaneIcon className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
+                    <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                 </div>
 
                 {/* RIGHT: TICKET HISTORY */}
-                {/* Glassmorphism Sidebar */}
-                <div className="hidden lg:flex flex-col h-[70vh] min-h-[600px]">
-                    <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] shadow-xl border border-white/80 ring-1 ring-white/50 h-full flex flex-col overflow-hidden relative">
-                        {/* Header */}
-                        <div className="p-6 border-b border-white/50 bg-white/40 backdrop-blur-md sticky top-0 z-10">
+                <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:relative lg:translate-x-0 lg:w-auto lg:h-full lg:shadow-none lg:bg-transparent lg:z-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                    <div className="bg-white lg:bg-white/60 backdrop-blur-3xl rounded-[2.5rem] border border-white/80 h-full shadow-lg lg:shadow-xl lg:shadow-indigo-200/20 overflow-hidden flex flex-col relative">
+                        
+                        {/* Mobile Close Button */}
+                        <button onClick={() => setSidebarOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500">
+                            <XIcon className="w-6 h-6" />
+                        </button>
+
+                        <div className="p-6 border-b border-gray-100/50 bg-white/50">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <div className="p-1.5 bg-white border border-gray-100 rounded-lg shadow-sm">
-                                        <TicketIcon className="w-4 h-4 text-indigo-500"/>
+                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                        <TicketIcon className="w-4 h-4" />
                                     </div>
                                     History
                                 </h3>
-                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full border border-indigo-100">{tickets.length}</span>
+                                <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{tickets.length}</span>
                             </div>
                         </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
-                            {tickets.length > 0 ? (
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                            {tickets.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-60 p-6">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                        <TicketIcon className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h4 className="text-sm font-bold text-gray-800">No active tickets</h4>
+                                    <p className="text-xs text-gray-500 mt-1 max-w-[150px]">Issues that require human review will appear here.</p>
+                                </div>
+                            ) : (
                                 tickets.map(ticket => (
                                     <TicketHistoryItem key={ticket.id} ticket={ticket} />
                                 ))
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
-                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                                        <TicketIcon className="w-8 h-8 text-gray-300" />
-                                    </div>
-                                    <p className="text-sm font-bold text-gray-500">No active tickets</p>
-                                    <p className="text-xs text-gray-400 mt-2 max-w-[200px]">Issues that require human review will appear here.</p>
-                                </div>
                             )}
                         </div>
-                        
-                        {/* Bottom Gradient Fade */}
-                        <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
                     </div>
                 </div>
-
             </div>
         </div>
     );

@@ -159,12 +159,14 @@ export const createTicket = async (
     userId: string, 
     userEmail: string, 
     data: Partial<Ticket>
-): Promise<string> => {
+): Promise<Ticket> => {
     if (!db) throw new Error("DB not init");
     
     const ticketRef = db.collection('support_tickets').doc();
     const ticketId = ticketRef.id;
     
+    const now = firebase.firestore.Timestamp.now();
+
     const rawTicket: Ticket = {
         id: ticketId,
         userId,
@@ -173,7 +175,7 @@ export const createTicket = async (
         status: 'open',
         subject: data.subject || 'New Support Request',
         description: data.description || '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: now,
         relatedTransactionId: data.relatedTransactionId,
         refundAmount: data.refundAmount,
         screenshotUrl: data.screenshotUrl,
@@ -187,20 +189,34 @@ export const createTicket = async (
     }, {} as any);
 
     await ticketRef.set(safeTicket);
-    return ticketId;
+    return rawTicket;
 };
 
 /**
  * Fetch tickets for a specific user.
+ * MODIFIED: Client-side sorting to avoid composite index requirements.
  */
 export const getUserTickets = async (userId: string): Promise<Ticket[]> => {
     if (!db) return [];
-    const snap = await db.collection('support_tickets')
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .get();
     
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+    try {
+        // Only filter by user ID. Sort in memory.
+        const snap = await db.collection('support_tickets')
+            .where('userId', '==', userId)
+            .get();
+        
+        const tickets = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+        
+        // Client-side Sort (Newest First)
+        return tickets.sort((a, b) => {
+            const tA = (a.createdAt as any)?.toMillis ? (a.createdAt as any).toMillis() : new Date(a.createdAt).getTime();
+            const tB = (b.createdAt as any)?.toMillis ? (b.createdAt as any).toMillis() : new Date(b.createdAt).getTime();
+            return tB - tA;
+        });
+    } catch (e) {
+        console.error("Failed to fetch tickets:", e);
+        return [];
+    }
 };
 
 /**
@@ -208,12 +224,22 @@ export const getUserTickets = async (userId: string): Promise<Ticket[]> => {
  */
 export const getAllTickets = async (): Promise<Ticket[]> => {
     if (!db) return [];
-    const snap = await db.collection('support_tickets')
-        .orderBy('createdAt', 'desc')
-        .limit(100)
-        .get();
     
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+    try {
+        // Fetch all, client side sort to avoid index issues on 'createdAt'
+        const snap = await db.collection('support_tickets').get();
+        
+        const tickets = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+        
+        return tickets.sort((a, b) => {
+            const tA = (a.createdAt as any)?.toMillis ? (a.createdAt as any).toMillis() : new Date(a.createdAt).getTime();
+            const tB = (b.createdAt as any)?.toMillis ? (b.createdAt as any).toMillis() : new Date(b.createdAt).getTime();
+            return tB - tA;
+        });
+    } catch (e) {
+        console.error("Failed to fetch all tickets:", e);
+        return [];
+    }
 };
 
 /**
