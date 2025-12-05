@@ -111,6 +111,7 @@ const TicketProposalCard: React.FC<{
 // Rich Text Renderer for Chat
 const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     const parseBold = (str: string) => {
+        // Split by bold (**text**)
         const parts = str.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
@@ -121,20 +122,22 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     };
 
     return (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
             {text.split('\n').map((line, i) => {
                 const trimmed = line.trim();
                 if (!trimmed) return <div key={i} className="h-1"></div>;
                 
-                // Headers
-                if (trimmed.startsWith('###')) {
-                    return <h3 key={i} className="font-bold text-sm mt-3 mb-1 text-indigo-900">{parseBold(trimmed.replace(/^###\s*/, ''))}</h3>;
+                // Headers (## or ###)
+                if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
+                    const cleanHeader = trimmed.replace(/^#+\s*/, '');
+                    return <h3 key={i} className="font-bold text-base mt-2 mb-1 text-indigo-900">{cleanHeader}</h3>;
                 }
+                
                 // Bullet Points
                 if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
                      return (
                         <div key={i} className="flex gap-2 ml-1 items-start">
-                            <span className="text-indigo-400 font-bold mt-1">•</span>
+                            <span className="text-indigo-400 font-bold mt-1.5 text-[10px]">•</span>
                             <span className="flex-1 text-gray-700">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
                         </div>
                      );
@@ -154,7 +157,7 @@ const PixaBotIcon = () => (
 );
 
 const UserMessageIcon = ({ user }: { user: any }) => (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gray-200 border border-gray-300 text-gray-600 font-bold text-xs shadow-inner">
+    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 border border-white text-white font-bold text-xs shadow-md">
         {user?.avatar || 'U'}
     </div>
 );
@@ -174,7 +177,7 @@ const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction
                 <button
                     key={idx}
                     onClick={() => onAction(action.prompt)}
-                    className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm transform hover:scale-105"
                 >
                     <action.icon className="w-3.5 h-3.5" />
                     {action.label}
@@ -231,20 +234,21 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             if (recent.length === 0) {
                 // Initial Welcome if fresh session (no recent messages)
                 const greeting = getGreeting();
+                const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
+                
                 const welcomeMsg: ChatMessage = {
                     id: 'welcome_' + Date.now(),
                     role: 'model',
-                    content: `${greeting}, ${auth.user.name.split(' ')[0]}! I'm Pixa Support.\n\nI can help you with features, billing, or technical issues. How can I assist you today?`,
+                    content: `### ${greeting}, ${firstName}!\n\nI'm Pixa Support. I can help you with features, billing, or technical issues. How can I assist you today?`,
                     timestamp: Date.now()
                 };
                 setMessages([welcomeMsg]);
                 setShowQuickActions(true);
-                // We don't save ephemeral welcome messages to DB to avoid spamming history, 
-                // or we save it only if user interacts. Let's save it for consistency.
+                // Save welcome message
                 saveSupportMessage(auth.user.uid, welcomeMsg);
             } else {
                 setMessages(recent);
-                // Show quick actions only if the last message was a while ago or it's just the welcome msg
+                // Show quick actions only if conversation is short
                 if (recent.length <= 1) setShowQuickActions(true);
             }
             
@@ -375,7 +379,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                             <LifebuoyIcon className="w-8 h-8 text-indigo-600" />
-                            Support Center
+                            Pixa Support
                         </h1>
                         <p className="text-sm text-gray-500 mt-1">AI-Powered Assistance & Ticket Management</p>
                     </div>
@@ -390,19 +394,20 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             <div className="flex-1 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                <div className="lg:col-span-2 flex flex-col h-[50vh] min-h-[500px] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
+                {/* Updated Height to 400px as requested */}
+                <div className="lg:col-span-2 flex flex-col h-[400px] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
                     
                     {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#ffffff]">
                         
-                        {/* Load Previous Chat Button */}
+                        {/* Previous Chat Pill Button */}
                         {olderMessages.length > 0 && (
                             <div className="flex justify-center mb-4">
                                 <button 
                                     onClick={handleLoadOlder}
-                                    className="bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 text-xs font-bold px-4 py-1.5 rounded-full transition-colors border border-gray-200"
+                                    className="bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 text-[10px] font-bold px-4 py-1.5 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md"
                                 >
-                                    Load History ({olderMessages.length} older messages)
+                                    Previous Chat
                                 </button>
                             </div>
                         )}
@@ -503,7 +508,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
 
                 {/* RIGHT: TICKET HISTORY (1 col) */}
-                <div className="hidden lg:flex flex-col h-[50vh] min-h-[500px]">
+                <div className="hidden lg:flex flex-col h-[400px]">
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
                         <div className="p-5 border-b border-gray-100 bg-gray-50/50">
                             <h3 className="font-bold text-gray-900 flex items-center gap-2">
