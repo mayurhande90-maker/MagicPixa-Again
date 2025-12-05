@@ -117,15 +117,19 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const loadHistory = async () => {
         if (!auth.user) return;
-        const [txsData, tix] = await Promise.all([
-            getCreditHistory(auth.user.uid),
-            getUserTickets(auth.user.uid)
-        ]);
-        
-        const txs = txsData as Transaction[];
-        // Filter transactions to show only deductions
-        setRecentTransactions(txs.filter(t => (t.cost > 0 || t.feature.includes('Generation'))).slice(0, 5));
-        setMyTickets(tix);
+        try {
+            const [txsData, tix] = await Promise.all([
+                getCreditHistory(auth.user.uid),
+                getUserTickets(auth.user.uid)
+            ]);
+            
+            const txs = txsData as Transaction[];
+            // Filter transactions to show only deductions
+            setRecentTransactions(txs.filter(t => (t.cost > 0 || t.feature.includes('Generation'))).slice(0, 5));
+            setMyTickets(tix);
+        } catch (e) {
+            console.error("Failed to load history", e);
+        }
     };
 
     const handleInitialSubmit = async () => {
@@ -183,9 +187,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             setStep('success');
             loadHistory();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Ticket submission error:", e);
-            alert("Failed to submit ticket. Please check your connection and try again.");
+            // Display detailed error to help user debug permissions
+            alert(`Failed to submit ticket: ${e.message}. If this persists, please check Firestore Rules.`);
         } finally {
             setLoading(false);
         }
@@ -219,7 +224,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24">
+            {/* Main Content - Added relative z-10 to fix overlap issue */}
+            <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* LEFT COLUMN: INTERACTIVE WIZARD (8 cols) */}

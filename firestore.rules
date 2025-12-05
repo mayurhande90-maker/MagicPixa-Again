@@ -1,1 +1,50 @@
-��^��ޮȨ�
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User Profiles: Private
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Subcollections
+      match /creations/{creationId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /transactions/{txId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // In this architecture, client creates tx records for credit deduction
+        allow create: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Support Tickets: Allow Create, Read Own
+    match /support_tickets/{ticketId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email);
+      // Optional: Allow user to close their own ticket if needed in future
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // App Config: Read Only for Users (Admin writes)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false; // Only Admin SDK
+    }
+    
+    // Purchases: Create and Read Own
+    match /purchases/{purchaseId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Error Logging: Public Write (Authenticated or Anon)
+    match /api_errors/{logId} {
+      allow create: if true;
+    }
+    
+    // Audit Logs: Admin Only (Implicitly blocked for client, Admin SDK bypasses rules)
+    match /audit_logs/{logId} {
+      allow read, write: if false; 
+    }
+  }
+}
