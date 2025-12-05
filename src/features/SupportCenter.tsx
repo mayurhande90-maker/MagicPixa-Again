@@ -12,15 +12,12 @@ import {
     TicketIcon, 
     UploadIcon,
     ArrowRightIcon,
-    ArrowUpCircleIcon,
     CreditCoinIcon,
-    ShieldCheckIcon,
-    ChatBubbleLeftIcon,
-    UserIcon,
-    DownloadIcon,
-    CreditCardIcon,
     LightbulbIcon,
-    FlagIcon
+    FlagIcon,
+    CreditCardIcon,
+    PaperAirplaneIcon,
+    UserIcon
 } from '../components/icons';
 
 // --- HELPERS ---
@@ -36,15 +33,21 @@ const getGreeting = () => {
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const styles = {
-        open: 'bg-amber-50 text-amber-700 border-amber-100',
-        resolved: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        rejected: 'bg-red-50 text-red-700 border-red-100'
+        open: 'bg-amber-100 text-amber-700 border-amber-200',
+        resolved: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        rejected: 'bg-red-100 text-red-700 border-red-200'
+    };
+    const indicatorColor = {
+        open: 'bg-amber-500',
+        resolved: 'bg-emerald-500',
+        rejected: 'bg-red-500'
     };
     const s = styles[status as keyof typeof styles] || styles.open;
+    const c = indicatorColor[status as keyof typeof indicatorColor] || 'bg-gray-400';
 
     return (
-        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${s} inline-flex items-center gap-1`}>
-            <span className={`w-1 h-1 rounded-full ${status === 'open' ? 'bg-amber-500 animate-pulse' : status === 'resolved' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+        <span className={`pl-2 pr-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${s} inline-flex items-center gap-1.5 shadow-sm`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${c} ${status === 'open' ? 'animate-pulse' : ''}`}></span>
             {status}
         </span>
     );
@@ -53,19 +56,29 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 const TicketHistoryItem: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     const date = ticket.createdAt?.toDate ? ticket.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now';
     return (
-        <div className="group p-3 rounded-xl bg-white border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all duration-300 mb-2 cursor-default">
-            <div className="flex justify-between items-start mb-1">
+        <div className="group relative p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden">
+            {/* Hover Accent Line */}
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            <div className="flex justify-between items-start mb-2 pl-2">
                 <StatusBadge status={ticket.status} />
-                <span className="text-[10px] font-medium text-gray-400">{date}</span>
+                <span className="text-[10px] font-semibold text-gray-400">{date}</span>
             </div>
-            <h4 className="font-bold text-gray-800 text-xs mb-1 truncate">{ticket.subject}</h4>
-            <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-1">{ticket.description}</p>
+            
+            <div className="pl-2">
+                <h4 className="font-bold text-gray-800 text-sm mb-1 truncate group-hover:text-indigo-600 transition-colors">{ticket.subject}</h4>
+                <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{ticket.description}</p>
+            </div>
+
             {ticket.adminReply && (
-                <div className="mt-2 pt-2 border-t border-gray-50 flex gap-2">
-                    <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
-                        <SparklesIcon className="w-2 h-2 text-white" />
+                <div className="mt-3 mx-2 pt-3 border-t border-gray-50 flex gap-2.5 items-start">
+                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <SparklesIcon className="w-3 h-3 text-indigo-600" />
                     </div>
-                    <p className="text-[10px] text-gray-700 font-medium line-clamp-1">{ticket.adminReply}</p>
+                    <div className="flex-1">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Response</p>
+                        <p className="text-xs text-gray-700 font-medium line-clamp-2">{ticket.adminReply}</p>
+                    </div>
                 </div>
             )}
         </div>
@@ -78,31 +91,33 @@ const TicketProposalCard: React.FC<{
     onCancel: () => void;
     isSubmitting: boolean;
 }> = ({ draft, onConfirm, onCancel, isSubmitting }) => (
-    <div className="mt-3 bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm animate-fadeIn">
+    <div className="mt-4 bg-gradient-to-br from-white to-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-lg shadow-indigo-500/5 animate-fadeIn max-w-sm">
         <div className="flex items-center gap-2 mb-3 text-indigo-700">
-            <TicketIcon className="w-4 h-4" />
+            <div className="p-1.5 bg-indigo-100 rounded-lg">
+                <TicketIcon className="w-4 h-4" />
+            </div>
             <span className="text-xs font-bold uppercase tracking-wide">Ticket Suggestion</span>
         </div>
-        <div className="mb-4">
-            <p className="text-xs font-bold text-gray-900 mb-1">{draft.subject}</p>
-            <p className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg italic border border-gray-100">
+        <div className="mb-5 pl-1">
+            <p className="text-sm font-bold text-gray-900 mb-1">{draft.subject}</p>
+            <p className="text-xs text-gray-600 italic border-l-2 border-indigo-200 pl-3 py-1">
                 "{draft.description}"
             </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
             <button 
                 onClick={onConfirm}
                 disabled={isSubmitting}
-                className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
             >
                 {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit Ticket"}
             </button>
             <button 
                 onClick={onCancel}
                 disabled={isSubmitting}
-                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200"
+                className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
-                Cancel
+                Dismiss
             </button>
         </div>
     </div>
@@ -111,39 +126,35 @@ const TicketProposalCard: React.FC<{
 // Rich Text Renderer for Chat
 const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     const parseBold = (str: string) => {
-        // Split by bold (**text**)
         const parts = str.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+                return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
     };
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
             {text.split('\n').map((line, i) => {
                 const trimmed = line.trim();
                 if (!trimmed) return <div key={i} className="h-1"></div>;
                 
-                // Headers (## or ###)
                 if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
                     const cleanHeader = trimmed.replace(/^#+\s*/, '');
-                    return <h3 key={i} className="font-bold text-base mt-2 mb-1 text-indigo-900">{cleanHeader}</h3>;
+                    return <h3 key={i} className="font-bold text-lg mt-1 mb-1 tracking-tight">{cleanHeader}</h3>;
                 }
                 
-                // Bullet Points
                 if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
                      return (
-                        <div key={i} className="flex gap-2 ml-1 items-start">
-                            <span className="text-indigo-400 font-bold mt-1.5 text-[10px]">•</span>
-                            <span className="flex-1 text-gray-700">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
+                        <div key={i} className="flex gap-2.5 items-start pl-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-current mt-2 shrink-0 opacity-60"></span>
+                            <span className="flex-1 leading-relaxed">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span>
                         </div>
                      );
                 }
-                // Regular Paragraph
-                return <p key={i} className="text-gray-700 leading-relaxed">{parseBold(line)}</p>;
+                return <p key={i} className="leading-relaxed">{parseBold(line)}</p>;
             })}
         </div>
     );
@@ -151,35 +162,39 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
 
 // Icons for Chat
 const PixaBotIcon = () => (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white border border-gray-100 shadow-sm overflow-hidden">
-        <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 translate-y-[1px]" style={{ fontFamily: "'Parkinsans', sans-serif" }}>P</span>
+    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 shadow-sm">
+        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 translate-y-[1px]" style={{ fontFamily: "'Parkinsans', sans-serif" }}>P</span>
     </div>
 );
 
 const UserMessageIcon = ({ user }: { user: any }) => (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 border border-white text-white font-bold text-xs shadow-md">
-        {user?.avatar || 'U'}
+    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-gray-200 border-2 border-white shadow-sm overflow-hidden">
+        {user?.avatar ? (
+             <span className="text-sm font-bold text-gray-600">{user.avatar}</span>
+        ) : (
+             <UserIcon className="w-5 h-5 text-gray-500" />
+        )}
     </div>
 );
 
 // Quick Action Pills
 const QuickActions: React.FC<{ onAction: (text: string) => void }> = ({ onAction }) => {
     const actions = [
-        { label: "Billing & Credits", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
-        { label: "How to Use?", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
+        { label: "Billing Help", icon: CreditCardIcon, prompt: "I have a question about billing or credits." },
+        { label: "Features", icon: LightbulbIcon, prompt: "How do I use the Magic Photo Studio features?" },
         { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug I'd like to report." },
-        { label: "Feature Request", icon: SparklesIcon, prompt: "I have a feature request." }
+        { label: "Request Feature", icon: SparklesIcon, prompt: "I have a feature request." }
     ];
 
     return (
-        <div className="flex flex-wrap gap-2 mt-4 animate-fadeIn">
+        <div className="flex flex-wrap gap-2 mt-6 animate-fadeIn pl-2">
             {actions.map((action, idx) => (
                 <button
                     key={idx}
                     onClick={() => onAction(action.prompt)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm transform hover:scale-105"
+                    className="group flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                 >
-                    <action.icon className="w-3.5 h-3.5" />
+                    <action.icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
                     {action.label}
                 </button>
             ))}
@@ -223,32 +238,27 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const rawHistory = await getSupportHistory(auth.user.uid);
             const allMessages = rawHistory as ChatMessage[];
 
-            // Determine if we need to show the Welcome Message
             const now = Date.now();
             const oneDay = 24 * 60 * 60 * 1000;
             
-            // Only keep last 24h for active view
             const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
             const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
 
             if (recent.length === 0) {
-                // Initial Welcome if fresh session (no recent messages)
                 const greeting = getGreeting();
                 const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
                 
                 const welcomeMsg: ChatMessage = {
                     id: 'welcome_' + Date.now(),
                     role: 'model',
-                    content: `### ${greeting}, ${firstName}!\n\nI'm Pixa Support. I can help you with features, billing, or technical issues. How can I assist you today?`,
+                    content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I'm here to help you with:\n\n- Troubleshooting & Bugs\n- Billing & Credits\n- Feature Guides\n\nHow can I assist you today?`,
                     timestamp: Date.now()
                 };
                 setMessages([welcomeMsg]);
                 setShowQuickActions(true);
-                // Save welcome message
                 saveSupportMessage(auth.user.uid, welcomeMsg);
             } else {
                 setMessages(recent);
-                // Show quick actions only if conversation is short
                 if (recent.length <= 1) setShowQuickActions(true);
             }
             
@@ -275,7 +285,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const handleSendMessage = async (text: string = inputText) => {
         if (!text.trim() || !auth.user) return;
 
-        setShowQuickActions(false); // Hide pills once interaction starts
+        setShowQuickActions(false);
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
@@ -284,23 +294,17 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             timestamp: Date.now()
         };
 
-        // Optimistic Update
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setIsTyping(true);
-        
-        // Persist User Message
         saveSupportMessage(auth.user.uid, userMsg);
 
         try {
-            // Call Smart Agent
             const response = await sendSupportMessage(
                 [...messages, userMsg], 
                 { name: auth.user.name, email: auth.user.email, credits: auth.user.credits }
             );
             setMessages(prev => [...prev, response]);
-            
-            // Persist Bot Message
             saveSupportMessage(auth.user.uid, response);
 
         } catch (e) {
@@ -319,11 +323,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'model',
-                content: "Ticket created successfully! I've added it to your history sidebar.",
+                content: "**Ticket Created!**\n\nI've sent this to our human specialists. You can track the status in the sidebar on the right.",
                 timestamp: Date.now()
             };
 
-            // Add confirmation message
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg);
             
@@ -347,7 +350,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
-                content: "[Uploaded Screenshot]",
+                content: "**[Uploaded Screenshot]**",
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
@@ -355,10 +358,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             
             setIsTyping(true);
 
-            // Analyze error first
             const analysis = await analyzeErrorScreenshot(base64.base64, base64.mimeType);
             
-            // Send analysis as context
             const response = await sendSupportMessage(
                 [...messages, userMsg, { role: 'user', content: `I uploaded an error screenshot. Analysis: ${analysis}`, id: 'sys', timestamp: Date.now() }],
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits }
@@ -371,71 +372,85 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col font-sans text-slate-900">
             
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 py-6 px-8 sticky top-0 z-20">
-                <div className="max-w-6xl mx-auto flex justify-between items-center">
+            {/* Premium Header */}
+            <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 py-6 px-8 sticky top-0 z-30">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                            <LifebuoyIcon className="w-8 h-8 text-indigo-600" />
-                            Pixa Support
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 tracking-tight">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30 text-white">
+                                <LifebuoyIcon className="w-6 h-6" />
+                            </div>
+                            Support Center
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1">AI-Powered Assistance & Ticket Management</p>
+                        <p className="text-sm text-gray-500 mt-1 font-medium ml-1">AI Concierge & Premium Support</p>
                     </div>
                     {/* Activity Indicator / Credits */}
-                    <div className="hidden sm:flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-full border border-gray-200">
-                        <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
-                        <span className="text-xs font-bold text-gray-700">{auth.user?.credits} Credits Available</span>
+                    <div className="hidden sm:flex items-center gap-4">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span className="text-xs font-bold uppercase tracking-wide">Live</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                            <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
+                            <span className="text-xs font-bold text-gray-700">{auth.user?.credits} Credits</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
+            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 lg:p-8">
                 
                 {/* LEFT: CHAT INTERFACE */}
-                {/* Updated Height to 400px as requested */}
-                <div className="lg:col-span-2 flex flex-col h-[400px] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative">
+                {/* Main Glassmorphism Container */}
+                <div className="lg:col-span-2 flex flex-col h-[550px] bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-indigo-500/10 border border-white/60 ring-1 ring-gray-100 overflow-hidden relative group">
+                    
+                    {/* Decorative Background Blur */}
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
                     
                     {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#ffffff]">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth relative z-10">
                         
-                        {/* Previous Chat Pill Button */}
+                        {/* History Pill */}
                         {olderMessages.length > 0 && (
-                            <div className="flex justify-center mb-4">
+                            <div className="flex justify-center mb-6">
                                 <button 
                                     onClick={handleLoadOlder}
-                                    className="bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 text-[10px] font-bold px-4 py-1.5 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md"
+                                    className="bg-white/80 backdrop-blur text-gray-500 hover:text-indigo-600 text-[10px] font-bold px-5 py-2 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md hover:scale-105"
                                 >
-                                    Previous Chat
+                                    Load Previous Chat
                                 </button>
                             </div>
                         )}
 
                         {loadingHistory && (
-                            <div className="flex justify-center py-4">
-                                <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                            <div className="flex flex-col items-center justify-center py-12 opacity-60">
+                                <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
+                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Loading Conversation...</p>
                             </div>
                         )}
 
                         {messages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex items-start gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                                <div className={`flex items-end gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     
                                     {/* Avatar */}
-                                    {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
+                                    <div className="mb-1 hidden sm:block">
+                                        {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
+                                    </div>
 
                                     {/* Bubble */}
                                     <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                        <div className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                                        <div className={`px-6 py-4 rounded-2xl shadow-sm text-sm leading-relaxed relative ${
                                             msg.role === 'user' 
-                                            ? 'bg-indigo-600 text-white rounded-tr-none' 
-                                            : 'bg-gray-50 text-gray-800 border border-gray-100 rounded-tl-none'
+                                            ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-indigo-500/20' 
+                                            : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
                                         }`}>
                                             {msg.role === 'user' ? msg.content : <FormattedMessage text={msg.content} />}
                                         </div>
 
-                                        {/* Ticket Proposal Card */}
+                                        {/* Ticket Proposal */}
                                         {msg.type === 'proposal' && msg.ticketDraft && (
                                             <TicketProposalCard 
                                                 draft={msg.ticketDraft} 
@@ -445,7 +460,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             />
                                         )}
                                         
-                                        <span className="text-[10px] text-gray-400 mt-1 px-1">
+                                        <span className={`text-[9px] font-bold mt-1.5 px-1 opacity-60 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
@@ -454,32 +469,26 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         ))}
                         
                         {isTyping && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 animate-fadeIn">
                                 <PixaBotIcon />
-                                <div className="bg-gray-50 px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100">
-                                    <div className="flex gap-1">
-                                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-                                    </div>
+                                <div className="bg-white px-5 py-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5">
+                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
+                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
+                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
                                 </div>
                             </div>
                         )}
 
-                        {showQuickActions && (
-                            <div className="pl-11">
-                                <QuickActions onAction={handleSendMessage} />
-                            </div>
-                        )}
+                        {showQuickActions && <QuickActions onAction={handleSendMessage} />}
 
                         <div ref={messagesEndRef} />
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-4 bg-white border-t border-gray-100 flex items-center gap-3">
+                    <div className="p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center gap-3 relative z-20">
                         <button 
                             onClick={() => fileInputRef.current?.click()}
-                            className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                            className="p-3.5 text-gray-400 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-indigo-100"
                             title="Upload Screenshot"
                         >
                             <UploadIcon className="w-5 h-5" />
@@ -489,8 +498,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <div className="flex-1 relative">
                             <input 
                                 type="text" 
-                                className="w-full bg-gray-50 border-none rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all placeholder-gray-400 text-gray-800"
-                                placeholder="Ask about features or describe an issue..."
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-gray-400 text-gray-800 shadow-inner"
+                                placeholder="Type a message..."
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -500,38 +509,47 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <button 
                             onClick={() => handleSendMessage()}
                             disabled={!inputText.trim() || isTyping}
-                            className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none active:scale-95"
+                            className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none active:scale-95 transform hover:scale-105"
                         >
-                            <ArrowRightIcon className="w-5 h-5" />
+                            <PaperAirplaneIcon className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* RIGHT: TICKET HISTORY (1 col) */}
-                <div className="hidden lg:flex flex-col h-[400px]">
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                <TicketIcon className="w-4 h-4 text-gray-500"/>
-                                Your Tickets
-                            </h3>
+                {/* RIGHT: TICKET HISTORY */}
+                <div className="hidden lg:flex flex-col h-[550px]">
+                    <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-white/60 ring-1 ring-gray-100 h-full flex flex-col overflow-hidden relative">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 backdrop-blur-md sticky top-0 z-10">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <div className="p-1.5 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                        <TicketIcon className="w-4 h-4 text-indigo-500"/>
+                                    </div>
+                                    Your Tickets
+                                </h3>
+                                <span className="text-[10px] font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{tickets.length}</span>
+                            </div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-[#ffffff]/50">
                             {tickets.length > 0 ? (
                                 tickets.map(ticket => (
                                     <TicketHistoryItem key={ticket.id} ticket={ticket} />
                                 ))
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50">
-                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                                        <TicketIcon className="w-5 h-5 text-gray-400" />
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                        <TicketIcon className="w-8 h-8 text-gray-300" />
                                     </div>
-                                    <p className="text-xs font-bold text-gray-400">No active tickets</p>
-                                    <p className="text-[10px] text-gray-300 mt-1">Issues you can't solve via chat will appear here.</p>
+                                    <p className="text-sm font-bold text-gray-500">No active tickets</p>
+                                    <p className="text-xs text-gray-400 mt-2 max-w-[200px]">Issues that require human review will appear here.</p>
                                 </div>
                             )}
                         </div>
+                        
+                        {/* Bottom Gradient Fade */}
+                        <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
                     </div>
                 </div>
 
