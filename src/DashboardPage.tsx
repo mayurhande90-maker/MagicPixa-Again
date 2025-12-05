@@ -45,6 +45,7 @@ const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(modul
 const BrandStylistAI = lazy(() => import('./features/BrandStylistAI').then(module => ({ default: module.BrandStylistAI })));
 const MagicRealty = lazy(() => import('./features/MagicRealty').then(module => ({ default: module.MagicRealty })));
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
+const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -217,6 +218,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <CaptionAI auth={auth} appConfig={appConfig} />;
             case 'daily_mission':
                  return <DailyMissionStudio auth={auth} navigateTo={navigateTo} />;
+            case 'support_center':
+                 return <SupportCenter auth={auth} />;
             case 'billing':
                 if (auth.user) {
                     return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveView} />;

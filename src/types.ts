@@ -16,7 +16,7 @@ declare global {
 }
 
 export type Page = 'home' | 'dashboard' | 'about';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center';
 
 export interface BrandKit {
     companyName: string;
@@ -36,6 +36,21 @@ export interface BrandKit {
         secondary: string | null; // URL
         mark: string | null; // URL
     };
+}
+
+export interface Ticket {
+    id: string;
+    userId: string;
+    userEmail: string;
+    type: 'bug' | 'refund' | 'general' | 'feature';
+    status: 'open' | 'resolved' | 'rejected';
+    subject: string;
+    description: string;
+    relatedTransactionId?: string; // For refunds
+    refundAmount?: number;         // For refunds
+    screenshotUrl?: string;        // For bugs
+    adminReply?: string;
+    createdAt: any; // Timestamp
 }
 
 export interface User {
