@@ -5,7 +5,8 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon,
+    CreditCoinIcon
 } from './icons';
 
 interface BillingProps {
@@ -364,7 +365,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                              <button
                                 onClick={() => handlePurchase(pack, index)}
                                 disabled={loadingPackage !== null}
-                                className={`w-full font-bold py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm ${
+                                className={`w-full font-bold py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm flex items-center justify-center gap-2 ${
                                 pack.popular
                                     ? 'bg-[#1A1A1E] text-white hover:bg-black hover:shadow-lg'
                                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
@@ -373,7 +374,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                 {loadingPackage === index ? (
                                 <svg className="animate-spin h-5 w-5 mx-auto text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 ) : (
-                                'Buy Now'
+                                <>
+                                    <CreditCoinIcon className="w-4 h-4"/> Buy Now
+                                </>
                                 )}
                             </button>
                         </div>

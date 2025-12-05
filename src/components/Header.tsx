@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
-import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon } from './icons';
+import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon, CreditCoinIcon } from './icons';
 import { getBadgeInfo } from '../utils/badgeUtils';
 
 // Add `setActiveView` to AuthProps for the dashboard context
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                 <>
                   {/* Mobile view: Show credits instead of user circle */}
                   <div className="sm:hidden flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
-                    <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
+                    <CreditCoinIcon className="w-4 h-4" />
                     <span>{auth.user.credits} Credits</span>
                   </div>
 
@@ -110,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
 
                         {/* Available Credits */}
                         <div className="flex items-center gap-2 bg-[#6EFACC]/20 text-[#1A1A1E] font-semibold px-3 py-1.5 rounded-full text-sm border border-[#6EFACC]/30">
-                            <SparklesIcon className="w-4 h-4 text-[#1A1A1E]" />
+                            <CreditCoinIcon className="w-4 h-4" />
                             <span>{auth.user.credits} Credits</span>
                         </div>
                         
