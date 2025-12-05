@@ -71,22 +71,22 @@ const FormatSelector: React.FC<{
                 onClick={() => onSelect('landscape')}
                 className={`relative group p-6 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center gap-4 text-center overflow-hidden ${
                     selected === 'landscape'
-                        ? 'border-red-500 bg-gradient-to-br from-red-50 to-white shadow-xl shadow-red-500/10 scale-[1.02]'
+                        ? 'border-[#FF0000] bg-red-50/50 shadow-xl shadow-red-500/10 scale-[1.02]'
                         : 'border-gray-100 bg-white hover:border-red-200 hover:shadow-lg hover:-translate-y-1'
                 }`}
             >
                 {/* Visual Representation */}
-                <div className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center transition-colors shadow-sm ${selected === 'landscape' ? 'border-red-500 bg-red-100' : 'border-gray-300 bg-gray-50 group-hover:border-red-300'}`}>
-                    <div className={`w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-b-[5px] border-b-transparent ml-1 ${selected === 'landscape' ? 'border-l-red-500' : 'border-l-gray-400 group-hover:border-l-red-400'}`}></div>
+                <div className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center transition-colors shadow-sm ${selected === 'landscape' ? 'border-[#FF0000] bg-[#FF0000]/10' : 'border-gray-300 bg-gray-50 group-hover:border-[#FF0000]/50'}`}>
+                    <div className={`w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-b-[5px] border-b-transparent ml-1 ${selected === 'landscape' ? 'border-l-[#FF0000]' : 'border-l-gray-400 group-hover:border-l-[#FF0000]'}`}></div>
                 </div>
                 
                 <div>
-                    <h3 className={`font-bold text-sm ${selected === 'landscape' ? 'text-red-600' : 'text-gray-700'}`}>YouTube Video</h3>
+                    <h3 className={`font-bold text-sm ${selected === 'landscape' ? 'text-[#FF0000]' : 'text-gray-700'}`}>YouTube Video</h3>
                     <p className="text-[10px] text-gray-400 font-medium mt-1 tracking-wide">16:9 Landscape</p>
                 </div>
 
                 {selected === 'landscape' && (
-                    <div className="absolute top-3 right-3 bg-red-500 text-white p-1 rounded-full animate-fadeIn shadow-sm">
+                    <div className="absolute top-3 right-3 bg-[#FF0000] text-white p-1 rounded-full animate-fadeIn shadow-sm">
                         <CheckIcon className="w-3 h-3" />
                     </div>
                 )}
@@ -97,22 +97,34 @@ const FormatSelector: React.FC<{
                 onClick={() => onSelect('portrait')}
                 className={`relative group p-6 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center gap-4 text-center overflow-hidden ${
                     selected === 'portrait'
-                        ? 'border-pink-500 bg-gradient-to-br from-pink-50 to-white shadow-xl shadow-pink-500/10 scale-[1.02]'
+                        ? 'border-[#ee2a7b] bg-white shadow-xl shadow-pink-500/10 scale-[1.02]'
                         : 'border-gray-100 bg-white hover:border-pink-200 hover:shadow-lg hover:-translate-y-1'
                 }`}
+                style={selected === 'portrait' ? { background: 'linear-gradient(135deg, rgba(249, 206, 52, 0.05), rgba(238, 42, 123, 0.05), rgba(98, 40, 215, 0.05))' } : {}}
             >
                 {/* Visual Representation */}
-                <div className={`w-9 h-14 rounded-xl border-2 flex flex-col items-center justify-center transition-colors shadow-sm ${selected === 'portrait' ? 'border-pink-500 bg-pink-100' : 'border-gray-300 bg-gray-50 group-hover:border-pink-300'}`}>
-                    <div className={`w-3 h-3 rounded-full border-2 ${selected === 'portrait' ? 'border-pink-400' : 'border-gray-400 group-hover:border-pink-400'}`}></div>
+                <div 
+                    className={`w-9 h-14 rounded-xl border-2 flex flex-col items-center justify-center transition-all shadow-sm ${selected === 'portrait' ? 'border-transparent' : 'border-gray-300 bg-gray-50 group-hover:border-pink-300'}`}
+                    style={selected === 'portrait' ? { background: 'linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)' } : {}}
+                >
+                    <div className={`w-3 h-3 rounded-full border-2 ${selected === 'portrait' ? 'border-white bg-transparent' : 'border-gray-400 group-hover:border-pink-400'}`}></div>
                 </div>
 
                 <div>
-                    <h3 className={`font-bold text-sm ${selected === 'portrait' ? 'text-pink-600' : 'text-gray-700'}`}>Reels & Stories</h3>
+                    <h3 
+                        className={`font-bold text-sm ${selected === 'portrait' ? 'text-transparent bg-clip-text' : 'text-gray-700'}`}
+                        style={selected === 'portrait' ? { backgroundImage: 'linear-gradient(90deg, #f9ce34, #ee2a7b, #6228d7)' } : {}}
+                    >
+                        Reels & Stories
+                    </h3>
                     <p className="text-[10px] text-gray-400 font-medium mt-1 tracking-wide">9:16 Vertical</p>
                 </div>
 
                 {selected === 'portrait' && (
-                    <div className="absolute top-3 right-3 bg-pink-500 text-white p-1 rounded-full animate-fadeIn shadow-sm">
+                    <div 
+                        className="absolute top-3 right-3 text-white p-1 rounded-full animate-fadeIn shadow-sm"
+                        style={{ background: 'linear-gradient(135deg, #f9ce34, #ee2a7b, #6228d7)' }}
+                    >
                         <CheckIcon className="w-3 h-3" />
                     </div>
                 )}
