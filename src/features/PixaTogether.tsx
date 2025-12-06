@@ -214,7 +214,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 resultHeightClass="h-[750px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
-                    className: "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/30 border-none hover:scale-[1.02]",
+                    className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
                     label: "Generate Magic Photo"
                 }}
@@ -233,7 +233,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-pink-400 to-rose-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
