@@ -11,7 +11,8 @@ interface ToastNotificationProps {
 const ToastNotification: React.FC<ToastNotificationProps> = ({ message, type = 'success', onClose }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isAnimatingProgress, setIsAnimatingProgress] = useState(false);
-    const DURATION = 3000;
+    // Increased duration to 8 seconds as requested
+    const DURATION = 8000;
 
     useEffect(() => {
         // Trigger enter animation (Spring/Bounce)

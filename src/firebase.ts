@@ -228,14 +228,15 @@ export const getAnnouncement = async () => {
 };
 
 // ... existing Creations & Credits ...
-export const saveCreation = async (uid: string, imageUrl: string, feature: string) => {
-    if (!db) return;
-    await db.collection('users').doc(uid).collection('creations').add({
+export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
+    if (!db) throw new Error("DB not initialized");
+    const docRef = await db.collection('users').doc(uid).collection('creations').add({
         imageUrl,
         feature,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         storagePath: ''
     });
+    return docRef.id;
 };
 
 export const getCreations = async (uid: string) => {
@@ -244,6 +245,13 @@ export const getCreations = async (uid: string) => {
         .orderBy('createdAt', 'desc')
         .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getCreationById = async (uid: string, creationId: string): Promise<Creation | null> => {
+    if (!db) return null;
+    const doc = await db.collection('users').doc(uid).collection('creations').doc(creationId).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Creation;
 };
 
 export const deleteCreation = async (uid: string, creation: Creation) => {

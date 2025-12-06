@@ -195,6 +195,10 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [pose, setPose] = useState('Side-by-Side');
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Keep Original');
     
+    // Tracking
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [lastConfig, setLastConfig] = useState<PixaTogetherConfig | null>(null);
+
     // UI State
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -279,11 +283,12 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
         setLoading(true);
         setResultImage(null);
+        setLastCreationId(null);
 
         try {
             const config: PixaTogetherConfig = {
                 mode,
-                relationship: mode === 'creative' ? relationship : 'Neutral', // Use selection only in creative
+                relationship: mode === 'creative' ? relationship : 'Neutral',
                 mood: mode === 'creative' ? mood : '',
                 environment: mode === 'creative' ? (environmentPreset === 'Custom' ? customEnvironment : environmentPreset) : '',
                 pose: mode === 'creative' ? pose : '',
@@ -305,6 +310,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 },
                 autoFix: true
             };
+            
+            setLastConfig(config);
 
             const res = await generateMagicSoul(
                 personA.base64.base64,
@@ -318,7 +325,9 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, `Pixa Together (${mode})`);
+            const creationId = await saveCreation(auth.user.uid, dataUri, `Pixa Together (${mode})`);
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together');
             
             if (updatedUser.lifetimeGenerations) {
@@ -339,12 +348,15 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         if (!auth.user || !resultImage) return;
         setIsRefunding(true);
         try {
+            // Pass the creation ID and Config so Admin can see context
             const res = await processRefundRequest(
                 auth.user.uid,
                 auth.user.email,
                 cost,
                 reason,
-                "User generated image" // We can't easily pass the blob URL to ticket without upload, using placeholder
+                "User generated image",
+                lastCreationId || undefined,
+                lastConfig || undefined
             );
 
             if (res.success) {
@@ -371,6 +383,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setReferencePose(null);
         setResultImage(null);
         setCustomDescription('');
+        setLastCreationId(null);
         // Reset defaults
         setMode('creative');
         setRelationship('Best Friends');

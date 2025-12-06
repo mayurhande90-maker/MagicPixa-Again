@@ -17,7 +17,8 @@ import {
     getApiErrorLogs,
     get24HourCreditBurn,
     getRevenueStats,
-    grantPackageToUser
+    grantPackageToUser,
+    getCreationById // Added import
 } from '../firebase';
 import { getAllTickets, resolveTicket } from '../services/supportService'; // Import new service
 import { 
@@ -43,8 +44,8 @@ import {
     StarIcon,
     FilterIcon,
     GiftIcon,
-    LifebuoyIcon, // Added
-    ChatBubbleLeftIcon // Added
+    LifebuoyIcon, 
+    ChatBubbleLeftIcon 
 } from './icons';
 
 interface AdminPanelProps {
@@ -263,6 +264,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [replyText, setReplyText] = useState('');
     const [processingTicketId, setProcessingTicketId] = useState<string | null>(null);
+    const [viewingImage, setViewingImage] = useState<string | null>(null); // State for viewing ticket image
 
     // Default announcement state
     const [announcement, setAnnouncement] = useState<Announcement>({ 
@@ -343,6 +345,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
         setIsLoading(false);
     };
 
+    const handleViewGeneratedImage = async (userId: string, creationId: string) => {
+        try {
+            const creation = await getCreationById(userId, creationId);
+            if (creation) {
+                setViewingImage(creation.imageUrl);
+            } else {
+                alert("Image not found. It may have been deleted.");
+            }
+        } catch (e) {
+            console.error("Failed to fetch image", e);
+            alert("Error loading image.");
+        }
+    };
+
     const handleResolveTicket = async (ticket: Ticket, action: 'resolved' | 'rejected') => {
         if(!auth.user) return;
         setProcessingTicketId(ticket.id);
@@ -352,6 +368,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             
             await resolveTicket(auth.user.uid, ticket.id, action, finalReply, shouldRefund ? ticket.refundAmount : undefined);
             
+            // Notify User
+            await sendSystemNotification(
+                auth.user.uid,
+                ticket.userId,
+                action === 'resolved' ? 'Ticket Resolved' : 'Ticket Update',
+                finalReply,
+                action === 'resolved' ? 'success' : 'warning',
+                'modal'
+            );
+
             // Refresh
             loadTickets();
             setReplyText('');
@@ -528,6 +554,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                         </div>
                                     )}
 
+                                    {/* View Image Button for Admins */}
+                                    {(ticket as any).relatedTransactionId && (
+                                        <div className="mt-3">
+                                            <button 
+                                                onClick={() => handleViewGeneratedImage(ticket.userId, (ticket as any).relatedTransactionId)}
+                                                className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 border border-indigo-100"
+                                            >
+                                                <ImageIcon className="w-4 h-4"/> View Generated Image
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {ticket.status !== 'open' && ticket.adminReply && (
                                         <div className="mt-3 bg-gray-100 p-3 rounded-lg border-l-4 border-gray-300 text-xs text-gray-600">
                                             <span className="font-bold block mb-1">Reply:</span> {ticket.adminReply}
@@ -674,6 +712,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             )}
 
             {selectedUserForDetail && auth.user && <UserDetailModal user={selectedUserForDetail} currentUser={auth.user} appConfig={localConfig} onClose={() => setSelectedUserForDetail(null)} />}
+            
+            {/* Image Viewer Modal */}
+            {viewingImage && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/80 p-4" onClick={() => setViewingImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setViewingImage(null)} className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
+                            <XIcon className="w-6 h-6"/>
+                        </button>
+                        <img src={viewingImage} className="max-w-full max-h-full rounded-lg shadow-2xl" alt="Ticket Evidence"/>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

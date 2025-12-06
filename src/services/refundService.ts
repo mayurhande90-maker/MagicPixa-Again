@@ -2,6 +2,7 @@
 import { db } from '../firebase';
 import { createTicket } from './supportService';
 import firebase from 'firebase/compat/app';
+import { PixaTogetherConfig } from './imageToolsService';
 
 interface RefundResult {
     success: boolean;
@@ -14,7 +15,9 @@ export const processRefundRequest = async (
   userEmail: string, 
   cost: number, 
   reason: string,
-  imageUrl: string
+  imageUrl: string,
+  creationId?: string,
+  config?: PixaTogetherConfig
 ): Promise<RefundResult> => {
     if (!db) throw new Error("DB not initialized");
 
@@ -61,12 +64,32 @@ export const processRefundRequest = async (
         };
 
     } else {
-        // Fallback: Create Support Ticket
+        // Fallback: Create Support Ticket with Detailed Info
+        let description = `User reported poor quality generation.\nReason: ${reason}`;
+        
+        if (config) {
+            description += `\n\n--- Generation Settings ---\n`;
+            description += `Mode: ${config.mode}\n`;
+            description += `Relationship: ${config.relationship}\n`;
+            if (config.mode === 'creative') {
+                description += `Mood: ${config.mood}\n`;
+                description += `Environment: ${config.environment}\n`;
+                description += `Pose: ${config.pose}\n`;
+                if(config.customDescription) description += `Custom: ${config.customDescription}\n`;
+            }
+            description += `Locks: Age(${config.locks.age}), Hair(${config.locks.hair})\n`;
+        }
+
         await createTicket(userId, userEmail, {
             type: 'refund',
             subject: 'Refund Request: Pixa Together',
-            description: `User reported poor quality generation.\nReason: ${reason}\nImage: ${imageUrl}`,
-            refundAmount: cost
+            description: description,
+            refundAmount: cost,
+            // Store the creation ID in a field that AdminPanel can look for (reusing relatedTransactionId or adding custom metadata)
+            // Ideally we should add a specific field to Ticket type, but for now we can append to description or use a generic field if available.
+            // Let's assume we can add custom fields to the Firestore doc even if not in Typescript strict interface immediately, 
+            // or better, map it to `relatedTransactionId` as a placeholder for "Related Entity ID"
+            relatedTransactionId: creationId 
         });
 
         return { 
