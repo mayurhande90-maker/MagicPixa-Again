@@ -101,15 +101,19 @@ export const generateMagicSoul = async (
     - **Interaction**: ${inputs.interaction}
     ${inputs.environment ? `- **Specific Environment**: ${inputs.environment}` : ''}
     
-    *** CRITICAL RULES FOR SUCCESS ***
-    1. **Identity Lock**: You MUST preserve the facial features, hair, and likeness of Person A and Person B exactly. Do not blend them into one generic person.
-    2. **Physics & Lighting**: Relight both subjects to match the new environment. Ensure their skin tones react correctly to the scene's light source.
-    3. **Composition**: 
-       - If "Hugging" or "Close", ensure natural contact points (hands on shoulders, etc.).
-       - If "Walking" or "Action", ensure gait and movement match.
-    4. **Output Quality**: High-resolution, DSLR quality photograph. No cartoon or illustration style unless specified in "Vibe".
+    *** CRITICAL IDENTITY LOCK (TOP PRIORITY) ***
+    1. **FACE PRESERVATION**: The face, facial details, eyes, nose, lips, and unique facial structure of Person A and Person B MUST remain UNTOUCHED and UNCHANGED.
+    2. **NO HALLUCINATION**: Do NOT generate new faces. Do NOT blend the faces together. You must use the exact source faces provided.
+    3. **BODY STRUCTURE**: Maintain the original body structure and hair type where visible, adapting only the pose to fit the interaction.
     
-    Generate the final merged image.`;
+    *** COMPOSITION RULES ***
+    1. **Interaction**: 
+       - If "Hugging" or "Close", ensure natural contact points (hands on shoulders, leaning in).
+       - If "Walking" or "Action", ensure gait and movement match.
+    2. **Physics & Lighting**: Relight both subjects to match the new environment. Ensure their skin tones react correctly to the scene's light source (e.g., sunset glow vs studio flash).
+    3. **Output Quality**: High-resolution, DSLR quality photograph. No cartoon or illustration style unless "Vibe" specifically requests it.
+    
+    Generate the final merged image containing ONLY these two specific people.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
