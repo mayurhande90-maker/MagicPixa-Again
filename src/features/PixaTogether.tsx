@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
-import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid, InputField, TextAreaField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { 
     PixaTogetherIcon, 
     XIcon, 
@@ -131,6 +131,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [mood, setMood] = useState('Travel / Beach');
     const [environmentPreset, setEnvironmentPreset] = useState('Goa Beach');
     const [customEnvironment, setCustomEnvironment] = useState('');
+    const [customDescription, setCustomDescription] = useState('');
     const [pose, setPose] = useState('Side-by-Side');
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Keep Original');
     
@@ -221,6 +222,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 mood: mode === 'creative' ? mood : '',
                 environment: mode === 'creative' ? (environmentPreset === 'Custom' ? customEnvironment : environmentPreset) : '',
                 pose: mode === 'creative' ? pose : '',
+                customDescription: customDescription,
                 
                 // Defaults for removed engines
                 timeline: 'Present Day',
@@ -273,6 +275,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setPersonB(null);
         setReferencePose(null);
         setResultImage(null);
+        setCustomDescription('');
         // Reset defaults
         setMode('creative');
         setRelationship('Best Friends');
@@ -475,6 +478,15 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     )}
                                     <SelectionGrid label="5. Pose Guide" options={poseOptions} value={pose} onChange={setPose} />
                                     <SelectionGrid label="6. Clothing" options={clothingOptions} value={clothingMode} onChange={(val: any) => setClothingMode(val)} />
+                                    
+                                    {/* Custom Description - New Field */}
+                                    <TextAreaField
+                                        label="7. Custom Instructions (Optional)"
+                                        placeholder="E.g. 'Make it golden hour', 'Person A is holding a rose', 'Cinematic cyberpunk vibe'"
+                                        value={customDescription}
+                                        onChange={(e: any) => setCustomDescription(e.target.value)}
+                                        rows={3}
+                                    />
                                 </div>
                             )}
 

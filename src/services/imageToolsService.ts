@@ -79,6 +79,7 @@ export interface PixaTogetherConfig {
     pose?: string;
     timeline?: string;
     universe?: string;
+    customDescription?: string;
     // Reenact Mode Params
     referencePoseBase64?: string;
     referencePoseMimeType?: string;
@@ -151,6 +152,14 @@ export const generateMagicSoul = async (
         ${inputs.timeline && inputs.timeline !== 'Present Day' ? `- **TIME TRAVEL ENGINE**: Render the entire scene (clothing, hair styling, film stock quality, background) to look authentically like the **${inputs.timeline}**.` : ''}
         
         ${inputs.universe && inputs.universe !== 'Photorealistic' ? `- **UNIVERSE ENGINE**: Render the output in the visual style of **${inputs.universe}**. Adjust texture, rendering style, and lighting to match this art style.` : '- **STYLE**: Hyper-realistic photography.'}
+        `;
+    }
+
+    if (inputs.customDescription) {
+        mainPrompt += `
+        *** USER CUSTOM VISION (HIGH PRIORITY) ***
+        The user has provided specific details: "${inputs.customDescription}".
+        Integrate this description into the scene, style, or action intelligently while maintaining the relationship and identity constraints.
         `;
     }
 
