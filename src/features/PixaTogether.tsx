@@ -11,7 +11,10 @@ import {
     MagicWandIcon,
     ShieldCheckIcon,
     AdjustmentsVerticalIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    CameraIcon,
+    LightbulbIcon,
+    UploadTrayIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
@@ -37,6 +40,30 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     );
 };
 
+const ModeCard: React.FC<{
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    selected: boolean;
+    onClick: () => void;
+    colorClass: string;
+}> = ({ title, description, icon, selected, onClick, colorClass }) => (
+    <button 
+        onClick={onClick}
+        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all w-full group relative overflow-hidden text-center h-28 ${
+            selected 
+            ? `border-${colorClass}-500 bg-${colorClass}-50 shadow-md`
+            : `border-gray-100 bg-white hover:border-${colorClass}-200 hover:bg-gray-50`
+        }`}
+    >
+        <div className={`mb-2 transition-transform group-hover:scale-110 ${selected ? `text-${colorClass}-600` : `text-gray-400`}`}>
+            {icon}
+        </div>
+        <h3 className={`font-bold text-xs mb-0.5 ${selected ? `text-${colorClass}-900` : 'text-gray-700'}`}>{title}</h3>
+        <p className={`text-[9px] ${selected ? `text-${colorClass}-700` : 'text-gray-400'}`}>{description}</p>
+    </button>
+);
+
 const CompactUpload: React.FC<{
     label: string;
     image: { url: string; warnings?: string[] } | null; 
@@ -47,9 +74,9 @@ const CompactUpload: React.FC<{
     color?: string;
 }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40", color = "blue" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const borderColor = color === 'pink' ? 'border-pink-100 hover:border-pink-300' : 'border-blue-100 hover:border-blue-300';
-    const bgColor = color === 'pink' ? 'bg-pink-50 hover:bg-pink-100/50' : 'bg-blue-50 hover:bg-blue-100/50';
-    const dashedBorder = color === 'pink' ? 'border-pink-300' : 'border-blue-300';
+    const borderColor = color === 'pink' ? 'border-pink-100 hover:border-pink-300' : (color === 'purple' ? 'border-purple-100 hover:border-purple-300' : 'border-blue-100 hover:border-blue-300');
+    const bgColor = color === 'pink' ? 'bg-pink-50 hover:bg-pink-100/50' : (color === 'purple' ? 'bg-purple-50 hover:bg-purple-100/50' : 'bg-blue-50 hover:bg-blue-100/50');
+    const dashedBorder = color === 'pink' ? 'border-pink-300' : (color === 'purple' ? 'border-purple-300' : 'border-blue-300');
 
     return (
         <div className="relative w-full group h-full">
@@ -84,20 +111,26 @@ const CompactUpload: React.FC<{
 };
 
 export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+    // Mode
+    const [mode, setMode] = useState<'creative' | 'reenact' | 'professional'>('creative');
+
     // Assets with metadata
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
     const [personB, setPersonB] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
+    const [referencePose, setReferencePose] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
     
-    // Core Config
+    // Core Config (Creative)
     const [relationship, setRelationship] = useState('Best Friends');
     const [mood, setMood] = useState('Travel / Beach');
     const [environmentPreset, setEnvironmentPreset] = useState('Goa Beach');
     const [customEnvironment, setCustomEnvironment] = useState('');
-    
-    // Simplified Controls (User Facing)
     const [pose, setPose] = useState('Side-by-Side');
-    const [clothingMode, setClothingMode] = useState('Keep Original');
+    const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Keep Original');
     
+    // New Creative Engines
+    const [timeline, setTimeline] = useState('Present Day');
+    const [universe, setUniverse] = useState('Photorealistic');
+
     // UI State
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -118,13 +151,16 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const moodOptions = ['Retro Childhood', 'Romantic Couple', 'Party / Nightlife', 'Travel / Beach', 'Studio Portrait', 'Stylized Cartoon'];
     const envOptions = ['Café', 'Mountain Trek', 'Goa Beach', '90s Classroom', 'Royal Palace', 'Rainy Street', 'Sunset Balcony', 'Custom'];
     const poseOptions = ['Side-by-Side', 'Hugging', 'Handshake', 'V-Pose', 'Back-to-Back', 'Walking (Dynamic)', 'Keep Original'];
-    const clothingOptions = ['Keep Original', 'Adapt to Vibe'];
+    const clothingOptions = ['Keep Original', 'Match Vibe'];
+    
+    const timelineOptions = ['Present Day', '1920s Gatsby', '1950s Diner', '1980s Neon', '1990s Grunge', '2000s Y2K', '2050 Cyberpunk', 'Victorian Era', 'Medieval'];
+    const universeOptions = ['Photorealistic', 'Pixar 3D', 'Anime Studio', 'GTA Loading Screen', 'Vintage Oil Painting', 'Claymation', 'Cybernetic'];
 
     // Animation
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing facial structures...", "Matching skin tones & lighting...", "Generating pose interaction...", "Applying environment vibe...", "Finalizing photo match..."];
+            const steps = ["Analyzing facial structures...", "Matching skin tones & lighting...", "Simulating reality engine...", "Applying timeline physics...", "Finalizing photo match..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -155,7 +191,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             img.onload = () => {
                 const warnings = [];
                 if (img.width < 400 || img.height < 400) warnings.push("Low resolution: Face might be blurry.");
-                // We could add more client-side checks here if needed
                 resolve(warnings);
             };
         });
@@ -173,26 +208,33 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleGenerate = async () => {
         if (!personA || !personB || !auth.user) return;
+        if (mode === 'reenact' && !referencePose) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
         setResultImage(null);
 
         try {
-            // Apply STRICT logic for high quality generation
             const config: PixaTogetherConfig = {
-                relationship,
-                mood,
-                environment: environmentPreset === 'Custom' ? customEnvironment : environmentPreset,
-                pose,
-                faceStrength: 100, // FORCE HIGH FIDELITY
+                mode,
+                relationship: mode === 'creative' ? relationship : 'Neutral', // Use selection only in creative
+                mood: mode === 'creative' ? mood : '',
+                environment: mode === 'creative' ? (environmentPreset === 'Custom' ? customEnvironment : environmentPreset) : '',
+                pose: mode === 'creative' ? pose : '',
+                timeline: mode === 'creative' ? timeline : '',
+                universe: mode === 'creative' ? universe : '',
+                
+                referencePoseBase64: referencePose?.base64.base64,
+                referencePoseMimeType: referencePose?.base64.mimeType,
+                
+                faceStrength: 100,
+                clothingMode: mode === 'professional' ? 'Professional Attire' : (clothingMode as any),
                 locks: {
-                    age: true, // AUTO LOCK
-                    hair: true, // AUTO LOCK
-                    accessories: true, // AUTO LOCK
-                    clothing: clothingMode === 'Keep Original' // USER CHOICE
+                    age: true,
+                    hair: true,
+                    accessories: true
                 },
-                autoFix: true // AUTO FIX ON
+                autoFix: true
             };
 
             const res = await generateMagicSoul(
@@ -207,7 +249,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Pixa Together');
+            saveCreation(auth.user.uid, dataUri, `Pixa Together (${mode})`);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together');
             
             if (updatedUser.lifetimeGenerations) {
@@ -227,12 +269,13 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleNewSession = () => {
         setPersonA(null);
         setPersonB(null);
+        setReferencePose(null);
         setResultImage(null);
+        // Reset defaults
+        setMode('creative');
         setRelationship('Best Friends');
-        setMood('Travel / Beach');
-        setEnvironmentPreset('Goa Beach');
-        setCustomEnvironment('');
-        setClothingMode('Keep Original');
+        setTimeline('Present Day');
+        setUniverse('Photorealistic');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -247,13 +290,15 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     };
 
-    const canGenerate = !!personA && !!personB && !isLowCredits;
+    // Validation
+    const isReenactValid = mode === 'reenact' ? !!referencePose : true;
+    const canGenerate = !!personA && !!personB && isReenactValid && !isLowCredits;
 
     return (
         <>
             <FeatureLayout 
                 title="Pixa Together"
-                description="Merge two photos into one perfect moment. Pixa automatically harmonizes lighting and preserves identities."
+                description="Reality Simulator. Merge two people into any scene, era, or art style."
                 icon={<PixaTogetherIcon className="w-14 h-14"/>}
                 rawIcon={true}
                 creditCost={cost}
@@ -263,12 +308,12 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 resultImage={resultImage}
                 onResetResult={handleGenerate} 
                 onNewSession={handleNewSession}
-                resultHeightClass="h-[850px]"
+                resultHeightClass="h-[1000px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Magic Photo"
+                    label: "Generate Reality"
                 }}
                 scrollRef={scrollRef}
                 customActionButtons={
@@ -297,22 +342,32 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <PixaTogetherIcon className="w-10 h-10 text-pink-400" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-300">Magic Canvas</h3>
-                                    <p className="text-sm text-gray-300 mt-1">Upload photos to start.</p>
+                                    <h3 className="text-xl font-bold text-gray-300">Reality Canvas</h3>
+                                    <p className="text-sm text-gray-300 mt-1">Select a mode to begin.</p>
                                 </div>
                             ) : (
-                                <div className="flex gap-4 items-center justify-center w-full h-full max-h-[80%]">
-                                    {personA && (
-                                        <div className="relative h-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden shadow-md border-2 border-white transform -rotate-2 hover:rotate-0 transition-transform duration-300 hover:z-10">
-                                            <img src={personA.url} className="w-full h-full object-cover" alt="Person A" />
-                                            <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">Person A</div>
-                                        </div>
-                                    )}
-                                    {personA && personB && <div className="text-2xl font-black text-gray-200">+</div>}
-                                    {personB && (
-                                        <div className="relative h-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden shadow-md border-2 border-white transform rotate-2 hover:rotate-0 transition-transform duration-300 hover:z-10">
-                                            <img src={personB.url} className="w-full h-full object-cover" alt="Person B" />
-                                            <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">Person B</div>
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    {/* Visual Representation of Inputs */}
+                                    <div className="grid grid-cols-2 gap-4 max-w-lg w-full">
+                                        {personA && (
+                                            <div className="relative aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden shadow-md border-2 border-white transform -rotate-3 hover:rotate-0 transition-transform duration-300 z-10">
+                                                <img src={personA.url} className="w-full h-full object-cover" alt="Person A" />
+                                                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">Person A</div>
+                                            </div>
+                                        )}
+                                        {personB && (
+                                            <div className="relative aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden shadow-md border-2 border-white transform rotate-3 hover:rotate-0 transition-transform duration-300 z-20">
+                                                <img src={personB.url} className="w-full h-full object-cover" alt="Person B" />
+                                                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">Person B</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Overlay for Reference Pose in Reenact Mode */}
+                                    {mode === 'reenact' && referencePose && (
+                                        <div className="absolute bottom-4 right-4 w-32 aspect-[3/4] bg-white rounded-xl shadow-2xl border-4 border-white transform rotate-6 z-30 animate-fadeInUp">
+                                            <img src={referencePose.url} className="w-full h-full object-cover rounded-lg" alt="Reference" />
+                                            <div className="absolute top-2 right-2 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">Target Pose</div>
                                         </div>
                                     )}
                                 </div>
@@ -331,12 +386,43 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
                             
-                            {/* 1. Dual Uploads */}
+                            {/* 1. Mode Switcher */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block ml-1">1. Select Engine</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <ModeCard 
+                                        title="Creative" 
+                                        description="Full Control" 
+                                        icon={<SparklesIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'creative'} 
+                                        onClick={() => setMode('creative')} 
+                                        colorClass="pink"
+                                    />
+                                    <ModeCard 
+                                        title="Reenact" 
+                                        description="Copy Pose" 
+                                        icon={<CameraIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'reenact'} 
+                                        onClick={() => setMode('reenact')} 
+                                        colorClass="purple"
+                                    />
+                                    <ModeCard 
+                                        title="Pro Duo" 
+                                        description="Corporate" 
+                                        icon={<ShieldCheckIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'professional'} 
+                                        onClick={() => setMode('professional')} 
+                                        colorClass="blue"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 2. Uploads */}
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Upload People</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Upload Subjects</label>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4 mb-4">
                                     <CompactUpload 
                                         label="Person A" 
                                         image={personA} 
@@ -354,36 +440,69 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         color="pink"
                                     />
                                 </div>
+                                
+                                {/* 3. Special Upload for Reenact */}
+                                {mode === 'reenact' && (
+                                    <div className="animate-fadeIn">
+                                        <div className="flex items-center gap-2 mb-2 ml-1">
+                                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
+                                            <label className="text-xs font-bold text-purple-600 uppercase tracking-wider">Reference Pose Required</label>
+                                        </div>
+                                        <CompactUpload 
+                                            label="Target Pose / Scene" 
+                                            image={referencePose} 
+                                            onUpload={handleUpload(setReferencePose)} 
+                                            onClear={() => setReferencePose(null)} 
+                                            icon={<CameraIcon className="w-6 h-6 text-purple-400"/>}
+                                            color="purple"
+                                            heightClass="h-32"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-2 px-1">Upload a photo with the exact pose or composition you want to copy.</p>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* 2. Base Configuration */}
-                            <div className="space-y-6">
-                                <SelectionGrid label="2. Relationship Dynamic" options={relationshipOptions} value={relationship} onChange={(val) => { setRelationship(val); autoScroll(); }} />
-                                
-                                <div>
-                                    <SelectionGrid label="3. Mood & Vibe" options={moodOptions} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
-                                </div>
+                            {/* 4. Configuration Engines */}
+                            {mode === 'creative' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    <div className="h-px bg-gray-100"></div>
+                                    
+                                    {/* Timeline & Universe */}
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <SelectionGrid label="3. Timeline Engine" options={timelineOptions} value={timeline} onChange={setTimeline} />
+                                        <SelectionGrid label="4. Universe Style" options={universeOptions} value={universe} onChange={setUniverse} />
+                                    </div>
 
-                                <div>
-                                    <SelectionGrid label="4. Environment" options={envOptions} value={environmentPreset} onChange={(val) => { setEnvironmentPreset(val); autoScroll(); }} />
+                                    <div className="h-px bg-gray-100"></div>
+
+                                    {/* Standard Options */}
+                                    <SelectionGrid label="5. Relationship" options={relationshipOptions} value={relationship} onChange={(val) => { setRelationship(val); autoScroll(); }} />
+                                    <SelectionGrid label="6. Environment" options={envOptions} value={environmentPreset} onChange={(val) => { setEnvironmentPreset(val); autoScroll(); }} />
                                     {environmentPreset === 'Custom' && (
                                         <div className="mt-2 animate-fadeIn">
                                             <InputField 
-                                                placeholder="Describe place (e.g. Kyoto Cherry Blossom Park)" 
+                                                placeholder="Describe place (e.g. Hogwarts Great Hall)" 
                                                 value={customEnvironment} 
                                                 onChange={(e: any) => setCustomEnvironment(e.target.value)} 
                                             />
                                         </div>
                                     )}
+                                    <SelectionGrid label="7. Pose Guide" options={poseOptions} value={pose} onChange={setPose} />
+                                    <SelectionGrid label="8. Clothing" options={clothingOptions} value={clothingMode} onChange={(val: any) => setClothingMode(val)} />
                                 </div>
-                            </div>
+                            )}
 
-                            {/* 3. Pose & Style (User Friendly Controls) */}
-                            <div className="space-y-6">
-                                <div className="h-px bg-gray-200"></div>
-                                <SelectionGrid label="5. Interaction / Pose" options={poseOptions} value={pose} onChange={setPose} />
-                                <SelectionGrid label="6. Clothing Style" options={clothingOptions} value={clothingMode} onChange={setClothingMode} />
-                            </div>
+                            {mode === 'professional' && (
+                                <div className="animate-fadeIn bg-blue-50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                                    <p><strong>Professional Mode Active:</strong> Pixa will automatically:</p>
+                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                        <li>Dress subjects in premium business attire.</li>
+                                        <li>Generate a modern office or studio background.</li>
+                                        <li>Apply soft, flattering studio lighting.</li>
+                                        <li>Ensure confident, professional poses.</li>
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )
                 }

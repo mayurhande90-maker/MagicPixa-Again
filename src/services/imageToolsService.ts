@@ -71,16 +71,24 @@ export const colourizeImage = async (
 };
 
 export interface PixaTogetherConfig {
+    mode: 'creative' | 'reenact' | 'professional';
     relationship: string;
-    mood: string;
-    environment: string;
-    pose: string;
+    // Creative Mode Params
+    mood?: string;
+    environment?: string;
+    pose?: string;
+    timeline?: string;
+    universe?: string;
+    // Reenact Mode Params
+    referencePoseBase64?: string;
+    referencePoseMimeType?: string;
+    // Common
     faceStrength: number;
+    clothingMode: 'Keep Original' | 'Match Vibe' | 'Professional Attire';
     locks: {
         age: boolean;
         hair: boolean;
         accessories: boolean;
-        clothing: boolean;
     };
     autoFix: boolean;
 }
@@ -94,57 +102,98 @@ export const generateMagicSoul = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    const [optA, optB] = await Promise.all([
+    // Parallel optimization
+    const promises = [
         optimizeImage(personABase64, personAMimeType),
         optimizeImage(personBBase64, personBMimeType)
-    ]);
-
-    const prompt = `
-    Generate a single combined photograph using the two uploaded reference images (Person A and Person B).
+    ];
     
-    *** SCENE CONFIGURATION ***
-    - **Relationship Context**: ${inputs.relationship}
-    - **Mood/Vibe**: ${inputs.mood}
-    - **Environment**: ${inputs.environment}
-    - **Required Pose**: ${inputs.pose}
+    // Optimize reference pose only if needed
+    if (inputs.mode === 'reenact' && inputs.referencePoseBase64 && inputs.referencePoseMimeType) {
+        promises.push(optimizeImage(inputs.referencePoseBase64, inputs.referencePoseMimeType));
+    }
 
+    const results = await Promise.all(promises);
+    const optA = results[0];
+    const optB = results[1];
+    const optPose = results.length > 2 ? results[2] : null;
+
+    // --- PROMPT ENGINEERING ---
+    let mainPrompt = `Generate a single combined photograph using Person A and Person B.`;
+    
+    // 1. MODE SPECIFIC INSTRUCTIONS
+    if (inputs.mode === 'reenact') {
+        mainPrompt += `
+        *** REENACTMENT MODE (STRICT) ***
+        - **TASK**: Recreate the scene from the "REFERENCE POSE" image exactly.
+        - **POSE & COMPOSITION**: Copy the exact body positions, camera angle, distance, and physical interaction from the Reference Pose image.
+        - **CASTING**: Replace the people in the Reference Pose with Person A and Person B.
+        - **CONTEXT**: Keep the general vibe/setting of the reference image.
+        `;
+    } else if (inputs.mode === 'professional') {
+        mainPrompt += `
+        *** PROFESSIONAL DUO MODE ***
+        - **TASK**: Create a high-end corporate/LinkedIn style duo portrait.
+        - **ATTIRE**: Force High-Quality Business Formal (Suits, Blazers) regardless of input clothing.
+        - **ENVIRONMENT**: Modern, clean, well-lit studio or blurred upscale office background.
+        - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap.
+        - **LIGHTING**: Softbox studio lighting, perfectly balanced.
+        `;
+    } else {
+        // CREATIVE MODE
+        mainPrompt += `
+        *** CREATIVE MODE ***
+        - **Relationship**: ${inputs.relationship}
+        - **Mood**: ${inputs.mood}
+        - **Environment**: ${inputs.environment}
+        - **Pose**: ${inputs.pose}
+        
+        ${inputs.timeline && inputs.timeline !== 'Present Day' ? `- **TIME TRAVEL ENGINE**: Render the entire scene (clothing, hair styling, film stock quality, background) to look authentically like the **${inputs.timeline}**.` : ''}
+        
+        ${inputs.universe && inputs.universe !== 'Photorealistic' ? `- **UNIVERSE ENGINE**: Render the output in the visual style of **${inputs.universe}**. Adjust texture, rendering style, and lighting to match this art style.` : '- **STYLE**: Hyper-realistic photography.'}
+        `;
+    }
+
+    // 2. IDENTITY PRESERVATION (Global)
+    mainPrompt += `
     *** STRICT IDENTITY PRESERVATION PROTOCOL (Priority: ${inputs.faceStrength}%) ***
     The output must strictly preserve the real identity of both people. 
     Do NOT change: Facial features, Face shape, Skin tone, Body type.
     
-    *** FEATURE LOCKS (MANDATORY) ***
+    *** FEATURE LOCKS ***
     ${inputs.locks.age ? "- **LOCK AGE**: Do NOT make them younger or older. Maintain current age." : ""}
-    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly." : ""}
-    ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards, and jewelry exactly as they are." : ""}
-    ${inputs.locks.clothing ? "- **LOCK CLOTHING**: Keep the original outfit style." : "- **OUTFIT**: Adapt clothing to fit the selected Mood/Environment."}
-
-    *** EXECUTION INSTRUCTIONS ***
-    1. **Lighting Match**: Ensure both people look like they are in the same physical space with consistent lighting source and color temperature.
-    2. **Expression**: Match facial expressions to the context (e.g., Happy for 'Best Friends', Romantic for 'Couple').
-    3. **Physics**: Realistic shadows, contact points (if hugging/holding hands), and depth of field.
+    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly (unless Time Travel/Universe overrides it)." : ""}
+    ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards." : ""}
     
-    ${inputs.autoFix ? `*** AUTO-FIX ENHANCEMENTS (ACTIVE) ***
-    - Remove background noise/grain.
-    - Sharpen facial details.
-    - Balance exposure if one photo is darker than the other.
-    - Correct any lens distortion.` : ""}
+    *** CLOTHING LOGIC ***
+    ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe.")}
+    
+    ${inputs.autoFix ? `*** AUTO-FIX ***
+    - Remove noise. Sharpen faces. Balance exposure. Correct distortions.` : ""}
 
     *** NEGATIVE CONSTRAINTS ***
-    Never replace the face. Never blend identities. Never hallucinate new features. 
-    The final output must look like a real photograph of these exact two people standing together.
+    Never blend identities. Never hallucinate new facial features. 
+    ${inputs.mode === 'professional' ? "No casual clothes. No messy backgrounds." : ""}
     `;
+
+    // 3. CONSTRUCT PAYLOAD
+    const parts: any[] = [
+        { text: "Person A Reference:" },
+        { inlineData: { data: optA.data, mimeType: optA.mimeType } },
+        { text: "Person B Reference:" },
+        { inlineData: { data: optB.data, mimeType: optB.mimeType } }
+    ];
+
+    if (optPose) {
+        parts.push({ text: "REFERENCE POSE / COMPOSITION TARGET:" });
+        parts.push({ inlineData: { data: optPose.data, mimeType: optPose.mimeType } });
+    }
+
+    parts.push({ text: mainPrompt });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
-      contents: {
-        parts: [
-          { text: "Person A Reference:" },
-          { inlineData: { data: optA.data, mimeType: optA.mimeType } },
-          { text: "Person B Reference:" },
-          { inlineData: { data: optB.data, mimeType: optB.mimeType } },
-          { text: prompt },
-        ],
-      },
+      contents: { parts },
       config: { responseModalities: [Modality.IMAGE] },
     });
 
