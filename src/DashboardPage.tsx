@@ -258,7 +258,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     appConfig={appConfig}
                     openReferralModal={() => setShowReferralModal(true)}
                 />
-                <main className="flex-1 overflow-y-auto bg-white custom-scrollbar relative">
+                {/* 
+                    FIX: Condition added to set overflow-hidden ONLY for support_center.
+                    This prevents double scrolling on Support Center while keeping normal scroll for other pages.
+                */}
+                <main className={`flex-1 bg-white custom-scrollbar relative ${activeView === 'support_center' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     <Suspense fallback={<PageLoader />}>
                         {renderContent()}
                     </Suspense>

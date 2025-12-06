@@ -34,12 +34,12 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="h-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        <div className="h-full w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
             
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
-            {/* Premium Header - Fixed at top relative to this container */}
+            {/* Premium Header - Fixed height, no shrinking */}
             <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-4 px-6 lg:px-8 z-30 shadow-sm flex-none h-20">
                 <div className="max-w-7xl mx-auto h-full flex justify-between items-center">
                     <div className="flex items-center gap-4">
@@ -85,7 +85,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            {/* Main Content Area - Full Height Grid */}
+            {/* Main Content Area - Fill remaining space, strict no-scroll at this level */}
             <div className="flex-1 w-full flex justify-center p-4 lg:p-6 lg:pb-8 overflow-hidden z-10">
                 <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
                 
