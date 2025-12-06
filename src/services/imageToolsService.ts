@@ -88,32 +88,39 @@ export const generateMagicSoul = async (
         optimizeImage(personBBase64, personBMimeType)
     ]);
 
-    const prompt = `Task: Pixa Together - Hyper-realistic Social Composition.
-    
-    INPUTS: 
-    - Person A (Reference Image 1)
-    - Person B (Reference Image 2)
-    
-    GOAL: Combine these two distinct people into a SINGLE, natural photograph.
+    const prompt = `
+    Generate a single combined photograph using the two uploaded reference images (Person A and Person B). 
     
     *** CONFIGURATION ***
-    - **Vibe/Style**: ${inputs.vibe}
-    - **Interaction**: ${inputs.interaction}
-    ${inputs.environment ? `- **Specific Environment**: ${inputs.environment}` : ''}
-    
-    *** CRITICAL IDENTITY LOCK (TOP PRIORITY) ***
-    1. **FACE PRESERVATION**: The face, facial details, eyes, nose, lips, and unique facial structure of Person A and Person B MUST remain UNTOUCHED and UNCHANGED.
-    2. **NO HALLUCINATION**: Do NOT generate new faces. Do NOT blend the faces together. You must use the exact source faces provided.
-    3. **BODY STRUCTURE**: Maintain the original body structure and hair type where visible, adapting only the pose to fit the interaction.
-    
-    *** COMPOSITION RULES ***
-    1. **Interaction**: 
-       - If "Hugging" or "Close", ensure natural contact points (hands on shoulders, leaning in).
-       - If "Walking" or "Action", ensure gait and movement match.
-    2. **Physics & Lighting**: Relight both subjects to match the new environment. Ensure their skin tones react correctly to the scene's light source (e.g., sunset glow vs studio flash).
-    3. **Output Quality**: High-resolution, DSLR quality photograph. No cartoon or illustration style unless "Vibe" specifically requests it.
-    
-    Generate the final merged image containing ONLY these two specific people.`;
+    - **Mood/Vibe**: ${inputs.vibe}
+    - **Pose/Interaction**: ${inputs.interaction}
+    ${inputs.environment ? `- **Environment Details**: ${inputs.environment}` : ''}
+
+    *** STRICT IDENTITY PRESERVATION PROTOCOL ***
+    The output must strictly preserve the real identity of both people. 
+    Do NOT change or alter: 
+    - facial features  
+    - face shape  
+    - skin tone  
+    - hairstyle  
+    - hairline  
+    - age  
+    - body type  
+    - body proportions  
+    - height ratio  
+    - unique marks, beard style, or glasses if present.
+
+    *** EXECUTION INSTRUCTIONS ***
+    1. Match the lighting, color, and camera angle to create one natural frame, but keep the faces and bodies exactly as in the reference images.
+    2. Do NOT beautify, smoothen, slim, enlarge, or stylize the people unless the user-selected mood (${inputs.vibe}) explicitly implies a stylized art style (e.g. Cartoon/3D). Otherwise, keep it photorealistic.
+    3. Do NOT generate new facial expressions; match the closest possible expression from the input photos that fits the interaction.
+    4. Place both individuals in the environment specified.
+    5. Ensure realistic shadows, depth, perspective, and physical interaction based on the selected pose (${inputs.interaction}).
+
+    *** NEGATIVE CONSTRAINTS ***
+    Never replace the face. Never blend identities. Never hallucinate new features. 
+    The final output must look like a real photograph of these exact two people standing together in one scene.
+    `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
