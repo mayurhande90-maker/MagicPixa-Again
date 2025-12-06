@@ -1151,7 +1151,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh] min-h-[600px] max-h-[800px]">
                 
                     {/* LEFT: CHAT INTERFACE */}
-                    <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
+                    <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
                         
                         {/* Decorative Background Blur */}
                         <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
@@ -1173,7 +1173,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {/* Chat Area - Fixed Height, Scrollable */}
                         <div 
                             ref={scrollContainerRef}
-                            className="flex-1 min-h-0 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
+                            className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
                         >
                             {loadingHistory ? (
                                 <div className="h-full flex flex-col items-center justify-center">
