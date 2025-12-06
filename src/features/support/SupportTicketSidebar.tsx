@@ -4,7 +4,6 @@ import { Ticket } from '../../types';
 import { 
     XIcon, 
     TicketIcon,
-    CheckIcon,
     InformationCircleIcon
 } from '../../components/icons';
 import { TicketHistoryItem } from './SupportComponents';
@@ -28,7 +27,8 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
                     <XIcon className="w-5 h-5" />
                 </button>
 
-                <div className="p-6 border-b border-gray-100/80 bg-white/50 backdrop-blur-md sticky top-0 z-10">
+                {/* Header - Fixed at Top via Flexbox behavior (shrink-0) */}
+                <div className="p-6 border-b border-gray-100/80 bg-white/60 backdrop-blur-md shrink-0 z-10">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-black text-gray-800 flex items-center gap-2 text-lg">
                             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -57,7 +57,8 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                {/* Scrollable Ticket List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0 relative z-0 pb-16">
                     {tickets.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center opacity-60 p-6 space-y-4">
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shadow-inner">
@@ -77,8 +78,8 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
                     )}
                 </div>
                 
-                {/* Footer Gradient */}
-                <div className="h-12 bg-gradient-to-t from-white to-transparent pointer-events-none absolute bottom-0 left-0 right-0"></div>
+                {/* Footer Gradient for smooth fade-out */}
+                <div className="h-12 bg-gradient-to-t from-white to-transparent pointer-events-none absolute bottom-0 left-0 right-0 z-20"></div>
             </div>
         </div>
     );
