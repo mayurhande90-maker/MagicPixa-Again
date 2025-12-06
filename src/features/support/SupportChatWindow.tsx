@@ -39,13 +39,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
     }, [auth.user]);
 
-    // Auto-scroll effect
-    useEffect(() => {
-        if (!loadingHistory) {
-            scrollToBottom();
-        }
-    }, [loadingHistory, messages]);
-
     const scrollToBottom = () => {
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,6 +97,12 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
         
         setLoadingHistory(false);
+        // Initial scroll to bottom
+        setTimeout(() => {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+        }, 100);
     };
 
     const handleSendMessage = async (textOverride?: string) => {
@@ -122,7 +121,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         setMessages(prev => [...prev, userMsg]);
         if (!textOverride) setInputText('');
         setIsTyping(true);
-        // Scroll triggered by useEffect
+        scrollToBottom();
         
         saveSupportMessage(auth.user.uid, userMsg).catch(e => console.warn("User msg save failed", e));
 
@@ -138,6 +137,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             );
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user.uid, response).catch(e => console.warn("Bot msg save failed", e));
+            scrollToBottom();
 
         } catch (e) {
             console.error(e);
@@ -184,6 +184,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg).catch(e => console.warn("Save failed", e));
+            scrollToBottom();
             setHasInteracted(true);
             
         } catch (e: any) {
@@ -211,6 +212,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
+            scrollToBottom();
             saveSupportMessage(auth.user!.uid, userMsg).catch(e => console.warn("Save failed", e));
             
             setIsTyping(true);
@@ -223,6 +225,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan }
             );
             setMessages(prev => [...prev, response]);
+            scrollToBottom();
             saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
             
             setIsTyping(false);

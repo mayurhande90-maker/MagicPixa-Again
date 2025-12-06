@@ -86,8 +86,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             </div>
 
             {/* Main Content Area - Fill remaining space, strict no-scroll at this level */}
-            <div className="flex-1 w-full flex flex-col items-center p-4 lg:p-6 overflow-hidden z-10">
-                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+            <div className="flex-1 w-full flex justify-center p-4 lg:p-6 lg:pb-8 overflow-hidden z-10">
+                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
                 
                     {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
                     <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
