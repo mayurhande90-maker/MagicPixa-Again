@@ -110,8 +110,11 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         const nextBatch = olderMessages.slice(-BATCH);
         const remaining = olderMessages.slice(0, Math.max(0, olderMessages.length - BATCH));
         
-        setMessages(prev => [...nextBatch, ...prev]);
-        setOlderMessages(remaining);
+        // Timeout to allow UI to show loading state briefly
+        setTimeout(() => {
+            setMessages(prev => [...nextBatch, ...prev]);
+            setOlderMessages(remaining);
+        }, 500);
     };
 
     const handleSendMessage = async (textOverride?: string) => {
@@ -243,17 +246,21 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
             <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
             
-            {/* Floating Load Previous Button */}
+            {/* Floating Load Previous Button - REFACTORED */}
             {olderMessages.length > 0 && !loadingHistory && (
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 w-full flex justify-center pointer-events-none">
-                    <button 
-                        onClick={handleLoadOlder}
-                        className="bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 pointer-events-auto flex items-center gap-2"
-                    >
+                <button 
+                    type="button"
+                    onClick={handleLoadOlder}
+                    disabled={isLoadingOlder}
+                    className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+                >
+                    {isLoadingOlder ? (
+                        <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                        Load Previous Messages ({olderMessages.length})
-                    </button>
-                </div>
+                    )}
+                    {isLoadingOlder ? 'Loading...' : `Load Previous Messages (${olderMessages.length})`}
+                </button>
             )}
 
             {/* Chat Area - Fixed Height, Scrollable */}
