@@ -8,7 +8,8 @@ import {
     UploadIcon, 
     PaperAirplaneIcon,
     TrashIcon,
-    ArrowDownIcon
+    ArrowDownIcon,
+    LifebuoyIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -236,20 +237,27 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
 
-            {/* Clear Chat Button (Absolute Top Right) */}
-            <button 
-                onClick={handleClearChat}
-                className="absolute top-4 right-4 z-30 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                title="Clear Chat History"
-            >
-                <TrashIcon className="w-4 h-4" />
-            </button>
+            {/* HEADER BAR (Dedicated non-scrolling area) */}
+            <div className="flex-none px-6 py-4 border-b border-white/20 flex justify-between items-center bg-white/40 backdrop-blur-md z-20">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold opacity-70">
+                    <LifebuoyIcon className="w-4 h-4" />
+                    <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
+                </div>
+                <button 
+                    onClick={handleClearChat}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors text-[10px] font-bold uppercase tracking-wide border border-transparent hover:border-red-100"
+                    title="Clear Chat History"
+                >
+                    <TrashIcon className="w-3.5 h-3.5" />
+                    Clear History
+                </button>
+            </div>
 
             {/* Main Chat Scroll Area */}
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 sm:px-8 pt-16 pb-4 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center">
@@ -261,7 +269,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                             <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                 
                                 {/* Avatar */}
-                                <div className="mb-1 hidden sm:block">
+                                <div className="mb-1 hidden sm:block shrink-0">
                                     {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                 </div>
 
@@ -297,7 +305,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                                 </div>
                             </div>
 
-                            {/* Quick Actions (Contextual) */}
+                            {/* Quick Actions (Contextual - Only on last bot message if no interaction yet) */}
                             {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
                                 <div className="w-full mt-6 pl-0 sm:pl-14">
                                     <QuickActions onAction={handleQuickAction} className="justify-start" />
@@ -332,7 +340,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             )}
 
             {/* Input Area */}
-            <div className="p-4 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
+            <div className="flex-none p-4 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
                 
                 {hasInteracted && !loadingHistory && !isTyping && (
                     <div className="mb-4 overflow-x-auto pb-2 no-scrollbar">

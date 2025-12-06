@@ -28,7 +28,7 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
                 </button>
 
                 {/* Header - Fixed at Top via Flexbox behavior (shrink-0) */}
-                <div className="p-6 border-b border-gray-100/80 bg-white/60 backdrop-blur-md shrink-0 z-10">
+                <div className="p-6 border-b border-gray-100/80 bg-white/60 backdrop-blur-md shrink-0 z-10 flex-none">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-black text-gray-800 flex items-center gap-2 text-lg">
                             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
