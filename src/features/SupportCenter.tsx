@@ -16,7 +16,8 @@ import {
     FlagIcon,
     CreditCardIcon,
     PaperAirplaneIcon,
-    UserIcon
+    UserIcon,
+    ArrowUpCircleIcon
 } from '../components/icons';
 
 // --- HELPERS ---
@@ -102,10 +103,8 @@ const TicketProposalCard: React.FC<{
     isSubmitting: boolean;
     isSubmitted: boolean;
 }> = ({ draft, onConfirm, onCancel, isSubmitting, isSubmitted }) => {
-    // Local state to allow editing before submission
     const [editedDraft, setEditedDraft] = useState(draft);
 
-    // Update local state if prop draft changes (though mostly it won't)
     useEffect(() => {
         if (!isSubmitted) {
             setEditedDraft(draft);
@@ -127,9 +126,6 @@ const TicketProposalCard: React.FC<{
         );
     }
 
-    // Determine visible types.
-    // If the draft has a specific specific type (bug, refund, feature), only show that one.
-    // Otherwise show all.
     const allTypes = ['general', 'bug', 'refund', 'feature'];
     const visibleTypes = (draft.type && ['bug', 'refund', 'feature'].includes(draft.type)) 
         ? [draft.type] 
@@ -202,7 +198,6 @@ const TicketProposalCard: React.FC<{
     );
 };
 
-// Rich Text Renderer for Chat
 const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ text, isWelcome }) => {
     const parseBold = (str: string) => {
         const parts = str.split(/(\*\*.*?\*\*)/g);
@@ -220,7 +215,6 @@ const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ tex
                 const trimmed = line.trim();
                 if (!trimmed) return <div key={i} className="h-1"></div>;
                 
-                // Special Welcome Header
                 if (isWelcome && i === 0) {
                      return <h3 key={i} className="font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-indigo-800 mb-2 leading-tight">{trimmed.replace(/^#+\s*/, '')}</h3>;
                 }
@@ -244,10 +238,26 @@ const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ tex
     );
 };
 
-// Icons for Chat
 const PixaBotIcon = () => (
-    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 shadow-md shadow-indigo-100/50">
-        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 translate-y-[1px]" style={{ fontFamily: "'Parkinsans', sans-serif" }}>P</span>
+    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-white border border-gray-100 shadow-sm overflow-hidden">
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-full h-full">
+            <path fill="#BF360C" d="M13 30h22v12H13z"/>
+            <g fill="#FFA726">
+                <circle cx="10" cy="26" r="4"/>
+                <circle cx="38" cy="26" r="4"/>
+            </g>
+            <path fill="#FFB74D" d="M39 19c0-12.7-30-8.3-30 0v10c0 8.3 6.7 15 15 15s15-6.7 15-15V19z"/>
+            <g fill="#784719">
+                <circle cx="30" cy="26" r="2"/>
+                <circle cx="18" cy="26" r="2"/>
+            </g>
+            <path fill="#FF5722" d="M24 2C15.5 2 3 7.8 3 35.6L13 42V24l16.8-9.8L35 21v21l10-8.2c0-5.6-.9-29-15.4-29L28.2 2H24z"/>
+            <path fill="#757575" d="M45 24c-.6 0-1 .4-1 1v-7c0-8.8-7.2-16-16-16h-9c-.6 0-1 .4-1 1s.4 1 1 1h9c7.7 0 14 6.3 14 14v10c0 .6.4 1 1 1s1-.4 1-1v2c0 3.9-3.1 7-7 7H24c-.6 0-1 .4-1 1s.4 1 1 1h13c5 0 9-4 9-9v-5c0-.6-.4-1-1-1z"/>
+            <g fill="#37474F">
+                <path d="M45 22h-1c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2z"/>
+                <circle cx="24" cy="38" r="2"/>
+            </g>
+        </svg>
     </div>
 );
 
@@ -261,9 +271,7 @@ const UserMessageIcon = ({ user }: { user: any }) => (
     </div>
 );
 
-// Quick Action Pills
 const QuickActions: React.FC<{ onAction: (action: any) => void; className?: string }> = ({ onAction, className }) => {
-    // UPDATED: Prompts are now questions to trigger the AI's problem-solving mode first
     const actions = [
         { label: "Billing Issue", icon: CreditCardIcon, prompt: "I have a billing issue. Can you explain how credits and payments work?", autoSend: true },
         { label: "Features", icon: LightbulbIcon, prompt: "I need help understanding a feature. How do I use the tools?", autoSend: true },
@@ -287,11 +295,9 @@ const QuickActions: React.FC<{ onAction: (action: any) => void; className?: stri
     );
 };
 
-// Skeleton Loader for Chat
 const ChatSkeleton = () => (
     <div className="space-y-6 p-4 opacity-70 animate-pulse flex flex-col items-center justify-center h-full">
         <div className="w-full max-w-md space-y-6">
-            {/* Fake Bot Message */}
             <div className="flex gap-3">
                 <div className="w-10 h-10 bg-indigo-100 rounded-2xl shrink-0"></div>
                 <div className="space-y-2 flex-1">
@@ -309,7 +315,6 @@ const ChatSkeleton = () => (
 );
 
 export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
-    // Chat State
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
@@ -317,12 +322,9 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
     
-    // Ticket State
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
-    
-    // UI State
-    const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar toggle
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -335,7 +337,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     }, [auth.user]);
 
-    // Auto-scroll to bottom of chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping, olderMessages, hasInteracted, loadingHistory]);
@@ -347,47 +348,39 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         let allMessages: ChatMessage[] = [];
         
         try {
-            // OPTIMIZATION: Do NOT await cleanup. Fire and forget to speed up initial load.
             cleanupSupportHistory(auth.user.uid).catch(e => console.warn("Chat cleanup background process error:", e));
-            
-            // Attempt fetch
             const rawHistory = await getSupportHistory(auth.user.uid);
             allMessages = rawHistory as ChatMessage[];
         } catch (e) {
-            console.error("Chat history fetch failed (likely permissions), failing gracefully.", e);
+            console.error("Chat history fetch failed", e);
         }
 
-        const now = Date.now();
-        const oneDay = 24 * 60 * 60 * 1000;
-        
-        const recent = allMessages.filter(m => (now - m.timestamp) < oneDay);
-        const older = allMessages.filter(m => (now - m.timestamp) >= oneDay);
+        // Limit to last 10 messages
+        const INITIAL_BATCH = 10;
+        const visible = allMessages.slice(-INITIAL_BATCH);
+        const hidden = allMessages.slice(0, -INITIAL_BATCH);
 
-        // Check if user has ever sent a message in the active history
-        const userHasHistory = recent.some(m => m.role === 'user');
+        const userHasHistory = visible.some(m => m.role === 'user');
         setHasInteracted(userHasHistory);
 
-        if (recent.length === 0) {
+        if (visible.length === 0) {
             const greeting = getGreeting();
             const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
             
-            // Generate a specialized "Hero" welcome message
             const welcomeMsg: ChatMessage = {
                 id: 'welcome_' + Date.now(),
                 role: 'model',
-                // Special formatting trigger for FormattedMessage
                 content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I'm here to help you create better images and solve any issues.\n\n- Troubleshooting & Bugs\n- Billing & Credits\n- Feature Guides\n\nHow can I assist you today?`,
                 timestamp: Date.now()
             };
             setMessages([welcomeMsg]);
             
-            // Save initial state so it persists
             saveSupportMessage(auth.user.uid, welcomeMsg).catch(e => console.warn("Welcome msg save failed", e));
         } else {
-            setMessages(recent);
+            setMessages(visible);
         }
         
-        setOlderMessages(older);
+        setOlderMessages(hidden);
         setLoadingHistory(false);
     };
 
@@ -400,15 +393,17 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     const handleLoadOlder = () => {
-        setMessages(prev => [...olderMessages, ...prev]);
-        setOlderMessages([]);
+        const BATCH = 10;
+        const nextBatch = olderMessages.slice(-BATCH);
+        const remaining = olderMessages.slice(0, -BATCH);
+        setMessages(prev => [...nextBatch, ...prev]);
+        setOlderMessages(remaining);
     };
 
     const handleSendMessage = async (textOverride?: string) => {
         const textToSend = textOverride || inputText;
         if (!textToSend.trim() || !auth.user) return;
 
-        // Mark as interacted to move quick actions to bottom
         setHasInteracted(true);
 
         const userMsg: ChatMessage = {
@@ -439,7 +434,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    // Updated handleQuickAction: Handles both auto-send (AI Answer) and pre-fill
     const handleQuickAction = (action: any) => {
         if (action.autoSend) {
             handleSendMessage(action.prompt);
@@ -458,19 +452,15 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const newTicket = await createTicket(auth.user.uid, auth.user.email, draft);
             
-            // UPDATE MESSAGE STATE PERSISTENTLY
             setMessages(prev => prev.map(m => {
                 if (m.id === msgId) {
-                    // Update state to submitted AND update the draft with final edited values
                     const updated = { ...m, isSubmitted: true, ticketDraft: draft };
-                    // Side-effect: Save to DB
                     saveSupportMessage(auth.user!.uid, updated).catch(e => console.warn("Update save failed", e));
                     return updated;
                 }
                 return m;
             }));
             
-            // OPTIMISTIC UPDATE: Add to sidebar immediately (newest first)
             setTickets(prev => [newTicket, ...prev]);
             
             const confirmationMsg: ChatMessage = {
@@ -569,21 +559,22 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
                     
+                    {/* Floating Load Previous Button */}
+                    {olderMessages.length > 0 && !loadingHistory && (
+                        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 w-full flex justify-center pointer-events-none">
+                            <button 
+                                onClick={handleLoadOlder}
+                                className="bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 pointer-events-auto flex items-center gap-2"
+                            >
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                Load Previous Messages ({olderMessages.length > 10 ? '10+' : olderMessages.length})
+                            </button>
+                        </div>
+                    )}
+
                     {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto px-4 pt-24 pb-4 lg:px-8 lg:pt-28 lg:pb-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
                         
-                        {/* History Pill */}
-                        {olderMessages.length > 0 && (
-                            <div className="flex justify-center mb-6">
-                                <button 
-                                    onClick={handleLoadOlder}
-                                    className="bg-white/90 backdrop-blur-md text-slate-500 hover:text-indigo-600 text-[10px] font-bold px-5 py-2 rounded-full transition-all border border-gray-200 uppercase tracking-widest shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                                >
-                                    Previous chat
-                                </button>
-                            </div>
-                        )}
-
                         {loadingHistory ? (
                             <ChatSkeleton />
                         ) : (
