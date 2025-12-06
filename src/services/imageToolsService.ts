@@ -1,4 +1,3 @@
-
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -29,6 +28,38 @@ const optimizeImageForEditing = async (base64: string, mimeType: string): Promis
     } catch (e) {
         console.warn("Editing optimization failed, using original", e);
         return { data: base64, mimeType };
+    }
+};
+
+// New Helper: Analyze Face Details
+const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
+    const prompt = `Task: Deep Biometric Analysis of ${label}.
+    
+    Analyze the "Minute Details" of the face to preserve identity in a generated image.
+    Identify and describe:
+    1. Face Shape (e.g. oval, square, strong jawline).
+    2. Eye Structure (shape, color, eyelid type, eyebrow arch).
+    3. Nose Architecture (bridge width, tip shape).
+    4. Mouth & Lips (fullness, curvature).
+    5. Skin & Age Characteristics (complexion, texture, distinctive marks like moles/freckles).
+    6. Hair (color, texture, hairline).
+    
+    Output a concise, high-precision descriptive paragraph.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash', // Fast and capable vision model for analysis
+            contents: {
+                parts: [
+                    { inlineData: { data: base64, mimeType: mimeType } },
+                    { text: prompt }
+                ]
+            }
+        });
+        return response.text || "";
+    } catch (e) {
+        console.warn(`Biometric analysis failed for ${label}`, e);
+        return "";
     }
 };
 
@@ -103,13 +134,12 @@ export const generateMagicSoul = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // Parallel optimization
+    // 1. Parallel optimization
     const promises = [
         optimizeImage(personABase64, personAMimeType),
         optimizeImage(personBBase64, personBMimeType)
     ];
     
-    // Optimize reference pose only if needed
     if (inputs.mode === 'reenact' && inputs.referencePoseBase64 && inputs.referencePoseMimeType) {
         promises.push(optimizeImage(inputs.referencePoseBase64, inputs.referencePoseMimeType));
     }
@@ -119,10 +149,35 @@ export const generateMagicSoul = async (
     const optB = results[1];
     const optPose = results.length > 2 ? results[2] : null;
 
-    // --- PROMPT ENGINEERING ---
+    // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS (The "Brain")
+    // Analyze faces to get text descriptions that reinforce the image input.
+    // This helps "lock" details that the image generator might miss.
+    const [biometricsA, biometricsB] = await Promise.all([
+        analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A"),
+        analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B")
+    ]);
+
+    // 3. PHASE 2: GENERATION PROMPT ENGINEERING
     let mainPrompt = `Generate a single combined photograph using Person A and Person B.`;
     
-    // 1. MODE SPECIFIC INSTRUCTIONS
+    // --- IDENTITY LOCK BLOCK ---
+    mainPrompt += `
+    *** IDENTITY PRESERVATION PROTOCOL (CRITICAL) ***
+    We have analyzed the subjects. You MUST adhere to these biometric profiles:
+    
+    [PERSON A PROFILE]:
+    ${biometricsA}
+    
+    [PERSON B PROFILE]:
+    ${biometricsB}
+    
+    **INSTRUCTION**: Use the uploaded images as the visual source, but use the text profiles above to VALIDATE the generated faces. 
+    - The output faces must be pixel-perfect matches to the inputs.
+    - Do NOT blend features. Person A must look like Person A. Person B must look like Person B.
+    - Preserves moles, scars, and specific eye shapes mentioned in the profile.
+    `;
+
+    // --- MODE SPECIFIC INSTRUCTIONS ---
     if (inputs.mode === 'reenact') {
         mainPrompt += `
         *** REENACTMENT MODE (STRICT) ***
@@ -157,18 +212,21 @@ export const generateMagicSoul = async (
 
     if (inputs.customDescription) {
         mainPrompt += `
-        *** USER CUSTOM VISION (HIGH PRIORITY) ***
+        *** USER CUSTOM VISION (DEEP SEARCH ENABLED) ***
         The user has provided specific details: "${inputs.customDescription}".
-        Integrate this description into the scene, style, or action intelligently while maintaining the relationship and identity constraints.
+        - **ACTION**: Use your search tool to understand specific locations, styles, or concepts mentioned here (e.g. if they say "Santorini at sunset", ensure the lighting and architecture are geographically accurate).
+        - Integrate this description into the scene intelligently.
+        `;
+    } else if (inputs.environment && inputs.environment !== 'Custom') {
+         mainPrompt += `
+        *** ENVIRONMENT GROUNDING ***
+        - **LOCATION**: "${inputs.environment}".
+        - **ACTION**: Ensure the lighting, background elements, and atmosphere match this specific location realistically.
         `;
     }
 
-    // 2. IDENTITY PRESERVATION (Global)
+    // --- FEATURE LOCKS & FIXES ---
     mainPrompt += `
-    *** STRICT IDENTITY PRESERVATION PROTOCOL (Priority: ${inputs.faceStrength}%) ***
-    The output must strictly preserve the real identity of both people. 
-    Do NOT change: Facial features, Face shape, Skin tone, Body type.
-    
     *** FEATURE LOCKS ***
     ${inputs.locks.age ? "- **LOCK AGE**: Do NOT make them younger or older. Maintain current age." : ""}
     ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly (unless Time Travel/Universe overrides it)." : ""}
@@ -177,15 +235,18 @@ export const generateMagicSoul = async (
     *** CLOTHING LOGIC ***
     ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe.")}
     
-    ${inputs.autoFix ? `*** AUTO-FIX ***
-    - Remove noise. Sharpen faces. Balance exposure. Correct distortions.` : ""}
+    ${inputs.autoFix ? `*** AUTO-FIX & QUALITY ***
+    - Output in High Definition.
+    - Remove noise. Sharpen faces. Balance exposure. Correct distortions.
+    - Ensure lighting consistency between the two subjects.` : ""}
 
     *** NEGATIVE CONSTRAINTS ***
-    Never blend identities. Never hallucinate new facial features. 
-    ${inputs.mode === 'professional' ? "No casual clothes. No messy backgrounds." : ""}
+    - Never blend identities. 
+    - Never hallucinate new facial features not present in input.
+    - Do not generate random people in the background unless it's a crowd scene.
     `;
 
-    // 3. CONSTRUCT PAYLOAD
+    // 4. CONSTRUCT PAYLOAD
     const parts: any[] = [
         { text: "Person A Reference:" },
         { inlineData: { data: optA.data, mimeType: optA.mimeType } },
@@ -203,7 +264,11 @@ export const generateMagicSoul = async (
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
-      config: { responseModalities: [Modality.IMAGE] },
+      config: { 
+          responseModalities: [Modality.IMAGE],
+          // Enable Google Search for "Deep Search" capability on environment/context
+          tools: [{ googleSearch: {} }] 
+      },
     });
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
