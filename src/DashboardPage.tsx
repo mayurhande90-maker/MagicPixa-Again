@@ -19,7 +19,6 @@ import {
 } from './firebase';
 import { 
     colourizeImage, 
-    generateMagicSoul, 
 } from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
@@ -46,6 +45,7 @@ const BrandStylistAI = lazy(() => import('./features/BrandStylistAI').then(modul
 const MagicRealty = lazy(() => import('./features/MagicRealty').then(module => ({ default: module.MagicRealty })));
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
+const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -205,7 +205,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'magic_realty':
                  return <MagicRealty auth={auth} appConfig={appConfig} />;
             case 'soul':
-                 return <StandardFeature title="Pixa Together" description="Merge two subjects." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} cost={appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 3} auth={auth} onGenerate={async (img, p) => await generateMagicSoul(img.base64, img.mimeType, img.base64, img.mimeType, p || 'Fantasy', 'Studio')} />;
+                 return <PixaTogether auth={auth} appConfig={appConfig} />;
             case 'colour':
                  return <StandardFeature title="Pixa Photo Restore" description="Colourize B&W photos." icon={<PixaRestoreIcon className="w-14 h-14"/>} rawIcon={true} cost={appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
             case 'interior':

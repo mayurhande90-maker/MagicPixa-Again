@@ -75,8 +75,11 @@ export const generateMagicSoul = async (
   personAMimeType: string,
   personBBase64: string,
   personBMimeType: string,
-  style: string,
-  environment: string
+  inputs: {
+      vibe: string;
+      interaction: string;
+      environment?: string;
+  }
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -85,27 +88,36 @@ export const generateMagicSoul = async (
         optimizeImage(personBBase64, personBMimeType)
     ]);
 
-    const prompt = `Task: Pixa Together - Hyper-realistic Couple Composition.
+    const prompt = `Task: Pixa Together - Hyper-realistic Social Composition.
     
-    Input: Two separate portraits (Subject A and Subject B).
-    Goal: Combine them into a SINGLE cohesive photograph.
+    INPUTS: 
+    - Person A (Reference Image 1)
+    - Person B (Reference Image 2)
     
-    Style: ${style}.
-    Environment: ${environment}.
+    GOAL: Combine these two distinct people into a SINGLE, natural photograph.
     
-    CRITICAL RULES:
-    1. **Identity Lock**: You MUST preserve the facial features of Subject A and Subject B exactly.
-    2. **Interaction**: Position them naturally together (standing, sitting, or hugging) based on the context.
-    3. **Lighting**: Relight both subjects to match the new environment perfectly.
-    4. **Output**: High-resolution, DSLR quality photograph.`;
+    *** CONFIGURATION ***
+    - **Vibe/Style**: ${inputs.vibe}
+    - **Interaction**: ${inputs.interaction}
+    ${inputs.environment ? `- **Specific Environment**: ${inputs.environment}` : ''}
+    
+    *** CRITICAL RULES FOR SUCCESS ***
+    1. **Identity Lock**: You MUST preserve the facial features, hair, and likeness of Person A and Person B exactly. Do not blend them into one generic person.
+    2. **Physics & Lighting**: Relight both subjects to match the new environment. Ensure their skin tones react correctly to the scene's light source.
+    3. **Composition**: 
+       - If "Hugging" or "Close", ensure natural contact points (hands on shoulders, etc.).
+       - If "Walking" or "Action", ensure gait and movement match.
+    4. **Output Quality**: High-resolution, DSLR quality photograph. No cartoon or illustration style unless specified in "Vibe".
+    
+    Generate the final merged image.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
-          { text: "Subject A Reference:" },
+          { text: "Person A Reference:" },
           { inlineData: { data: optA.data, mimeType: optA.mimeType } },
-          { text: "Subject B Reference:" },
+          { text: "Person B Reference:" },
           { inlineData: { data: optB.data, mimeType: optB.mimeType } },
           { text: prompt },
         ],
