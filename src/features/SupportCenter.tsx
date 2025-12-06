@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { AuthProps, Ticket } from '../types';
 import { sendSupportMessage, createTicket, getUserTickets, ChatMessage, analyzeErrorScreenshot } from '../services/supportService';
 import { fileToBase64 } from '../utils/imageUtils';
-import { saveSupportMessage, getSupportHistory, cleanupSupportHistory } from '../firebase';
+import { saveSupportMessage, getSupportHistory } from '../firebase';
 import { 
     LifebuoyIcon, 
     SparklesIcon, 
@@ -17,8 +17,6 @@ import {
     CreditCardIcon,
     PaperAirplaneIcon,
     UserIcon,
-    ArrowUpCircleIcon,
-    ArrowDownIcon // Assuming this exists or using ArrowUp rotated
 } from '../components/icons';
 
 // --- HELPERS ---
@@ -911,10 +909,13 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         if (isLoadingOlder && scrollContainerRef.current) {
             const newScrollHeight = scrollContainerRef.current.scrollHeight;
             const diff = newScrollHeight - previousScrollHeightRef.current;
-            scrollContainerRef.current.scrollTop = diff;
+            // Restore position relative to the NEW content added at top.
+            // If the user was at the top (scrollTop approx 0), they should now be at `diff`
+            // to see the same content they were seeing before.
+            scrollContainerRef.current.scrollTop = diff; 
             setIsLoadingOlder(false);
         }
-    }, [messages]);
+    }, [messages, isLoadingOlder]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -1146,8 +1147,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             </div>
 
             {/* Main Content Area - Top Aligned */}
-            <div className="flex-1 w-full flex items-start justify-center p-4 lg:p-8 pt-20">
-                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[60vh] min-h-[600px]">
+            <div className="flex-1 w-full flex items-start justify-center p-4 lg:p-8 pt-32">
+                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh] min-h-[600px] max-h-[800px]">
                 
                     {/* LEFT: CHAT INTERFACE */}
                     <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
@@ -1169,13 +1170,15 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </div>
                         )}
 
-                        {/* Chat Area - Removed scroll-smooth to fix layout jumps */}
+                        {/* Chat Area - Fixed Height, Scrollable */}
                         <div 
                             ref={scrollContainerRef}
                             className="flex-1 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
                         >
                             {loadingHistory ? (
-                                <ChatSkeleton />
+                                <div className="h-full flex flex-col items-center justify-center">
+                                    <ChatSkeleton />
+                                </div>
                             ) : (
                                 messages.map((msg, index) => (
                                     <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
@@ -1243,7 +1246,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area - Sticky Bottom */}
+                        {/* Input Area - Sticky Bottom within Flex Container */}
                         <div className="p-4 lg:p-6 relative z-20 bg-white/40 backdrop-blur-md border-t border-white/50 flex flex-col gap-2 shrink-0">
                             
                             {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
