@@ -34,13 +34,13 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        <div className="h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
             
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
-            {/* Premium Header */}
-            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-4 px-6 lg:px-8 sticky top-0 z-30 shadow-sm flex-none h-20">
+            {/* Premium Header - Fixed at top */}
+            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-4 px-6 lg:px-8 z-30 shadow-sm flex-none h-20">
                 <div className="max-w-7xl mx-auto h-full flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
@@ -87,7 +87,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             {/* Main Content Area - Full Height Grid */}
             <div className="flex-1 w-full flex justify-center p-4 lg:p-6 lg:pb-8 overflow-hidden z-10">
-                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh] min-h-0">
+                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
                 
                     {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
                     <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
