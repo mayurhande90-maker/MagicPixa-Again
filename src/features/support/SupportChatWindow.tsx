@@ -280,19 +280,20 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 <TrashIcon className="w-4 h-4" />
             </button>
 
-            {/* Floating Load Previous Button (Top Arrow) */}
+            {/* Floating Load Previous Button (Top Center Pill) */}
             {olderMessages.length > 0 && !loadingHistory && (
                 <button 
                     onClick={handleLoadOlder}
                     disabled={isLoadingOlder}
-                    className="absolute top-24 right-8 z-40 bg-white shadow-lg border border-gray-100 p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight flex items-center justify-center disabled:opacity-50"
+                    className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur shadow-lg border border-indigo-100 p-2 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-fadeIn flex items-center gap-2 pr-4 pl-3 disabled:opacity-50"
                     title="Load Previous Chats"
                 >
                     {isLoadingOlder ? (
-                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                        <ArrowUpIcon className="w-5 h-5" />
+                        <ArrowUpIcon className="w-4 h-4" />
                     )}
+                    <span className="text-xs font-bold">Load History</span>
                 </button>
             )}
 
@@ -300,7 +301,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 sm:px-8 pt-8 pb-4 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
+                className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 sm:px-8 pt-16 pb-4 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center">
