@@ -19,8 +19,8 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
     const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
 
     return (
-        <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:relative lg:translate-x-0 lg:w-auto lg:h-full lg:shadow-none lg:bg-transparent lg:z-auto ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative">
+        <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:absolute lg:inset-y-0 lg:right-0 lg:w-auto lg:shadow-none lg:bg-transparent lg:z-auto lg:h-full lg:transform-none ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative w-full">
                 
                 {/* Mobile Close Button */}
                 <button onClick={() => setIsOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full z-50">

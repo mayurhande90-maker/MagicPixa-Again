@@ -85,15 +85,16 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            {/* Main Content Area - Fill remaining space, strict no-scroll at this level */}
-            <div className="flex-1 w-full flex flex-col items-center p-4 lg:p-6 overflow-hidden z-10 min-h-0">
-                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 h-full">
-                
-                    {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
-                    <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
+            {/* Main Content Area - Absolute Positioning Strategy for Robustness */}
+            <div className="flex-1 w-full relative overflow-hidden z-10">
+                <div className="absolute inset-0 p-4 lg:p-6 overflow-hidden flex justify-center">
+                    <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                        {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
+                        <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
 
-                    {/* RIGHT: TICKET HISTORY (Takes 1 column) */}
-                    <SupportTicketSidebar tickets={tickets} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+                        {/* RIGHT: TICKET HISTORY (Takes 1 column) */}
+                        <SupportTicketSidebar tickets={tickets} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+                    </div>
                 </div>
             </div>
         </div>

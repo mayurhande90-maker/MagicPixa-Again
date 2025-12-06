@@ -231,7 +231,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     };
 
     return (
-        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/50 relative overflow-hidden group">
+        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/50 relative overflow-hidden group w-full">
             
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
