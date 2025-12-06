@@ -40,30 +40,34 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     );
 };
 
+// Enhanced Premium Mode Card
 const ModeCard: React.FC<{
     title: string;
     description: string;
     icon: React.ReactNode;
     selected: boolean;
     onClick: () => void;
-    colorClass: string;
-}> = ({ title, description, icon, selected, onClick, colorClass }) => (
+}> = ({ title, description, icon, selected, onClick }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all w-full group relative overflow-hidden text-center h-28 ${
+        className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 w-full group relative overflow-hidden text-center h-32 border ${
             selected 
-            ? `border-${colorClass}-500 bg-${colorClass}-50 shadow-md`
-            : `border-gray-100 bg-white hover:border-${colorClass}-200 hover:bg-gray-50`
+            ? 'bg-white border-indigo-100 shadow-xl shadow-indigo-500/10 scale-[1.02] ring-1 ring-indigo-50'
+            : 'bg-white border-gray-100 hover:border-gray-200 hover:shadow-md opacity-80 hover:opacity-100'
         }`}
     >
-        <div className={`mb-2 transition-transform group-hover:scale-110 ${selected ? `text-${colorClass}-600` : `text-gray-400`}`}>
+        {selected && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>}
+        
+        <div className={`mb-3 p-2.5 rounded-full transition-transform group-hover:scale-110 ${selected ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-50 text-gray-400 group-hover:text-gray-600'}`}>
             {icon}
         </div>
-        <h3 className={`font-bold text-xs mb-0.5 ${selected ? `text-${colorClass}-900` : 'text-gray-700'}`}>{title}</h3>
-        <p className={`text-[9px] ${selected ? `text-${colorClass}-700` : 'text-gray-400'}`}>{description}</p>
+        
+        <h3 className={`font-bold text-sm mb-1 ${selected ? 'text-gray-900' : 'text-gray-600'}`}>{title}</h3>
+        <p className={`text-[10px] uppercase tracking-wide ${selected ? 'text-indigo-500 font-bold' : 'text-gray-400'}`}>{description}</p>
     </button>
 );
 
+// Enhanced Compact Upload
 const CompactUpload: React.FC<{
     label: string;
     image: { url: string; warnings?: string[] } | null; 
@@ -71,38 +75,41 @@ const CompactUpload: React.FC<{
     onClear: () => void;
     icon: React.ReactNode;
     heightClass?: string;
-    color?: string;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40", color = "blue" }) => {
+}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const borderColor = color === 'pink' ? 'border-pink-100 hover:border-pink-300' : (color === 'purple' ? 'border-purple-100 hover:border-purple-300' : 'border-blue-100 hover:border-blue-300');
-    const bgColor = color === 'pink' ? 'bg-pink-50 hover:bg-pink-100/50' : (color === 'purple' ? 'bg-purple-50 hover:bg-purple-100/50' : 'bg-blue-50 hover:bg-blue-100/50');
-    const dashedBorder = color === 'pink' ? 'border-pink-300' : (color === 'purple' ? 'border-purple-300' : 'border-blue-300');
 
     return (
         <div className="relative w-full group h-full">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>
+            <div className="flex items-center justify-between mb-2 px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</label>
+            </div>
+            
             {image ? (
                 <div className="flex flex-col gap-2">
-                    <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 ${borderColor} flex items-center justify-center overflow-hidden shadow-sm`}>
-                        <img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} />
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onClear(); }}
-                            className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"
-                        >
-                            <XIcon className="w-3 h-3"/>
-                        </button>
+                    <div className={`relative w-full ${heightClass} bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 flex items-center justify-center overflow-hidden group-hover:shadow-xl transition-shadow`}>
+                        <img src={image.url} className="w-full h-full object-cover" alt={label} />
+                        
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                                className="bg-white text-red-500 p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
+                            >
+                                <XIcon className="w-4 h-4"/>
+                            </button>
+                        </div>
                     </div>
                     {image.warnings && image.warnings.length > 0 && <SmartWarning issues={image.warnings} />}
                 </div>
             ) : (
                 <div
                     onClick={() => inputRef.current?.click()}
-                    className={`w-full ${heightClass} border-2 border-dashed ${dashedBorder} ${bgColor} rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
+                    className={`w-full ${heightClass} bg-gray-50/50 border border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 relative overflow-hidden`}
                 >
-                    <div className="p-3 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-gray-100/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative z-10 p-3 bg-white rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform border border-gray-100">
                         {icon}
                     </div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide text-center px-2">Upload {label}</p>
+                    <p className="relative z-10 text-[10px] font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wider">Select Photo</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -127,10 +134,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [pose, setPose] = useState('Side-by-Side');
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Keep Original');
     
-    // New Creative Engines
-    const [timeline, setTimeline] = useState('Present Day');
-    const [universe, setUniverse] = useState('Photorealistic');
-
     // UI State
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -153,14 +156,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const poseOptions = ['Side-by-Side', 'Hugging', 'Handshake', 'V-Pose', 'Back-to-Back', 'Walking (Dynamic)', 'Keep Original'];
     const clothingOptions = ['Keep Original', 'Match Vibe'];
     
-    const timelineOptions = ['Present Day', '1920s Gatsby', '1950s Diner', '1980s Neon', '1990s Grunge', '2000s Y2K', '2050 Cyberpunk', 'Victorian Era', 'Medieval'];
-    const universeOptions = ['Photorealistic', 'Pixar 3D', 'Anime Studio', 'GTA Loading Screen', 'Vintage Oil Painting', 'Claymation', 'Cybernetic'];
-
     // Animation
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Analyzing facial structures...", "Matching skin tones & lighting...", "Simulating reality engine...", "Applying timeline physics...", "Finalizing photo match..."];
+            const steps = ["Analyzing facial structures...", "Matching skin tones & lighting...", "Simulating reality engine...", "Applying scene physics...", "Finalizing photo match..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -221,8 +221,10 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 mood: mode === 'creative' ? mood : '',
                 environment: mode === 'creative' ? (environmentPreset === 'Custom' ? customEnvironment : environmentPreset) : '',
                 pose: mode === 'creative' ? pose : '',
-                timeline: mode === 'creative' ? timeline : '',
-                universe: mode === 'creative' ? universe : '',
+                
+                // Defaults for removed engines
+                timeline: 'Present Day',
+                universe: 'Photorealistic',
                 
                 referencePoseBase64: referencePose?.base64.base64,
                 referencePoseMimeType: referencePose?.base64.mimeType,
@@ -274,8 +276,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         // Reset defaults
         setMode('creative');
         setRelationship('Best Friends');
-        setTimeline('Present Day');
-        setUniverse('Photorealistic');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -388,15 +388,14 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             
                             {/* 1. Mode Switcher */}
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block ml-1">1. Select Engine</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block ml-1">1. Select Engine</label>
+                                <div className="grid grid-cols-3 gap-3">
                                     <ModeCard 
                                         title="Creative" 
                                         description="Full Control" 
                                         icon={<SparklesIcon className="w-5 h-5"/>} 
                                         selected={mode === 'creative'} 
                                         onClick={() => setMode('creative')} 
-                                        colorClass="pink"
                                     />
                                     <ModeCard 
                                         title="Reenact" 
@@ -404,7 +403,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         icon={<CameraIcon className="w-5 h-5"/>} 
                                         selected={mode === 'reenact'} 
                                         onClick={() => setMode('reenact')} 
-                                        colorClass="purple"
                                     />
                                     <ModeCard 
                                         title="Pro Duo" 
@@ -412,7 +410,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         icon={<ShieldCheckIcon className="w-5 h-5"/>} 
                                         selected={mode === 'professional'} 
                                         onClick={() => setMode('professional')} 
-                                        colorClass="blue"
                                     />
                                 </div>
                             </div>
@@ -420,7 +417,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {/* 2. Uploads */}
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Upload Subjects</label>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">2. Upload Subjects</label>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <CompactUpload 
@@ -429,7 +426,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         onUpload={handleUpload(setPersonA)} 
                                         onClear={() => setPersonA(null)} 
                                         icon={<UserIcon className="w-6 h-6 text-blue-400"/>}
-                                        color="blue"
                                     />
                                     <CompactUpload 
                                         label="Person B" 
@@ -437,16 +433,15 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         onUpload={handleUpload(setPersonB)} 
                                         onClear={() => setPersonB(null)} 
                                         icon={<UserIcon className="w-6 h-6 text-pink-400"/>}
-                                        color="pink"
                                     />
                                 </div>
                                 
                                 {/* 3. Special Upload for Reenact */}
                                 {mode === 'reenact' && (
-                                    <div className="animate-fadeIn">
-                                        <div className="flex items-center gap-2 mb-2 ml-1">
+                                    <div className="animate-fadeIn mt-6">
+                                        <div className="flex items-center gap-2 mb-3 ml-1">
                                             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
-                                            <label className="text-xs font-bold text-purple-600 uppercase tracking-wider">Reference Pose Required</label>
+                                            <label className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Reference Pose Required</label>
                                         </div>
                                         <CompactUpload 
                                             label="Target Pose / Scene" 
@@ -454,7 +449,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                             onUpload={handleUpload(setReferencePose)} 
                                             onClear={() => setReferencePose(null)} 
                                             icon={<CameraIcon className="w-6 h-6 text-purple-400"/>}
-                                            color="purple"
                                             heightClass="h-32"
                                         />
                                         <p className="text-[10px] text-gray-400 mt-2 px-1">Upload a photo with the exact pose or composition you want to copy.</p>
@@ -465,19 +459,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {/* 4. Configuration Engines */}
                             {mode === 'creative' && (
                                 <div className="space-y-6 animate-fadeIn">
-                                    <div className="h-px bg-gray-100"></div>
+                                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
                                     
-                                    {/* Timeline & Universe */}
-                                    <div className="grid grid-cols-1 gap-6">
-                                        <SelectionGrid label="3. Timeline Engine" options={timelineOptions} value={timeline} onChange={setTimeline} />
-                                        <SelectionGrid label="4. Universe Style" options={universeOptions} value={universe} onChange={setUniverse} />
-                                    </div>
-
-                                    <div className="h-px bg-gray-100"></div>
-
                                     {/* Standard Options */}
-                                    <SelectionGrid label="5. Relationship" options={relationshipOptions} value={relationship} onChange={(val) => { setRelationship(val); autoScroll(); }} />
-                                    <SelectionGrid label="6. Environment" options={envOptions} value={environmentPreset} onChange={(val) => { setEnvironmentPreset(val); autoScroll(); }} />
+                                    <SelectionGrid label="3. Relationship" options={relationshipOptions} value={relationship} onChange={(val) => { setRelationship(val); autoScroll(); }} />
+                                    <SelectionGrid label="4. Environment" options={envOptions} value={environmentPreset} onChange={(val) => { setEnvironmentPreset(val); autoScroll(); }} />
                                     {environmentPreset === 'Custom' && (
                                         <div className="mt-2 animate-fadeIn">
                                             <InputField 
@@ -487,15 +473,16 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                             />
                                         </div>
                                     )}
-                                    <SelectionGrid label="7. Pose Guide" options={poseOptions} value={pose} onChange={setPose} />
-                                    <SelectionGrid label="8. Clothing" options={clothingOptions} value={clothingMode} onChange={(val: any) => setClothingMode(val)} />
+                                    <SelectionGrid label="5. Pose Guide" options={poseOptions} value={pose} onChange={setPose} />
+                                    <SelectionGrid label="6. Clothing" options={clothingOptions} value={clothingMode} onChange={(val: any) => setClothingMode(val)} />
                                 </div>
                             )}
 
                             {mode === 'professional' && (
-                                <div className="animate-fadeIn bg-blue-50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                                    <p><strong>Professional Mode Active:</strong> Pixa will automatically:</p>
-                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                <div className="animate-fadeIn bg-blue-50/50 p-5 rounded-2xl border border-blue-100 text-xs text-blue-900 leading-relaxed shadow-sm">
+                                    <p className="font-bold mb-2">Professional Mode Active</p>
+                                    <p className="text-blue-700/80">Pixa will automatically:</p>
+                                    <ul className="list-disc list-inside mt-2 space-y-1 text-blue-700">
                                         <li>Dress subjects in premium business attire.</li>
                                         <li>Generate a modern office or studio background.</li>
                                         <li>Apply soft, flattering studio lighting.</li>
