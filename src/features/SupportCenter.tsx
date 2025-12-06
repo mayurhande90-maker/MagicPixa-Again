@@ -17,7 +17,8 @@ import {
     CreditCardIcon,
     PaperAirplaneIcon,
     UserIcon,
-    ArrowUpCircleIcon
+    ArrowUpCircleIcon,
+    ArrowDownIcon // Assuming this exists or using ArrowUp rotated
 } from '../components/icons';
 
 // --- HELPERS ---
@@ -239,8 +240,8 @@ const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ tex
 };
 
 const PixaBotIcon = () => (
-    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-white border border-gray-100 shadow-sm overflow-hidden">
-         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-full h-full">
+    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-white border border-gray-100 shadow-sm overflow-hidden p-1">
+         <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48">
             <path fill="#BF360C" d="M13 30h22v12H13z"/>
             <g fill="#FFA726">
                 <circle cx="10" cy="26" r="4"/>
@@ -348,17 +349,16 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         let allMessages: ChatMessage[] = [];
         
         try {
-            cleanupSupportHistory(auth.user.uid).catch(e => console.warn("Chat cleanup background process error:", e));
             const rawHistory = await getSupportHistory(auth.user.uid);
             allMessages = rawHistory as ChatMessage[];
         } catch (e) {
             console.error("Chat history fetch failed", e);
         }
 
-        // Limit to last 10 messages
+        // Limit to last 10 messages for display
         const INITIAL_BATCH = 10;
         const visible = allMessages.slice(-INITIAL_BATCH);
-        const hidden = allMessages.slice(0, -INITIAL_BATCH);
+        const hidden = allMessages.slice(0, Math.max(0, allMessages.length - INITIAL_BATCH));
 
         const userHasHistory = visible.some(m => m.role === 'user');
         setHasInteracted(userHasHistory);
@@ -395,7 +395,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const handleLoadOlder = () => {
         const BATCH = 10;
         const nextBatch = olderMessages.slice(-BATCH);
-        const remaining = olderMessages.slice(0, -BATCH);
+        const remaining = olderMessages.slice(0, Math.max(0, olderMessages.length - BATCH));
         setMessages(prev => [...nextBatch, ...prev]);
         setOlderMessages(remaining);
     };
@@ -550,176 +550,178 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 </div>
             </div>
 
-            <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 lg:p-8 items-start h-[calc(100vh-100px)]">
+            <div className="flex-1 w-full flex items-center justify-center p-4 lg:p-8">
+                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[60vh] min-h-[600px]">
                 
-                {/* LEFT: CHAT INTERFACE */}
-                <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
-                    
-                    {/* Decorative Background Blur */}
-                    <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
-                    <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
-                    
-                    {/* Floating Load Previous Button */}
-                    {olderMessages.length > 0 && !loadingHistory && (
-                        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 w-full flex justify-center pointer-events-none">
-                            <button 
-                                onClick={handleLoadOlder}
-                                className="bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 pointer-events-auto flex items-center gap-2"
-                            >
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                                Load Previous Messages ({olderMessages.length > 10 ? '10+' : olderMessages.length})
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto px-4 pt-24 pb-4 lg:px-8 lg:pt-28 lg:pb-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
+                    {/* LEFT: CHAT INTERFACE */}
+                    <div className="lg:col-span-2 flex flex-col h-full bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
                         
-                        {loadingHistory ? (
-                            <ChatSkeleton />
-                        ) : (
-                            messages.map((msg, index) => (
-                                <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
-                                    <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                        
-                                        {/* Avatar */}
-                                        <div className="mb-1 hidden sm:block shadow-sm rounded-full">
-                                            {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
-                                        </div>
+                        {/* Decorative Background Blur */}
+                        <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
+                        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
+                        
+                        {/* Floating Load Previous Button */}
+                        {olderMessages.length > 0 && !loadingHistory && (
+                            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 w-full flex justify-center pointer-events-none">
+                                <button 
+                                    onClick={handleLoadOlder}
+                                    className="bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 pointer-events-auto flex items-center gap-2"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                    Load Previous Messages
+                                </button>
+                            </div>
+                        )}
 
-                                        {/* Bubble */}
-                                        <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
-                                            <div className={`px-5 py-4 lg:px-6 lg:py-5 rounded-3xl shadow-sm text-sm leading-relaxed relative border transition-all hover:shadow-md w-full ${
-                                                msg.role === 'user' 
-                                                ? 'bg-gradient-to-br from-[#4D7CFF] to-[#3B82F6] text-white rounded-tr-none shadow-indigo-500/20 border-transparent bg-clip-padding' 
-                                                : 'bg-white text-gray-800 rounded-tl-none border-gray-100 shadow-sm'
-                                            }`}>
-                                                {/* Highlight overlay for user bubble */}
-                                                {msg.role === 'user' && <div className="absolute inset-0 bg-white/10 rounded-3xl rounded-tr-none pointer-events-none"></div>}
-                                                
-                                                {msg.role === 'user' 
-                                                    ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                                    : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
-                                                }
+                        {/* Chat Area */}
+                        <div className="flex-1 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar scroll-smooth relative z-10">
+                            
+                            {loadingHistory ? (
+                                <ChatSkeleton />
+                            ) : (
+                                messages.map((msg, index) => (
+                                    <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
+                                        <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                            
+                                            {/* Avatar */}
+                                            <div className="mb-1 hidden sm:block shadow-sm rounded-full">
+                                                {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                             </div>
 
-                                            {/* Ticket Proposal */}
-                                            {msg.type === 'proposal' && msg.ticketDraft && (
-                                                <TicketProposalCard 
-                                                    draft={msg.ticketDraft} 
-                                                    onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
-                                                    onCancel={() => handleCancelTicket(msg.id)}
-                                                    isSubmitting={submittingTicketId === msg.id}
-                                                    isSubmitted={msg.isSubmitted || false}
-                                                />
-                                            )}
-                                            
-                                            <span className={`text-[9px] font-bold mt-2 px-2 opacity-40 ${msg.role === 'user' ? 'text-right text-indigo-900' : 'text-left text-gray-400'}`}>
-                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            {/* Bubble */}
+                                            <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
+                                                <div className={`px-5 py-4 lg:px-6 lg:py-5 rounded-3xl shadow-sm text-sm leading-relaxed relative border transition-all hover:shadow-md w-full ${
+                                                    msg.role === 'user' 
+                                                    ? 'bg-gradient-to-br from-[#4D7CFF] to-[#3B82F6] text-white rounded-tr-none shadow-indigo-500/20 border-transparent bg-clip-padding' 
+                                                    : 'bg-white text-gray-800 rounded-tl-none border-gray-100 shadow-sm'
+                                                }`}>
+                                                    {/* Highlight overlay for user bubble */}
+                                                    {msg.role === 'user' && <div className="absolute inset-0 bg-white/10 rounded-3xl rounded-tr-none pointer-events-none"></div>}
+                                                    
+                                                    {msg.role === 'user' 
+                                                        ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                                        : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
+                                                    }
+                                                </div>
+
+                                                {/* Ticket Proposal */}
+                                                {msg.type === 'proposal' && msg.ticketDraft && (
+                                                    <TicketProposalCard 
+                                                        draft={msg.ticketDraft} 
+                                                        onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
+                                                        onCancel={() => handleCancelTicket(msg.id)}
+                                                        isSubmitting={submittingTicketId === msg.id}
+                                                        isSubmitted={msg.isSubmitted || false}
+                                                    />
+                                                )}
+                                                
+                                                <span className={`text-[9px] font-bold mt-2 px-2 opacity-40 ${msg.role === 'user' ? 'text-right text-indigo-900' : 'text-left text-gray-400'}`}>
+                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </div>
+
+                                        {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
+                                        {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
+                                            <div className="w-full mt-4 pl-12 sm:pl-16">
+                                                <QuickActions onAction={handleQuickAction} className="justify-start" />
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
-                                    {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
-                                        <div className="w-full mt-4 pl-12 sm:pl-16">
-                                            <QuickActions onAction={handleQuickAction} className="justify-start" />
-                                        </div>
-                                    )}
-                                </div>
-                            ))
-                        )}
-                        
-                        {isTyping && (
-                            <div className="flex items-center gap-3 animate-fadeIn">
-                                <PixaBotIcon />
-                                <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5 items-center h-12">
-                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
-                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
-                                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="p-4 lg:p-6 relative z-20 bg-gradient-to-t from-white/90 via-white/50 to-transparent flex flex-col gap-2">
-                        
-                        {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
-                        {hasInteracted && !loadingHistory && (
-                            <div className="pb-2 px-2 flex justify-center md:justify-start">
-                                <QuickActions onAction={handleQuickAction} />
-                            </div>
-                        )}
-
-                        <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300">
-                            <button 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
-                                title="Upload Screenshot"
-                            >
-                                <UploadIcon className="w-5 h-5" />
-                            </button>
-                            
-                            <input 
-                                ref={inputFocusRef}
-                                type="text"
-                                className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
-                                placeholder="Type your message..."
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                            />
-                            
-                            <button 
-                                onClick={() => handleSendMessage()}
-                                disabled={!inputText.trim()}
-                                className={`p-3 rounded-full transition-all flex-shrink-0 shadow-sm ${inputText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' : 'bg-gray-100 text-gray-300'}`}
-                            >
-                                <PaperAirplaneIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                    <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                </div>
-
-                {/* RIGHT: TICKET HISTORY */}
-                <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:relative lg:translate-x-0 lg:w-auto lg:h-full lg:shadow-none lg:bg-transparent lg:z-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                    <div className="bg-white lg:bg-white/60 backdrop-blur-3xl rounded-[2.5rem] border border-white/80 h-full shadow-lg lg:shadow-xl lg:shadow-indigo-200/20 overflow-hidden flex flex-col relative">
-                        
-                        {/* Mobile Close Button */}
-                        <button onClick={() => setSidebarOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500">
-                            <XIcon className="w-6 h-6" />
-                        </button>
-
-                        <div className="p-6 border-b border-gray-100/50 bg-white/50">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                                        <TicketIcon className="w-4 h-4" />
-                                    </div>
-                                    History
-                                </h3>
-                                <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{tickets.length}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                            {tickets.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center opacity-60 p-6">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                        <TicketIcon className="w-8 h-8 text-gray-300" />
-                                    </div>
-                                    <h4 className="text-sm font-bold text-gray-800">No active tickets</h4>
-                                    <p className="text-xs text-gray-500 mt-1 max-w-[150px]">Issues that require human review will appear here.</p>
-                                </div>
-                            ) : (
-                                tickets.map(ticket => (
-                                    <TicketHistoryItem key={ticket.id} ticket={ticket} />
                                 ))
                             )}
+                            
+                            {isTyping && (
+                                <div className="flex items-center gap-3 animate-fadeIn">
+                                    <PixaBotIcon />
+                                    <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5 items-center h-12">
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input Area - Sticky Bottom */}
+                        <div className="p-4 lg:p-6 relative z-20 bg-white/40 backdrop-blur-md border-t border-white/50 flex flex-col gap-2 shrink-0">
+                            
+                            {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
+                            {hasInteracted && !loadingHistory && (
+                                <div className="pb-2 px-2 flex justify-center md:justify-start">
+                                    <QuickActions onAction={handleQuickAction} />
+                                </div>
+                            )}
+
+                            <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300">
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
+                                    title="Upload Screenshot"
+                                >
+                                    <UploadIcon className="w-5 h-5" />
+                                </button>
+                                
+                                <input 
+                                    ref={inputFocusRef}
+                                    type="text"
+                                    className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
+                                    placeholder="Type your message..."
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                />
+                                
+                                <button 
+                                    onClick={() => handleSendMessage()}
+                                    disabled={!inputText.trim()}
+                                    className={`p-3 rounded-full transition-all flex-shrink-0 shadow-sm ${inputText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' : 'bg-gray-100 text-gray-300'}`}
+                                >
+                                    <PaperAirplaneIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                    </div>
+
+                    {/* RIGHT: TICKET HISTORY */}
+                    <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:relative lg:translate-x-0 lg:w-auto lg:h-full lg:shadow-none lg:bg-transparent lg:z-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                        <div className="bg-white lg:bg-white/60 backdrop-blur-3xl rounded-[2.5rem] border border-white/80 h-full shadow-lg lg:shadow-xl lg:shadow-indigo-200/20 overflow-hidden flex flex-col relative">
+                            
+                            {/* Mobile Close Button */}
+                            <button onClick={() => setSidebarOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500">
+                                <XIcon className="w-6 h-6" />
+                            </button>
+
+                            <div className="p-6 border-b border-gray-100/50 bg-white/50">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                            <TicketIcon className="w-4 h-4" />
+                                        </div>
+                                        History
+                                    </h3>
+                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{tickets.length}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                                {tickets.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-60 p-6">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                            <TicketIcon className="w-8 h-8 text-gray-300" />
+                                        </div>
+                                        <h4 className="text-sm font-bold text-gray-800">No active tickets</h4>
+                                        <p className="text-xs text-gray-500 mt-1 max-w-[150px]">Issues that require human review will appear here.</p>
+                                    </div>
+                                ) : (
+                                    tickets.map(ticket => (
+                                        <TicketHistoryItem key={ticket.id} ticket={ticket} />
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
