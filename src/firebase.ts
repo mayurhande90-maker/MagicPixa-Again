@@ -465,6 +465,22 @@ export const cleanupSupportHistory = async (uid: string) => {
     await batch.commit();
 };
 
+export const clearSupportChat = async (uid: string) => {
+    if (!db) return;
+    const ref = db.collection('users').doc(uid).collection('support_chat');
+    const snapshot = await ref.get();
+    
+    if (snapshot.size === 0) return;
+
+    // Delete in batches of 500
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+};
+
 // --- Admin ---
 
 export const getAllUsers = async () => {

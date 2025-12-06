@@ -3,10 +3,12 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { AuthProps, Ticket } from '../../types';
 import { sendSupportMessage, createTicket, ChatMessage, analyzeErrorScreenshot } from '../../services/supportService';
 import { fileToBase64 } from '../../utils/imageUtils';
-import { saveSupportMessage, getSupportHistory } from '../../firebase';
+import { saveSupportMessage, getSupportHistory, clearSupportChat } from '../../firebase';
 import { 
     UploadIcon, 
-    PaperAirplaneIcon
+    PaperAirplaneIcon,
+    TrashIcon,
+    ArrowDownIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -25,6 +27,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
     const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+    const [showScrollBtn, setShowScrollBtn] = useState(false);
 
     // Refs for DOM elements
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,26 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 150);
+    };
+
+    const handleScroll = () => {
+        if (scrollContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+            // Show button if user is scrolled up more than 200px from bottom
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+            setShowScrollBtn(!isNearBottom);
+        }
+    };
+
+    const handleClearChat = async () => {
+        if (!auth.user) return;
+        if (confirm("Clear your entire chat history? This cannot be undone.")) {
+            setMessages([]);
+            setOlderMessages([]);
+            setHasInteracted(false);
+            await clearSupportChat(auth.user.uid);
+            loadChatHistory(); // Reload to show welcome message
+        }
     };
 
     const loadChatHistory = async () => {
@@ -136,7 +159,12 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         try {
             const response = await sendSupportMessage(
                 [...messages, userMsg], 
-                { name: auth.user.name, email: auth.user.email, credits: auth.user.credits }
+                { 
+                    name: auth.user.name, 
+                    email: auth.user.email, 
+                    credits: auth.user.credits,
+                    plan: auth.user.plan
+                }
             );
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user.uid, response).catch(e => console.warn("Bot msg save failed", e));
@@ -225,7 +253,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             // Immediately send analysis prompt
             const response = await sendSupportMessage(
                 [...messages, userMsg, { role: 'user', content: `I uploaded an error screenshot. Analysis: ${analysis}`, id: 'sys', timestamp: Date.now() }],
-                { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits }
+                { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan }
             );
             setMessages(prev => [...prev, response]);
             scrollToBottom();
@@ -242,9 +270,18 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
 
-            {/* Load Older Messages Button (Floating Top) */}
+            {/* Clear Chat Button (Absolute Top Right) */}
+            <button 
+                onClick={handleClearChat}
+                className="absolute top-4 right-4 z-30 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                title="Clear Chat History"
+            >
+                <TrashIcon className="w-4 h-4" />
+            </button>
+
+            {/* Load Older Messages Button (Floating Top Center) */}
             {olderMessages.length > 0 && !loadingHistory && (
-                <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
                     <button 
                         type="button"
                         onClick={handleLoadOlder}
@@ -263,6 +300,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             {/* Main Chat Scroll Area */}
             <div 
                 ref={scrollContainerRef}
+                onScroll={handleScroll}
                 className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 sm:px-8 pt-8 pb-4 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
@@ -334,6 +372,16 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Floating Scroll Down Button */}
+            {showScrollBtn && (
+                <button 
+                    onClick={scrollToBottom}
+                    className="absolute bottom-24 right-8 z-40 bg-white shadow-lg border border-gray-100 p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
+                >
+                    <ArrowDownIcon className="w-5 h-5" />
+                </button>
+            )}
 
             {/* Input Area */}
             <div className="p-4 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
