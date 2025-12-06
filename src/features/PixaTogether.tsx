@@ -83,22 +83,6 @@ const CompactUpload: React.FC<{
     );
 };
 
-const ToggleOption: React.FC<{ label: string; checked: boolean; onChange: (val: boolean) => void }> = ({ label, checked, onChange }) => (
-    <button 
-        onClick={() => onChange(!checked)}
-        className={`flex items-center justify-between w-full p-3 rounded-xl border transition-all ${
-            checked 
-            ? 'bg-indigo-50 border-indigo-200 text-indigo-800' 
-            : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-        }`}
-    >
-        <span className="text-xs font-bold">{label}</span>
-        <div className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-            <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${checked ? 'left-6' : 'left-1'}`}></div>
-        </div>
-    </button>
-);
-
 export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     // Assets with metadata
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
@@ -110,16 +94,9 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [environmentPreset, setEnvironmentPreset] = useState('Goa Beach');
     const [customEnvironment, setCustomEnvironment] = useState('');
     
-    // Advanced Controls
+    // Simplified Controls (User Facing)
     const [pose, setPose] = useState('Side-by-Side');
-    const [faceStrength, setFaceStrength] = useState(100); // 0-100
-    const [locks, setLocks] = useState({
-        age: true,
-        hair: false,
-        accessories: false, // Glasses/Beard
-        clothing: false
-    });
-    const [autoFix, setAutoFix] = useState(true);
+    const [clothingMode, setClothingMode] = useState('Keep Original');
     
     // UI State
     const [loading, setLoading] = useState(false);
@@ -127,7 +104,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
-    const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -142,6 +118,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const moodOptions = ['Retro Childhood', 'Romantic Couple', 'Party / Nightlife', 'Travel / Beach', 'Studio Portrait', 'Stylized Cartoon'];
     const envOptions = ['Café', 'Mountain Trek', 'Goa Beach', '90s Classroom', 'Royal Palace', 'Rainy Street', 'Sunset Balcony', 'Custom'];
     const poseOptions = ['Side-by-Side', 'Hugging', 'Handshake', 'V-Pose', 'Back-to-Back', 'Walking (Dynamic)', 'Keep Original'];
+    const clothingOptions = ['Keep Original', 'Adapt to Vibe'];
 
     // Animation
     useEffect(() => {
@@ -202,14 +179,20 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setResultImage(null);
 
         try {
+            // Apply STRICT logic for high quality generation
             const config: PixaTogetherConfig = {
                 relationship,
                 mood,
                 environment: environmentPreset === 'Custom' ? customEnvironment : environmentPreset,
                 pose,
-                faceStrength,
-                locks,
-                autoFix
+                faceStrength: 100, // FORCE HIGH FIDELITY
+                locks: {
+                    age: true, // AUTO LOCK
+                    hair: true, // AUTO LOCK
+                    accessories: true, // AUTO LOCK
+                    clothing: clothingMode === 'Keep Original' // USER CHOICE
+                },
+                autoFix: true // AUTO FIX ON
             };
 
             const res = await generateMagicSoul(
@@ -249,7 +232,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setMood('Travel / Beach');
         setEnvironmentPreset('Goa Beach');
         setCustomEnvironment('');
-        setShowAdvanced(false);
+        setClothingMode('Keep Original');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -270,7 +253,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         <>
             <FeatureLayout 
                 title="Pixa Together"
-                description="Merge two photos into one perfect moment. Use advanced controls to match lighting, preserve details, and set the vibe."
+                description="Merge two photos into one perfect moment. Pixa automatically harmonizes lighting and preserves identities."
                 icon={<PixaTogetherIcon className="w-14 h-14"/>}
                 rawIcon={true}
                 creditCost={cost}
@@ -395,59 +378,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 </div>
                             </div>
 
-                            {/* 3. Advanced Controls (Accordion) */}
-                            <div className="border-t border-gray-100 pt-4">
-                                <button 
-                                    onClick={() => setShowAdvanced(!showAdvanced)} 
-                                    className="w-full flex items-center justify-between bg-gray-50 p-4 rounded-xl hover:bg-gray-100 transition-colors group"
-                                >
-                                    <div className="flex items-center gap-2 text-gray-600 font-bold text-xs uppercase tracking-wider group-hover:text-indigo-600">
-                                        <AdjustmentsVerticalIcon className="w-4 h-4"/>
-                                        Fine-Tuning Controls
-                                    </div>
-                                    <span className="text-gray-400">{showAdvanced ? '−' : '+'}</span>
-                                </button>
-
-                                {showAdvanced && (
-                                    <div className="mt-4 p-4 border border-gray-100 rounded-xl space-y-6 animate-fadeIn">
-                                        
-                                        {/* Pose */}
-                                        <SelectionGrid label="Force Pose" options={poseOptions} value={pose} onChange={setPose} />
-
-                                        {/* Identity Strength */}
-                                        <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="text-xs font-bold text-gray-500 uppercase">Face Preservation Strength</label>
-                                                <span className="text-xs font-bold text-indigo-600">{faceStrength}%</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="50" 
-                                                max="100" 
-                                                value={faceStrength} 
-                                                onChange={(e) => setFaceStrength(parseInt(e.target.value))} 
-                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                            />
-                                            <p className="text-[9px] text-gray-400 mt-1">Higher = Strict identity match. Lower = Better blending.</p>
-                                        </div>
-
-                                        {/* Locks */}
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Feature Locks</label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <ToggleOption label="Lock Age" checked={locks.age} onChange={(v) => setLocks(p => ({...p, age: v}))} />
-                                                <ToggleOption label="Lock Hair" checked={locks.hair} onChange={(v) => setLocks(p => ({...p, hair: v}))} />
-                                                <ToggleOption label="Lock Glasses/Beard" checked={locks.accessories} onChange={(v) => setLocks(p => ({...p, accessories: v}))} />
-                                                <ToggleOption label="Lock Clothing" checked={locks.clothing} onChange={(v) => setLocks(p => ({...p, clothing: v}))} />
-                                            </div>
-                                        </div>
-
-                                        {/* Auto Fix */}
-                                        <div className="pt-2 border-t border-gray-100">
-                                            <ToggleOption label="✨ Auto-Fix Lighting & Clarity" checked={autoFix} onChange={setAutoFix} />
-                                        </div>
-                                    </div>
-                                )}
+                            {/* 3. Pose & Style (User Friendly Controls) */}
+                            <div className="space-y-6">
+                                <div className="h-px bg-gray-200"></div>
+                                <SelectionGrid label="5. Interaction / Pose" options={poseOptions} value={pose} onChange={setPose} />
+                                <SelectionGrid label="6. Clothing Style" options={clothingOptions} value={clothingMode} onChange={setClothingMode} />
                             </div>
                         </div>
                     )
