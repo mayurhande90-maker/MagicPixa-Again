@@ -10,16 +10,16 @@ import {
     CreditCoinIcon, 
     MagicWandIcon,
     ShieldCheckIcon,
-    AdjustmentsVerticalIcon,
     InformationCircleIcon,
     CameraIcon,
-    LightbulbIcon,
-    UploadTrayIcon
+    FlagIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 
 // --- Components ---
 
@@ -35,6 +35,66 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
                         <li key={idx}>{issue}</li>
                     ))}
                 </ul>
+            </div>
+        </div>
+    );
+};
+
+// Refund Modal
+const RefundModal: React.FC<{ 
+    onClose: () => void; 
+    onConfirm: (reason: string) => void;
+    isProcessing: boolean;
+}> = ({ onClose, onConfirm, isProcessing }) => {
+    const [reason, setReason] = useState('');
+    const reasons = [
+        "Faces are distorted / blurry",
+        "Didn't preserve identity well",
+        "Glitch or Artifacts in image",
+        "Unrealistic lighting/blending",
+        "Other"
+    ];
+
+    return (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl relative m-4" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <XIcon className="w-5 h-5"/>
+                </button>
+                
+                <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <FlagIcon className="w-5 h-5 text-red-500"/> Report Quality Issue
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                    We're sorry the magic didn't work perfectly. Select a reason to request a refund.
+                </p>
+
+                <div className="space-y-2 mb-6">
+                    {reasons.map(r => (
+                        <button 
+                            key={r}
+                            onClick={() => setReason(r)}
+                            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold border transition-all ${
+                                reason === r 
+                                ? 'bg-red-50 border-red-500 text-red-700' 
+                                : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            {r}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 text-gray-500 font-bold text-xs hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+                    <button 
+                        onClick={() => onConfirm(reason)}
+                        disabled={!reason || isProcessing}
+                        className="flex-1 py-3 bg-[#1A1A1E] text-white rounded-xl font-bold text-xs hover:bg-black transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isProcessing ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit & Refund"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -141,6 +201,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
+    
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -270,6 +335,36 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     };
 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost,
+                reason,
+                "User generated image" // We can't easily pass the blob URL to ticket without upload, using placeholder
+            );
+
+            if (res.success) {
+                if (res.type === 'refund') {
+                    // Update local user credits instantly
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null); // Clear the "bad" image
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     const handleNewSession = () => {
         setPersonA(null);
         setPersonB(null);
@@ -321,9 +416,14 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 scrollRef={scrollRef}
                 customActionButtons={
                     resultImage ? (
-                        <button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span>
-                        </button>
+                        <>
+                            <button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
+                                <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span>
+                            </button>
+                            <button onClick={() => setShowRefundModal(true)} className="bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap">
+                                <FlagIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Report Issue</span>
+                            </button>
+                        </>
                     ) : null
                 }
                 
@@ -515,6 +615,24 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     onClose={() => setShowMagicEditor(false)} 
                     onSave={handleEditorSave}
                     deductCredit={handleDeductEditCredit}
+                />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                />
+            )}
+
+            {/* Notifications */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
                 />
             )}
         </>

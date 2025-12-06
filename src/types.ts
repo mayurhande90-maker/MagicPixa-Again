@@ -77,6 +77,7 @@ export interface User {
   // Engagement Features
   lifetimeGenerations?: number; // Track total generations for milestones
   lastAttendanceClaim?: Timestamp; // Track daily check-in
+  lastAutomatedRefund?: Timestamp; // Track smart refund system usage
 
   lastDailyMissionCompleted?: Timestamp; // Legacy field, keeping for backward compatibility
   dailyMission?: {
