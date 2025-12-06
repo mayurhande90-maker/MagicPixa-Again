@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket } from '../../types';
 import { sendSupportMessage, createTicket, ChatMessage, analyzeErrorScreenshot } from '../../services/supportService';
 import { fileToBase64 } from '../../utils/imageUtils';
@@ -8,8 +8,7 @@ import {
     UploadIcon, 
     PaperAirplaneIcon,
     TrashIcon,
-    ArrowDownIcon,
-    ArrowUpIcon
+    ArrowDownIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -20,14 +19,12 @@ interface SupportChatWindowProps {
 
 export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTicketCreated }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
     
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
-    const [isLoadingOlder, setIsLoadingOlder] = useState(false);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
 
     // Refs for DOM elements
@@ -35,22 +32,12 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputFocusRef = useRef<HTMLTextAreaElement>(null);
-    const previousScrollHeightRef = useRef(0);
 
     useEffect(() => {
         if (auth.user) {
             loadChatHistory();
         }
     }, [auth.user]);
-
-    useLayoutEffect(() => {
-        if (isLoadingOlder && scrollContainerRef.current) {
-            const newScrollHeight = scrollContainerRef.current.scrollHeight;
-            const diff = newScrollHeight - previousScrollHeightRef.current;
-            scrollContainerRef.current.scrollTop = diff; 
-            setIsLoadingOlder(false);
-        }
-    }, [messages, isLoadingOlder]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -71,7 +58,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         if (!auth.user) return;
         if (confirm("Clear your entire chat history? This cannot be undone.")) {
             setMessages([]);
-            setOlderMessages([]);
             setHasInteracted(false);
             await clearSupportChat(auth.user.uid);
             loadChatHistory(); // Reload to show welcome message
@@ -91,14 +77,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             console.error("Chat history fetch failed", e);
         }
 
-        const INITIAL_BATCH = 15;
-        const visible = allMessages.slice(-INITIAL_BATCH);
-        const hidden = allMessages.slice(0, Math.max(0, allMessages.length - INITIAL_BATCH));
-
-        const userHasHistory = visible.some(m => m.role === 'user');
+        const userHasHistory = allMessages.some(m => m.role === 'user');
         setHasInteracted(userHasHistory);
 
-        if (visible.length === 0) {
+        if (allMessages.length === 0) {
             const greeting = getGreeting();
             const firstName = auth.user.name ? auth.user.name.split(' ')[0] : 'Creator';
             
@@ -111,30 +93,16 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             setMessages([welcomeMsg]);
             saveSupportMessage(auth.user.uid, welcomeMsg).catch(e => console.warn("Welcome msg save failed", e));
         } else {
-            setMessages(visible);
+            setMessages(allMessages);
         }
         
-        setOlderMessages(hidden);
         setLoadingHistory(false);
-        scrollToBottom();
-    };
-
-    const handleLoadOlder = () => {
-        if (olderMessages.length === 0) return;
-        
-        if (scrollContainerRef.current) {
-            previousScrollHeightRef.current = scrollContainerRef.current.scrollHeight;
-        }
-        setIsLoadingOlder(true);
-
-        const BATCH = 10;
-        const nextBatch = olderMessages.slice(-BATCH);
-        const remaining = olderMessages.slice(0, Math.max(0, olderMessages.length - BATCH));
-        
+        // Initial scroll to bottom
         setTimeout(() => {
-            setMessages(prev => [...nextBatch, ...prev]);
-            setOlderMessages(remaining);
-        }, 300);
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+        }, 100);
     };
 
     const handleSendMessage = async (textOverride?: string) => {
@@ -279,23 +247,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             >
                 <TrashIcon className="w-4 h-4" />
             </button>
-
-            {/* Floating Load Previous Button (Top Center Pill) */}
-            {olderMessages.length > 0 && !loadingHistory && (
-                <button 
-                    onClick={handleLoadOlder}
-                    disabled={isLoadingOlder}
-                    className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur shadow-lg border border-indigo-100 p-2 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-fadeIn flex items-center gap-2 pr-4 pl-3 disabled:opacity-50"
-                    title="Load Previous Chats"
-                >
-                    {isLoadingOlder ? (
-                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                        <ArrowUpIcon className="w-4 h-4" />
-                    )}
-                    <span className="text-xs font-bold">Load History</span>
-                </button>
-            )}
 
             {/* Main Chat Scroll Area */}
             <div 
