@@ -1173,7 +1173,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {/* Chat Area - Fixed Height, Scrollable */}
                         <div 
                             ref={scrollContainerRef}
-                            className="flex-1 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
+                            className="flex-1 min-h-0 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
                         >
                             {loadingHistory ? (
                                 <div className="h-full flex flex-col items-center justify-center">
