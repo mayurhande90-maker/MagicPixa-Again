@@ -70,16 +70,27 @@ export const colourizeImage = async (
   }
 };
 
+export interface PixaTogetherConfig {
+    relationship: string;
+    mood: string;
+    environment: string;
+    pose: string;
+    faceStrength: number;
+    locks: {
+        age: boolean;
+        hair: boolean;
+        accessories: boolean;
+        clothing: boolean;
+    };
+    autoFix: boolean;
+}
+
 export const generateMagicSoul = async (
   personABase64: string,
   personAMimeType: string,
   personBBase64: string,
   personBMimeType: string,
-  inputs: {
-      vibe: string;
-      interaction: string;
-      environment?: string;
-  }
+  inputs: PixaTogetherConfig
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -89,37 +100,38 @@ export const generateMagicSoul = async (
     ]);
 
     const prompt = `
-    Generate a single combined photograph using the two uploaded reference images (Person A and Person B). 
+    Generate a single combined photograph using the two uploaded reference images (Person A and Person B).
     
-    *** CONFIGURATION ***
-    - **Mood/Vibe**: ${inputs.vibe}
-    - **Pose/Interaction**: ${inputs.interaction}
-    ${inputs.environment ? `- **Environment Details**: ${inputs.environment}` : ''}
+    *** SCENE CONFIGURATION ***
+    - **Relationship Context**: ${inputs.relationship}
+    - **Mood/Vibe**: ${inputs.mood}
+    - **Environment**: ${inputs.environment}
+    - **Required Pose**: ${inputs.pose}
 
-    *** STRICT IDENTITY PRESERVATION PROTOCOL ***
+    *** STRICT IDENTITY PRESERVATION PROTOCOL (Priority: ${inputs.faceStrength}%) ***
     The output must strictly preserve the real identity of both people. 
-    Do NOT change or alter: 
-    - facial features  
-    - face shape  
-    - skin tone  
-    - hairstyle  
-    - hairline  
-    - age  
-    - body type  
-    - body proportions  
-    - height ratio  
-    - unique marks, beard style, or glasses if present.
+    Do NOT change: Facial features, Face shape, Skin tone, Body type.
+    
+    *** FEATURE LOCKS (MANDATORY) ***
+    ${inputs.locks.age ? "- **LOCK AGE**: Do NOT make them younger or older. Maintain current age." : ""}
+    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly." : ""}
+    ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards, and jewelry exactly as they are." : ""}
+    ${inputs.locks.clothing ? "- **LOCK CLOTHING**: Keep the original outfit style." : "- **OUTFIT**: Adapt clothing to fit the selected Mood/Environment."}
 
     *** EXECUTION INSTRUCTIONS ***
-    1. Match the lighting, color, and camera angle to create one natural frame, but keep the faces and bodies exactly as in the reference images.
-    2. Do NOT beautify, smoothen, slim, enlarge, or stylize the people unless the user-selected mood (${inputs.vibe}) explicitly implies a stylized art style (e.g. Cartoon/3D). Otherwise, keep it photorealistic.
-    3. Do NOT generate new facial expressions; match the closest possible expression from the input photos that fits the interaction.
-    4. Place both individuals in the environment specified.
-    5. Ensure realistic shadows, depth, perspective, and physical interaction based on the selected pose (${inputs.interaction}).
+    1. **Lighting Match**: Ensure both people look like they are in the same physical space with consistent lighting source and color temperature.
+    2. **Expression**: Match facial expressions to the context (e.g., Happy for 'Best Friends', Romantic for 'Couple').
+    3. **Physics**: Realistic shadows, contact points (if hugging/holding hands), and depth of field.
+    
+    ${inputs.autoFix ? `*** AUTO-FIX ENHANCEMENTS (ACTIVE) ***
+    - Remove background noise/grain.
+    - Sharpen facial details.
+    - Balance exposure if one photo is darker than the other.
+    - Correct any lens distortion.` : ""}
 
     *** NEGATIVE CONSTRAINTS ***
     Never replace the face. Never blend identities. Never hallucinate new features. 
-    The final output must look like a real photograph of these exact two people standing together in one scene.
+    The final output must look like a real photograph of these exact two people standing together.
     `;
 
     const response = await ai.models.generateContent({
