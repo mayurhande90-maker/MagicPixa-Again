@@ -19,7 +19,7 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
     const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
 
     return (
-        <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:absolute lg:inset-y-0 lg:right-0 lg:w-auto lg:shadow-none lg:bg-transparent lg:z-auto lg:h-full lg:transform-none ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+        <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 lg:static lg:w-full lg:h-full lg:shadow-none lg:bg-transparent lg:transform-none ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
             <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative w-full">
                 
                 {/* Mobile Close Button */}
