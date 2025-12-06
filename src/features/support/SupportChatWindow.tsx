@@ -8,7 +8,8 @@ import {
     UploadIcon, 
     PaperAirplaneIcon,
     TrashIcon,
-    ArrowDownIcon
+    ArrowDownIcon,
+    ArrowUpIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -279,22 +280,20 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 <TrashIcon className="w-4 h-4" />
             </button>
 
-            {/* Load Older Messages Button (Floating Top Center) */}
+            {/* Floating Load Previous Button (Top Arrow) */}
             {olderMessages.length > 0 && !loadingHistory && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-                    <button 
-                        type="button"
-                        onClick={handleLoadOlder}
-                        disabled={isLoadingOlder}
-                        className="bg-white/90 backdrop-blur text-indigo-600 hover:text-indigo-800 text-[10px] font-bold px-4 py-1.5 rounded-full transition-all border border-indigo-100 shadow-sm hover:shadow-md flex items-center gap-2"
-                    >
-                        {isLoadingOlder ? (
-                            <div className="w-2.5 h-2.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            <span>Load Previous ({olderMessages.length})</span>
-                        )}
-                    </button>
-                </div>
+                <button 
+                    onClick={handleLoadOlder}
+                    disabled={isLoadingOlder}
+                    className="absolute top-24 right-8 z-40 bg-white shadow-lg border border-gray-100 p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight flex items-center justify-center disabled:opacity-50"
+                    title="Load Previous Chats"
+                >
+                    {isLoadingOlder ? (
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                        <ArrowUpIcon className="w-5 h-5" />
+                    )}
+                </button>
             )}
 
             {/* Main Chat Scroll Area */}

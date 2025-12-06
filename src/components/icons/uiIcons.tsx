@@ -26,6 +26,10 @@ export const ArrowRightIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />} />
 );
 
+export const ArrowUpIcon: React.FC<IconProps> = (props) => (
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />} />
+);
+
 export const ArrowDownIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />} />
 );
