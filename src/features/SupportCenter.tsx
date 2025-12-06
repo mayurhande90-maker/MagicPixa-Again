@@ -5,7 +5,8 @@ import { getUserTickets } from '../services/supportService';
 import { 
     LifebuoyIcon, 
     TicketIcon, 
-    CreditCoinIcon
+    CreditCoinIcon,
+    ShieldCheckIcon
 } from '../components/icons';
 import { SupportChatWindow } from './support/SupportChatWindow';
 import { SupportTicketSidebar } from './support/SupportTicketSidebar';
@@ -33,46 +34,65 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-slate-50 to-white flex flex-col font-sans text-slate-900 overflow-hidden">
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+            
+            {/* Background Texture */}
+            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
             {/* Premium Header */}
-            <div className="bg-white/80 backdrop-blur-xl border-b border-white/50 py-5 px-8 sticky top-0 z-30 shadow-sm">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-                            <div className="p-2 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
-                                <LifebuoyIcon className="w-5 h-5" />
-                            </div>
-                            Support Center
-                        </h1>
-                        <p className="text-xs font-bold text-gray-400 mt-1 ml-1 uppercase tracking-wider">24/7 Intelligent Support</p>
-                    </div>
-                    {/* Activity Indicator / Credits */}
-                    <div className="hidden sm:flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 shadow-sm">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-wide">Pixa Live</span>
+            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-4 px-6 lg:px-8 sticky top-0 z-30 shadow-sm flex-none h-20">
+                <div className="max-w-7xl mx-auto h-full flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
+                            <LifebuoyIcon className="w-5 h-5" />
                         </div>
+                        <div>
+                            <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">Support Center</h1>
+                            <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">AI Concierge & Help Desk</p>
+                        </div>
+                    </div>
+                    
+                    {/* Header Actions */}
+                    <div className="flex items-center gap-3">
+                        {/* Status Pills - Hidden on Mobile */}
+                        <div className="hidden md:flex items-center gap-2 bg-white px-1.5 py-1.5 rounded-full border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <span className="text-[10px] font-bold uppercase tracking-wide">System Online</span>
+                            </div>
+                            {auth.user?.isAdmin && (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 rounded-full">
+                                    <ShieldCheckIcon className="w-3 h-3" />
+                                    <span className="text-[10px] font-bold uppercase">Admin</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Credits - Visible everywhere */}
                         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
                             <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
-                            <span className="text-xs font-bold text-gray-700">{auth.user?.credits} Credits</span>
+                            <span className="text-xs font-bold text-gray-700">{auth.user?.credits} CR</span>
                         </div>
+
                         {/* Mobile Sidebar Toggle */}
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+                        <button 
+                            onClick={() => setSidebarOpen(!sidebarOpen)} 
+                            className="lg:hidden p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-transparent hover:border-indigo-100"
+                        >
                             <TicketIcon className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Area - Top Aligned */}
-            <div className="flex-1 w-full flex items-start justify-center p-4 lg:p-8 pt-32">
-                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh] min-h-[600px] max-h-[800px]">
+            {/* Main Content Area - Full Height Grid */}
+            <div className="flex-1 w-full flex justify-center p-4 lg:p-6 lg:pb-8 overflow-hidden z-10">
+                <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
                 
-                    {/* LEFT: CHAT INTERFACE */}
+                    {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
                     <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
 
-                    {/* RIGHT: TICKET HISTORY */}
+                    {/* RIGHT: TICKET HISTORY (Takes 1 column) */}
                     <SupportTicketSidebar tickets={tickets} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
                 </div>
             </div>

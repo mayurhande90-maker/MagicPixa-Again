@@ -30,7 +30,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const inputFocusRef = useRef<HTMLInputElement>(null);
+    const inputFocusRef = useRef<HTMLTextAreaElement>(null);
     const previousScrollHeightRef = useRef(0);
 
     useEffect(() => {
@@ -39,7 +39,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
     }, [auth.user]);
 
-    // Handle scroll preservation when older messages are loaded
     useLayoutEffect(() => {
         if (isLoadingOlder && scrollContainerRef.current) {
             const newScrollHeight = scrollContainerRef.current.scrollHeight;
@@ -51,8 +50,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
     const scrollToBottom = () => {
         setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-        }, 100);
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
     };
 
     const loadChatHistory = async () => {
@@ -68,8 +67,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             console.error("Chat history fetch failed", e);
         }
 
-        // Limit to last 10 messages for display
-        const INITIAL_BATCH = 10;
+        const INITIAL_BATCH = 15;
         const visible = allMessages.slice(-INITIAL_BATCH);
         const hidden = allMessages.slice(0, Math.max(0, allMessages.length - INITIAL_BATCH));
 
@@ -83,11 +81,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             const welcomeMsg: ChatMessage = {
                 id: 'welcome_' + Date.now(),
                 role: 'model',
-                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I'm here to help you create better images and solve any issues.\n\n- Troubleshooting & Bugs\n- Billing & Credits\n- Feature Guides\n\nHow can I assist you today?`,
+                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I can help you with:\n\n- Troubleshooting & Bugs\n- Credits & Billing\n- Creating Better Images\n\nHow can I help you today?`,
                 timestamp: Date.now()
             };
             setMessages([welcomeMsg]);
-            
             saveSupportMessage(auth.user.uid, welcomeMsg).catch(e => console.warn("Welcome msg save failed", e));
         } else {
             setMessages(visible);
@@ -110,11 +107,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         const nextBatch = olderMessages.slice(-BATCH);
         const remaining = olderMessages.slice(0, Math.max(0, olderMessages.length - BATCH));
         
-        // Timeout to allow UI to show loading state briefly
         setTimeout(() => {
             setMessages(prev => [...nextBatch, ...prev]);
             setOlderMessages(remaining);
-        }, 500);
+        }, 300);
     };
 
     const handleSendMessage = async (textOverride?: string) => {
@@ -161,7 +157,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             setHasInteracted(true);
             setTimeout(() => {
                 inputFocusRef.current?.focus();
-            }, 100);
+            }, 50);
         }
     };
 
@@ -180,13 +176,12 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 return m;
             }));
             
-            // Notify parent
             onTicketCreated(newTicket);
             
             const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'model',
-                content: "**Ticket Created!**\n\nI've sent this to our human specialists. You can track the status in the sidebar on the right.",
+                content: "**Ticket Created!**\n\nI've forwarded this to our specialists. You can track the status in the sidebar.",
                 timestamp: Date.now()
             };
 
@@ -216,7 +211,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
-                content: "**[Uploaded Screenshot]**",
+                content: "**[Uploaded Image]** Analyzing...",
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
@@ -227,6 +222,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
             const analysis = await analyzeErrorScreenshot(base64.base64, base64.mimeType);
             
+            // Immediately send analysis prompt
             const response = await sendSupportMessage(
                 [...messages, userMsg, { role: 'user', content: `I uploaded an error screenshot. Analysis: ${analysis}`, id: 'sys', timestamp: Date.now() }],
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits }
@@ -240,33 +236,34 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     };
 
     return (
-        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl shadow-indigo-200/50 border border-white/80 ring-1 ring-white/60 overflow-hidden relative group">
-                        
-            {/* Decorative Background Blur */}
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl pointer-events-none mix-blend-multiply opacity-50"></div>
+        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/50 relative overflow-hidden group">
             
-            {/* Floating Load Previous Button - REFACTORED */}
+            {/* Ambient Background Effects */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
+
+            {/* Load Older Messages Button (Floating Top) */}
             {olderMessages.length > 0 && !loadingHistory && (
-                <button 
-                    type="button"
-                    onClick={handleLoadOlder}
-                    disabled={isLoadingOlder}
-                    className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md text-slate-600 hover:text-indigo-600 text-xs font-bold px-4 py-2 rounded-full transition-all border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
-                >
-                    {isLoadingOlder ? (
-                        <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                    )}
-                    {isLoadingOlder ? 'Loading...' : `Load Previous Messages (${olderMessages.length})`}
-                </button>
+                <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
+                    <button 
+                        type="button"
+                        onClick={handleLoadOlder}
+                        disabled={isLoadingOlder}
+                        className="bg-white/90 backdrop-blur text-indigo-600 hover:text-indigo-800 text-[10px] font-bold px-4 py-1.5 rounded-full transition-all border border-indigo-100 shadow-sm hover:shadow-md flex items-center gap-2"
+                    >
+                        {isLoadingOlder ? (
+                            <div className="w-2.5 h-2.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <span>Load Previous ({olderMessages.length})</span>
+                        )}
+                    </button>
+                </div>
             )}
 
-            {/* Chat Area - Fixed Height, Scrollable */}
+            {/* Main Chat Scroll Area */}
             <div 
                 ref={scrollContainerRef}
-                className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 pt-16 pb-4 lg:px-8 lg:pt-16 lg:pb-8 space-y-8 custom-scrollbar relative z-10"
+                className="flex-1 min-h-0 basis-0 overflow-y-auto px-4 sm:px-8 pt-8 pb-4 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center">
@@ -275,49 +272,48 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 ) : (
                     messages.map((msg, index) => (
                         <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
-                            <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                 
                                 {/* Avatar */}
-                                <div className="mb-1 hidden sm:block shadow-sm rounded-full">
+                                <div className="mb-1 hidden sm:block">
                                     {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                 </div>
 
-                                {/* Bubble */}
+                                {/* Message Bubble */}
                                 <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
-                                    <div className={`px-5 py-4 lg:px-6 lg:py-5 rounded-3xl shadow-sm text-sm leading-relaxed relative border transition-all hover:shadow-md w-full ${
+                                    <div className={`px-5 py-3.5 rounded-[1.5rem] shadow-sm text-sm leading-relaxed relative border transition-all ${
                                         msg.role === 'user' 
-                                        ? 'bg-gradient-to-br from-[#4D7CFF] to-[#3B82F6] text-white rounded-tr-none shadow-indigo-500/20 border-transparent bg-clip-padding' 
-                                        : 'bg-white text-gray-800 rounded-tl-none border-gray-100 shadow-sm'
+                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-500/20 border-transparent' 
+                                        : 'bg-white text-slate-700 rounded-tl-none border-gray-100 shadow-sm'
                                     }`}>
-                                        {/* Highlight overlay for user bubble */}
-                                        {msg.role === 'user' && <div className="absolute inset-0 bg-white/10 rounded-3xl rounded-tr-none pointer-events-none"></div>}
-                                        
                                         {msg.role === 'user' 
                                             ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                                             : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
                                         }
                                     </div>
 
-                                    {/* Ticket Proposal */}
+                                    {/* Embedded Widgets */}
                                     {msg.type === 'proposal' && msg.ticketDraft && (
-                                        <TicketProposalCard 
-                                            draft={msg.ticketDraft} 
-                                            onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
-                                            onCancel={() => handleCancelTicket(msg.id)}
-                                            isSubmitting={submittingTicketId === msg.id}
-                                            isSubmitted={msg.isSubmitted || false}
-                                        />
+                                        <div className="pl-2">
+                                            <TicketProposalCard 
+                                                draft={msg.ticketDraft} 
+                                                onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
+                                                onCancel={() => handleCancelTicket(msg.id)}
+                                                isSubmitting={submittingTicketId === msg.id}
+                                                isSubmitted={msg.isSubmitted || false}
+                                            />
+                                        </div>
                                     )}
                                     
-                                    <span className={`text-[9px] font-bold mt-2 px-2 opacity-40 ${msg.role === 'user' ? 'text-right text-indigo-900' : 'text-left text-gray-400'}`}>
+                                    <span className={`text-[10px] font-medium mt-1.5 px-2 opacity-50 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Scenario A: Quick Actions (First Time User) - Render after Welcome Message */}
+                            {/* Quick Actions (Contextual) */}
                             {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
-                                <div className="w-full mt-4 pl-12 sm:pl-16">
+                                <div className="w-full mt-6 pl-0 sm:pl-14">
                                     <QuickActions onAction={handleQuickAction} className="justify-start" />
                                 </div>
                             )}
@@ -326,9 +322,9 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 )}
                 
                 {isTyping && (
-                    <div className="flex items-center gap-3 animate-fadeIn">
+                    <div className="flex items-center gap-3 animate-fadeIn pl-2">
                         <PixaBotIcon />
-                        <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5 items-center h-12">
+                        <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5 items-center">
                             <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
                             <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
                             <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
@@ -339,39 +335,47 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area - Sticky Bottom within Flex Container */}
-            <div className="p-4 lg:p-6 relative z-20 bg-white/40 backdrop-blur-md border-t border-white/50 flex flex-col gap-2 shrink-0">
+            {/* Input Area */}
+            <div className="p-4 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
                 
-                {/* Scenario B: Quick Actions (Returning User / Interacted) - Render above Input */}
-                {hasInteracted && !loadingHistory && (
-                    <div className="pb-2 px-2 flex justify-center md:justify-start">
-                        <QuickActions onAction={handleQuickAction} />
+                {hasInteracted && !loadingHistory && !isTyping && (
+                    <div className="mb-4 overflow-x-auto pb-2 no-scrollbar">
+                        <QuickActions onAction={handleQuickAction} className="flex-nowrap" />
                     </div>
                 )}
 
-                <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-full p-2 flex items-center gap-2 ring-1 ring-black/5 transition-all focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300">
+                <div className="flex gap-3 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
                     <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex-shrink-0"
-                        title="Upload Screenshot"
+                        className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
+                        title="Attach Screenshot"
                     >
                         <UploadIcon className="w-5 h-5" />
                     </button>
                     
-                    <input 
+                    <textarea 
                         ref={inputFocusRef}
-                        type="text"
-                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 h-full"
+                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-3 max-h-32"
                         placeholder="Type your message..."
+                        rows={1}
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
                     />
                     
                     <button 
                         onClick={() => handleSendMessage()}
-                        disabled={!inputText.trim()}
-                        className={`p-3 rounded-full transition-all flex-shrink-0 shadow-sm ${inputText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' : 'bg-gray-100 text-gray-300'}`}
+                        disabled={!inputText.trim() || isTyping}
+                        className={`p-3 rounded-full transition-all shrink-0 shadow-md ${
+                            inputText.trim() 
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
+                            : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
                     >
                         <PaperAirplaneIcon className="w-5 h-5" />
                     </button>
