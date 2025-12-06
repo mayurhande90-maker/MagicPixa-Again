@@ -1,4 +1,4 @@
-
+// ... existing imports ...
 import React, { useState, useEffect } from 'react';
 import { Ticket } from '../../types';
 import { 
@@ -13,8 +13,7 @@ import {
     XIcon
 } from '../../components/icons';
 
-// --- HELPERS ---
-
+// ... existing helpers ...
 export const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -42,15 +41,15 @@ export const formatRelativeTime = (date: Date | any) => {
 
 export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const config = {
-        open: { bg: 'bg-amber-100/50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-        resolved: { bg: 'bg-emerald-100/50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-        rejected: { bg: 'bg-rose-100/50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
+        open: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+        resolved: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+        rejected: { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' }
     };
     // @ts-ignore
     const c = config[status] || config.open;
 
     return (
-        <span className={`pl-2 pr-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${c.bg} ${c.text} ${c.border} inline-flex items-center gap-1.5`}>
+        <span className={`pl-2 pr-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${c.bg} ${c.text} ${c.border} inline-flex items-center gap-1.5 shadow-sm`}>
             <span className={`w-1.5 h-1.5 rounded-full ${c.dot} ${status === 'open' ? 'animate-pulse' : ''}`}></span>
             {status}
         </span>
@@ -105,14 +104,15 @@ export const TicketProposalCard: React.FC<{
 
     if (isSubmitted) {
         return (
-            <div className="mt-4 bg-emerald-50/80 backdrop-blur-md p-5 rounded-2xl border border-emerald-200 shadow-sm animate-fadeIn max-w-sm w-full">
-                <div className="flex items-center gap-3 text-emerald-700 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+            <div className="mt-4 bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm animate-fadeIn max-w-sm w-full relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                         <CheckIcon className="w-5 h-5" />
                     </div>
                     <div>
-                        <span className="text-sm font-bold block">Ticket Created</span>
-                        <span className="text-xs opacity-80">Reference: #{Math.floor(Math.random() * 10000)}</span>
+                        <h4 className="text-emerald-900 font-bold text-sm">Ticket Submitted</h4>
+                        <p className="text-emerald-600/80 text-xs mt-0.5">Reference #{Math.floor(Math.random() * 10000)}</p>
                     </div>
                 </div>
             </div>
@@ -125,36 +125,45 @@ export const TicketProposalCard: React.FC<{
         : allTypes;
 
     return (
-        <div className="mt-4 bg-white/95 backdrop-blur-xl p-5 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-500/10 animate-fadeIn max-w-sm w-full ring-1 ring-white/50">
-            <div className="flex items-center justify-between gap-2 mb-5 border-b border-gray-100 pb-3">
+        <div className="mt-4 w-full max-w-sm bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-200 overflow-hidden animate-fadeIn transition-all hover:shadow-2xl hover:border-indigo-200 group">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 via-white to-gray-50 flex justify-between items-center">
                 <div className="flex items-center gap-2 text-indigo-600">
-                    <TicketIcon className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wide">New Ticket Draft</span>
+                    <div className="p-1.5 bg-indigo-100 rounded-md">
+                        <TicketIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wide">Ticket Preview</span>
+                </div>
+                <div className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-yellow-200/50">
+                    Draft
                 </div>
             </div>
             
-            <div className="space-y-4 mb-6">
+            <div className="p-5 space-y-5">
+                {/* Subject Input */}
                 <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Subject</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Subject</label>
                     <input 
-                        className="w-full text-sm font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                        className="w-full text-base font-bold text-gray-800 bg-transparent border-b-2 border-gray-100 px-1 py-1 focus:border-indigo-500 focus:ring-0 outline-none transition-all placeholder-gray-300"
                         value={editedDraft.subject || ''}
                         onChange={e => setEditedDraft({...editedDraft, subject: e.target.value})}
+                        placeholder="Ticket Subject"
                     />
                 </div>
 
+                {/* Category Pills */}
                 {visibleTypes.length > 1 && (
                     <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Category</label>
-                        <div className="flex gap-2">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Category</label>
+                        <div className="flex gap-2 flex-wrap">
                             {visibleTypes.map(t => (
                                 <button 
                                     key={t}
                                     onClick={() => setEditedDraft({...editedDraft, type: t as any})}
-                                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase border transition-all ${
+                                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border transition-all transform active:scale-95 ${
                                         editedDraft.type === t 
-                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' 
-                                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' 
+                                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
                                     {t}
@@ -164,31 +173,41 @@ export const TicketProposalCard: React.FC<{
                     </div>
                 )}
 
+                {/* Description Input */}
                 <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Details</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Description</label>
                     <textarea 
-                        className="w-full text-xs text-gray-700 font-medium bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none min-h-[80px]"
+                        className="w-full text-sm text-gray-600 bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none min-h-[100px] leading-relaxed"
                         value={editedDraft.description || ''}
                         onChange={e => setEditedDraft({...editedDraft, description: e.target.value})}
-                        placeholder="Provide details for our team..."
+                        placeholder="Please describe your issue in detail..."
                     />
                 </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Footer Actions */}
+            <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
                 <button 
                     onClick={onCancel}
                     disabled={isSubmitting}
-                    className="px-4 py-2.5 bg-white border border-gray-200 text-gray-500 rounded-xl text-xs font-bold hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    className="px-4 py-2.5 text-gray-500 text-xs font-bold hover:text-red-500 transition-colors disabled:opacity-50"
                 >
                     Cancel
                 </button>
                 <button 
                     onClick={() => onConfirm(editedDraft)}
                     disabled={isSubmitting}
-                    className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2 disabled:opacity-70 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex-1 bg-[#1A1A1E] text-white py-2.5 rounded-xl text-xs font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-70 disabled:transform-none"
                 >
-                    {isSubmitting ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <>Create Ticket <ArrowRightIcon className="w-3 h-3"/></>}
+                    {isSubmitting ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> Creating...
+                        </>
+                    ) : (
+                        <>
+                            Confirm & Submit <ArrowRightIcon className="w-3 h-3 text-gray-400 group-hover:text-white transition-colors"/>
+                        </>
+                    )}
                 </button>
             </div>
         </div>
