@@ -1,3 +1,4 @@
+
 // ... existing imports ...
 import React, { useState, useEffect } from 'react';
 import { Ticket } from '../../types';
@@ -271,10 +272,10 @@ export const UserMessageIcon = ({ user }: { user: any }) => (
 
 export const QuickActions: React.FC<{ onAction: (action: any) => void; className?: string }> = ({ onAction, className }) => {
     const actions = [
-        { label: "Billing Help", icon: CreditCardIcon, prompt: "I have a billing issue.", autoSend: false },
-        { label: "Feature Guide", icon: LightbulbIcon, prompt: "How do I use the features?", autoSend: false },
-        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug.", autoSend: false },
-        { label: "Request Feature", icon: SparklesIcon, prompt: "I have a feature idea.", autoSend: false }
+        { label: "Billing Help", icon: CreditCardIcon, prompt: "I have a question about my credits or billing history.", autoSend: true },
+        { label: "Feature Guide", icon: LightbulbIcon, prompt: "Can you give me a quick guide on how to use the AI tools?", autoSend: true },
+        { label: "Report Bug", icon: FlagIcon, prompt: "I found a bug I'd like to report.", autoSend: true },
+        { label: "Request Feature", icon: SparklesIcon, prompt: "I have a new feature idea.", autoSend: true }
     ];
 
     return (

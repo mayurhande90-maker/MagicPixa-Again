@@ -257,7 +257,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-8 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-12 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center">
