@@ -1,24 +1,44 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { getRecentFeedbacks, getCreationById } from '../../firebase';
-import { StarIcon, ThumbUpIcon, ThumbDownIcon, ImageIcon, EyeIcon } from '../icons';
+import { getRecentFeedbacks, getCreationById, getAllUsers } from '../../firebase';
+import { StarIcon, ThumbUpIcon, ThumbDownIcon, EyeIcon, ArrowLeftIcon, ArrowRightIcon } from '../icons';
 import { AdminImageViewer } from './AdminImageViewer';
+import { User } from '../../types';
 
 export const AdminFeedback: React.FC = () => {
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
+    const [usersMap, setUsersMap] = useState<Record<string, User>>({});
     const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'up' | 'down'>('all');
+    const [dateFilter, setDateFilter] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
-        loadFeedback();
+        loadData();
     }, []);
 
-    const loadFeedback = async () => {
+    const loadData = async () => {
         setIsLoading(true);
         try {
-            const feed = await getRecentFeedbacks(100);
+            // Load Feedbacks and Users in parallel
+            const [feed, allUsers] = await Promise.all([
+                getRecentFeedbacks(100),
+                getAllUsers()
+            ]);
+            
             setFeedbacks(feed);
+            
+            // Create a quick lookup map for users
+            const map: Record<string, User> = {};
+            allUsers.forEach(u => {
+                map[u.uid] = u;
+            });
+            setUsersMap(map);
+
         } catch (e) { console.error(e); }
         setIsLoading(false);
     };
@@ -63,9 +83,38 @@ export const AdminFeedback: React.FC = () => {
     }, [feedbacks]);
 
     const filteredFeedbacks = useMemo(() => {
-        if (feedbackFilter === 'all') return feedbacks;
-        return feedbacks.filter(f => f.feedback === feedbackFilter);
-    }, [feedbacks, feedbackFilter]);
+        let result = feedbacks;
+
+        // 1. Status Filter
+        if (feedbackFilter !== 'all') {
+            result = result.filter(f => f.feedback === feedbackFilter);
+        }
+
+        // 2. Date Filter
+        if (dateFilter) {
+            result = result.filter(f => {
+                if (!f.timestamp) return false;
+                try {
+                    const d = f.timestamp.toDate ? f.timestamp.toDate() : new Date(f.timestamp.seconds * 1000 || f.timestamp);
+                    return d.toISOString().split('T')[0] === dateFilter;
+                } catch { return false; }
+            });
+        }
+
+        return result;
+    }, [feedbacks, feedbackFilter, dateFilter]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredFeedbacks.length / itemsPerPage);
+    const paginatedFeedbacks = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredFeedbacks.slice(start, start + itemsPerPage);
+    }, [filteredFeedbacks, currentPage]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [feedbackFilter, dateFilter]);
 
     const formatTableDate = (timestamp: any) => { if (!timestamp) return '-'; try { const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp); return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return '-'; } };
 
@@ -109,21 +158,28 @@ export const AdminFeedback: React.FC = () => {
 
             {/* Main Table Card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
+                <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><StarIcon className="w-5 h-5"/></div>
                         <h3 className="font-bold text-gray-800">Feedback Feed</h3>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <input 
+                            type="date" 
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 focus:outline-none focus:border-indigo-500 bg-white"
+                        />
+                        {dateFilter && (
+                            <button onClick={() => setDateFilter('')} className="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Clear Date</button>
+                        )}
+                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
                         <div className="flex bg-white rounded-lg p-1 border border-gray-200">
                             <button onClick={() => setFeedbackFilter('all')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${feedbackFilter === 'all' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>All</button>
                             <button onClick={() => setFeedbackFilter('up')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${feedbackFilter === 'up' ? 'bg-green-50 text-green-700' : 'text-gray-500 hover:text-green-600'}`}>Positive</button>
                             <button onClick={() => setFeedbackFilter('down')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${feedbackFilter === 'down' ? 'bg-red-50 text-red-700' : 'text-gray-500 hover:text-red-600'}`}>Negative</button>
                         </div>
-                        <button onClick={loadFeedback} className="p-2 hover:bg-gray-200 rounded-lg text-gray-500 transition-colors" title="Refresh">
-                            <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        </button>
                     </div>
                 </div>
                 
@@ -131,7 +187,7 @@ export const AdminFeedback: React.FC = () => {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
                             <tr>
-                                <th className="p-4 w-32">Rating</th>
+                                <th className="p-4 w-24">Rating</th>
                                 <th className="p-4">Feature & Context</th>
                                 <th className="p-4">User</th>
                                 <th className="p-4">Time</th>
@@ -139,67 +195,57 @@ export const AdminFeedback: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {isLoading && feedbacks.length === 0 ? (
+                            {isLoading ? (
                                 <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading insights...</td></tr>
-                            ) : filteredFeedbacks.length > 0 ? filteredFeedbacks.map((fb, idx) => (
-                                <tr key={fb.id || idx} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="p-4">
-                                        {fb.feedback === 'up' ? (
-                                            <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold border border-green-100">
-                                                <ThumbUpIcon className="w-3.5 h-3.5" /> Good
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-3 py-1.5 rounded-full text-xs font-bold border border-red-100">
-                                                <ThumbDownIcon className="w-3.5 h-3.5" /> Bad
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div 
-                                                className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden cursor-zoom-in shrink-0 relative group/thumb"
-                                                onClick={() => {
-                                                    if (fb.imageUrl) setViewingImage(fb.imageUrl);
-                                                    else if (fb.creationId) handleViewGeneratedImage(fb.userId, fb.creationId);
-                                                }}
-                                            >
-                                                {fb.imageUrl ? (
-                                                    <img src={fb.imageUrl} className="w-full h-full object-cover" alt="Preview" loading="lazy" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                        <ImageIcon className="w-4 h-4" />
-                                                    </div>
-                                                )}
-                                            </div>
+                            ) : paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map((fb, idx) => {
+                                // Resolve User Data
+                                const userInMap = usersMap[fb.userId];
+                                const displayName = fb.userName || userInMap?.name || 'Unknown User';
+                                const displayEmail = fb.userEmail || userInMap?.email || fb.userId;
+
+                                return (
+                                    <tr key={fb.id || idx} className="hover:bg-gray-50 transition-colors group">
+                                        <td className="p-4 align-top">
+                                            {fb.feedback === 'up' ? (
+                                                <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold border border-green-100">
+                                                    <ThumbUpIcon className="w-3.5 h-3.5" /> Good
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold border border-red-100">
+                                                    <ThumbDownIcon className="w-3.5 h-3.5" /> Bad
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 align-top">
                                             <div>
                                                 <p className="font-bold text-gray-900 text-sm">{fb.feature}</p>
                                                 {fb.creationId && <p className="text-[10px] text-gray-400 font-mono mt-0.5 opacity-60">ID: {fb.creationId.slice(0, 8)}...</p>}
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">U</div>
-                                            <span className="text-xs font-medium text-gray-600 font-mono truncate max-w-[120px]" title={fb.userId}>{fb.userId}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
-                                        {formatTableDate(fb.timestamp)}
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button 
-                                            onClick={() => {
-                                                if (fb.imageUrl) setViewingImage(fb.imageUrl);
-                                                else if (fb.creationId) handleViewGeneratedImage(fb.userId, fb.creationId);
-                                            }}
-                                            className="text-gray-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg"
-                                            title="View Full Image"
-                                        >
-                                            <EyeIcon className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            )) : (
+                                        </td>
+                                        <td className="p-4 align-top">
+                                            <div>
+                                                <p className="font-bold text-gray-900 text-sm">{displayName}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{displayEmail}</p>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 align-top text-xs text-gray-500 whitespace-nowrap">
+                                            {formatTableDate(fb.timestamp)}
+                                        </td>
+                                        <td className="p-4 align-top text-right">
+                                            <button 
+                                                onClick={() => {
+                                                    if (fb.imageUrl) setViewingImage(fb.imageUrl);
+                                                    else if (fb.creationId) handleViewGeneratedImage(fb.userId, fb.creationId);
+                                                }}
+                                                className="text-gray-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg inline-flex items-center gap-2"
+                                                title="View Full Image"
+                                            >
+                                                <EyeIcon className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            }) : (
                                 <tr>
                                     <td colSpan={5} className="p-12 text-center text-gray-400">
                                         <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -212,6 +258,27 @@ export const AdminFeedback: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                            disabled={currentPage === 1}
+                            className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                        >
+                            <ArrowLeftIcon className="w-4 h-4"/>
+                        </button>
+                        <span className="text-xs font-bold text-gray-500">Page {currentPage} of {totalPages}</span>
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                            disabled={currentPage === totalPages}
+                            className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                        >
+                            <ArrowRightIcon className="w-4 h-4"/>
+                        </button>
+                    </div>
+                )}
             </div>
             {viewingImage && <AdminImageViewer src={viewingImage} onClose={() => setViewingImage(null)} />}
         </div>

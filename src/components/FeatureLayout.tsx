@@ -321,7 +321,15 @@ export const FeatureLayout: React.FC<{
                 // If creationId exists, we send that. 
                 // We send the blobUrl (resultImage) as backup for local context, 
                 // but admins should fetch via creationId if possible.
-                await submitFeedback(auth.currentUser.uid, creationId || null, type, title, resultImage);
+                await submitFeedback(
+                    auth.currentUser.uid, 
+                    creationId || null, 
+                    type, 
+                    title, 
+                    resultImage,
+                    auth.currentUser.email || '',
+                    auth.currentUser.displayName || 'Unknown'
+                );
             } catch (error) {
                 console.error("Failed to submit feedback:", error);
             }

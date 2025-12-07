@@ -1,4 +1,3 @@
-
 // ... existing imports ...
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -489,7 +488,9 @@ export const submitFeedback = async (
     creationId: string | null, 
     feedback: 'up' | 'down', 
     feature: string = 'Unknown', 
-    imageUrl: string | null = null
+    imageUrl: string | null = null,
+    userEmail: string = '',
+    userName: string = ''
 ) => {
     if (!db) return;
     await db.collection('feedbacks').add({
@@ -498,13 +499,14 @@ export const submitFeedback = async (
         feedback: feedback,
         feature: feature,
         imageUrl: imageUrl,
+        userEmail: userEmail,
+        userName: userName,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
 };
 
-export const getRecentFeedbacks = async (limit = 50) => {
+export const getRecentFeedbacks = async (limit = 100) => {
     if (!db) return [];
-    // We assume 'feedbacks' collection exists and is queryable
     const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get();
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
