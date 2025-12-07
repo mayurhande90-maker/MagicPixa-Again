@@ -17,9 +17,6 @@ import {
     saveCreation, 
     deductCredits,
 } from './firebase';
-import { 
-    colourizeImage, 
-} from './services/geminiService';
 import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
     UsersIcon,
@@ -46,6 +43,7 @@ const MagicRealty = lazy(() => import('./features/MagicRealty').then(module => (
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
+const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -67,102 +65,6 @@ interface DashboardPageProps {
     setIsConversationOpen: (isOpen: boolean) => void;
     appConfig: AppConfig | null;
     setAppConfig: (config: AppConfig) => void;
-}
-
-const StandardFeature: React.FC<{
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-    cost: number;
-    auth: AuthProps;
-    onGenerate: (image: { base64: string; mimeType: string }, prompt?: string) => Promise<string>;
-    rawIcon?: boolean;
-}> = ({ title, description, icon, cost, auth, onGenerate, rawIcon }) => {
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [prompt, setPrompt] = useState('');
-    const [result, setResult] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        
-        // FIX: Strict credit check with fallback for undefined
-        if ((auth.user.credits || 0) < cost) {
-            alert("Insufficient credits. Please purchase a pack to continue.");
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const res = await onGenerate(image.base64, prompt);
-            const url = res.startsWith('data:') ? res : `data:image/png;base64,${res}`;
-            setResult(url);
-            await saveCreation(auth.user.uid, url, title);
-            const updatedUser = await deductCredits(auth.user.uid, cost, title);
-            
-            // Check for milestone bonus in updated user object
-            if (updatedUser.lifetimeGenerations) {
-                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
-                if (bonus !== false) {
-                    setMilestoneBonus(bonus);
-                }
-            }
-
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e) {
-            console.error(e);
-            alert("Generation failed.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <>
-            <FeatureLayout
-                title={title}
-                description={description}
-                icon={icon}
-                rawIcon={rawIcon}
-                creditCost={cost}
-                isGenerating={loading}
-                canGenerate={!!image}
-                onGenerate={handleGenerate}
-                resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={() => { setImage(null); setResult(null); setPrompt(''); }}
-                resultHeightClass="h-[400px]"
-                leftContent={
-                    image ? (
-                        <div className="relative h-full w-full flex items-center justify-center">
-                            <img src={image.url} className="max-h-full max-w-full rounded-lg" alt="Source" />
-                             <button onClick={() => fileInputRef.current?.click()} className="absolute top-2 right-2 bg-white p-2 rounded-full shadow"><PencilIcon className="w-4 h-4"/></button>
-                        </div>
-                    ) : (
-                        <UploadPlaceholder label="Upload Image" onClick={() => fileInputRef.current?.click()} />
-                    )
-                }
-                rightContent={
-                    <div className="space-y-4">
-                        <TextAreaField label="Custom Instruction (Optional)" value={prompt} onChange={(e: any) => setPrompt(e.target.value)} placeholder="Describe desired outcome..." />
-                    </div>
-                }
-            />
-            <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*" />
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
-        </>
-    );
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
@@ -207,7 +109,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'soul':
                  return <PixaTogether auth={auth} appConfig={appConfig} />;
             case 'colour':
-                 return <StandardFeature title="Pixa Photo Restore" description="Colourize B&W photos." icon={<PixaRestoreIcon className="w-14 h-14"/>} rawIcon={true} cost={appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 2} auth={auth} onGenerate={async (img) => await colourizeImage(img.base64, img.mimeType, 'restore')} />;
+                 return <PixaPhotoRestore auth={auth} appConfig={appConfig} />;
             case 'interior':
                  return <MagicInterior auth={auth} appConfig={appConfig} />;
             case 'apparel':

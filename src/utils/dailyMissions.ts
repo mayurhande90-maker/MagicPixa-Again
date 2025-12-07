@@ -13,7 +13,7 @@ export interface MissionConfig {
     interiorRoomType?: string;
     
     // Colour Params
-    colourMode?: 'restore' | 'colourize_only';
+    colourMode?: 'restore_color' | 'restore_only';
 }
 
 export interface Mission {
@@ -52,7 +52,7 @@ const MISSIONS: Mission[] = [
         reward: 5,
         config: {
             toolType: 'colour',
-            colourMode: 'restore'
+            colourMode: 'restore_color'
         }
     },
     {

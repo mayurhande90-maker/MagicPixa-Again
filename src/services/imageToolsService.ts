@@ -1,3 +1,4 @@
+
 import { Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -66,20 +67,52 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,
-  mode: 'restore' | 'colourize_only'
+  mode: 'restore_color' | 'restore_only'
 ): Promise<string> => {
   const ai = getAiClient();
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    let basePrompt = `Task: Professional Photo Restoration & Colorization.
+    // 1. Analyze Identity First (The "Lock")
+    const identityProfile = await analyzeFaceBiometrics(ai, data, optimizedMime, "the subject");
+
+    let basePrompt = `You are a World-Class Photo Restoration Specialist (Smithsonian Level).
     
-    Instructions:
-    1. Analyze the image content (clothing, skin tone, background era).
-    2. Colorize the black and white image with historically accurate, photorealistic colors.
-    3. Maintain the exact facial features and identity of the subjects.`;
+    TASK: Restore this damaged/old photograph.
     
-    if (mode === 'restore') basePrompt += `\n4. RESTORATION MODE: Actively detect and heal scratches, dust, tears, and noise. Sharpen blurred details slightly.`;
+    *** CRITICAL: IDENTITY PRESERVATION PROTOCOL ***
+    You must NOT change the person's face, expression, or structure.
+    We have analyzed the subject. Ensure the output strictly matches this profile:
+    ${identityProfile}
+    
+    **NEGATIVE CONSTRAINTS:**
+    - Do NOT generate a "generic AI face". Use the exact features from the input.
+    - Do NOT change the position of eyes, nose, or mouth.
+    - Do NOT smooth the skin into plastic. Keep natural skin texture appropriate for the age.
+    
+    **RESTORATION TASKS:**
+    1. **Heal**: Remove scratches, dust, tears, and fold lines.
+    2. **Deblur**: Sharpen focus on eyes and key details.
+    3. **Denoise**: Remove film grain noise while keeping texture.
+    `;
+    
+    if (mode === 'restore_color') {
+        basePrompt += `
+        **COLORIZATION MODE:**
+        - Accurately colorize the image based on historical context and lighting.
+        - Skin tones must be realistic and varied (not monochromatic).
+        - Clothing and background colors should be muted and realistic for the era.
+        `;
+    } else {
+        basePrompt += `
+        **RESTORE ONLY MODE:**
+        - **OUTPUT MUST BE BLACK & WHITE / SEPIA.**
+        - Do NOT add color.
+        - Maintain the original tonal range and atmosphere, just cleaner and sharper.
+        `;
+    }
+
+    basePrompt += `\nOutput ONLY the high-resolution restored image.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -96,7 +129,7 @@ export const colourizeImage = async (
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("No image generated.");
   } catch (error) {
-    console.error("Error colourizing image:", error);
+    console.error("Error restoring image:", error);
     throw error;
   }
 };
