@@ -303,9 +303,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setLastCreationId(null);
     };
 
-    const handleEditorSave = (newUrl: string) => {
+    const handleEditorSave = async (newUrl: string) => {
         setResult(newUrl);
-        saveCreation(auth.user!.uid, newUrl, 'Pixa Product Shots (Edited)');
+        // Correctly capture the new creation ID so feedback and admin links work on the edited version
+        const id = await saveCreation(auth.user!.uid, newUrl, 'Pixa Product Shots (Edited)');
+        setLastCreationId(id);
     };
 
     const handleDeductEditCredit = async () => {

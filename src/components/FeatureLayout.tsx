@@ -317,7 +317,7 @@ export const FeatureLayout: React.FC<{
         if (isFeedbackLocked || animatingFeedback) return;
 
         setIsFeedbackLocked(true);
-        setAnimatingFeedback(type); // Triggers sparkle and animation class
+        setAnimatingFeedback(type); // Triggers sparkle and animation class (visual state)
         
         // Submit to backend immediately (Optimistic UI)
         if (auth?.currentUser) {
@@ -336,17 +336,17 @@ export const FeatureLayout: React.FC<{
             }
         }
 
-        // Animation Sequence: 
-        // 1. Button Press & Sparkle (0-600ms)
-        // 2. Hide Buttons & Show Thank You (600ms)
-        // 3. Hide Thank You (3600ms)
+        // DELAYED HIDING:
+        // 1. Keep buttons visible for 3 seconds so user sees selection.
+        // 2. Hide buttons, show "Thank You".
+        // 3. Hide "Thank You" after another 3 seconds.
         setTimeout(() => {
             setFeedbackGiven(type); // Hides buttons
-            setShowThankYou(true);
-            setAnimatingFeedback(null);
+            setAnimatingFeedback(null); 
+            setShowThankYou(true); // Show message
             
             setTimeout(() => setShowThankYou(false), 3000);
-        }, 700); 
+        }, 3000); 
     };
 
     return (
@@ -400,13 +400,13 @@ export const FeatureLayout: React.FC<{
                                 
                                 {/* Buttons Container - Only show if creationId exists to prevent broken admin links */}
                                 {!feedbackGiven && creationId && (
-                                    <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105' : ''}`}>
+                                    <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
                                         
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
                                             className={`relative p-2 rounded-full transition-all duration-200 ${
                                                 animatingFeedback === 'up' 
-                                                ? 'bg-green-500 text-white scale-90 shadow-inner' 
+                                                ? 'bg-green-500 text-white scale-110 shadow-lg' 
                                                 : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                             }`}
                                             title="Good Result"
@@ -421,7 +421,7 @@ export const FeatureLayout: React.FC<{
                                             onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
                                             className={`relative p-2 rounded-full transition-all duration-200 ${
                                                 animatingFeedback === 'down' 
-                                                ? 'bg-red-500 text-white scale-90 shadow-inner' 
+                                                ? 'bg-red-500 text-white scale-110 shadow-lg' 
                                                 : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                             }`}
                                             title="Bad Result"
