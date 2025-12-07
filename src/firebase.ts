@@ -147,14 +147,13 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
     });
 };
 
-// --- Config & System (FIXED COLLECTION NAMES TO MATCH RULES) ---
+// ... Config & System ...
 
 export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
     if (!db) {
         callback(null);
         return () => {};
     }
-    // Fixed: 'system' -> 'config'
     return db.collection('config').doc('main').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as AppConfig);
@@ -169,7 +168,6 @@ export const subscribeToAppConfig = (callback: (config: AppConfig | null) => voi
 
 export const updateAppConfig = async (config: AppConfig) => {
     if (!db) return;
-    // Fixed: 'system' -> 'config'
     await db.collection('config').doc('main').set(config, { merge: true });
 };
 
@@ -178,7 +176,6 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
         callback(null);
         return () => {};
     }
-    // Fixed: 'system' -> 'config'
     return db.collection('config').doc('announcement').onSnapshot((doc) => {
         if (doc.exists) {
             callback(doc.data() as Announcement);
@@ -204,9 +201,7 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
     };
 
     try {
-        // Fixed: 'system' -> 'config' to match Firestore Rules
         await db.collection('config').doc('announcement').set(cleanPayload);
-        
         try {
             await logAudit(uid, 'Update Announcement', `Updated: ${cleanPayload.title}`);
         } catch (e) { console.warn("Audit log failed (non-fatal)", e); }
@@ -222,12 +217,11 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
 
 export const getAnnouncement = async () => {
     if (!db) return null;
-    // Fixed: 'system' -> 'config'
     const doc = await db.collection('config').doc('announcement').get();
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
-// ... existing Creations & Credits ...
+// ... Creations & Credits ...
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
     const docRef = await db.collection('users').doc(uid).collection('creations').add({
@@ -480,7 +474,6 @@ export const clearSupportChat = async (uid: string) => {
     
     if (snapshot.size === 0) return;
 
-    // Delete in batches of 500
     const batch = db.batch();
     snapshot.docs.forEach((doc) => {
         batch.delete(doc.ref);
@@ -489,14 +482,38 @@ export const clearSupportChat = async (uid: string) => {
     await batch.commit();
 };
 
+// --- FEEDBACK SYSTEM ---
+
+export const submitFeedback = async (
+    uid: string, 
+    creationId: string | null, 
+    feedback: 'up' | 'down', 
+    feature: string = 'Unknown', 
+    imageUrl: string | null = null
+) => {
+    if (!db) return;
+    await db.collection('feedbacks').add({
+        userId: uid,
+        creationId: creationId,
+        feedback: feedback,
+        feature: feature,
+        imageUrl: imageUrl,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+};
+
+export const getRecentFeedbacks = async (limit = 50) => {
+    if (!db) return [];
+    // We assume 'feedbacks' collection exists and is queryable
+    const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get();
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
 // --- Admin ---
 
 export const getAllUsers = async () => {
     if (!db) return [];
-    // Ensure we are fetching from 'users' collection
     const snapshot = await db.collection('users').limit(100).get(); 
-    // CRITICAL: Map the doc.id to the 'uid' field to ensure the object is complete
-    // even if the uid wasn't explicitly saved as a field in the document.
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
 };
 
@@ -512,7 +529,6 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
     
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(amount),
-        // Add notification payload to trigger the user-side modal
         creditGrantNotification: {
             amount: amount,
             message: reason || 'Admin Grant',
@@ -619,7 +635,6 @@ export const get24HourCreditBurn = async () => {
 
 export const getGlobalFeatureUsage = async () => {
     if (!db) return [];
-    // Fixed: 'system' -> 'config'
     const doc = await db.collection('config').doc('stats').get();
     if (doc.exists && doc.data()?.featureUsage) {
         return Object.entries(doc.data()!.featureUsage).map(([k, v]) => ({ feature: k, count: v as number }));
@@ -631,7 +646,6 @@ export const getGlobalFeatureUsage = async () => {
 
 export const logAudit = async (adminUid: string, action: string, details: string) => {
     if (!db) return;
-    // Fixed: 'auditLogs' -> 'audit_logs' (snake_case)
     await db.collection('audit_logs').add({
         adminEmail: auth?.currentUser?.email || adminUid,
         action,
@@ -642,14 +656,12 @@ export const logAudit = async (adminUid: string, action: string, details: string
 
 export const getAuditLogs = async (limit = 50) => {
     if (!db) return [];
-    // Fixed: 'auditLogs' -> 'audit_logs'
     const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as AuditLog));
 };
 
 export const logApiError = async (endpoint: string, error: string, userId?: string) => {
     if (!db) return;
-    // Fixed: 'apiErrors' -> 'api_errors' (snake_case)
     await db.collection('api_errors').add({
         endpoint,
         error,
@@ -660,7 +672,6 @@ export const logApiError = async (endpoint: string, error: string, userId?: stri
 
 export const getApiErrorLogs = async (limit = 50) => {
     if (!db) return [];
-    // Fixed: 'apiErrors' -> 'api_errors'
     const snap = await db.collection('api_errors').orderBy('timestamp', 'desc').limit(limit).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog));
 };
@@ -674,7 +685,7 @@ export const sendSystemNotification = async (
     message: string, 
     type: string, 
     style: string,
-    link?: string // Added link parameter
+    link?: string
 ) => {
     if (!db) return;
     await db.collection('users').doc(targetUid).update({
@@ -683,7 +694,7 @@ export const sendSystemNotification = async (
             message,
             type,
             style,
-            link: link || null, // Added link to payload
+            link: link || null,
             read: false,
             timestamp: firebase.firestore.Timestamp.now()
         }

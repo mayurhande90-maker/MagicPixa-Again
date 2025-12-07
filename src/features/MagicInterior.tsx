@@ -219,6 +219,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={result}
+                creationId={lastCreationId}
                 
                 onResetResult={result ? undefined : () => setResult(null)}
                 onNewSession={result ? undefined : handleNewSession}

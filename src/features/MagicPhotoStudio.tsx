@@ -333,6 +333,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             canGenerate={canGenerate}
             onGenerate={handleGenerate}
             resultImage={result}
+            creationId={lastCreationId} // Pass creationId for feedback
             
             // Use Toolbar instead of bottom buttons
             onResetResult={result ? undefined : () => setResult(null)}

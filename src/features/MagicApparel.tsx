@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -64,106 +63,56 @@ const CompactUpload: React.FC<{
 };
 
 export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    // State
     const [personImage, setPersonImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [topImage, setTopImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [bottomImage, setBottomImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Styling Options - Defaults cleared
-    const [tuckStyle, setTuckStyle] = useState('');
-    const [fitStyle, setFitStyle] = useState('');
-    const [sleeveStyle, setSleeveStyle] = useState('');
-
+    const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("");
-    const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
-    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
-    
-    const [isDragging, setIsDragging] = useState(false);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
 
     // Refund State
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
-    
-    // Refs
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Cost
     const cost = appConfig?.featureCosts['Pixa TryOn'] || appConfig?.featureCosts['Magic Apparel'] || 4;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    // Animation
-    useEffect(() => {
-        let interval: any;
-        if (loading) {
-            const steps = ["Mapping body points...", "Analysing fabric physics...", "Draping garments...", "Adjusting lighting...", "Finalizing fit..."];
-            let step = 0;
-            setLoadingText(steps[0]);
-            interval = setInterval(() => {
-                step = (step + 1) % steps.length;
-                setLoadingText(steps[step]);
-            }, 1500);
-        }
-        return () => clearInterval(interval);
-    }, [loading]);
-
-    // Cleanup
-    useEffect(() => {
-        return () => {
-            if (result) URL.revokeObjectURL(result);
-        };
-    }, [result]);
-
-    const autoScroll = () => {
-        if (scrollRef.current) {
-            setTimeout(() => {
-                const element = scrollRef.current;
-                if (element) {
-                    element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
-                }
-            }, 100); 
-        }
-    };
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
-            setResult(null); // Reset result on new upload
         }
         e.target.value = '';
     };
 
     const handleGenerate = async () => {
-        if (!personImage || (!topImage && !bottomImage) || !auth.user) return;
+        if (!personImage || !auth.user) return;
+        if (!topGarment && !bottomGarment) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
-        setResult(null);
+        setResultImage(null);
         setLastCreationId(null);
 
         try {
             const res = await generateApparelTryOn(
                 personImage.base64.base64,
                 personImage.base64.mimeType,
-                topImage?.base64 || null,
-                bottomImage?.base64 || null,
-                undefined,
-                {
-                    tuck: tuckStyle,
-                    fit: fitStyle,
-                    sleeve: sleeveStyle
-                }
+                topGarment ? topGarment.base64 : null,
+                bottomGarment ? bottomGarment.base64 : null
             );
 
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
-            setResult(blobUrl);
+            setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
             const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn');
@@ -177,16 +126,16 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             }
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Generation failed. Please try again.");
+            alert(`Generation failed: ${e.message}`);
         } finally {
             setLoading(false);
         }
     };
 
     const handleRefundRequest = async (reason: string) => {
-        if (!auth.user || !result) return;
+        if (!auth.user || !resultImage) return;
         setIsRefunding(true);
         try {
             const res = await processRefundRequest(
@@ -200,7 +149,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             if (res.success) {
                 if (res.type === 'refund') {
                     auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
-                    setResult(null); 
+                    setResultImage(null); 
                     setNotification({ msg: res.message, type: 'success' });
                 } else {
                     setNotification({ msg: res.message, type: 'info' });
@@ -216,17 +165,14 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleNewSession = () => {
         setPersonImage(null);
-        setTopImage(null);
-        setBottomImage(null);
-        setResult(null);
+        setTopGarment(null);
+        setBottomGarment(null);
+        setResultImage(null);
         setLastCreationId(null);
-        setTuckStyle('');
-        setFitStyle('');
-        setSleeveStyle('');
     };
 
     const handleEditorSave = (newUrl: string) => {
-        setResult(newUrl);
+        setResultImage(newUrl);
         saveCreation(auth.user!.uid, newUrl, 'Pixa TryOn (Edited)');
     };
 
@@ -237,41 +183,24 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     };
 
-    const canGenerate = !!personImage && (!!topImage || !!bottomImage) && !isLowCredits;
-
-    // Drag and Drop for Main Image (Person)
-    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
-    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
-    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const file = e.dataTransfer.files[0];
-            if (file.type.startsWith('image/')) {
-                const base64 = await fileToBase64(file);
-                setPersonImage({ url: URL.createObjectURL(file), base64 });
-                setResult(null);
-            }
-        }
-    };
+    const canGenerate = !!personImage && (!!topGarment || !!bottomGarment) && !isLowCredits;
 
     return (
         <>
             <FeatureLayout 
                 title="Pixa TryOn"
-                description="Virtually try on clothes. Upload a person and garments to see how they look."
+                description="Virtual dressing room. Try clothes on any person instantly."
                 icon={<PixaTryOnIcon className="w-14 h-14"/>}
                 rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
-                resultImage={result}
-                
-                onResetResult={result ? undefined : () => setResult(null)}
-                onNewSession={result ? undefined : handleNewSession}
+                resultImage={resultImage}
+                onResetResult={resultImage ? undefined : handleGenerate}
+                onNewSession={resultImage ? undefined : handleNewSession}
                 resultOverlay={
-                    result ? (
+                    resultImage ? (
                         <ResultToolbar 
                             onNew={handleNewSession}
                             onRegen={handleGenerate}
@@ -280,74 +209,48 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         />
                     ) : null
                 }
-
-                resultHeightClass="h-[800px]"
+                resultHeightClass="h-[750px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                     hideIcon: true,
-                    label: "Generate Try-On"
+                    label: "Try On Now"
                 }}
                 scrollRef={scrollRef}
                 leftContent={
-                    personImage ? (
-                        <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            {loading && (
-                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                    <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                        <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
-                                    </div>
-                                    <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                    <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        {loading && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                            )}
-                            
-                            <img src={personImage.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Model" />
-                            
-                            {!loading && (
-                                <button 
-                                    onClick={() => fileInputRef.current?.click()} 
-                                    className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
-                                    title="Change Model"
-                                >
-                                    <UploadIcon className="w-5 h-5"/>
-                                </button>
-                            )}
-                        </div>
-                    ) : (
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={handleDragOver}
-                            onDragEnter={handleDragEnter}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${
-                                isDragging 
-                                ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' 
-                                : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'
-                            }`}
-                        >
-                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                <PixaTryOnIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">Dressing Model...</p>
                             </div>
-                            
-                            <div className="relative z-10 mt-6 text-center space-y-2 px-6">
-                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Model Photo</p>
-                                <div className="bg-gray-50 rounded-full px-3 py-1 inline-block">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p>
+                        )}
+                        
+                        {personImage ? (
+                            <>
+                                <img src={personImage.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Model" />
+                                {!loading && (
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()} 
+                                        className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
+                                        title="Change Model"
+                                    >
+                                        <UploadIcon className="w-5 h-5"/>
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-center opacity-50 select-none">
+                                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <UserIcon className="w-10 h-10 text-indigo-300" />
                                 </div>
+                                <h3 className="text-xl font-bold text-gray-300">Model Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-1">Upload a person to start.</p>
                             </div>
-
-                            {isDragging && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
-                                    <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
-                                        <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
-                                            <UploadIcon className="w-5 h-5"/> Drop to Upload!
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )
+                        )}
+                    </div>
                 }
                 rightContent={
                     isLowCredits ? (
@@ -357,41 +260,44 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
-                        <div className="space-y-8 p-1 animate-fadeIn">
-                            {/* 1. Garment Uploads */}
+                        <div className="space-y-6 p-1 animate-fadeIn">
+                            
+                            {/* Step 1: Model */}
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Upload Garments</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. The Model</label>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <CompactUpload
-                                        label="Upper Wear"
-                                        image={topImage}
-                                        onUpload={handleUpload(setTopImage)}
-                                        onClear={() => setTopImage(null)}
-                                        icon={<ApparelIcon className="w-6 h-6 text-blue-400" />}
-                                        optional={true}
-                                    />
-                                    <CompactUpload
-                                        label="Lower Wear"
-                                        image={bottomImage}
-                                        onUpload={handleUpload(setBottomImage)}
-                                        onClear={() => setBottomImage(null)}
-                                        icon={<ApparelIcon className="w-6 h-6 text-purple-400" />}
-                                        optional={true}
-                                    />
-                                </div>
+                                <CompactUpload 
+                                    label="Person Photo" 
+                                    image={personImage} 
+                                    onUpload={handleUpload(setPersonImage)} 
+                                    onClear={() => setPersonImage(null)} 
+                                    icon={<UserIcon className="w-6 h-6 text-blue-400"/>}
+                                />
                             </div>
 
-                            {/* 2. Styling Options */}
-                            <div className="animate-fadeIn">
+                            {/* Step 2: Garments */}
+                            <div className="border-t border-gray-100 pt-6">
                                 <div className="flex items-center justify-between mb-3 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Styling Preferences</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. The Clothes</label>
                                 </div>
-                                <div className="space-y-4">
-                                    <SelectionGrid label="Tuck Style" options={['Tucked Out', 'Tucked In']} value={tuckStyle} onChange={setTuckStyle} />
-                                    <SelectionGrid label="Sleeve Length" options={['Rolled Down', 'Rolled Up']} value={sleeveStyle} onChange={setSleeveStyle} />
-                                    <SelectionGrid label="Fit" options={['Regular Fit', 'Slim Fit', 'Oversized']} value={fitStyle} onChange={setFitStyle} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CompactUpload 
+                                        label="Upper Wear" 
+                                        image={topGarment} 
+                                        onUpload={handleUpload(setTopGarment)} 
+                                        onClear={() => setTopGarment(null)} 
+                                        icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>}
+                                        optional={true}
+                                    />
+                                    <CompactUpload 
+                                        label="Bottom Wear" 
+                                        image={bottomGarment} 
+                                        onUpload={handleUpload(setBottomGarment)} 
+                                        onClear={() => setBottomGarment(null)} 
+                                        icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>}
+                                        optional={true}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -401,17 +307,15 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
             
-            {/* Magic Editor Modal */}
-            {showMagicEditor && result && (
+            {showMagicEditor && resultImage && (
                 <MagicEditorModal 
-                    imageUrl={result} 
+                    imageUrl={resultImage} 
                     onClose={() => setShowMagicEditor(false)} 
                     onSave={handleEditorSave}
                     deductCredit={handleDeductEditCredit}
                 />
             )}
 
-            {/* Refund Modal */}
             {showRefundModal && (
                 <RefundModal 
                     onClose={() => setShowRefundModal(false)}
@@ -421,7 +325,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 />
             )}
 
-            {/* Notification */}
             {notification && (
                 <ToastNotification 
                     message={notification.msg} 

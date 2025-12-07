@@ -15,6 +15,7 @@ import {
     ThumbDownIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
+import { submitFeedback, auth } from '../firebase';
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
@@ -253,6 +254,7 @@ export const FeatureLayout: React.FC<{
     canGenerate: boolean;
     creditCost: number;
     resultImage: string | null;
+    creationId?: string | null; // Added creationId prop
     onResetResult?: () => void;
     onNewSession?: () => void;
     description?: string;
@@ -270,7 +272,7 @@ export const FeatureLayout: React.FC<{
     rawIcon?: boolean; // New Prop to remove default icon container
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
-    creditCost, resultImage, onResetResult, onNewSession, description,
+    creditCost, resultImage, creationId, onResetResult, onNewSession, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon
 }) => {
@@ -285,10 +287,18 @@ export const FeatureLayout: React.FC<{
         setFeedbackGiven(null);
     }, [resultImage]);
 
-    const handleFeedback = (type: 'up' | 'down') => {
+    const handleFeedback = async (type: 'up' | 'down') => {
         setFeedbackGiven(type);
         console.log(`User feedback for image: ${type}`);
-        // Here you would typically send this to your backend service
+        
+        // Submit feedback to Firebase
+        if (auth?.currentUser) {
+            try {
+                await submitFeedback(auth.currentUser.uid, creationId || null, type, title, resultImage);
+            } catch (error) {
+                console.error("Failed to submit feedback:", error);
+            }
+        }
     };
 
     return (
@@ -345,7 +355,7 @@ export const FeatureLayout: React.FC<{
                                         }`}
                                         title="Good Result"
                                     >
-                                        <ThumbUpIcon className="w-5 h-5" />
+                                        <ThumbUpIcon className="w-6 h-6" />
                                     </button>
                                     <div className="w-px bg-white/20 my-1"></div>
                                     <button 
@@ -357,7 +367,7 @@ export const FeatureLayout: React.FC<{
                                         }`}
                                         title="Bad Result"
                                     >
-                                        <ThumbDownIcon className="w-5 h-5" />
+                                        <ThumbDownIcon className="w-6 h-6" />
                                     </button>
                                 </div>
                              </div>
