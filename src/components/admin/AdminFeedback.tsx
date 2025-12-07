@@ -234,8 +234,14 @@ export const AdminFeedback: React.FC = () => {
                                         <td className="p-4 align-top text-right">
                                             <button 
                                                 onClick={() => {
-                                                    if (fb.imageUrl) setViewingImage(fb.imageUrl);
-                                                    else if (fb.creationId) handleViewGeneratedImage(fb.userId, fb.creationId);
+                                                    // Prioritize Creation ID fetch because imageUrl might be a local blob
+                                                    if (fb.creationId) {
+                                                        handleViewGeneratedImage(fb.userId, fb.creationId);
+                                                    } else if (fb.imageUrl && !fb.imageUrl.startsWith('blob:')) {
+                                                        setViewingImage(fb.imageUrl);
+                                                    } else {
+                                                        alert("Image unavailable (Local preview expired and no creation ID stored).");
+                                                    }
                                                 }}
                                                 className="text-gray-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg inline-flex items-center gap-2"
                                                 title="View Full Image"

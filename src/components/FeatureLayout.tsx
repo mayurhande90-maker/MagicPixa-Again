@@ -383,39 +383,27 @@ export const FeatureLayout: React.FC<{
                                         <SparklesIcon className="w-3 h-3 text-yellow-300" /> Thanks for feedback!
                                     </div>
                                 )}
-                                <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-colors hover:bg-black/80">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
-                                        disabled={isFeedbackLocked}
-                                        className={`relative p-1.5 rounded-full transition-all duration-300 ${
-                                            feedbackGiven === 'up' 
-                                            ? 'bg-white/20 text-white shadow-md scale-110' 
-                                            : isFeedbackLocked 
-                                                ? 'text-white/30 cursor-not-allowed'
-                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
-                                        }`}
-                                        title="Good Result"
-                                    >
-                                        <ThumbUpIcon className="w-5 h-5" />
-                                        {showSparkles === 'up' && <FeedbackSparkle />}
-                                    </button>
-                                    <div className="w-px bg-white/10 my-1"></div>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
-                                        disabled={isFeedbackLocked}
-                                        className={`relative p-1.5 rounded-full transition-all duration-300 ${
-                                            feedbackGiven === 'down' 
-                                            ? 'bg-white/20 text-white shadow-md scale-110' 
-                                            : isFeedbackLocked 
-                                                ? 'text-white/30 cursor-not-allowed'
-                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
-                                        }`}
-                                        title="Bad Result"
-                                    >
-                                        <ThumbDownIcon className="w-5 h-5" />
-                                        {showSparkles === 'down' && <FeedbackSparkle />}
-                                    </button>
-                                </div>
+                                
+                                {/* Hide buttons completely once feedback is given to clear view */}
+                                {!feedbackGiven && (
+                                    <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-colors hover:bg-black/80">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
+                                            className="relative p-1.5 rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white hover:scale-110"
+                                            title="Good Result"
+                                        >
+                                            <ThumbUpIcon className="w-5 h-5" />
+                                        </button>
+                                        <div className="w-px bg-white/10 my-1"></div>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
+                                            className="relative p-1.5 rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white hover:scale-110"
+                                            title="Bad Result"
+                                        >
+                                            <ThumbDownIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                )}
                              </div>
                              
                              {/* Result Actions */}
