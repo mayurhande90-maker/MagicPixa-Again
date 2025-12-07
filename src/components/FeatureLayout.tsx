@@ -244,13 +244,24 @@ export const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; i
     </div>
 );
 
-// Helper Sparkle Component for feedback animation
+// Improved Sparkle Animation Component
 const FeedbackSparkle = () => (
-  <div className="absolute inset-0 pointer-events-none">
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full animate-[ping_0.5s_ease-out_forwards] text-yellow-400">✨</div>
-    <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 animate-[ping_0.6s_ease-out_forwards] text-yellow-400 delay-75">✨</div>
-    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full animate-[ping_0.7s_ease-out_forwards] text-yellow-400 delay-100">✨</div>
-    <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 animate-[ping_0.5s_ease-out_forwards] text-yellow-400 delay-150">✨</div>
+  <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
+    <div className="absolute animate-[ping_0.5s_ease-out_forwards] text-yellow-300 opacity-90 scale-150">✨</div>
+    <div className="absolute -top-6 -right-6 text-yellow-200 w-4 h-4 animate-[bounce_0.6s_infinite]">✦</div>
+    <div className="absolute -bottom-4 -left-6 text-yellow-400 w-3 h-3 animate-[pulse_0.4s_infinite]">★</div>
+    <div className="absolute top-0 left-0 w-full h-full border-2 border-yellow-300 rounded-full animate-[ping_0.6s_ease-out_forwards] opacity-60"></div>
+    {/* Burst Lines */}
+    {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+        <div 
+            key={deg}
+            className="absolute w-1 h-2 bg-yellow-400 rounded-full opacity-0 animate-[ping_0.4s_ease-out_forwards]"
+            style={{ 
+                transform: `rotate(${deg}deg) translateY(-20px)`,
+                animationDelay: '0.1s'
+            }} 
+        />
+    ))}
   </div>
 );
 
@@ -288,7 +299,7 @@ export const FeatureLayout: React.FC<{
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
-    const [showSparkles, setShowSparkles] = useState<string | null>(null);
+    const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
     const [isFeedbackLocked, setIsFeedbackLocked] = useState(false);
     
@@ -299,29 +310,19 @@ export const FeatureLayout: React.FC<{
         setFeedbackGiven(null);
         setShowThankYou(false);
         setIsFeedbackLocked(false);
-        setShowSparkles(null);
+        setAnimatingFeedback(null);
     }, [resultImage]);
 
     const handleFeedback = async (type: 'up' | 'down') => {
-        if (isFeedbackLocked) return;
+        if (isFeedbackLocked || animatingFeedback) return;
 
         setIsFeedbackLocked(true);
-        setFeedbackGiven(type);
-        setShowSparkles(type);
-        setShowThankYou(true);
+        setAnimatingFeedback(type); // Triggers sparkle and animation class
         
-        // Sparkle effect duration
-        setTimeout(() => setShowSparkles(null), 1000);
-        // Thank you message duration
-        setTimeout(() => setShowThankYou(false), 3000);
-        
-        // Submit to backend
+        // Submit to backend immediately (Optimistic UI)
         if (auth?.currentUser) {
             try {
-                // If creationId exists, we send that. 
-                // We send the blobUrl (resultImage) as backup for local context, 
-                // but admins should fetch via creationId if possible.
-                await submitFeedback(
+                submitFeedback(
                     auth.currentUser.uid, 
                     creationId || null, 
                     type, 
@@ -334,6 +335,18 @@ export const FeatureLayout: React.FC<{
                 console.error("Failed to submit feedback:", error);
             }
         }
+
+        // Animation Sequence: 
+        // 1. Button Press & Sparkle (0-600ms)
+        // 2. Hide Buttons & Show Thank You (600ms)
+        // 3. Hide Thank You (3600ms)
+        setTimeout(() => {
+            setFeedbackGiven(type); // Hides buttons
+            setShowThankYou(true);
+            setAnimatingFeedback(null);
+            
+            setTimeout(() => setShowThankYou(false), 3000);
+        }, 700); 
     };
 
     return (
@@ -379,28 +392,42 @@ export const FeatureLayout: React.FC<{
                              {/* Feedback UI */}
                              <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center gap-2 z-30 pointer-events-none">
                                 {showThankYou && (
-                                    <div className="pointer-events-auto animate-[fadeInUp_0.3s_ease-out] bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg mb-1 flex items-center gap-2">
-                                        <SparklesIcon className="w-3 h-3 text-yellow-300" /> Thanks for feedback!
+                                    <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
+                                        <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
+                                        <span>Thank you for your feedback!</span>
                                     </div>
                                 )}
                                 
-                                {/* Hide buttons completely once feedback is given to clear view */}
+                                {/* Buttons Container */}
                                 {!feedbackGiven && (
-                                    <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-colors hover:bg-black/80">
+                                    <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105' : ''}`}>
+                                        
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
-                                            className="relative p-1.5 rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white hover:scale-110"
+                                            className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                animatingFeedback === 'up' 
+                                                ? 'bg-green-500 text-white scale-90 shadow-inner' 
+                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                            }`}
                                             title="Good Result"
                                         >
                                             <ThumbUpIcon className="w-5 h-5" />
+                                            {animatingFeedback === 'up' && <FeedbackSparkle />}
                                         </button>
+                                        
                                         <div className="w-px bg-white/10 my-1"></div>
+                                        
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
-                                            className="relative p-1.5 rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white hover:scale-110"
+                                            className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                animatingFeedback === 'down' 
+                                                ? 'bg-red-500 text-white scale-90 shadow-inner' 
+                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                            }`}
                                             title="Bad Result"
                                         >
                                             <ThumbDownIcon className="w-5 h-5" />
+                                            {animatingFeedback === 'down' && <FeedbackSparkle />}
                                         </button>
                                     </div>
                                 )}
