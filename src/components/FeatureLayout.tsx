@@ -290,15 +290,22 @@ export const FeatureLayout: React.FC<{
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
     const [showSparkles, setShowSparkles] = useState<string | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
+    const [isFeedbackLocked, setIsFeedbackLocked] = useState(false);
     
     const contentHeightClass = resultHeightClass || 'h-[560px]';
 
     useEffect(() => {
+        // Reset Feedback UI when a new image is loaded
         setFeedbackGiven(null);
         setShowThankYou(false);
+        setIsFeedbackLocked(false);
+        setShowSparkles(null);
     }, [resultImage]);
 
     const handleFeedback = async (type: 'up' | 'down') => {
+        if (isFeedbackLocked) return;
+
+        setIsFeedbackLocked(true);
         setFeedbackGiven(type);
         setShowSparkles(type);
         setShowThankYou(true);
@@ -364,34 +371,40 @@ export const FeatureLayout: React.FC<{
                              {/* Feedback UI */}
                              <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center gap-2 z-30 pointer-events-none">
                                 {showThankYou && (
-                                    <div className="pointer-events-auto animate-[fadeInUp_0.3s_ease-out] bg-black/80 text-white text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg mb-1 flex items-center gap-2">
-                                        <SparklesIcon className="w-3 h-3 text-yellow-300" /> Thank you for your feedback!
+                                    <div className="pointer-events-auto animate-[fadeInUp_0.3s_ease-out] bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg mb-1 flex items-center gap-2">
+                                        <SparklesIcon className="w-3 h-3 text-yellow-300" /> Thanks for feedback!
                                     </div>
                                 )}
-                                <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-2 rounded-full flex gap-3 shadow-xl animate-fadeIn transition-colors hover:bg-black">
+                                <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-colors hover:bg-black/80">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
-                                        className={`relative p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                        disabled={isFeedbackLocked}
+                                        className={`relative p-1.5 rounded-full transition-all duration-300 ${
                                             feedbackGiven === 'up' 
                                             ? 'bg-white/20 text-white shadow-md scale-110' 
-                                            : 'text-white hover:bg-white/10 hover:scale-110'
+                                            : isFeedbackLocked 
+                                                ? 'text-white/30 cursor-not-allowed'
+                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                         }`}
                                         title="Good Result"
                                     >
-                                        <ThumbUpIcon className="w-8 h-8" />
+                                        <ThumbUpIcon className="w-5 h-5" />
                                         {showSparkles === 'up' && <FeedbackSparkle />}
                                     </button>
-                                    <div className="w-px bg-white/20 my-1"></div>
+                                    <div className="w-px bg-white/10 my-1"></div>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
-                                        className={`relative p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                        disabled={isFeedbackLocked}
+                                        className={`relative p-1.5 rounded-full transition-all duration-300 ${
                                             feedbackGiven === 'down' 
                                             ? 'bg-white/20 text-white shadow-md scale-110' 
-                                            : 'text-white hover:bg-white/10 hover:scale-110'
+                                            : isFeedbackLocked 
+                                                ? 'text-white/30 cursor-not-allowed'
+                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                         }`}
                                         title="Bad Result"
                                     >
-                                        <ThumbDownIcon className="w-8 h-8" />
+                                        <ThumbDownIcon className="w-5 h-5" />
                                         {showSparkles === 'down' && <FeedbackSparkle />}
                                     </button>
                                 </div>
