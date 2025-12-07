@@ -155,7 +155,7 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     );
 };
 
-// Top Right Vertical Toolbar
+// Top Right Vertical Toolbar (Compact)
 const ResultToolbar: React.FC<{
     onNew: () => void;
     onRegen: () => void;
@@ -175,11 +175,11 @@ const ResultToolbar: React.FC<{
                 <button
                     key={btn.label}
                     onClick={btn.onClick}
-                    className={`flex items-center justify-start gap-0 group-hover:gap-3 px-3 py-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
+                    className={`flex items-center justify-start gap-0 group-hover:gap-2 px-2.5 py-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
                 >
-                    <btn.icon className={`w-5 h-5 ${btn.color} shrink-0`} />
-                    <span className={`text-xs font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
+                    <btn.icon className={`w-4 h-4 ${btn.color} shrink-0`} />
+                    <span className={`text-[10px] font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
                         {btn.label}
                     </span>
                 </button>
@@ -300,26 +300,38 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         setLastCreationId(null);
 
         try {
+            // 1. GENERATION PHASE
+            // We await the AI generation first. If this fails, we want to catch it in the outer block.
             const res = await colourizeImage(
                 image.base64.base64,
                 image.base64.mimeType,
                 restoreMode
             );
 
+            // 2. DISPLAY PHASE
+            // Immediate UI update. User sees the image now.
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResultImage(blobUrl);
             
-            const dataUri = `data:image/png;base64,${res}`;
-            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore');
-            setLastCreationId(creationId);
+            // 3. PERSISTENCE PHASE
+            // If saving or credit deduction fails (e.g. large file size limit), we log it but do NOT alert the user
+            // because the user already has their image.
+            try {
+                const dataUri = `data:image/png;base64,${res}`;
+                const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore');
+                setLastCreationId(creationId);
 
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore');
-            
-            if (updatedUser.lifetimeGenerations) {
-                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
-                if (bonus !== false) setMilestoneBonus(bonus);
+                const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore');
+                
+                if (updatedUser.lifetimeGenerations) {
+                    const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                    if (bonus !== false) setMilestoneBonus(bonus);
+                }
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            } catch (persistenceError) {
+                console.warn("Persistence/Credit deduction failed:", persistenceError);
+                // Intentionally suppressed to avoid bad UX when generation actually succeeded.
             }
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
         } catch (e) {
             console.error(e);
