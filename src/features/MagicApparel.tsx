@@ -69,6 +69,11 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
+    // Styling Preferences
+    const [tuck, setTuck] = useState('Untucked');
+    const [sleeve, setSleeve] = useState('Long');
+    const [fit, setFit] = useState('Regular');
+
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
@@ -128,7 +133,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 personImage.base64.base64,
                 personImage.base64.mimeType,
                 topGarment ? topGarment.base64 : null,
-                bottomGarment ? bottomGarment.base64 : null
+                bottomGarment ? bottomGarment.base64 : null,
+                undefined,
+                { tuck, sleeve, fit }
             );
 
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
@@ -189,6 +196,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setBottomGarment(null);
         setResultImage(null);
         setLastCreationId(null);
+        setTuck('Untucked');
+        setSleeve('Long');
+        setFit('Regular');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -358,6 +368,33 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             <p className="text-[10px] text-gray-400 text-center italic mt-4">
                                 Note: You can upload one image for both top and bottom if they are in the same photo.
                             </p>
+
+                            {/* Styling Preferences */}
+                            <div className="border-t border-gray-100 pt-6 space-y-4">
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4">
+                                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label>
+                                </div>
+                                
+                                <SelectionGrid 
+                                    label="Tuck Style" 
+                                    options={['Untucked', 'Tucked In']} 
+                                    value={tuck} 
+                                    onChange={setTuck} 
+                                />
+                                <SelectionGrid 
+                                    label="Sleeve" 
+                                    options={['Long', 'Rolled Up']} 
+                                    value={sleeve} 
+                                    onChange={setSleeve} 
+                                />
+                                <SelectionGrid 
+                                    label="Fit" 
+                                    options={['Regular', 'Slim Fit', 'Oversized']} 
+                                    value={fit} 
+                                    onChange={setFit} 
+                                />
+                            </div>
                         </div>
                     )
                 }
