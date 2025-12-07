@@ -6,17 +6,14 @@ import {
     PixaRestoreIcon, 
     UploadIcon, 
     XIcon, 
-    UploadTrayIcon, 
     SparklesIcon, 
     CreditCoinIcon, 
     MagicWandIcon, 
     PaletteIcon,
-    CameraIcon,
     CheckIcon,
     InformationCircleIcon,
     ShieldCheckIcon,
     FlagIcon,
-    TrashIcon,
     RegenerateIcon,
     PlusIcon
 } from '../components/icons';
@@ -34,7 +31,7 @@ const ModeCard: React.FC<{
     icon: React.ReactNode;
     selected: boolean;
     onClick: () => void;
-    accentColor: string; // CSS class for text color e.g. "text-purple-500"
+    accentColor: string;
 }> = ({ title, description, icon, selected, onClick, accentColor }) => {
     return (
         <button 
@@ -155,7 +152,7 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     );
 };
 
-// Top Right Vertical Toolbar (Uniform Expanded Width)
+// Top Right Vertical Toolbar (Uniform Expanded Width on Image Hover)
 const ResultToolbar: React.FC<{
     onNew: () => void;
     onRegen: () => void;
@@ -170,17 +167,18 @@ const ResultToolbar: React.FC<{
     ];
 
     return (
-        <div className="flex flex-col gap-2 items-end">
+        <div className="flex flex-col gap-1.5 items-end">
             {buttons.map((btn, idx) => (
                 <button
                     key={btn.label}
                     onClick={btn.onClick}
-                    // Fixed width (w-40) on hover ensures alignment. justify-start keeps icon on left.
-                    className={`flex items-center justify-start gap-0 group-hover:gap-3 px-2.5 py-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md hover:w-40 ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
+                    // Use 'w-8' for icon only, 'group-hover:w-36' to expand when image group is hovered
+                    // 'overflow-hidden' hides text when collapsed
+                    className={`flex items-center justify-start gap-0 group-hover:gap-2 px-2 py-2 bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md w-8 group-hover:w-36 overflow-hidden ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
                 >
-                    <btn.icon className={`w-5 h-5 ${btn.color} shrink-0`} />
-                    <span className={`text-xs font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-full group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
+                    <btn.icon className={`w-4 h-4 ${btn.color} shrink-0`} />
+                    <span className={`text-[10px] font-bold ${btn.color} whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75`}>
                         {btn.label}
                     </span>
                 </button>
@@ -308,11 +306,11 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 restoreMode
             );
 
-            // 2. DISPLAY PHASE
+            // 2. DISPLAY PHASE (Ensure user sees result even if saving fails)
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResultImage(blobUrl);
             
-            // 3. PERSISTENCE PHASE
+            // 3. PERSISTENCE PHASE (Safe Block)
             try {
                 const dataUri = `data:image/png;base64,${res}`;
                 const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore');
@@ -327,6 +325,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             } catch (persistenceError) {
                 console.warn("Persistence/Credit deduction failed:", persistenceError);
+                // Do not alert user to failure if image is already generated, just log it.
             }
 
         } catch (e) {
