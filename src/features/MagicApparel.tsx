@@ -390,8 +390,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 </div>
                                 <div className="space-y-4">
                                     <SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In', 'Half Tuck', 'Cropped']} value={tuckStyle} onChange={setTuckStyle} />
-                                    <SelectionGrid label="Fit" options={['Regular Fit', 'Slim Fit', 'Oversized', 'Loose']} value={fitStyle} onChange={setFitStyle} />
                                     <SelectionGrid label="Sleeve Length" options={['Standard', 'Rolled Up', 'Short', 'Long']} value={sleeveStyle} onChange={setSleeveStyle} />
+                                    <SelectionGrid label="Fit" options={['Regular Fit', 'Slim Fit', 'Oversized', 'Loose']} value={fitStyle} onChange={setFitStyle} />
                                 </div>
                             </div>
                         </div>
