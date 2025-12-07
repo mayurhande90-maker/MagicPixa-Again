@@ -10,7 +10,9 @@ import {
     CheckIcon,
     ChevronLeftRightIcon,
     ArrowLeftIcon,
-    ChevronRightIcon
+    ChevronRightIcon,
+    ThumbUpIcon,
+    ThumbDownIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 
@@ -273,9 +275,21 @@ export const FeatureLayout: React.FC<{
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
+    const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
     
     // Default height if not specified. Used to enforce alignment.
     const contentHeightClass = resultHeightClass || 'h-[560px]';
+
+    // Reset feedback when a new image is generated
+    useEffect(() => {
+        setFeedbackGiven(null);
+    }, [resultImage]);
+
+    const handleFeedback = (type: 'up' | 'down') => {
+        setFeedbackGiven(type);
+        console.log(`User feedback for image: ${type}`);
+        // Here you would typically send this to your backend service
+    };
 
     return (
         <div className="flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
@@ -318,6 +332,35 @@ export const FeatureLayout: React.FC<{
                                      {resultOverlay}
                                  </div>
                              )}
+
+                             {/* Feedback UI - Thumbs Up/Down - Positioned above Download bar */}
+                             <div className="absolute bottom-24 left-0 right-0 flex justify-center z-30 pointer-events-none">
+                                <div className="pointer-events-auto bg-white/20 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-lg animate-fadeIn hover:bg-white/30 transition-colors">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
+                                        className={`p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                            feedbackGiven === 'up' 
+                                            ? 'bg-green-500 text-white shadow-md scale-110' 
+                                            : 'text-white hover:bg-white/20 hover:scale-110'
+                                        }`}
+                                        title="Good Result"
+                                    >
+                                        <ThumbUpIcon className="w-5 h-5" />
+                                    </button>
+                                    <div className="w-px bg-white/20 my-1"></div>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
+                                        className={`p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                            feedbackGiven === 'down' 
+                                            ? 'bg-red-500 text-white shadow-md scale-110' 
+                                            : 'text-white hover:bg-white/20 hover:scale-110'
+                                        }`}
+                                        title="Bad Result"
+                                    >
+                                        <ThumbDownIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                             </div>
                              
                              {/* Result Actions */}
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
