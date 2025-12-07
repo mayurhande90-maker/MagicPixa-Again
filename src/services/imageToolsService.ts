@@ -32,24 +32,20 @@ const optimizeImageForEditing = async (base64: string, mimeType: string): Promis
     }
 };
 
-// New Helper: Analyze Face Details
-const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
-    const prompt = `Task: Deep Biometric Analysis of ${label}.
+// Step 1: Deep Forensic Analysis (Text Model)
+const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string): Promise<string> => {
+    const prompt = `Act as a Smithsonian Photo Conservator. Perform a Deep Forensic Analysis of this damaged/aged photo.
     
-    Analyze the "Minute Details" of the face to preserve identity in a generated image.
-    Identify and describe:
-    1. Face Shape (e.g. oval, square, strong jawline).
-    2. Eye Structure (shape, color, eyelid type, eyebrow arch).
-    3. Nose Architecture (bridge width, tip shape).
-    4. Mouth & Lips (fullness, curvature).
-    5. Skin & Age Characteristics (complexion, texture, distinctive marks like moles/freckles).
-    6. Hair (color, texture, hairline).
+    1. **Historical Context**: Estimate the decade/era based on clothing and hair. This determines the color palette.
+    2. **Subject Identity**: Describe the person's ethnicity, estimated age, facial structure, and expression.
+    3. **Damage Report**: Identify artifacts to REMOVE (scratches, dust, blur, tearing, sepia cast, halftone dots).
+    4. **Reconstruction Plan**: What details are missing that need to be hallucinated plausibly (e.g., "reconstruct left eye based on right eye symmetry", "fix tattered collar")?
     
-    Output a concise, high-precision descriptive paragraph.`;
+    Output a concise "Restoration Blueprint" paragraph.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Fast and capable vision model for analysis
+            model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType: mimeType } },
@@ -57,10 +53,10 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
                 ]
             }
         });
-        return response.text || "";
+        return response.text || "Restore to high definition, fixing all damage.";
     } catch (e) {
-        console.warn(`Biometric analysis failed for ${label}`, e);
-        return "";
+        console.warn("Forensic analysis failed", e);
+        return "Restore to high definition, fixing all damage.";
     }
 };
 
@@ -73,47 +69,40 @@ export const colourizeImage = async (
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
-    // 1. Analyze Identity First (The "Lock")
-    const identityProfile = await analyzeFaceBiometrics(ai, data, optimizedMime, "the subject");
+    // 1. Analyze Photo Condition & History (The "Blueprint")
+    const restorationBlueprint = await analyzePhotoCondition(ai, data, optimizedMime);
 
-    let basePrompt = `You are a Forensic Photo Restoration AI (Smithsonian Conservation Standard).
+    let basePrompt = `You are an Advanced AI Restoration Engine (Gemini 3 Pro Image).
     
-    INPUT: A severely damaged, aged, or blurry photograph.
-    GOAL: Recover the original scene with high fidelity.
+    *** INPUT ANALYSIS (BLUEPRINT) ***
+    ${restorationBlueprint}
     
-    *** CRITICAL: DAMAGE CONTROL PROTOCOL ***
-    1. **Noise Handling**: The image contains heavy grain/noise/blur. Treat this as "data corruption" to be removed, NOT as image features.
-    2. **Structural Integrity**: You MUST trace the exact lines, shapes, and pose of the original. Do NOT hallucinate new objects, people, or backgrounds. If a part is missing (tear), fill it contextually (inpainting) with neutral background textures.
-    3. **Face Recovery**: Using the biometric profile below, reconstruct the face strictly. Do NOT swap faces or generate a generic AI face.
+    *** TASK: ${mode === 'restore_color' ? 'FULL RESTORATION & COLORIZATION' : 'DIGITAL PRESERVATION (NO COLOR CHANGE)'} ***
     
-    [BIOMETRIC LOCK]: ${identityProfile}
-    
-    *** MODE: ${mode === 'restore_color' ? 'COLORIZE & RESTORE' : 'RESTORE (PRESERVE TONE)'} ***
+    *** EXECUTION PROTOCOL ***
+    1. **Aggressive De-noising**: The input has noise/grain. Remove it completely. Replace it with realistic "skin texture" (pores) and "fabric weave".
+    2. **Structure Recovery**: If facial features are blurry, use the Blueprint to reconstruct them with anatomical precision. Eyes must be sharp and symmetric.
+    3. **Damage Removal**: Erase all scratches, dust, tears, and folds identified in the input. Inpaint missing areas seamlessly.
     `;
     
     if (mode === 'restore_color') {
         basePrompt += `
-        - **COLORIZATION RULES**: 
-          - The input is likely Black & White. You MUST output a FULL COLOR image.
-          - Skin tones: Realistic, complex, multi-tonal (not flat orange), matching the detected ethnicity.
-          - Clothing/Background: Historically accurate colors.
-          - **NO GRAYSCALE RESIDUE**: Every pixel must be fully colorized.
+        4. **Colorization Science**:
+           - Use the historical era from the Blueprint to choose accurate colors for clothing.
+           - **Skin Tone**: Must be organic, multi-tonal, and match the Blueprint's ethnicity. NO monochromatic or flat orange skin.
+           - **Contrast**: Fix the faded exposure. Restore true blacks and bright whites.
         `;
     } else {
         basePrompt += `
-        - **RESTORATION RULES**:
-          - **PRESERVE ORIGINAL PALETTE**: Strictly keep the color grading of the input (B&W, Sepia, or Color). Do NOT colorize if it's B&W.
-          - **OBJECTIVE**: Denoise, sharpen, and repair physical damage (scratches/tears) only.
+        4. **Tone Preservation**:
+           - Keep the original Black & White or Sepia grading. 
+           - Focus purely on sharpness, resolution, and removing physical damage.
         `;
     }
 
     basePrompt += `
-    **FINAL OUTPUT REQUIREMENTS:**
-    - High Definition (4K equivalent).
-    - Realistic texture (skin pores, fabric weave) - no "smooth plastic" AI look.
-    - Perfect lighting balance.
-    
-    Output ONLY the restored image.`;
+    **FINAL OUTPUT**: A 4K, crystal-clear, photorealistic image. It should look like it was taken today with a modern camera.
+    `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -158,6 +147,38 @@ export interface PixaTogetherConfig {
     };
     autoFix: boolean;
 }
+
+// New Helper: Analyze Face Details for Pixa Together
+const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
+    const prompt = `Task: Deep Biometric Analysis of ${label}.
+    
+    Analyze the "Minute Details" of the face to preserve identity in a generated image.
+    Identify and describe:
+    1. Face Shape (e.g. oval, square, strong jawline).
+    2. Eye Structure (shape, color, eyelid type, eyebrow arch).
+    3. Nose Architecture (bridge width, tip shape).
+    4. Mouth & Lips (fullness, curvature).
+    5. Skin & Age Characteristics (complexion, texture, distinctive marks like moles/freckles).
+    6. Hair (color, texture, hairline).
+    
+    Output a concise, high-precision descriptive paragraph.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash', // Fast and capable vision model for analysis
+            contents: {
+                parts: [
+                    { inlineData: { data: base64, mimeType: mimeType } },
+                    { text: prompt }
+                ]
+            }
+        });
+        return response.text || "";
+    } catch (e) {
+        console.warn(`Biometric analysis failed for ${label}`, e);
+        return "";
+    }
+};
 
 export const generateMagicSoul = async (
   personABase64: string,

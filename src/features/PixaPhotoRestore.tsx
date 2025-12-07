@@ -155,7 +155,7 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     );
 };
 
-// Top Right Vertical Toolbar (Compact)
+// Top Right Vertical Toolbar (Uniform Expanded Width)
 const ResultToolbar: React.FC<{
     onNew: () => void;
     onRegen: () => void;
@@ -175,11 +175,12 @@ const ResultToolbar: React.FC<{
                 <button
                     key={btn.label}
                     onClick={btn.onClick}
-                    className={`flex items-center justify-start gap-0 group-hover:gap-2 px-2.5 py-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
+                    // Fixed width (w-40) on hover ensures alignment. justify-start keeps icon on left.
+                    className={`flex items-center justify-start gap-0 group-hover:gap-3 px-2.5 py-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md hover:w-40 ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
                 >
-                    <btn.icon className={`w-4 h-4 ${btn.color} shrink-0`} />
-                    <span className={`text-[10px] font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
+                    <btn.icon className={`w-5 h-5 ${btn.color} shrink-0`} />
+                    <span className={`text-xs font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-full group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
                         {btn.label}
                     </span>
                 </button>
@@ -226,18 +227,18 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         let interval: any;
         if (loading) {
             const steps = [
-                "Scanning for damage...", 
-                "Analyzing facial biometric points...", 
-                "Repairing scratches & tears...", 
-                "Enhancing details...", 
-                "Finalizing output..."
+                "Scanning damage patterns...", 
+                "Forensic analysis...",
+                "Historical era matching...",
+                "Reconstructing biometrics...", 
+                "Finalizing details..."
             ];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 1500);
+            }, 2000);
         }
         return () => clearInterval(interval);
     }, [loading]);
@@ -301,7 +302,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
 
         try {
             // 1. GENERATION PHASE
-            // We await the AI generation first. If this fails, we want to catch it in the outer block.
             const res = await colourizeImage(
                 image.base64.base64,
                 image.base64.mimeType,
@@ -309,13 +309,10 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
             );
 
             // 2. DISPLAY PHASE
-            // Immediate UI update. User sees the image now.
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResultImage(blobUrl);
             
             // 3. PERSISTENCE PHASE
-            // If saving or credit deduction fails (e.g. large file size limit), we log it but do NOT alert the user
-            // because the user already has their image.
             try {
                 const dataUri = `data:image/png;base64,${res}`;
                 const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore');
@@ -330,7 +327,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             } catch (persistenceError) {
                 console.warn("Persistence/Credit deduction failed:", persistenceError);
-                // Intentionally suppressed to avoid bad UX when generation actually succeeded.
             }
 
         } catch (e) {
@@ -405,7 +401,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 onGenerate={handleGenerate}
                 resultImage={resultImage}
                 
-                // Hide default bottom buttons when result is present, because we use custom top-right toolbar
+                // Hide default bottom buttons when result is present
                 onResetResult={resultImage ? undefined : handleGenerate} 
                 onNewSession={resultImage ? undefined : handleNewSession}
                 
