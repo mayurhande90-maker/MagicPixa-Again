@@ -1,7 +1,4 @@
-<change>
-<file>src/features/PixaPhotoRestore.tsx</file>
-<description>Update ResultToolbar to expand on hover over the image group</description>
-<content><![CDATA[
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -568,5 +565,3 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         </>
     );
 };
-]]></content>
-</change>
