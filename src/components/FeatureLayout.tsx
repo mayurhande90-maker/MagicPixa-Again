@@ -398,8 +398,8 @@ export const FeatureLayout: React.FC<{
                                     </div>
                                 )}
                                 
-                                {/* Buttons Container */}
-                                {!feedbackGiven && (
+                                {/* Buttons Container - Only show if creationId exists to prevent broken admin links */}
+                                {!feedbackGiven && creationId && (
                                     <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105' : ''}`}>
                                         
                                         <button 

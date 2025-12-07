@@ -75,6 +75,8 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mission = getDailyMission();
@@ -86,6 +88,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
             const base64 = await fileToBase64(file);
             setImage({ url: URL.createObjectURL(file), base64 });
             setResult(null);
+            setLastCreationId(null);
         }
         e.target.value = '';
     };
@@ -102,6 +105,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 const base64 = await fileToBase64(file);
                 setImage({ url: URL.createObjectURL(file), base64 });
                 setResult(null);
+                setLastCreationId(null);
             }
         }
     };
@@ -114,13 +118,16 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         }
 
         setLoading(true);
+        setLastCreationId(null);
+        
         try {
             const res = await executeDailyMission(image.base64.base64, image.base64.mimeType, mission.config);
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            await saveCreation(auth.user.uid, dataUri, `Mission: ${mission.title}`);
+            const creationId = await saveCreation(auth.user.uid, dataUri, `Mission: ${mission.title}`);
+            setLastCreationId(creationId);
             
             // Mark complete and grant reward
             const updatedUser = await completeDailyMission(auth.user.uid, mission.reward, mission.id);
@@ -146,8 +153,10 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 canGenerate={!!image && !isLocked}
                 onGenerate={handleExecute}
                 resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={() => { setImage(null); setResult(null); }}
+                creationId={lastCreationId}
+                
+                onResetResult={() => { setResult(null); setLastCreationId(null); }}
+                onNewSession={() => { setImage(null); setResult(null); setLastCreationId(null); }}
                 resultHeightClass="h-[600px]"
                 hideGenerateButton={isLocked}
                 // Redesigned Button: Premium Gold
