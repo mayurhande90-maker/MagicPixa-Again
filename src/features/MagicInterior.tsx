@@ -6,6 +6,11 @@ import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } f
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
 import { saveCreation, deductCredits } from '../firebase';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
+import { MagicEditorModal } from '../components/MagicEditorModal';
 
 export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -13,6 +18,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     
     // Inputs
     const [spaceType, setSpaceType] = useState<'home' | 'office'>('home');
@@ -21,6 +27,12 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     
     // UI States
     const [isDragging, setIsDragging] = useState(false);
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
+
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
@@ -35,14 +47,12 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const homeRooms = ['Living Room', 'Bedroom', 'Kitchen', 'Dining Room', 'Bathroom', 'Home Office', 'Balcony/Patio', 'Gaming Room'];
     const officeRooms = ['Open Workspace', 'Private Office', 'Conference Room', 'Reception / Lobby', 'Break Room', 'Meeting Pod'];
 
-    // Must match keys in interiorService.ts
     const homeStyles = ['Modern', 'Minimalist', 'Japanese', 'American', 'Coastal', 'Traditional Indian', 'Arabic', 'Futuristic', 'African'];
     const officeStyles = ['Modern Corporate', 'Minimalist', 'Industrial', 'Creative / Artistic', 'Luxury Executive', 'Biophilic / Nature-Inspired', 'Tech Futuristic', 'Traditional Indian'];
 
     const activeRoomOptions = spaceType === 'home' ? homeRooms : officeRooms;
     const activeStyleOptions = spaceType === 'home' ? homeStyles : officeStyles;
 
-    // Animation Timer
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -57,7 +67,6 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         return () => clearInterval(interval);
     }, [loading]);
 
-    // Cleanup blob URL
     useEffect(() => {
         return () => {
             if (result) URL.revokeObjectURL(result);
@@ -87,29 +96,11 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
     const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
@@ -124,14 +115,11 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
-        
-        if (isLowCredits) {
-            alert("Insufficient credits.");
-            return;
-        }
+        if (isLowCredits) { alert("Insufficient credits."); return; }
 
         setLoading(true);
         setResult(null);
+        setLastCreationId(null);
 
         try {
             const res = await generateInteriorDesign(
@@ -146,7 +134,9 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design');
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design');
             
             if (updatedUser.lifetimeGenerations) {
@@ -166,11 +156,53 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
     };
 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !result) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost,
+                reason,
+                "Interior Design",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResult(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     const handleNewSession = () => {
         setImage(null);
         setResult(null);
         setRoomType('');
         setStyle('');
+        setLastCreationId(null);
+    };
+
+    const handleEditorSave = (newUrl: string) => {
+        setResult(newUrl);
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Interior Design (Edited)');
+    };
+
+    const handleDeductEditCredit = async () => {
+        if(auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
     };
 
     const canGenerate = !!image && !isLowCredits && !!roomType && !!style;
@@ -187,8 +219,20 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={() => setResult(null)}
-                onNewSession={handleNewSession}
+                
+                onResetResult={result ? undefined : () => setResult(null)}
+                onNewSession={result ? undefined : handleNewSession}
+                resultOverlay={
+                    result ? (
+                        <ResultToolbar 
+                            onNew={handleNewSession}
+                            onRegen={handleGenerate}
+                            onEdit={() => setShowMagicEditor(true)}
+                            onReport={() => setShowRefundModal(true)}
+                        />
+                    ) : null
+                }
+
                 resultHeightClass="h-[600px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -355,6 +399,35 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
+            {showMagicEditor && result && (
+                <MagicEditorModal 
+                    imageUrl={result} 
+                    onClose={() => setShowMagicEditor(false)} 
+                    onSave={handleEditorSave}
+                    deductCredit={handleDeductEditCredit}
+                />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                    featureName="Interior Design"
+                />
+            )}
+
+            {/* Notification */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
+                />
+            )}
         </>
     );
 };

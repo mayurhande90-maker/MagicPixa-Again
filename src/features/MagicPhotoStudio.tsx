@@ -22,13 +22,17 @@ import {
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
 import { saveCreation, deductCredits } from '../firebase';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
+import { MagicEditorModal } from '../components/MagicEditorModal';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
 
-    // Determine cost based on current mode selection. Default to base studio cost if no mode selected yet.
-    // Updated to use new key 'Pixa Product Shots' with fallback
+    // Determine cost
     const currentCost = studioMode === 'model' 
         ? (appConfig?.featureCosts['Model Shot'] || 3) 
         : (appConfig?.featureCosts['Pixa Product Shots'] || appConfig?.featureCosts['Magic Photo Studio'] || 2);
@@ -39,14 +43,21 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     
-    // New state for Drag & Drop
-    const [isDragging, setIsDragging] = useState(false);
+    // Tracking
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
 
-    // Refs for File Inputs
+    // UI States
+    const [isDragging, setIsDragging] = useState(false);
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
+    
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+    // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
-    
-    // Ref for auto-scrolling the right panel
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Analysis State
@@ -55,7 +66,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
     const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<{ display: string; prompt: string }[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
-
 
     // Manual Refinement State (Product)
     const [category, setCategory] = useState('');
@@ -67,7 +77,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [modelRegion, setModelRegion] = useState('');
     const [skinTone, setSkinTone] = useState('');
     const [bodyType, setBodyType] = useState('');
-    // New Model Controls
     const [modelComposition, setModelComposition] = useState('');
     const [modelFraming, setModelFraming] = useState('');
 
@@ -82,12 +91,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const compositionTypes = ['Single Model', 'Group Shot'];
     const shotTypes = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
 
-    // Check if user has enough credits for the selected operation
     const userCredits = auth.user?.credits || 0;
-    // We only block if an image is uploaded AND credits are insufficient for current/default mode
     const isLowCredits = image && userCredits < currentCost;
 
-    // Animation Timer for Loading Text
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -102,7 +108,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         return () => clearInterval(interval);
     }, [loading]);
 
-    // Cleanup result blob URL
     useEffect(() => {
         return () => {
             if (result) URL.revokeObjectURL(result);
@@ -111,7 +116,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const autoScroll = () => {
         if (scrollRef.current) {
-            // Tuned to 100ms for snappier, smoother feel
             setTimeout(() => {
                 const element = scrollRef.current;
                 if (element) {
@@ -128,59 +132,22 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
-            
-            setResult(null);
-            setStudioMode(null);
-            setCategory(''); setBrandStyle(''); setVisualType('');
-            setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
-            setModelComposition(''); setModelFraming('');
-            setSuggestedPrompts([]);
-            setSuggestedModelPrompts([]);
-            setSelectedPrompt(null);
-            
+            handleNewSession();
             setImage({ url: URL.createObjectURL(file), base64 });
         }
     };
 
     // Drag and Drop Handlers
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
     const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
                 const base64 = await fileToBase64(file);
-                
-                // Reset state same as handleUpload
-                setResult(null);
-                setStudioMode(null);
-                setCategory(''); setBrandStyle(''); setVisualType('');
-                setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType('');
-                setModelComposition(''); setModelFraming('');
-                setSuggestedPrompts([]);
-                setSuggestedModelPrompts([]);
-                setSelectedPrompt(null);
-                
+                handleNewSession();
                 setImage({ url: URL.createObjectURL(file), base64 });
             } else {
                 alert("Please drop a valid image file.");
@@ -189,7 +156,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     };
 
     const handleModeSelect = async (mode: 'product' | 'model') => {
-        setResult(null); // Clear any existing result to start scanning afresh on the original image
+        setResult(null);
         setStudioMode(mode);
         setSelectedPrompt(null);
         autoScroll();
@@ -219,7 +186,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         }
     };
 
-    // Mutually Exclusive Selection Logic
     const handlePromptSelect = (prompt: string) => {
         if (selectedPrompt === prompt) {
              setSelectedPrompt(null);
@@ -249,27 +215,17 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
-
-        // FIX: Strict credit check with fallback for undefined
-        if (userCredits < currentCost) {
-            alert("Insufficient credits. Please purchase a pack to continue.");
-            return;
-        }
+        if (userCredits < currentCost) { alert("Insufficient credits."); return; }
 
         setResult(null); 
         setLoading(true);
+        setLastCreationId(null);
+
         try {
             let res;
-
             if (studioMode === 'model') {
                  res = await generateModelShot(image.base64.base64, image.base64.mimeType, {
-                    modelType,
-                    region: modelRegion,
-                    skinTone,
-                    bodyType,
-                    composition: modelComposition,
-                    framing: modelFraming,
-                    freeformPrompt: selectedPrompt || undefined
+                    modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined
                  });
             } else {
                 let generationDirection = "";
@@ -287,24 +243,50 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            // Use new name "Pixa Product Shots" or "Pixa Model Shots"
-            saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
+            const creationId = await saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
             
-             // Check for milestone bonus in updated user object
             if (updatedUser.lifetimeGenerations) {
                 const bonus = checkMilestone(updatedUser.lifetimeGenerations);
-                if (bonus !== false) {
-                    setMilestoneBonus(bonus);
-                }
+                if (bonus !== false) setMilestoneBonus(bonus);
             }
-
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) {
             console.error(e);
             alert('Generation failed. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !result) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                currentCost,
+                reason,
+                "Product Shot",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null);
+                    setResult(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
         }
     };
 
@@ -318,6 +300,19 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setSuggestedPrompts([]);
         setSuggestedModelPrompts([]);
         setSelectedPrompt(null);
+        setLastCreationId(null);
+    };
+
+    const handleEditorSave = (newUrl: string) => {
+        setResult(newUrl);
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Product Shots (Edited)');
+    };
+
+    const handleDeductEditCredit = async () => {
+        if(auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
     };
 
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
@@ -329,24 +324,37 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     return (
         <>
         <FeatureLayout 
-            title="Pixa Product Shots" // Updated Title
+            title="Pixa Product Shots"
             description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
-            icon={<PixaProductIcon className="w-14 h-14"/>} // Larger, colorful icon without wrapper
-            rawIcon={true} // Enable transparent layout mode for icon
+            icon={<PixaProductIcon className="w-14 h-14"/>}
+            rawIcon={true}
             creditCost={currentCost}
             isGenerating={loading}
             canGenerate={canGenerate}
             onGenerate={handleGenerate}
             resultImage={result}
-            onResetResult={() => setResult(null)}
-            onNewSession={handleNewSession}
-            resultHeightClass="h-[600px]" // Reduced height to approx 60% of previous (approx 600px)
-            hideGenerateButton={isLowCredits} // Hide normal generate button if credits low
+            
+            // Use Toolbar instead of bottom buttons
+            onResetResult={result ? undefined : () => setResult(null)}
+            onNewSession={result ? undefined : handleNewSession}
+            resultOverlay={
+                result ? (
+                    <ResultToolbar 
+                        onNew={handleNewSession}
+                        onRegen={handleGenerate}
+                        onEdit={() => setShowMagicEditor(true)}
+                        onReport={() => setShowRefundModal(true)}
+                    />
+                ) : null
+            }
+
+            resultHeightClass="h-[600px]"
+            hideGenerateButton={isLowCredits}
             generateButtonStyle={{
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
                 hideIcon: true
             }}
-            scrollRef={scrollRef} // Pass the scroll ref to enable auto-scroll
+            scrollRef={scrollRef}
             leftContent={
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -619,6 +627,35 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         />
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+        
+        {/* Magic Editor Modal */}
+        {showMagicEditor && result && (
+            <MagicEditorModal 
+                imageUrl={result} 
+                onClose={() => setShowMagicEditor(false)} 
+                onSave={handleEditorSave}
+                deductCredit={handleDeductEditCredit}
+            />
+        )}
+
+        {/* Refund Modal */}
+        {showRefundModal && (
+            <RefundModal 
+                onClose={() => setShowRefundModal(false)}
+                onConfirm={handleRefundRequest}
+                isProcessing={isRefunding}
+                featureName="Generation"
+            />
+        )}
+
+        {/* Notification */}
+        {notification && (
+            <ToastNotification 
+                message={notification.msg} 
+                type={notification.type} 
+                onClose={() => setNotification(null)} 
+            />
+        )}
         </>
     );
 };

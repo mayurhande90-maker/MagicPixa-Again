@@ -7,6 +7,10 @@ import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 
 // Compact Upload Component (Reused)
 const CompactUpload: React.FC<{
@@ -71,8 +75,14 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     
     const [showMagicEditor, setShowMagicEditor] = useState(false);
+
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     const cost = appConfig?.featureCosts['Brand Stylist AI'] || appConfig?.featureCosts['Pixa AdMaker'] || 4;
     const userCredits = auth.user?.credits || 0;
@@ -100,6 +110,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setLoadingText("Pixa is Analyzing, Relighting & Harmonizing...");
         // Clear result image to show loading state on the canvas and indicate a FRESH start
         setResultImage(null);
+        setLastCreationId(null);
         
         try {
             const assetUrl = await generateStyledBrandAsset(
@@ -125,7 +136,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             setResultImage(blobUrl);
             
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
-            saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker');
+            const creationId = await saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -142,6 +155,35 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         }
     };
 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost,
+                reason,
+                "Ad Creative",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     const handleNewSession = () => {
         setProductImage(null);
         setLogoImage(null);
@@ -154,6 +196,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setDescription('');
         setGenMode('replica');
         setLanguage('English');
+        setLastCreationId(null);
     };
 
     // Logic for Magic Editor
@@ -191,11 +234,20 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={resultImage}
-                // Hooking up Regenerate to handleGenerate re-runs the process with all current inputs
-                // This satisfies the "treat as fresh generation" requirement
-                onResetResult={handleGenerate}
-                // Remove standard New Project button from bottom bar to use custom overlay
-                onNewSession={undefined}
+                
+                onResetResult={resultImage ? undefined : handleGenerate}
+                onNewSession={resultImage ? undefined : handleNewSession}
+                resultOverlay={
+                    resultImage ? (
+                        <ResultToolbar 
+                            onNew={handleNewSession}
+                            onRegen={handleGenerate}
+                            onEdit={() => setShowMagicEditor(true)}
+                            onReport={() => setShowRefundModal(true)}
+                        />
+                    ) : null
+                }
+
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -206,30 +258,6 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     label: "Generate Ad Creative"
                 }}
                 scrollRef={scrollRef}
-                
-                // Add Magic Editor button
-                customActionButtons={
-                    resultImage ? (
-                        <button 
-                            onClick={() => setShowMagicEditor(true)}
-                            className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"
-                        >
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> 
-                            <span>Magic Editor</span>
-                        </button>
-                    ) : null
-                }
-
-                // Place New Project button in the top corner of result image
-                resultOverlay={
-                    <button 
-                        onClick={handleNewSession}
-                        className="bg-white/90 backdrop-blur-md hover:bg-gray-100 text-gray-600 hover:text-[#1A1A1E] px-4 py-2 rounded-full text-xs font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2 transform hover:scale-105"
-                        title="Start a completely new project"
-                    >
-                        <PlusIcon className="w-4 h-4"/> New Project
-                    </button>
-                }
                 
                 // LEFT CONTENT: Canvas
                 leftContent={
@@ -397,6 +425,25 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     onClose={() => setShowMagicEditor(false)} 
                     onSave={handleEditorSave}
                     deductCredit={handleDeductEditCredit}
+                />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                    featureName="Ad Creative"
+                />
+            )}
+
+            {/* Notification */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
                 />
             )}
         </>

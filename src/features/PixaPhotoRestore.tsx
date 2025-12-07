@@ -6,16 +6,12 @@ import {
     PixaRestoreIcon, 
     UploadIcon, 
     XIcon, 
-    SparklesIcon, 
     CreditCoinIcon, 
     MagicWandIcon, 
     PaletteIcon,
     CheckIcon,
     InformationCircleIcon,
-    ShieldCheckIcon,
-    FlagIcon,
-    RegenerateIcon,
-    PlusIcon
+    ShieldCheckIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { colourizeImage } from '../services/imageToolsService';
@@ -23,6 +19,8 @@ import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
 
 // Updated Premium Mode Card (Compact Horizontal Layout)
 const ModeCard: React.FC<{
@@ -31,7 +29,7 @@ const ModeCard: React.FC<{
     icon: React.ReactNode;
     selected: boolean;
     onClick: () => void;
-    accentColor: string;
+    accentColor: string; // CSS class for text color e.g. "text-purple-500"
 }> = ({ title, description, icon, selected, onClick, accentColor }) => {
     return (
         <button 
@@ -74,66 +72,6 @@ const ModeCard: React.FC<{
     );
 };
 
-// Refund Modal
-const RefundModal: React.FC<{ 
-    onClose: () => void; 
-    onConfirm: (reason: string) => void;
-    isProcessing: boolean;
-}> = ({ onClose, onConfirm, isProcessing }) => {
-    const [reason, setReason] = useState('');
-    const reasons = [
-        "Faces are distorted / blurry",
-        "Colorization is unnatural",
-        "Restoration didn't fix damage",
-        "Glitch or Artifacts in image",
-        "Other"
-    ];
-
-    return (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl relative m-4" onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                    <XIcon className="w-5 h-5"/>
-                </button>
-                
-                <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <FlagIcon className="w-5 h-5 text-red-500"/> Report Quality Issue
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                    We're sorry the restoration didn't work perfectly. Select a reason to request a refund.
-                </p>
-
-                <div className="space-y-2 mb-6">
-                    {reasons.map(r => (
-                        <button 
-                            key={r}
-                            onClick={() => setReason(r)}
-                            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold border transition-all ${
-                                reason === r 
-                                ? 'bg-red-50 border-red-500 text-red-700' 
-                                : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            {r}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 text-gray-500 font-bold text-xs hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
-                    <button 
-                        onClick={() => onConfirm(reason)}
-                        disabled={!reason || isProcessing}
-                        className="flex-1 py-3 bg-[#1A1A1E] text-white rounded-xl font-bold text-xs hover:bg-black transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {isProcessing ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Submit & Refund"}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // Low Quality Warning Component
 const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
     if (issues.length === 0) return null;
@@ -148,47 +86,6 @@ const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
                     ))}
                 </ul>
             </div>
-        </div>
-    );
-};
-
-// Top Right Vertical Toolbar (Uniform Expanded Width on Image Hover)
-const ResultToolbar: React.FC<{
-    onNew: () => void;
-    onRegen: () => void;
-    onEdit: () => void;
-    onReport: () => void;
-}> = ({ onNew, onRegen, onEdit, onReport }) => {
-    const buttons = [
-        { label: 'New Project', icon: PlusIcon, onClick: onNew, color: 'text-gray-700', bg: 'hover:bg-gray-100' },
-        { label: 'Regenerate', icon: RegenerateIcon, onClick: onRegen, color: 'text-blue-600', bg: 'hover:bg-blue-50' },
-        { label: 'Magic Editor', icon: MagicWandIcon, onClick: onEdit, color: 'text-purple-600', bg: 'hover:bg-purple-50' },
-        { label: 'Report Issue', icon: FlagIcon, onClick: onReport, color: 'text-red-500', bg: 'hover:bg-red-50' },
-    ];
-
-    return (
-        <div className="flex flex-col gap-1.5 items-end">
-            {buttons.map((btn, idx) => (
-                <button
-                    key={btn.label}
-                    onClick={btn.onClick}
-                    // Use 'w-8' for icon only, 'group-hover:w-36' to expand when image group is hovered
-                    // 'overflow-hidden' hides text when collapsed
-                    className={`flex items-center justify-start gap-0 group-hover:gap-2 px-2 py-2 bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md w-8 group-hover:w-36 overflow-hidden ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
-                    style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
-                >
-                    <btn.icon className={`w-4 h-4 ${btn.color} shrink-0`} />
-                    <span className={`text-[10px] font-bold ${btn.color} whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75`}>
-                        {btn.label}
-                    </span>
-                </button>
-            ))}
-            <style>{`
-                @keyframes fadeInRight {
-                    from { opacity: 0; transform: translateX(10px); }
-                    to { opacity: 1; transform: translateX(0); }
-                }
-            `}</style>
         </div>
     );
 };
@@ -306,11 +203,11 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 restoreMode
             );
 
-            // 2. DISPLAY PHASE (Ensure user sees result even if saving fails)
+            // 2. DISPLAY PHASE
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResultImage(blobUrl);
             
-            // 3. PERSISTENCE PHASE (Safe Block)
+            // 3. PERSISTENCE PHASE
             try {
                 const dataUri = `data:image/png;base64,${res}`;
                 const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore');
@@ -325,7 +222,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             } catch (persistenceError) {
                 console.warn("Persistence/Credit deduction failed:", persistenceError);
-                // Do not alert user to failure if image is already generated, just log it.
             }
 
         } catch (e) {
@@ -558,6 +454,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                     onClose={() => setShowRefundModal(false)}
                     onConfirm={handleRefundRequest}
                     isProcessing={isRefunding}
+                    featureName="Restoration"
                 />
             )}
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
@@ -6,6 +7,10 @@ import { fileToBase64, Base64File, urlToBase64, base64ToBlobUrl } from '../utils
 import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
 import { deductCredits, saveCreation } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 
 // Specialized Card for Step Selection
 const StepCard: React.FC<{
@@ -142,6 +147,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [loading, setLoading] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     // Updated cost lookup
     const cost = appConfig?.featureCosts['Pixa Realty Ads'] || appConfig?.featureCosts['Magic Realty'] || 4;
@@ -277,6 +288,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
         setLoading(true);
         setResultImage(null);
+        setLastCreationId(null);
 
         try {
             const mode = propertyChoice === 'generate' ? 'new_property' : 'lifestyle_fusion';
@@ -314,7 +326,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             
             const dataUri = `data:image/png;base64,${assetUrl}`;
             // Save as Pixa Realty Ads
-            saveCreation(auth.user.uid, dataUri, 'Pixa Realty Ads');
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Realty Ads');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Realty Ads');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -328,6 +342,35 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             alert(`Generation failed: ${e.message}`);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost,
+                reason,
+                "Realty Ad",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
         }
     };
 
@@ -345,6 +388,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setShowContact(false);
         setResultImage(null);
         setDetectedFields(null);
+        setLastCreationId(null);
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -374,17 +418,29 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     return (
         <>
             <FeatureLayout
-                title="Pixa Realty Ads" // Updated Title
+                title="Pixa Realty Ads"
                 description="Create luxury Real Estate ads with Lifestyle Fusion and Golden Hour enhancement."
-                icon={<BuildingIcon className="w-14 h-14"/>} // Larger Icon
-                rawIcon={true} // Standalone Mode
+                icon={<BuildingIcon className="w-14 h-14"/>}
+                rawIcon={true}
                 creditCost={cost}
                 isGenerating={loading}
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={resultImage}
-                onResetResult={handleGenerate}
-                onNewSession={handleNewSession}
+                
+                onResetResult={resultImage ? undefined : handleGenerate}
+                onNewSession={resultImage ? undefined : handleNewSession}
+                resultOverlay={
+                    resultImage ? (
+                        <ResultToolbar 
+                            onNew={handleNewSession}
+                            onRegen={handleGenerate}
+                            onEdit={() => setShowMagicEditor(true)}
+                            onReport={() => setShowRefundModal(true)}
+                        />
+                    ) : null
+                }
+
                 resultHeightClass="h-[900px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -393,13 +449,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     label: designMode === 'auto' ? "Pixa Auto-Design" : "Generate Ad"
                 }}
                 scrollRef={scrollRef}
-                customActionButtons={
-                    resultImage ? (
-                        <button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span>
-                        </button>
-                    ) : null
-                }
+                
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading ? (
@@ -589,8 +639,29 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
             {showMagicEditor && resultImage && (
                 <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                    featureName="Realty Ad"
+                />
+            )}
+
+            {/* Notification */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
+                />
             )}
         </>
     );

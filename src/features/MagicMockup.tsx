@@ -19,11 +19,16 @@ import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
 import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 
 export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     // State
     const [designImage, setDesignImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [resultImage, setResultImage] = useState<string | null>(null);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     
     // Configurations
     const [targetObject, setTargetObject] = useState('');
@@ -39,6 +44,11 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     
     // Drag & Drop State
     const [isDragging, setIsDragging] = useState(false);
+
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     // Refs
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -64,7 +74,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         { name: 'Beige', value: '#F5F5DC', border: 'border-gray-200' },
     ];
 
-    // Animation
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -79,7 +88,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return () => clearInterval(interval);
     }, [loading]);
 
-    // Cleanup blob URL
     useEffect(() => {
         return () => {
             if (resultImage) URL.revokeObjectURL(resultImage);
@@ -107,30 +115,11 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         e.target.value = '';
     };
 
-    // Drag and Drop Handlers
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
     const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
@@ -150,6 +139,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
         setLoading(true);
         setResultImage(null);
+        setLastCreationId(null);
 
         try {
             const res = await generateMagicMockup(
@@ -165,7 +155,9 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setResultImage(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Pixa Mockups');
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Mockups');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Mockups');
             
             if (updatedUser.lifetimeGenerations) {
@@ -182,6 +174,35 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost,
+                reason,
+                "Mockup Generation",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     const handleNewSession = () => {
         setDesignImage(null);
         setResultImage(null);
@@ -190,6 +211,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setMaterial('');
         setSceneVibe('');
         setObjectColor('');
+        setLastCreationId(null);
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -219,8 +241,20 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 canGenerate={canGenerate}
                 onGenerate={handleGenerate}
                 resultImage={resultImage}
-                onResetResult={handleGenerate} 
-                onNewSession={handleNewSession}
+                
+                onResetResult={resultImage ? undefined : handleGenerate} 
+                onNewSession={resultImage ? undefined : handleNewSession}
+                resultOverlay={
+                    resultImage ? (
+                        <ResultToolbar 
+                            onNew={handleNewSession}
+                            onRegen={handleGenerate}
+                            onEdit={() => setShowMagicEditor(true)}
+                            onReport={() => setShowRefundModal(true)}
+                        />
+                    ) : null
+                }
+
                 resultHeightClass="h-[800px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -229,13 +263,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     label: "Render Reality"
                 }}
                 scrollRef={scrollRef}
-                customActionButtons={
-                    resultImage ? (
-                        <button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span>
-                        </button>
-                    ) : null
-                }
                 
                 // Left: Canvas (Upload Zone)
                 leftContent={
@@ -382,6 +409,25 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     onClose={() => setShowMagicEditor(false)} 
                     onSave={handleEditorSave}
                     deductCredit={handleDeductEditCredit}
+                />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                    featureName="Mockup"
+                />
+            )}
+
+            {/* Notification */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
                 />
             )}
         </>

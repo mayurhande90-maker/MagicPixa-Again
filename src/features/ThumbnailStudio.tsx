@@ -15,6 +15,10 @@ import { MagicEditorModal } from '../components/MagicEditorModal';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { saveCreation, deductCredits } from '../firebase';
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 
 // Compact Upload Component (Reused pattern for consistency)
 const CompactUpload: React.FC<{ 
@@ -156,6 +160,12 @@ export const ThumbnailStudio: React.FC<{
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+
+    // Refund State
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -228,6 +238,7 @@ export const ThumbnailStudio: React.FC<{
 
         setLoading(true);
         setResult(null);
+        setLastCreationId(null);
 
         try {
             const res = await generateThumbnail({
@@ -245,8 +256,9 @@ export const ThumbnailStudio: React.FC<{
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            // Use updated name 'Pixa Thumbnail Pro'
-            saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro');
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail Pro');
             
             if (updatedUser.lifetimeGenerations) {
@@ -269,6 +281,7 @@ export const ThumbnailStudio: React.FC<{
 
         setLoading(true);
         setResult(null);
+        setLastCreationId(null);
 
         try {
             const res = await generateThumbnail({
@@ -286,7 +299,9 @@ export const ThumbnailStudio: React.FC<{
             setResult(blobUrl);
             
             const dataUri = `data:image/png;base64,${res}`;
-            saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)');
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)');
+            setLastCreationId(creationId);
+
             const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)');
             
             if (updatedUser.lifetimeGenerations) {
@@ -303,6 +318,35 @@ export const ThumbnailStudio: React.FC<{
         }
     };
 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !result) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid,
+                auth.user.email,
+                cost, // Refund full cost even on regen for simplicity, or track actual cost
+                reason,
+                "Thumbnail Generation",
+                lastCreationId || undefined
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResult(null); 
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     const handleNewSession = () => {
         setFormat(null);
         setReferenceImage(null);
@@ -313,6 +357,7 @@ export const ThumbnailStudio: React.FC<{
         setTitle('');
         setCustomText('');
         setCategory('');
+        setLastCreationId(null);
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -354,8 +399,20 @@ export const ThumbnailStudio: React.FC<{
                 canGenerate={!!hasRequirements && !isLowCredits}
                 onGenerate={handleGenerate}
                 resultImage={result}
-                onResetResult={handleRegenerate} 
-                onNewSession={handleNewSession}
+                
+                onResetResult={result ? undefined : handleRegenerate} 
+                onNewSession={result ? undefined : handleNewSession}
+                resultOverlay={
+                    result ? (
+                        <ResultToolbar 
+                            onNew={handleNewSession}
+                            onRegen={handleRegenerate}
+                            onEdit={() => setShowMagicEditor(true)}
+                            onReport={() => setShowRefundModal(true)}
+                        />
+                    ) : null
+                }
+
                 resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"}
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
@@ -364,17 +421,7 @@ export const ThumbnailStudio: React.FC<{
                     label: "Generate Thumbnail"
                 }}
                 scrollRef={scrollRef}
-                customActionButtons={
-                    result ? (
-                        <button 
-                            onClick={() => setShowMagicEditor(true)}
-                            className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"
-                        >
-                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> 
-                            <span>Magic Editor</span>
-                        </button>
-                    ) : null
-                }
+                
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading ? (
@@ -450,8 +497,29 @@ export const ThumbnailStudio: React.FC<{
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            
+            {/* Magic Editor Modal */}
             {showMagicEditor && result && (
                 <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />
+            )}
+
+            {/* Refund Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)}
+                    onConfirm={handleRefundRequest}
+                    isProcessing={isRefunding}
+                    featureName="Thumbnail"
+                />
+            )}
+
+            {/* Notification */}
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
+                />
             )}
         </>
     );
