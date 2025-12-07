@@ -360,9 +360,15 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         heightClass="h-44"
                                     />
                                 </div>
-                                <p className="text-[10px] text-gray-400 text-center italic mt-2">
-                                    Upload at least one garment to proceed.
-                                </p>
+                                
+                                <div className="flex justify-between items-start mt-2 px-1 gap-2">
+                                    <p className="text-[10px] text-gray-400 italic">
+                                        Upload at least one garment to proceed.
+                                    </p>
+                                    <p className="text-[10px] text-indigo-400 font-medium text-right leading-tight max-w-[60%]">
+                                        To transfer a full outfit, upload the same image to both slots.
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Styling Preferences */}
