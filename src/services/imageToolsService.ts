@@ -76,44 +76,44 @@ export const colourizeImage = async (
     // 1. Analyze Identity First (The "Lock")
     const identityProfile = await analyzeFaceBiometrics(ai, data, optimizedMime, "the subject");
 
-    let basePrompt = `You are a World-Class Photo Restoration Specialist (Smithsonian Level).
+    let basePrompt = `You are a Forensic Photo Restoration AI (Smithsonian Conservation Standard).
     
-    TASK: Restore this damaged/old photograph.
+    INPUT: A severely damaged, aged, or blurry photograph.
+    GOAL: Recover the original scene with high fidelity.
     
-    *** CRITICAL: IDENTITY PRESERVATION PROTOCOL ***
-    You must NOT change the person's face, expression, or structure.
-    We have analyzed the subject. Ensure the output strictly matches this profile:
-    ${identityProfile}
+    *** CRITICAL: DAMAGE CONTROL PROTOCOL ***
+    1. **Noise Handling**: The image contains heavy grain/noise/blur. Treat this as "data corruption" to be removed, NOT as image features.
+    2. **Structural Integrity**: You MUST trace the exact lines, shapes, and pose of the original. Do NOT hallucinate new objects, people, or backgrounds. If a part is missing (tear), fill it contextually (inpainting) with neutral background textures.
+    3. **Face Recovery**: Using the biometric profile below, reconstruct the face strictly. Do NOT swap faces or generate a generic AI face.
     
-    **NEGATIVE CONSTRAINTS:**
-    - Do NOT generate a "generic AI face". Use the exact features from the input.
-    - Do NOT change the position of eyes, nose, or mouth.
-    - Do NOT smooth the skin into plastic. Keep natural skin texture appropriate for the age.
+    [BIOMETRIC LOCK]: ${identityProfile}
     
-    **RESTORATION TASKS:**
-    1. **Heal**: Remove scratches, dust, tears, and fold lines.
-    2. **Deblur**: Sharpen focus on eyes and key details.
-    3. **Denoise**: Remove film grain noise while keeping texture.
-    4. **Resolution**: Output in High Definition (4k equivalent detail).
+    *** MODE: ${mode === 'restore_color' ? 'COLORIZE & RESTORE' : 'RESTORE (PRESERVE TONE)'} ***
     `;
     
     if (mode === 'restore_color') {
         basePrompt += `
-        **COLORIZATION MODE:**
-        - Accurately colorize the image based on historical context and lighting.
-        - Skin tones must be realistic and varied (not monochromatic).
-        - Clothing and background colors should be muted and realistic for the era.
+        - **COLORIZATION RULES**: 
+          - The input is likely Black & White. You MUST output a FULL COLOR image.
+          - Skin tones: Realistic, complex, multi-tonal (not flat orange), matching the detected ethnicity.
+          - Clothing/Background: Historically accurate colors.
+          - **NO GRAYSCALE RESIDUE**: Every pixel must be fully colorized.
         `;
     } else {
         basePrompt += `
-        **RESTORE ONLY MODE:**
-        - **PRESERVE ORIGINAL COLORS:** Do NOT convert to black and white or sepia unless the original is already that way.
-        - **OBJECTIVE:** Remove damage (scratches, dust, tears) and improve sharpness/resolution.
-        - **TONE:** Keep the color grading, saturation, and atmosphere exactly as the input image.
+        - **RESTORATION RULES**:
+          - **PRESERVE ORIGINAL PALETTE**: Strictly keep the color grading of the input (B&W, Sepia, or Color). Do NOT colorize if it's B&W.
+          - **OBJECTIVE**: Denoise, sharpen, and repair physical damage (scratches/tears) only.
         `;
     }
 
-    basePrompt += `\nOutput ONLY the high-resolution restored image.`;
+    basePrompt += `
+    **FINAL OUTPUT REQUIREMENTS:**
+    - High Definition (4K equivalent).
+    - Realistic texture (skin pores, fabric weave) - no "smooth plastic" AI look.
+    - Perfect lighting balance.
+    
+    Output ONLY the restored image.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
