@@ -378,7 +378,7 @@ export const FeatureLayout: React.FC<{
                                         }`}
                                         title="Good Result"
                                     >
-                                        <ThumbUpIcon className="w-6 h-6" />
+                                        <ThumbUpIcon className="w-8 h-8" />
                                         {showSparkles === 'up' && <FeedbackSparkle />}
                                     </button>
                                     <div className="w-px bg-white/20 my-1"></div>
@@ -391,7 +391,7 @@ export const FeatureLayout: React.FC<{
                                         }`}
                                         title="Bad Result"
                                     >
-                                        <ThumbDownIcon className="w-6 h-6" />
+                                        <ThumbDownIcon className="w-8 h-8" />
                                         {showSparkles === 'down' && <FeedbackSparkle />}
                                     </button>
                                 </div>

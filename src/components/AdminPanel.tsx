@@ -370,9 +370,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             } else {
                 alert("Image not found. It may have been deleted.");
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to fetch image", e);
-            alert("Error loading image. Check permissions.");
+            if (e.code === 'permission-denied') {
+                alert("Permission Denied: Admin cannot read user creations. Check Firestore rules.");
+            } else {
+                alert("Error loading image. " + e.message);
+            }
         }
     };
 
@@ -576,6 +580,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                                     className="text-indigo-600 hover:text-indigo-800 font-bold text-xs"
                                                 >
                                                     View Image
+                                                </button>
+                                            ) : fb.imageUrl ? (
+                                                // Fallback for legacy items without creationId (if any)
+                                                <button 
+                                                    onClick={() => setViewingImage(fb.imageUrl)}
+                                                    className="text-indigo-600 hover:text-indigo-800 font-bold text-xs"
+                                                >
+                                                    View (Legacy)
                                                 </button>
                                             ) : (
                                                 <span className="text-gray-300 text-xs">No Data</span>

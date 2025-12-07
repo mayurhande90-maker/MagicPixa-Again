@@ -9,7 +9,13 @@ service cloud.firestore {
       
       // Subcollections
       match /creations/{creationId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        // Allow owner to read/write.
+        // Allow Admin (hardcoded email for simplicity) to READ for feedback review.
+        allow read: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.token.email == 'mayurhande90@gmail.com'
+        );
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
       match /transactions/{txId} {
         allow read: if request.auth != null && request.auth.uid == userId;
@@ -48,10 +54,10 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Feedbacks: Public Create (Auth), Admin Read
+    // Feedbacks: Public Create (Auth), Read (Auth - needed for Admin panel client-side)
     match /feedbacks/{feedbackId} {
       allow create: if request.auth != null;
-      allow read: if request.auth != null; // Simplified for admin access from client, in prod restrict to admin
+      allow read: if request.auth != null; 
     }
     
     // Error Logging: Public Write (Authenticated or Anon)
