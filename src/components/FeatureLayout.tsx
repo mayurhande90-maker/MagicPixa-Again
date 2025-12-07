@@ -244,6 +244,16 @@ export const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; i
     </div>
 );
 
+// Helper Sparkle Component for feedback animation
+const FeedbackSparkle = () => (
+  <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full animate-[ping_0.5s_ease-out_forwards] text-yellow-400">✨</div>
+    <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 animate-[ping_0.6s_ease-out_forwards] text-yellow-400 delay-75">✨</div>
+    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full animate-[ping_0.7s_ease-out_forwards] text-yellow-400 delay-100">✨</div>
+    <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 animate-[ping_0.5s_ease-out_forwards] text-yellow-400 delay-150">✨</div>
+  </div>
+);
+
 export const FeatureLayout: React.FC<{
     title: string;
     icon: React.ReactNode;
@@ -254,7 +264,7 @@ export const FeatureLayout: React.FC<{
     canGenerate: boolean;
     creditCost: number;
     resultImage: string | null;
-    creationId?: string | null; // Added creationId prop
+    creationId?: string | null;
     onResetResult?: () => void;
     onNewSession?: () => void;
     description?: string;
@@ -269,7 +279,7 @@ export const FeatureLayout: React.FC<{
     scrollRef?: React.RefObject<HTMLDivElement>;
     resultOverlay?: React.ReactNode;
     customActionButtons?: React.ReactNode;
-    rawIcon?: boolean; // New Prop to remove default icon container
+    rawIcon?: boolean; 
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, creationId, onResetResult, onNewSession, description,
@@ -278,22 +288,32 @@ export const FeatureLayout: React.FC<{
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
+    const [showSparkles, setShowSparkles] = useState<string | null>(null);
+    const [showThankYou, setShowThankYou] = useState(false);
     
-    // Default height if not specified. Used to enforce alignment.
     const contentHeightClass = resultHeightClass || 'h-[560px]';
 
-    // Reset feedback when a new image is generated
     useEffect(() => {
         setFeedbackGiven(null);
+        setShowThankYou(false);
     }, [resultImage]);
 
     const handleFeedback = async (type: 'up' | 'down') => {
         setFeedbackGiven(type);
-        console.log(`User feedback for image: ${type}`);
+        setShowSparkles(type);
+        setShowThankYou(true);
         
-        // Submit feedback to Firebase
+        // Sparkle effect duration
+        setTimeout(() => setShowSparkles(null), 1000);
+        // Thank you message duration
+        setTimeout(() => setShowThankYou(false), 3000);
+        
+        // Submit to backend
         if (auth?.currentUser) {
             try {
+                // If creationId exists, we send that. 
+                // We send the blobUrl (resultImage) as backup for local context, 
+                // but admins should fetch via creationId if possible.
                 await submitFeedback(auth.currentUser.uid, creationId || null, type, title, resultImage);
             } catch (error) {
                 console.error("Failed to submit feedback:", error);
@@ -321,7 +341,6 @@ export const FeatureLayout: React.FC<{
             </div>
 
             {/* Main Content Grid */}
-            {/* 50/50 Split for equal sizing */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
@@ -336,38 +355,44 @@ export const FeatureLayout: React.FC<{
                                 title="Click to zoom"
                              />
                              
-                             {/* Custom Result Overlay (e.g., Status badges, optional) */}
                              {resultOverlay && (
                                  <div className="absolute top-4 right-4 z-30">
                                      {resultOverlay}
                                  </div>
                              )}
 
-                             {/* Feedback UI - Thumbs Up/Down - Positioned above Download bar */}
-                             <div className="absolute bottom-24 left-0 right-0 flex justify-center z-30 pointer-events-none">
-                                <div className="pointer-events-auto bg-white/20 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-lg animate-fadeIn hover:bg-white/30 transition-colors">
+                             {/* Feedback UI */}
+                             <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center gap-2 z-30 pointer-events-none">
+                                {showThankYou && (
+                                    <div className="pointer-events-auto animate-[fadeInUp_0.3s_ease-out] bg-black/80 text-white text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg mb-1 flex items-center gap-2">
+                                        <SparklesIcon className="w-3 h-3 text-yellow-300" /> Thank you for your feedback!
+                                    </div>
+                                )}
+                                <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-2 rounded-full flex gap-3 shadow-xl animate-fadeIn transition-colors hover:bg-black">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
-                                        className={`p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                        className={`relative p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
                                             feedbackGiven === 'up' 
-                                            ? 'bg-green-500 text-white shadow-md scale-110' 
-                                            : 'text-white hover:bg-white/20 hover:scale-110'
+                                            ? 'bg-white/20 text-white shadow-md scale-110' 
+                                            : 'text-white hover:bg-white/10 hover:scale-110'
                                         }`}
                                         title="Good Result"
                                     >
                                         <ThumbUpIcon className="w-6 h-6" />
+                                        {showSparkles === 'up' && <FeedbackSparkle />}
                                     </button>
                                     <div className="w-px bg-white/20 my-1"></div>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
-                                        className={`p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
+                                        className={`relative p-2 rounded-full transition-all duration-300 transform active:scale-95 ${
                                             feedbackGiven === 'down' 
-                                            ? 'bg-red-500 text-white shadow-md scale-110' 
-                                            : 'text-white hover:bg-white/20 hover:scale-110'
+                                            ? 'bg-white/20 text-white shadow-md scale-110' 
+                                            : 'text-white hover:bg-white/10 hover:scale-110'
                                         }`}
                                         title="Bad Result"
                                     >
                                         <ThumbDownIcon className="w-6 h-6" />
+                                        {showSparkles === 'down' && <FeedbackSparkle />}
                                     </button>
                                 </div>
                              </div>
@@ -375,7 +400,6 @@ export const FeatureLayout: React.FC<{
                              {/* Result Actions */}
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
                                 <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
-                                    {/* Inject Custom Buttons First or Last based on preference. Here first for visibility. */}
                                     {customActionButtons}
 
                                     {onNewSession && (
@@ -413,18 +437,14 @@ export const FeatureLayout: React.FC<{
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
-                        {/* Scrollable Content Area */}
                         <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
-                            {/* Conditional padding: remove extra padding if scrolling is disabled, ensuring full height for fixed layouts */}
                             <div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-48'}`}>
-                                {/* Content - ensure it takes full height if disableScroll is active to allow flexbox positioning */}
                                 <div className={`flex-col ${disableScroll ? 'flex h-full' : 'space-y-2'}`}>
                                     {rightContent}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Fixed Footer for Generate Button (Only if not hidden) */}
                         {!hideGenerateButton && (
                             <div className="pt-6 border-t border-gray-200 bg-[#F6F7FA] flex-shrink-0 z-10">
                                 <button 
@@ -474,7 +494,6 @@ export const FeatureLayout: React.FC<{
     );
 };
 
-// Helper to check milestone status based on new non-linear logic
 export const checkMilestone = (gens: number): number | false => {
     if (gens > 0) {
         if (gens === 10) return 5;

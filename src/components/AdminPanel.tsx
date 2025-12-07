@@ -359,16 +359,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     };
 
     const handleViewGeneratedImage = async (userId: string, creationId: string) => {
+        if (!creationId) {
+            alert("No Creation ID available.");
+            return;
+        }
         try {
             const creation = await getCreationById(userId, creationId);
-            if (creation) {
+            if (creation && creation.imageUrl) {
                 setViewingImage(creation.imageUrl);
             } else {
                 alert("Image not found. It may have been deleted.");
             }
         } catch (e) {
             console.error("Failed to fetch image", e);
-            alert("Error loading image.");
+            alert("Error loading image. Check permissions.");
         }
     };
 
@@ -463,6 +467,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
 
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-fadeIn">
+                    {/* ... (Overview UI remains same) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
                             <div className="flex justify-between items-start mb-4">
@@ -565,15 +570,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                                             )}
                                         </td>
                                         <td className="p-4 text-right">
-                                            {fb.imageUrl ? (
+                                            {fb.creationId ? (
                                                 <button 
-                                                    onClick={() => setViewingImage(fb.imageUrl)}
+                                                    onClick={() => handleViewGeneratedImage(fb.userId, fb.creationId)}
                                                     className="text-indigo-600 hover:text-indigo-800 font-bold text-xs"
                                                 >
                                                     View Image
                                                 </button>
                                             ) : (
-                                                <span className="text-gray-300 text-xs">No Image</span>
+                                                <span className="text-gray-300 text-xs">No Data</span>
                                             )}
                                         </td>
                                     </tr>
@@ -586,6 +591,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* ... (Support, Analytics, System, Config Tabs remain same) ... */}
             {activeTab === 'support' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -695,6 +701,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* ... (Users Tab UI remains same) ... */}
             {activeTab === 'users' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
                     <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
@@ -722,6 +729,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             )}
 
+            {/* ... (Comms, System, Analytics UI same as above) ... */}
             {activeTab === 'comms' && (
                 <div className="max-w-2xl mx-auto animate-fadeIn bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><FlagIcon className="w-6 h-6"/></div><h3 className="text-xl font-bold text-gray-800">Global Announcement</h3></div>

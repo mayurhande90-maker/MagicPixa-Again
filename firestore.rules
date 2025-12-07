@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -45,6 +46,12 @@ service cloud.firestore {
     match /purchases/{purchaseId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Feedbacks: Public Create (Auth), Admin Read
+    match /feedbacks/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null; // Simplified for admin access from client, in prod restrict to admin
     }
     
     // Error Logging: Public Write (Authenticated or Anon)
