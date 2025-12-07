@@ -26,18 +26,21 @@ import { MagicEditorModal } from '../components/MagicEditorModal';
 // Compact Upload Component for the Right Panel
 const CompactUpload: React.FC<{ 
     label: string; 
+    subLabel?: string;
     image: { url: string } | null; 
     onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
     onClear: () => void;
     icon: React.ReactNode;
     heightClass?: string;
-    optional?: boolean;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional }) => {
+}> = ({ label, subLabel, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="relative w-full group">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label} {optional && <span className="text-gray-300 font-normal">(Optional)</span>}</label>
+        <div className="relative w-full group h-full">
+            <div className="flex justify-between items-baseline mb-2 ml-1">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}
+            </div>
             {image ? (
                 <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}>
                     <img src={image.url} className="max-w-full max-h-full object-contain" alt={label} />
@@ -53,7 +56,7 @@ const CompactUpload: React.FC<{
                     onClick={() => inputRef.current?.click()}
                     className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}
                 >
-                    <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-white rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
                         {icon}
                     </div>
                     <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p>
@@ -69,10 +72,10 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Styling Preferences
-    const [tuck, setTuck] = useState('Untucked');
-    const [sleeve, setSleeve] = useState('Long');
-    const [fit, setFit] = useState('Regular');
+    // Styling Preferences - Defaults cleared
+    const [tuck, setTuck] = useState('');
+    const [sleeve, setSleeve] = useState('');
+    const [fit, setFit] = useState('');
 
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -196,9 +199,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setBottomGarment(null);
         setResultImage(null);
         setLastCreationId(null);
-        setTuck('Untucked');
-        setSleeve('Long');
-        setFit('Regular');
+        setTuck('');
+        setSleeve('');
+        setFit('');
     };
 
     const handleEditorSave = (newUrl: string) => {
@@ -214,6 +217,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
 
     const canGenerate = !!personImage && (!!topGarment || !!bottomGarment) && !isLowCredits;
+    const isControlsDisabled = !personImage;
 
     return (
         <>
@@ -239,7 +243,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         />
                     ) : null
                 }
-                resultHeightClass="h-[750px]"
+                resultHeightClass="h-[800px]"
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{
                     className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]",
@@ -323,51 +327,43 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     )
                 }
                 rightContent={
-                    !personImage ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100">
-                                <ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/>
-                            </div>
-                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                            <p className="text-sm text-gray-400">Upload a model photo to start.</p>
-                        </div>
-                    ) : isLowCredits ? (
+                    isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                             <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
-                        <div className="space-y-6 p-1 animate-fadeIn">
-                            {/* Header */}
-                            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                                <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label>
-                            </div>
-
-                            {/* Garments Grid */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <CompactUpload 
-                                    label="Upper Wear" 
-                                    image={topGarment} 
-                                    onUpload={handleUpload(setTopGarment)} 
-                                    onClear={() => setTopGarment(null)} 
-                                    icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>}
-                                    optional={true}
-                                />
-                                <CompactUpload 
-                                    label="Bottom Wear" 
-                                    image={bottomGarment} 
-                                    onUpload={handleUpload(setBottomGarment)} 
-                                    onClear={() => setBottomGarment(null)} 
-                                    icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>}
-                                    optional={true}
-                                />
-                            </div>
+                        <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${isControlsDisabled ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
                             
-                            <p className="text-[10px] text-gray-400 text-center italic mt-4">
-                                Note: You can upload one image for both top and bottom if they are in the same photo.
-                            </p>
+                            {/* Garments Grid */}
+                            <div>
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4">
+                                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CompactUpload 
+                                        label="Upper Wear" 
+                                        image={topGarment} 
+                                        onUpload={handleUpload(setTopGarment)} 
+                                        onClear={() => setTopGarment(null)} 
+                                        icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>}
+                                        heightClass="h-44"
+                                    />
+                                    <CompactUpload 
+                                        label="Bottom Wear" 
+                                        image={bottomGarment} 
+                                        onUpload={handleUpload(setBottomGarment)} 
+                                        onClear={() => setBottomGarment(null)} 
+                                        icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>}
+                                        heightClass="h-44"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-gray-400 text-center italic mt-2">
+                                    Upload at least one garment to proceed.
+                                </p>
+                            </div>
 
                             {/* Styling Preferences */}
                             <div className="border-t border-gray-100 pt-6 space-y-4">
