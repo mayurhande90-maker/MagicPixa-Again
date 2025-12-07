@@ -6,7 +6,7 @@ import {
     PixaRestoreIcon, 
     UploadIcon, 
     XIcon, 
-    UploadTrayIcon,
+    UploadTrayIcon, 
     SparklesIcon, 
     CreditCoinIcon, 
     MagicWandIcon, 
@@ -21,7 +21,7 @@ import { colourizeImage } from '../services/imageToolsService';
 import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 
-// Updated Premium Mode Card
+// Updated Premium Mode Card (Compact Horizontal Layout)
 const ModeCard: React.FC<{
     title: string;
     description: string;
@@ -33,40 +33,39 @@ const ModeCard: React.FC<{
     return (
         <button 
             onClick={onClick}
-            className={`relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all w-full text-left overflow-hidden group ${
+            className={`relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all w-full text-left overflow-hidden group ${
                 selected 
-                ? 'border-transparent bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-xl shadow-indigo-500/30 transform scale-[1.02]'
-                : 'border-gray-100 bg-white hover:border-indigo-100 hover:shadow-lg hover:-translate-y-1'
+                ? 'border-transparent bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg transform scale-[1.01]'
+                : 'border-gray-100 bg-white hover:border-indigo-100 hover:shadow-md'
             }`}
         >
-            <div className="flex justify-between items-start w-full mb-3 relative z-10">
-                <div className={`p-3 rounded-full transition-colors ${
-                    selected ? 'bg-white/20 text-white' : `bg-gray-50 ${accentColor}`
-                }`}>
-                    {icon}
-                </div>
-                {selected && (
-                    <div className="bg-white/20 p-1 rounded-full backdrop-blur-md">
-                        <CheckIcon className="w-4 h-4 text-white" />
-                    </div>
-                )}
+            {/* Icon Box */}
+            <div className={`shrink-0 p-3 rounded-xl transition-colors ${
+                selected ? 'bg-white/20 text-white' : `bg-gray-50 ${accentColor}`
+            }`}>
+                {icon}
             </div>
             
-            <div className="relative z-10 w-full">
-                <h3 className={`font-bold text-base mb-1 ${selected ? 'text-white' : 'text-gray-800'}`}>{title}</h3>
-                <p className={`text-xs font-medium leading-relaxed ${selected ? 'text-indigo-100' : 'text-gray-400'}`}>{description}</p>
+            {/* Text Content */}
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center mb-1">
+                    <h3 className={`font-bold text-sm ${selected ? 'text-white' : 'text-gray-800'}`}>{title}</h3>
+                    {selected && <CheckIcon className="w-4 h-4 text-white" />}
+                </div>
+                
+                <p className={`text-xs leading-snug ${selected ? 'text-indigo-100' : 'text-gray-400'}`}>{description}</p>
                 
                 {selected && (
-                    <div className="mt-4 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-sm animate-fadeIn">
-                        <ShieldCheckIcon className="w-3 h-3 text-emerald-400" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wide">Identity Lock Active</span>
+                    <div className="mt-2 flex items-center gap-1.5 opacity-90 animate-fadeIn">
+                        <ShieldCheckIcon className="w-3 h-3 text-emerald-300" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wide">Identity Lock</span>
                     </div>
                 )}
             </div>
 
-            {/* Background Decoration for selected state */}
+            {/* Background Decoration */}
             {selected && (
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             )}
         </button>
     );
