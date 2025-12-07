@@ -389,9 +389,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Styling Preferences</label>
                                 </div>
                                 <div className="space-y-4">
-                                    <SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In', 'Half Tuck', 'Cropped']} value={tuckStyle} onChange={setTuckStyle} />
-                                    <SelectionGrid label="Sleeve Length" options={['Standard', 'Rolled Up', 'Short', 'Long']} value={sleeveStyle} onChange={setSleeveStyle} />
-                                    <SelectionGrid label="Fit" options={['Regular Fit', 'Slim Fit', 'Oversized', 'Loose']} value={fitStyle} onChange={setFitStyle} />
+                                    <SelectionGrid label="Tuck Style" options={['Tucked Out', 'Tucked In']} value={tuckStyle} onChange={setTuckStyle} />
+                                    <SelectionGrid label="Sleeve Length" options={['Rolled Down', 'Rolled Up']} value={sleeveStyle} onChange={setSleeveStyle} />
+                                    <SelectionGrid label="Fit" options={['Regular Fit', 'Slim Fit', 'Oversized']} value={fitStyle} onChange={setFitStyle} />
                                 </div>
                             </div>
                         </div>
