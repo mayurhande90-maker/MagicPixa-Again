@@ -1,4 +1,7 @@
-
+<change>
+<file>src/features/PixaPhotoRestore.tsx</file>
+<description>Update ResultToolbar to expand on hover over the image group</description>
+<content><![CDATA[
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -170,16 +173,18 @@ const ResultToolbar: React.FC<{
     ];
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-end">
             {buttons.map((btn, idx) => (
                 <button
                     key={btn.label}
                     onClick={btn.onClick}
-                    className={`flex items-center gap-3 px-4 py-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all hover:scale-105 hover:shadow-md ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
+                    className={`flex items-center justify-start gap-0 group-hover:gap-3 px-3 py-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 hover:shadow-md ${btn.bg} animate-[fadeInRight_0.4s_ease-out]`}
                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
                 >
-                    <btn.icon className={`w-4 h-4 ${btn.color}`} />
-                    <span className={`text-xs font-bold ${btn.color}`}>{btn.label}</span>
+                    <btn.icon className={`w-5 h-5 ${btn.color} shrink-0`} />
+                    <span className={`text-xs font-bold ${btn.color} overflow-hidden whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}>
+                        {btn.label}
+                    </span>
                 </button>
             ))}
             <style>{`
@@ -563,3 +568,5 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         </>
     );
 };
+]]></content>
+</change>
