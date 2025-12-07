@@ -94,6 +94,7 @@ export const colourizeImage = async (
     1. **Heal**: Remove scratches, dust, tears, and fold lines.
     2. **Deblur**: Sharpen focus on eyes and key details.
     3. **Denoise**: Remove film grain noise while keeping texture.
+    4. **Resolution**: Output in High Definition (4k equivalent detail).
     `;
     
     if (mode === 'restore_color') {
@@ -330,7 +331,7 @@ export const generateMockup = async (
     Instructions:
     1. Generate a photorealistic image of the Target Item (${mockupType}) in a professional studio setting.
     2. Apply the Input Design onto the surface of the Target Item.
-    3. **Physics**: The design must wrap correctly around curves, folds, and textures (e.g., displacement map effect).
+    3. **Physics**: The design must wrap around curves, folds, and textures (e.g., displacement map effect).
     4. **Lighting**: The design must interact with the scene lighting (reflections, shadows).`;
 
     const response = await ai.models.generateContent({

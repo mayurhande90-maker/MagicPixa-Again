@@ -12,7 +12,8 @@ import {
     MagicWandIcon, 
     PaletteIcon,
     CameraIcon,
-    CheckIcon
+    CheckIcon,
+    InformationCircleIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { colourizeImage } from '../services/imageToolsService';
@@ -76,9 +77,27 @@ const ModeCard: React.FC<{
     );
 };
 
+// Low Quality Warning Component
+const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => {
+    if (issues.length === 0) return null;
+    return (
+        <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4 flex items-start gap-2 animate-fadeIn mx-auto max-w-sm">
+            <InformationCircleIcon className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+            <div>
+                <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide mb-1">Low Resolution Detected</p>
+                <ul className="list-disc list-inside text-xs text-orange-600 space-y-0.5">
+                    {issues.map((issue, idx) => (
+                        <li key={idx}>{issue}</li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
+};
+
 export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     // State
-    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [image, setImage] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [restoreMode, setRestoreMode] = useState<'restore_color' | 'restore_only' | null>(null);
     
@@ -125,11 +144,24 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         };
     }, [resultImage]);
 
+    const validateImage = async (file: File): Promise<string[]> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const warnings = [];
+                if (img.width < 300 || img.height < 300) warnings.push("Image is very small. Restoration quality might be limited.");
+                resolve(warnings);
+            };
+        });
+    };
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
-            setImage({ url: URL.createObjectURL(file), base64 });
+            const warnings = await validateImage(file);
+            setImage({ url: URL.createObjectURL(file), base64, warnings });
             setResultImage(null);
         }
         e.target.value = '';
@@ -145,7 +177,8 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
                 const base64 = await fileToBase64(file);
-                setImage({ url: URL.createObjectURL(file), base64 });
+                const warnings = await validateImage(file);
+                setImage({ url: URL.createObjectURL(file), base64, warnings });
                 setResultImage(null);
             } else {
                 alert("Please drop a valid image file.");
@@ -254,13 +287,20 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                             <img src={image.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Original" />
                             
                             {!loading && (
-                                <button 
-                                    onClick={() => fileInputRef.current?.click()} 
-                                    className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
-                                    title="Change Image"
-                                >
-                                    <UploadIcon className="w-5 h-5"/>
-                                </button>
+                                <>
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()} 
+                                        className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"
+                                        title="Change Image"
+                                    >
+                                        <UploadIcon className="w-5 h-5"/>
+                                    </button>
+                                    {image.warnings && image.warnings.length > 0 && (
+                                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm">
+                                            <SmartWarning issues={image.warnings} />
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     ) : (
@@ -348,7 +388,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                             ? "Pixa will analyze the clothing and background context to apply historically accurate colors while repairing physical damage."
                                             : "Pixa will focus strictly on denoising, sharpening, and repairing physical damage while preserving the original monochromatic mood."}
                                     </p>
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-white/60 p-2 rounded-lg inline-block">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-white/60 p-2 rounded-lg inline-block shadow-sm">
                                         <CheckIcon className="w-3 h-3"/> Identity Lock Active
                                     </div>
                                 </div>
