@@ -13,7 +13,8 @@ import {
     PaletteIcon,
     CameraIcon,
     CheckIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    ShieldCheckIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { colourizeImage } from '../services/imageToolsService';
@@ -51,9 +52,16 @@ const ModeCard: React.FC<{
                 )}
             </div>
             
-            <div className="relative z-10">
+            <div className="relative z-10 w-full">
                 <h3 className={`font-bold text-base mb-1 ${selected ? 'text-white' : 'text-gray-800'}`}>{title}</h3>
                 <p className={`text-xs font-medium leading-relaxed ${selected ? 'text-indigo-100' : 'text-gray-400'}`}>{description}</p>
+                
+                {selected && (
+                    <div className="mt-4 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-sm animate-fadeIn">
+                        <ShieldCheckIcon className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wide">Identity Lock Active</span>
+                    </div>
+                )}
             </div>
 
             {/* Background Decoration for selected state */}
@@ -368,29 +376,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                     accentColor="text-blue-500"
                                 />
                             </div>
-
-                            {/* Active Mode Info */}
-                            {restoreMode && (
-                                <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 animate-fadeIn relative overflow-hidden">
-                                    {/* Decor */}
-                                    <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100 rounded-full -mr-10 -mt-10 opacity-50 blur-xl"></div>
-                                    
-                                    <div className="relative z-10">
-                                        <h4 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                                            <SparklesIcon className="w-4 h-4 text-indigo-500"/> 
-                                            {restoreMode === 'restore_color' ? 'Full Restoration + Color' : 'Classic Restoration'}
-                                        </h4>
-                                        <p className="text-xs text-indigo-700/80 leading-relaxed mb-4">
-                                            {restoreMode === 'restore_color' 
-                                                ? "Pixa will analyze clothing and context to apply historically accurate colors while repairing physical damage."
-                                                : "Pixa will focus strictly on denoising, sharpening, and repairing physical damage without altering the original color palette."}
-                                        </p>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-white/80 p-2 rounded-lg inline-flex shadow-sm border border-indigo-100/50">
-                                            <CheckIcon className="w-3 h-3"/> Identity Lock Active
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )
                 }
