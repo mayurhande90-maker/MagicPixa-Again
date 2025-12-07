@@ -69,10 +69,10 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [topImage, setTopImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomImage, setBottomImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Styling Options
-    const [tuckStyle, setTuckStyle] = useState('Untucked');
-    const [fitStyle, setFitStyle] = useState('Regular Fit');
-    const [sleeveStyle, setSleeveStyle] = useState('Standard');
+    // Styling Options - Defaults cleared
+    const [tuckStyle, setTuckStyle] = useState('');
+    const [fitStyle, setFitStyle] = useState('');
+    const [sleeveStyle, setSleeveStyle] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -220,9 +220,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setBottomImage(null);
         setResult(null);
         setLastCreationId(null);
-        setTuckStyle('Untucked');
-        setFitStyle('Regular Fit');
-        setSleeveStyle('Standard');
+        setTuckStyle('');
+        setFitStyle('');
+        setSleeveStyle('');
     };
 
     const handleEditorSave = (newUrl: string) => {
