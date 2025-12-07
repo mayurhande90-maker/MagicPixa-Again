@@ -20,58 +20,45 @@ import { colourizeImage } from '../services/imageToolsService';
 import { saveCreation, deductCredits } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 
-// Helper Card for Mode Selection (Consistent with other premium features)
+// Updated Premium Mode Card
 const ModeCard: React.FC<{
     title: string;
     description: string;
     icon: React.ReactNode;
     selected: boolean;
     onClick: () => void;
-    color: 'blue' | 'purple';
-}> = ({ title, description, icon, selected, onClick, color }) => {
-    
-    // Static mapping for colors
-    const colorStyles = {
-        blue: {
-            selected: 'border-blue-500 bg-blue-50 shadow-md ring-1 ring-blue-200',
-            hover: 'hover:border-blue-200 hover:bg-gray-50',
-            iconSelected: 'text-blue-600',
-            textSelected: 'text-blue-900',
-            descSelected: 'text-blue-700',
-            badge: 'bg-blue-500'
-        },
-        purple: {
-            selected: 'border-purple-500 bg-purple-50 shadow-md ring-1 ring-purple-200',
-            hover: 'hover:border-purple-200 hover:bg-gray-50',
-            iconSelected: 'text-purple-600',
-            textSelected: 'text-purple-900',
-            descSelected: 'text-purple-700',
-            badge: 'bg-purple-500'
-        }
-    };
-
-    const currentStyle = colorStyles[color];
-
+    accentColor: string; // CSS class for text color e.g. "text-purple-500"
+}> = ({ title, description, icon, selected, onClick, accentColor }) => {
     return (
         <button 
             onClick={onClick}
-            className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all w-full group relative overflow-hidden text-center h-40 ${
+            className={`relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all w-full text-left overflow-hidden group ${
                 selected 
-                ? currentStyle.selected
-                : `border-gray-100 bg-white ${currentStyle.hover}`
+                ? 'border-transparent bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-xl shadow-indigo-500/30 transform scale-[1.02]'
+                : 'border-gray-100 bg-white hover:border-indigo-100 hover:shadow-lg hover:-translate-y-1'
             }`}
         >
-            <div className={`mb-3 p-3 rounded-full transition-transform group-hover:scale-110 ${selected ? 'bg-white/80' : 'bg-gray-50'} ${selected ? currentStyle.iconSelected : `text-gray-400`}`}>
-                {icon}
-            </div>
-            <h3 className={`font-bold text-sm mb-1 ${selected ? currentStyle.textSelected : 'text-gray-700'}`}>{title}</h3>
-            <p className={`text-[10px] ${selected ? currentStyle.descSelected : 'text-gray-400'}`}>{description}</p>
-            
-            {/* Checkmark for selected */}
-            {selected && (
-                <div className={`absolute top-2 right-2 text-white p-0.5 rounded-full ${currentStyle.badge}`}>
-                    <CheckIcon className="w-3 h-3" />
+            <div className="flex justify-between items-start w-full mb-3 relative z-10">
+                <div className={`p-3 rounded-full transition-colors ${
+                    selected ? 'bg-white/20 text-white' : `bg-gray-50 ${accentColor}`
+                }`}>
+                    {icon}
                 </div>
+                {selected && (
+                    <div className="bg-white/20 p-1 rounded-full backdrop-blur-md">
+                        <CheckIcon className="w-4 h-4 text-white" />
+                    </div>
+                )}
+            </div>
+            
+            <div className="relative z-10">
+                <h3 className={`font-bold text-base mb-1 ${selected ? 'text-white' : 'text-gray-800'}`}>{title}</h3>
+                <p className={`text-xs font-medium leading-relaxed ${selected ? 'text-indigo-100' : 'text-gray-400'}`}>{description}</p>
+            </div>
+
+            {/* Background Decoration for selected state */}
+            {selected && (
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             )}
         </button>
     );
@@ -245,7 +232,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         <>
             <FeatureLayout 
                 title="Pixa Photo Restore"
-                description="Breathe new life into vintage photos. Restore details, fix scratches, and optionally colorize."
+                description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize."
                 icon={<PixaRestoreIcon className="w-14 h-14"/>}
                 rawIcon={true}
                 creditCost={cost}
@@ -317,7 +304,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                             }`}
                         >
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
-                                <CameraIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
+                                <PixaRestoreIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" />
                             </div>
                             
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
@@ -352,44 +339,55 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                             <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
-                        <div className="space-y-8 p-1 animate-fadeIn">
-                            {/* Mode Selection */}
-                            <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 block ml-1">Select Restoration Type</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <ModeCard 
-                                        title="Colour & Restore" 
-                                        description="Fix damage + Auto-Colorize" 
-                                        icon={<PaletteIcon className="w-8 h-8"/>}
-                                        selected={restoreMode === 'restore_color'}
-                                        onClick={() => setRestoreMode('restore_color')}
-                                        color="purple"
-                                    />
-                                    <ModeCard 
-                                        title="Only Restore" 
-                                        description="Keep B&W / Sepia + Fix Damage" 
-                                        icon={<MagicWandIcon className="w-8 h-8"/>}
-                                        selected={restoreMode === 'restore_only'}
-                                        onClick={() => setRestoreMode('restore_only')}
-                                        color="blue"
-                                    />
+                        <div className="space-y-8 p-2 animate-fadeIn">
+                            {/* Header */}
+                            <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
+                                <div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800">Restoration Engine</h3>
+                                    <p className="text-xs text-gray-400 font-medium">Select your preferred output style</p>
                                 </div>
                             </div>
 
-                            {/* Informational Blurb */}
+                            {/* Mode Selection */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <ModeCard 
+                                    title="Colour & Restore" 
+                                    description="Repairs damage + AI Colorization. Best for black & white photos needing full revitalization." 
+                                    icon={<PaletteIcon className="w-6 h-6"/>}
+                                    selected={restoreMode === 'restore_color'}
+                                    onClick={() => setRestoreMode('restore_color')}
+                                    accentColor="text-purple-500"
+                                />
+                                <ModeCard 
+                                    title="Restore Only" 
+                                    description="Repairs damage while preserving original colors. Ideal for keeping the vintage aesthetic." 
+                                    icon={<MagicWandIcon className="w-6 h-6"/>}
+                                    selected={restoreMode === 'restore_only'}
+                                    onClick={() => setRestoreMode('restore_only')}
+                                    accentColor="text-blue-500"
+                                />
+                            </div>
+
+                            {/* Active Mode Info */}
                             {restoreMode && (
-                                <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 animate-fadeIn">
-                                    <h4 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                                        <SparklesIcon className="w-4 h-4 text-indigo-500"/> 
-                                        {restoreMode === 'restore_color' ? 'Full Restoration Engine' : 'Classic Restoration Engine'}
-                                    </h4>
-                                    <p className="text-xs text-indigo-700/80 leading-relaxed mb-3">
-                                        {restoreMode === 'restore_color' 
-                                            ? "Pixa will analyze the clothing and background context to apply historically accurate colors while repairing physical damage."
-                                            : "Pixa will focus strictly on denoising, sharpening, and repairing physical damage while preserving the original monochromatic mood."}
-                                    </p>
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-white/60 p-2 rounded-lg inline-block shadow-sm">
-                                        <CheckIcon className="w-3 h-3"/> Identity Lock Active
+                                <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 animate-fadeIn relative overflow-hidden">
+                                    {/* Decor */}
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100 rounded-full -mr-10 -mt-10 opacity-50 blur-xl"></div>
+                                    
+                                    <div className="relative z-10">
+                                        <h4 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                            <SparklesIcon className="w-4 h-4 text-indigo-500"/> 
+                                            {restoreMode === 'restore_color' ? 'Full Restoration + Color' : 'Classic Restoration'}
+                                        </h4>
+                                        <p className="text-xs text-indigo-700/80 leading-relaxed mb-4">
+                                            {restoreMode === 'restore_color' 
+                                                ? "Pixa will analyze clothing and context to apply historically accurate colors while repairing physical damage."
+                                                : "Pixa will focus strictly on denoising, sharpening, and repairing physical damage without altering the original color palette."}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-white/80 p-2 rounded-lg inline-flex shadow-sm border border-indigo-100/50">
+                                            <CheckIcon className="w-3 h-3"/> Identity Lock Active
+                                        </div>
                                     </div>
                                 </div>
                             )}

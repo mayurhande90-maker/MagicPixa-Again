@@ -107,9 +107,9 @@ export const colourizeImage = async (
     } else {
         basePrompt += `
         **RESTORE ONLY MODE:**
-        - **OUTPUT MUST BE BLACK & WHITE / SEPIA.**
-        - Do NOT add color.
-        - Maintain the original tonal range and atmosphere, just cleaner and sharper.
+        - **PRESERVE ORIGINAL COLORS:** Do NOT convert to black and white or sepia unless the original is already that way.
+        - **OBJECTIVE:** Remove damage (scratches, dust, tears) and improve sharpness/resolution.
+        - **TONE:** Keep the color grading, saturation, and atmosphere exactly as the input image.
         `;
     }
 
