@@ -21,6 +21,11 @@ const FEATURE_NAME_MAP: Record<string, string> = {
     'Merchant Studio': 'Pixa Ecommerce Kit',
     'Ecommerce Kit': 'Pixa Ecommerce Kit',
     'Pixa Ecommerce Kit': 'Pixa Ecommerce Kit',
+    // New specific keys for Ecommerce Kit
+    'Pixa Ecommerce Kit (5 Assets)': 'Pixa Ecommerce Kit (5 Assets)',
+    'Pixa Ecommerce Kit (7 Assets)': 'Pixa Ecommerce Kit (7 Assets)',
+    'Pixa Ecommerce Kit (10 Assets)': 'Pixa Ecommerce Kit (10 Assets)',
+    
     'Magic Soul': 'Pixa Together',
     'Together': 'Pixa Together',
     'Pixa Together': 'Pixa Together',
@@ -50,6 +55,10 @@ const FEATURE_NAME_MAP: Record<string, string> = {
 export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpdate }) => {
     const [localConfig, setLocalConfig] = useState<AppConfig | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
+    
+    // State for adding new feature cost
+    const [newFeatureKey, setNewFeatureKey] = useState('');
+    const [newFeatureCost, setNewFeatureCost] = useState(0);
 
     useEffect(() => {
         if (appConfig) {
@@ -63,8 +72,41 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
         }
     }, [appConfig, hasChanges]);
 
-    const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => { if (!localConfig) return; setLocalConfig(prev => { if(!prev) return null; const next = JSON.parse(JSON.stringify(prev)); if (section === 'featureToggles') { next.featureToggles[key] = value; } else if (section === 'featureCosts') { next.featureCosts[key] = value; } return next; }); setHasChanges(true); };
-    const removeCostKey = (key: string) => { if (!localConfig) return; if (confirm(`Delete pricing for "${key}"?`)) { setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); delete next.featureCosts[key]; return next; }); setHasChanges(true); } };
+    const handleConfigChange = (section: keyof AppConfig, key: string, value: any) => { 
+        if (!localConfig) return; 
+        setLocalConfig(prev => { 
+            if(!prev) return null; 
+            const next = JSON.parse(JSON.stringify(prev)); 
+            if (section === 'featureToggles') { 
+                next.featureToggles[key] = value; 
+            } else if (section === 'featureCosts') { 
+                next.featureCosts[key] = value; 
+            } 
+            return next; 
+        }); 
+        setHasChanges(true); 
+    };
+
+    const addFeatureCost = () => {
+        if(!newFeatureKey.trim()) return;
+        handleConfigChange('featureCosts', newFeatureKey.trim(), newFeatureCost);
+        setNewFeatureKey('');
+        setNewFeatureCost(0);
+    };
+
+    const removeCostKey = (key: string) => { 
+        if (!localConfig) return; 
+        if (confirm(`Delete pricing for "${key}"?`)) { 
+            setLocalConfig(prev => { 
+                if (!prev) return null; 
+                const next = JSON.parse(JSON.stringify(prev)); 
+                delete next.featureCosts[key]; 
+                return next; 
+            }); 
+            setHasChanges(true); 
+        } 
+    };
+
     const handlePackChange = (index: number, field: keyof CreditPack, value: any) => { if (!localConfig) return; setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); const pack = next.creditPacks[index]; (pack as any)[field] = value; if (field === 'credits' || field === 'bonus') { pack.totalCredits = (parseInt(pack.credits.toString()) || 0) + (parseInt(pack.bonus.toString()) || 0); } const newCredits = field === 'credits' ? value : pack.credits; const newBonus = field === 'bonus' ? value : pack.bonus; const newPrice = field === 'price' ? value : pack.price; const total = (parseInt(newCredits) || 0) + (parseInt(newBonus) || 0); if (total > 0 && newPrice > 0) { pack.value = parseFloat((newPrice / total).toFixed(2)); } else { pack.value = 0; } return next; }); setHasChanges(true); };
     const addPack = () => { if (!localConfig) return; setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); next.creditPacks.push({ name: 'New Pack', price: 0, credits: 0, totalCredits: 0, bonus: 0, tagline: 'Best value', popular: false, value: 0 }); return next; }); setHasChanges(true); };
     const removePack = (index: number) => { if (!localConfig) return; if (confirm("Delete this package?")) { setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); next.creditPacks.splice(index, 1); return next; }); setHasChanges(true); } };
@@ -94,6 +136,25 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
                                 </div>
                             </div>
                         ))}
+                    </div>
+                    
+                    {/* Add New Cost Key Form */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
+                        <input 
+                            type="text" 
+                            placeholder="Feature Name (e.g. Pixa Ecommerce Kit (7 Assets))" 
+                            value={newFeatureKey} 
+                            onChange={e => setNewFeatureKey(e.target.value)} 
+                            className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-indigo-500"
+                        />
+                        <input 
+                            type="number" 
+                            placeholder="Cost" 
+                            value={newFeatureCost} 
+                            onChange={e => setNewFeatureCost(parseInt(e.target.value)||0)} 
+                            className="w-16 p-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-indigo-500"
+                        />
+                        <button onClick={addFeatureCost} className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 flex-shrink-0">Add</button>
                     </div>
                 </div>
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">

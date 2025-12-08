@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField, ImageModal } from '../components/FeatureLayout';
@@ -203,19 +204,33 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [viewIndex, setViewIndex] = useState<number | null>(null);
 
     // Dynamic Cost Calculation using App Config
+    // Priority: 1. Specific Feature Key, 2. Formula based on Base Cost
     const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 
                      appConfig?.featureCosts['Merchant Studio'] || 
                      appConfig?.featureCosts['Ecommerce Kit'] || 
-                     25; // Default fallback to 25 if not set
+                     25; 
 
     let cost = baseCost;
-    if (packSize === 7) cost = Math.ceil(baseCost * 1.4); // 7 is ~1.4x of 5
-    if (packSize === 10) cost = Math.ceil(baseCost * 2.0); // 10 is 2x of 5
+    if (packSize === 5 && appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)']) {
+        cost = appConfig.featureCosts['Pixa Ecommerce Kit (5 Assets)'];
+    } else if (packSize === 7) {
+        if (appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)']) {
+            cost = appConfig.featureCosts['Pixa Ecommerce Kit (7 Assets)'];
+        } else {
+            cost = Math.ceil(baseCost * 1.4);
+        }
+    } else if (packSize === 10) {
+        if (appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)']) {
+            cost = appConfig.featureCosts['Pixa Ecommerce Kit (10 Assets)'];
+        } else {
+            cost = Math.ceil(baseCost * 2.0);
+        }
+    }
 
     // Derived costs for display in UI cards
-    const costStandard = baseCost;
-    const costExtended = Math.ceil(baseCost * 1.4);
-    const costUltimate = Math.ceil(baseCost * 2.0);
+    const costStandard = appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)'] || baseCost;
+    const costExtended = appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)'] || Math.ceil(baseCost * 1.4);
+    const costUltimate = appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)'] || Math.ceil(baseCost * 2.0);
 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
@@ -359,14 +374,14 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => {
         if (currentMode === 'apparel') {
             const labels = [
-                'Full Body (Hero)', 'Lifestyle Context', 'Side Profile', 'Back View', 'Fabric Detail',
+                'Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail',
                 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'
             ];
             return labels[index] || `Variant ${index + 1}`;
         } else {
             const labels = [
-                'Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Context', 'Macro Detail',
-                'Contextual Room', 'Creative Ad', 'Flat Lay', 'In-Hand Scale', 'Dramatic/Vibe'
+                'Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro',
+                'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe'
             ];
             return labels[index] || `Variant ${index + 1}`;
         }
