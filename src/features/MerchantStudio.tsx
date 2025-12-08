@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField, ImageModal } from '../components/FeatureLayout';
@@ -203,8 +202,21 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     // View Modal State - now using index to support navigation
     const [viewIndex, setViewIndex] = useState<number | null>(null);
 
-    // Dynamic Cost Calculation
-    const cost = packSize === 5 ? 15 : packSize === 7 ? 21 : 30;
+    // Dynamic Cost Calculation using App Config
+    const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 
+                     appConfig?.featureCosts['Merchant Studio'] || 
+                     appConfig?.featureCosts['Ecommerce Kit'] || 
+                     25; // Default fallback to 25 if not set
+
+    let cost = baseCost;
+    if (packSize === 7) cost = Math.ceil(baseCost * 1.4); // 7 is ~1.4x of 5
+    if (packSize === 10) cost = Math.ceil(baseCost * 2.0); // 10 is 2x of 5
+
+    // Derived costs for display in UI cards
+    const costStandard = baseCost;
+    const costExtended = Math.ceil(baseCost * 1.4);
+    const costUltimate = Math.ceil(baseCost * 2.0);
+
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
@@ -537,7 +549,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                 size={5} 
                                                 label="Standard" 
                                                 subLabel="Essentials (Hero, Side, Back)"
-                                                cost={15} 
+                                                cost={costStandard} 
                                                 selected={packSize === 5} 
                                                 onClick={() => setPackSize(5)} 
                                             />
@@ -545,7 +557,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                 size={7} 
                                                 label="Extended" 
                                                 subLabel="+ Creative & Lifestyle"
-                                                cost={21} 
+                                                cost={costExtended} 
                                                 selected={packSize === 7} 
                                                 onClick={() => setPackSize(7)} 
                                             />
@@ -553,7 +565,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                 size={10} 
                                                 label="Ultimate" 
                                                 subLabel="+ Golden Hour, Action & More"
-                                                cost={30} 
+                                                cost={costUltimate} 
                                                 selected={packSize === 10} 
                                                 onClick={() => setPackSize(10)} 
                                                 isPopular={true}
