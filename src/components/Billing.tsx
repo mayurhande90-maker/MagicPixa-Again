@@ -335,51 +335,43 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                 <p className="text-lg text-[#5F6368]">Choose a credit pack that fits your needs. No subscriptions.</p>
             </div>
           
-            <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 lg:grid-cols-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
                 {creditPacks.map((pack, index) => (
-                    <div key={index} className={`relative bg-white p-6 rounded-2xl border-2 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:shadow-lg ${pack.popular ? 'border-[#F9D230] shadow-md shadow-yellow-500/10' : 'border-gray-100 hover:border-blue-200'}`}>
-                        {pack.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F9D230] text-[#1A1A1E] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Best Value</div>}
+                    <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#F9D230] shadow-lg shadow-yellow-500/10' : 'border-gray-200/80'}`}>
+                        {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                        <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{pack.name}</h3>
+                        <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                         
-                        <div className="flex-1 text-center">
-                            <h3 className="font-bold text-lg text-gray-800 mb-1">{pack.name}</h3>
-                            <p className="text-xs text-gray-400 mb-4 line-clamp-1">{pack.tagline}</p>
-                            
-                            <div className="mb-2">
-                                <span className="text-4xl font-black text-[#1A1A1E]">{pack.totalCredits}</span>
-                                <span className="text-sm font-bold text-gray-400 ml-1">CR</span>
-                            </div>
-                            
-                            <div className="h-6 mb-4">
-                                {pack.bonus > 0 ? (
-                                    <span className="inline-block bg-green-50 text-green-600 text-xs font-bold px-2 py-1 rounded-md border border-green-100">
-                                        +{pack.bonus} Bonus Credits
-                                    </span>
-                                ) : (
-                                    <span className="inline-block py-1">&nbsp;</span>
-                                )}
-                            </div>
+                        <div className="my-2">
+                            <span className="text-4xl font-bold text-[#1A1A1E]">
+                                {pack.totalCredits}
+                            </span>
+                            <span className="text-[#5F6368] ml-1">Credits</span>
                         </div>
-
-                        <div className="mt-auto pt-4 border-t border-gray-100 text-center">
-                             <p className="text-2xl font-bold text-[#1A1A1E] mb-3">₹{pack.price}</p>
-                             <button
-                                onClick={() => handlePurchase(pack, index)}
-                                disabled={loadingPackage !== null}
-                                className={`w-full font-bold py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-wait text-sm flex items-center justify-center gap-2 ${
-                                pack.popular
-                                    ? 'bg-[#1A1A1E] text-white hover:bg-black hover:shadow-lg'
-                                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                                }`}
-                            >
-                                {loadingPackage === index ? (
-                                <svg className="animate-spin h-5 w-5 mx-auto text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                ) : (
-                                <>
-                                    <CreditCoinIcon className="w-4 h-4"/> Buy Now
-                                </>
-                                )}
-                            </button>
+                        <div className="h-5 mb-4">
+                          {pack.bonus > 0 && (
+                              <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
+                                  {pack.credits} + {pack.bonus} Bonus!
+                              </p>
+                          )}
                         </div>
+                        
+                        <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
+                            <span className="text-2xl font-bold text-[#1A1A1E]">₹{pack.price}</span>
+                            <p className="text-xs text-gray-500">One-time payment</p>
+                        </div>
+                        
+                        <button 
+                            onClick={() => handlePurchase(pack, index)}
+                            disabled={loadingPackage !== null}
+                            className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${pack.popular ? 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b]' : 'bg-gray-100 text-[#1A1A1E] hover:bg-gray-200'}`}
+                        >
+                            {loadingPackage === index ? (
+                                <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            ) : (
+                                "Buy Now"
+                            )}
+                        </button>
                     </div>
                 ))}
             </div>
