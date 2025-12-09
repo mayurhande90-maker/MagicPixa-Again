@@ -7,7 +7,6 @@ import {
     ChartBarIcon,
     ShieldCheckIcon,
     AudioWaveIcon,
-    ImageIcon,
     SystemIcon,
     StarIcon,
     LifebuoyIcon
@@ -17,7 +16,6 @@ import {
 import { AdminOverview } from './admin/AdminOverview';
 import { AdminFeedback } from './admin/AdminFeedback';
 import { AdminSupport } from './admin/AdminSupport';
-import { AdminAnalytics } from './admin/AdminAnalytics';
 import { AdminUsers } from './admin/AdminUsers';
 import { AdminComms } from './admin/AdminComms';
 import { AdminConfig } from './admin/AdminConfig';
@@ -30,7 +28,8 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'support' | 'analytics' | 'comms' | 'system' | 'config' | 'feedback'>('overview');
+    // Removed 'analytics' from state type
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -54,7 +53,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />
-                    <TabButton id="analytics" label="Analytics" icon={ImageIcon} />
+                    {/* Analytics Removed */}
                     <TabButton id="users" label="Users" icon={UsersIcon} />
                     <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
                     <TabButton id="config" label="Config" icon={CogIcon} />
@@ -62,10 +61,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             </div>
 
-            {activeTab === 'overview' && <AdminOverview />}
+            {activeTab === 'overview' && <AdminOverview onNavigate={setActiveTab} />}
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'support' && <AdminSupport auth={auth} />}
-            {activeTab === 'analytics' && <AdminAnalytics />}
+            {/* Analytics Render Removed */}
             {activeTab === 'users' && <AdminUsers auth={auth} appConfig={appConfig} />}
             {activeTab === 'comms' && <AdminComms auth={auth} />}
             {activeTab === 'config' && <AdminConfig appConfig={appConfig} onConfigUpdate={onConfigUpdate} />}

@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Purchase } from '../../types';
-import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStats, getAllUsers, getTotalRevenue } from '../../firebase';
-import { CreditCardIcon, FilterIcon, UsersIcon, ImageIcon } from '../icons';
+import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStats, getTotalRevenue } from '../../firebase';
+import { CreditCardIcon, FilterIcon, UsersIcon, StarIcon, LifebuoyIcon, AudioWaveIcon, CogIcon, SystemIcon } from '../icons';
 
-export const AdminOverview: React.FC = () => {
+interface AdminOverviewProps {
+    onNavigate: (tab: 'overview' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback') => void;
+}
+
+export const AdminOverview: React.FC<AdminOverviewProps> = ({ onNavigate }) => {
     const [stats, setStats] = useState<{ revenue: number, totalUsers: number, signups: User[], purchases: Purchase[] }>({ 
         revenue: 0, totalUsers: 0, signups: [], purchases: [] 
     });
@@ -86,7 +90,7 @@ export const AdminOverview: React.FC = () => {
     if (isLoading) {
         return (
             <div className="space-y-8 animate-pulse">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm h-32">
                             <div className="h-8 w-8 bg-gray-200 rounded-full mb-4"></div>
@@ -102,6 +106,7 @@ export const AdminOverview: React.FC = () => {
 
     return (
         <div className="space-y-8 animate-fadeIn">
+            {/* Top Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Revenue Card */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
@@ -145,6 +150,66 @@ export const AdminOverview: React.FC = () => {
                         <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span className="text-xs font-bold uppercase tracking-wider text-gray-400">System</span></div>
                         <p className="text-lg font-bold">Operational</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Quick Overview / Module Shortcuts */}
+            <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Admin Modules</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <button 
+                        onClick={() => onNavigate('feedback')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-yellow-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><StarIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">Feedback</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">User ratings</p>
+                    </button>
+
+                    <button 
+                        onClick={() => onNavigate('support')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><LifebuoyIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">Support</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Help desk</p>
+                    </button>
+
+                    <button 
+                        onClick={() => onNavigate('users')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><UsersIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">Users</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Manage accounts</p>
+                    </button>
+
+                    <button 
+                        onClick={() => onNavigate('comms')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-green-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-green-50 text-green-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><AudioWaveIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">Comms</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Announcements</p>
+                    </button>
+
+                    <button 
+                        onClick={() => onNavigate('config')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-gray-50 text-gray-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><CogIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">Config</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Pricing & Features</p>
+                    </button>
+
+                    <button 
+                        onClick={() => onNavigate('system')} 
+                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-red-400 hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="p-2 bg-red-50 text-red-600 rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform"><SystemIcon className="w-5 h-5"/></div>
+                        <p className="font-bold text-sm text-gray-700">System</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Audit logs</p>
+                    </button>
                 </div>
             </div>
 
