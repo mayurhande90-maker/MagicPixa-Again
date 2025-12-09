@@ -1,3 +1,4 @@
+
 // ... existing imports ...
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -513,9 +514,9 @@ export const getRecentFeedbacks = async (limit = 100) => {
 
 // --- Admin ---
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (limit = 100) => {
     if (!db) return [];
-    const snapshot = await db.collection('users').limit(100).get(); 
+    const snapshot = await db.collection('users').limit(limit).get(); 
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
 };
 
@@ -610,21 +611,71 @@ export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => {
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase));
 };
 
+// Optimized Stats Fetcher using Aggregation
+export const getDashboardStats = async () => {
+    if (!db) return { revenue: 0, totalUsers: 0, totalBurn: 0 };
+
+    try {
+        // Attempt server-side aggregation (Fast & Cheap)
+        // Using 'as any' to bypass TypeScript errors for aggregate/count which might be missing in compat types
+        const purchasesAgg = await (db.collection('purchases') as any).aggregate({
+            total: (firebase.firestore as any).AggregateField.sum('amountPaid')
+        }).get();
+        const revenue = purchasesAgg.data().total || 0;
+
+        const usersAgg = await (db.collection('users') as any).count().get();
+        const totalUsers = usersAgg.data().count;
+
+        // Burn calc: sum(totalAcquired) - sum(currentCredits)
+        const creditsAgg = await (db.collection('users') as any).aggregate({
+            totalAcquired: (firebase.firestore as any).AggregateField.sum('totalCreditsAcquired'),
+            currentCredits: (firebase.firestore as any).AggregateField.sum('credits')
+        }).get();
+        
+        const totalAcquired = creditsAgg.data().totalAcquired || 0;
+        const currentHeld = creditsAgg.data().currentCredits || 0;
+        const totalBurn = Math.max(0, totalAcquired - currentHeld);
+
+        return { revenue, totalUsers, totalBurn };
+
+    } catch (e) {
+        console.warn("Aggregation failed (indexes might be missing or SDK too old), falling back to client-side approximation");
+        
+        // Fallback: Fetch recent purchases only
+        const pSnap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(500).get();
+        const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0);
+
+        // Fallback: Estimate count from limited fetch
+        const uSnap = await db.collection('users').limit(100).get(); // Just grab 100 for now
+        const totalUsers = uSnap.size; // Inaccurate but fast
+        
+        return { revenue, totalUsers, totalBurn: 0 };
+    }
+};
+
 export const getTotalRevenue = async (startDate?: Date, endDate?: Date) => {
     if (!db) return 0;
     let query = db.collection('purchases');
     
     let snapshot;
     if (startDate && endDate) {
+        // Limited range, standard fetch is okay
         snapshot = await query
             .where('purchaseDate', '>=', startDate)
             .where('purchaseDate', '<=', endDate)
             .get();
+        return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0);
     } else {
-        snapshot = await query.get();
+        // Lifetime total - Use Aggregation if possible, fallback to limited
+        try {
+            const agg = await (query as any).aggregate({ total: (firebase.firestore as any).AggregateField.sum('amountPaid') }).get();
+            return agg.data().total || 0;
+        } catch(e) {
+            // Fallback
+            snapshot = await query.limit(1000).get(); // Limit to prevent freeze
+            return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0);
+        }
     }
-    
-    return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0);
 };
 
 export const getRevenueStats = async (days = 7) => {
@@ -632,6 +683,8 @@ export const getRevenueStats = async (days = 7) => {
 };
 
 export const get24HourCreditBurn = async () => {
+    // Placeholder - Implementing real burn requires transaction log aggregation which is expensive
+    // Returning 0 for now to keep dashboard fast
     return 0;
 };
 

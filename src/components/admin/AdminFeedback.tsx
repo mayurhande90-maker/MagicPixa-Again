@@ -1,13 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { getRecentFeedbacks, getCreationById, getAllUsers } from '../../firebase';
+import { getRecentFeedbacks, getCreationById } from '../../firebase';
 import { StarIcon, ThumbUpIcon, ThumbDownIcon, EyeIcon, ArrowLeftIcon, ArrowRightIcon } from '../icons';
 import { AdminImageViewer } from './AdminImageViewer';
-import { User } from '../../types';
 
 export const AdminFeedback: React.FC = () => {
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
-    const [usersMap, setUsersMap] = useState<Record<string, User>>({});
     const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'up' | 'down'>('all');
     const [dateFilter, setDateFilter] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
@@ -24,21 +22,8 @@ export const AdminFeedback: React.FC = () => {
     const loadData = async () => {
         setIsLoading(true);
         try {
-            // Load Feedbacks and Users in parallel
-            const [feed, allUsers] = await Promise.all([
-                getRecentFeedbacks(100),
-                getAllUsers()
-            ]);
-            
+            const feed = await getRecentFeedbacks(100);
             setFeedbacks(feed);
-            
-            // Create a quick lookup map for users
-            const map: Record<string, User> = {};
-            allUsers.forEach(u => {
-                map[u.uid] = u;
-            });
-            setUsersMap(map);
-
         } catch (e) { console.error(e); }
         setIsLoading(false);
     };
@@ -198,10 +183,8 @@ export const AdminFeedback: React.FC = () => {
                             {isLoading ? (
                                 <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading insights...</td></tr>
                             ) : paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map((fb, idx) => {
-                                // Resolve User Data
-                                const userInMap = usersMap[fb.userId];
-                                const displayName = fb.userName || userInMap?.name || 'Unknown User';
-                                const displayEmail = fb.userEmail || userInMap?.email || fb.userId;
+                                const displayName = fb.userName || 'Unknown User';
+                                const displayEmail = fb.userEmail || fb.userId;
 
                                 return (
                                     <tr key={fb.id || idx} className="hover:bg-gray-50 transition-colors group">

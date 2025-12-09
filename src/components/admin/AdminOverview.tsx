@@ -1,65 +1,110 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Purchase } from '../../types';
-import { getRecentSignups, getRecentPurchases, getTotalRevenue, getRevenueStats, get24HourCreditBurn, getAllUsers } from '../../firebase';
+import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStats, getAllUsers, getTotalRevenue } from '../../firebase';
 import { CreditCardIcon, FilterIcon, UsersIcon, ImageIcon } from '../icons';
 
 export const AdminOverview: React.FC = () => {
-    const [stats, setStats] = useState<{ revenue: number, signups: User[], purchases: Purchase[] }>({ revenue: 0, signups: [], purchases: [] });
-    const [burnStats, setBurnStats] = useState({ totalBurn: 0, burn24h: 0 });
+    const [stats, setStats] = useState<{ revenue: number, totalUsers: number, totalBurn: number, signups: User[], purchases: Purchase[] }>({ 
+        revenue: 0, totalUsers: 0, totalBurn: 0, signups: [], purchases: [] 
+    });
+    
+    const [isLoading, setIsLoading] = useState(true);
     const [revenueHistory, setRevenueHistory] = useState<{ date: string; amount: number }[]>([]);
     const [revenueFilter, setRevenueFilter] = useState<'7d' | '30d' | '6m' | '1y' | 'lifetime' | 'custom'>('lifetime');
     const [showRevenueFilterMenu, setShowRevenueFilterMenu] = useState(false);
     const [customRange, setCustomRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
-    
-    // For counting total users
-    const [totalUsersCount, setTotalUsersCount] = useState(0);
 
     useEffect(() => {
         loadOverview();
     }, []);
 
     const fetchRevenueWithFilter = async () => {
+        if (!stats.revenue && revenueFilter === 'lifetime') return; // Initial load handles lifetime
+        
         let start: Date | undefined;
         let end: Date | undefined = new Date();
+        
         if (revenueFilter === '7d') { start = new Date(); start.setDate(start.getDate() - 7); } 
         else if (revenueFilter === '30d') { start = new Date(); start.setDate(start.getDate() - 30); } 
         else if (revenueFilter === '6m') { start = new Date(); start.setMonth(start.getMonth() - 6); } 
         else if (revenueFilter === '1y') { start = new Date(); start.setFullYear(start.getFullYear() - 1); } 
-        else if (revenueFilter === 'custom') { if (customRange.start) start = new Date(customRange.start); if (customRange.end) end = new Date(customRange.end); if (end) end.setHours(23, 59, 59, 999); } 
-        else { start = undefined; end = undefined; }
-        try { const total = await getTotalRevenue(start, end); setStats(prev => ({ ...prev, revenue: total })); } catch (e) { console.error("Failed to fetch filtered revenue", e); }
+        else if (revenueFilter === 'custom') { 
+            if (customRange.start) start = new Date(customRange.start); 
+            if (customRange.end) end = new Date(customRange.end); 
+            if (end) end.setHours(23, 59, 59, 999); 
+        } else {
+            // Lifetime: Refresh stats completely if needed, or rely on getDashboardStats
+            const newStats = await getDashboardStats();
+            setStats(prev => ({ ...prev, revenue: newStats.revenue }));
+            return;
+        }
+
+        if (start) {
+            try { 
+                const total = await getTotalRevenue(start, end); 
+                setStats(prev => ({ ...prev, revenue: total })); 
+            } catch (e) { 
+                console.error("Failed to fetch filtered revenue", e); 
+            }
+        }
     };
 
     useEffect(() => {
-        fetchRevenueWithFilter();
+        if (!isLoading) fetchRevenueWithFilter();
     }, [revenueFilter]);
 
     const applyCustomRange = () => { if (customRange.start && customRange.end) { setRevenueFilter('custom'); setShowRevenueFilterMenu(false); } };
 
     const loadOverview = async () => {
+        setIsLoading(true);
         try {
-            const [signups, purchases, revHistory] = await Promise.all([ getRecentSignups(10), getRecentPurchases(10), getRevenueStats(7) ]);
-            // Revenue loaded by separate effect or initial fetch
-            const rev = await getTotalRevenue();
-            setStats({ revenue: rev, signups, purchases });
-            setRevenueHistory(revHistory);
-            
-            const burn24 = await get24HourCreditBurn();
-            const allUsersSnap = await getAllUsers();
-            setTotalUsersCount(allUsersSnap.length);
+            // Parallel Fetching
+            const [signups, purchases, revHistory, dashboardStats] = await Promise.all([ 
+                getRecentSignups(10), 
+                getRecentPurchases(10), 
+                getRevenueStats(7),
+                getDashboardStats()
+            ]);
 
-            let totalAcquired = 0; let totalHeld = 0;
-            allUsersSnap.forEach(u => { totalAcquired += (u.totalCreditsAcquired || u.credits || 0); totalHeld += (u.credits || 0); });
-            setBurnStats({ totalBurn: Math.max(0, totalAcquired - totalHeld), burn24h: burn24 });
-        } catch (e) { console.error("Failed to load overview", e); }
+            setStats({ 
+                revenue: dashboardStats.revenue, 
+                totalUsers: dashboardStats.totalUsers,
+                totalBurn: dashboardStats.totalBurn,
+                signups, 
+                purchases 
+            });
+            setRevenueHistory(revHistory);
+        } catch (e) { 
+            console.error("Failed to load overview", e); 
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const getFilterLabel = (f: string) => { switch(f) { case '7d': return 'Last 7 Days'; case '30d': return 'Last 30 Days'; case '6m': return 'Last 6 Months'; case '1y': return 'Last 1 Year'; case 'custom': return 'Custom Range'; default: return 'Lifetime'; } };
 
+    if (isLoading) {
+        return (
+            <div className="space-y-8 animate-pulse">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm h-32">
+                            <div className="h-8 w-8 bg-gray-200 rounded-full mb-4"></div>
+                            <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                            <div className="h-8 w-32 bg-gray-200 rounded"></div>
+                        </div>
+                    ))}
+                </div>
+                <div className="bg-white h-64 rounded-2xl border border-gray-200"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8 animate-fadeIn">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Revenue Card */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-green-100 text-green-600 rounded-xl"><CreditCardIcon className="w-6 h-6"/></div>
@@ -87,28 +132,33 @@ export const AdminOverview: React.FC = () => {
                         {revenueFilter !== 'lifetime' && <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mb-1 border border-gray-200">{getFilterLabel(revenueFilter)}</span>}
                     </div>
                 </div>
+
+                {/* Users Card */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex justify-between items-start mb-4"><div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><UsersIcon className="w-6 h-6"/></div></div>
                     <p className="text-xs font-bold text-gray-400 uppercase">Total Users</p>
-                    <p className="text-2xl font-black text-[#1A1A1E]">{totalUsersCount}</p>
+                    <p className="text-2xl font-black text-[#1A1A1E]">{stats.totalUsers.toLocaleString()}</p>
                 </div>
+
+                {/* Credit Burn Card */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -mr-10 -mt-10 blur-xl opacity-50"></div>
                     <div className="flex justify-between items-start mb-4 relative z-10"><div className="p-3 bg-orange-100 text-orange-600 rounded-xl"><ImageIcon className="w-6 h-6"/></div></div>
                     <p className="text-xs font-bold text-gray-400 uppercase relative z-10">Lifetime Credit Burn</p>
                     <div className="flex items-end gap-2 relative z-10">
-                        <p className="text-2xl font-black text-[#1A1A1E]">{burnStats.totalBurn.toLocaleString()}</p>
-                        <span className="text-xs font-bold text-orange-600 mb-1">-{burnStats.burn24h} (24h)</span>
+                        <p className="text-2xl font-black text-[#1A1A1E]">{stats.totalBurn.toLocaleString()}</p>
                     </div>
                 </div>
+
+                {/* System Status Card */}
                 <div className="bg-gray-900 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
                     <div>
                         <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span className="text-xs font-bold uppercase tracking-wider text-gray-400">System</span></div>
                         <p className="text-lg font-bold">Operational</p>
                     </div>
-                    {/* Link to system handled by parent navigation logic usually, but here we can't switch tabs easily without prop. Removing internal link. */}
                 </div>
             </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                     <h3 className="font-bold text-gray-800 mb-6">Revenue Trend (Last 7 Days)</h3>
