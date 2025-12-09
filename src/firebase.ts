@@ -613,7 +613,7 @@ export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => {
 
 // Optimized Stats Fetcher using Aggregation
 export const getDashboardStats = async () => {
-    if (!db) return { revenue: 0, totalUsers: 0, totalBurn: 0 };
+    if (!db) return { revenue: 0, totalUsers: 0 };
 
     try {
         // Attempt server-side aggregation (Fast & Cheap)
@@ -626,17 +626,7 @@ export const getDashboardStats = async () => {
         const usersAgg = await (db.collection('users') as any).count().get();
         const totalUsers = usersAgg.data().count;
 
-        // Burn calc: sum(totalAcquired) - sum(currentCredits)
-        const creditsAgg = await (db.collection('users') as any).aggregate({
-            totalAcquired: (firebase.firestore as any).AggregateField.sum('totalCreditsAcquired'),
-            currentCredits: (firebase.firestore as any).AggregateField.sum('credits')
-        }).get();
-        
-        const totalAcquired = creditsAgg.data().totalAcquired || 0;
-        const currentHeld = creditsAgg.data().currentCredits || 0;
-        const totalBurn = Math.max(0, totalAcquired - currentHeld);
-
-        return { revenue, totalUsers, totalBurn };
+        return { revenue, totalUsers };
 
     } catch (e) {
         console.warn("Aggregation failed (indexes might be missing or SDK too old), falling back to client-side approximation");
@@ -649,7 +639,7 @@ export const getDashboardStats = async () => {
         const uSnap = await db.collection('users').limit(100).get(); // Just grab 100 for now
         const totalUsers = uSnap.size; // Inaccurate but fast
         
-        return { revenue, totalUsers, totalBurn: 0 };
+        return { revenue, totalUsers };
     }
 };
 

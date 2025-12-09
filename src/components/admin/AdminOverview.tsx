@@ -5,8 +5,8 @@ import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStat
 import { CreditCardIcon, FilterIcon, UsersIcon, ImageIcon } from '../icons';
 
 export const AdminOverview: React.FC = () => {
-    const [stats, setStats] = useState<{ revenue: number, totalUsers: number, totalBurn: number, signups: User[], purchases: Purchase[] }>({ 
-        revenue: 0, totalUsers: 0, totalBurn: 0, signups: [], purchases: [] 
+    const [stats, setStats] = useState<{ revenue: number, totalUsers: number, signups: User[], purchases: Purchase[] }>({ 
+        revenue: 0, totalUsers: 0, signups: [], purchases: [] 
     });
     
     const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +70,6 @@ export const AdminOverview: React.FC = () => {
             setStats({ 
                 revenue: dashboardStats.revenue, 
                 totalUsers: dashboardStats.totalUsers,
-                totalBurn: dashboardStats.totalBurn,
                 signups, 
                 purchases 
             });
@@ -88,7 +87,7 @@ export const AdminOverview: React.FC = () => {
         return (
             <div className="space-y-8 animate-pulse">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map(i => (
+                    {[1, 2, 3].map(i => (
                         <div key={i} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm h-32">
                             <div className="h-8 w-8 bg-gray-200 rounded-full mb-4"></div>
                             <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
@@ -103,7 +102,7 @@ export const AdminOverview: React.FC = () => {
 
     return (
         <div className="space-y-8 animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Revenue Card */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
                     <div className="flex justify-between items-start mb-4">
@@ -138,16 +137,6 @@ export const AdminOverview: React.FC = () => {
                     <div className="flex justify-between items-start mb-4"><div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><UsersIcon className="w-6 h-6"/></div></div>
                     <p className="text-xs font-bold text-gray-400 uppercase">Total Users</p>
                     <p className="text-2xl font-black text-[#1A1A1E]">{stats.totalUsers.toLocaleString()}</p>
-                </div>
-
-                {/* Credit Burn Card */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -mr-10 -mt-10 blur-xl opacity-50"></div>
-                    <div className="flex justify-between items-start mb-4 relative z-10"><div className="p-3 bg-orange-100 text-orange-600 rounded-xl"><ImageIcon className="w-6 h-6"/></div></div>
-                    <p className="text-xs font-bold text-gray-400 uppercase relative z-10">Lifetime Credit Burn</p>
-                    <div className="flex items-end gap-2 relative z-10">
-                        <p className="text-2xl font-black text-[#1A1A1E]">{stats.totalBurn.toLocaleString()}</p>
-                    </div>
                 </div>
 
                 {/* System Status Card */}
