@@ -97,7 +97,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [aiBodyType, setAiBodyType] = useState('');
     
     const [productType, setProductType] = useState('');
-    const [productVibe, setProductVibe] = useState('Clean Studio');
+    const [productVibe, setProductVibe] = useState('');
     const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -197,7 +197,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setAiBodyType(''); 
         
         setProductType(''); 
-        setProductVibe('Clean Studio'); 
+        setProductVibe(''); // Reset to empty instead of default 
     };
 
     const handleFeedback = async (type: 'up' | 'down') => {
@@ -220,8 +220,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
     // Updated Logic: Check if model details are selected if mode is apparel + ai model
+    // Added check for productVibe when mode is product
     const canGenerate = !!mainImage && !isLowCredits && (
-        mode === 'product' || 
+        (mode === 'product' && !!productVibe) || 
         (mode === 'apparel' && (
             (modelSource === 'upload' && !!modelImage) || 
             (modelSource === 'ai' && !!aiGender && !!aiEthnicity && !!aiSkinTone && !!aiBodyType)
@@ -380,7 +381,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     {mode === 'product' && (
                                         <>
                                             <CompactUpload label="Back View" subLabel="Optional (Recommended)" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
-                                            <div className="border-t border-gray-100 pt-6 space-y-4"><div className="mb-6"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Product Type</label><input type="text" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E]" /></div><SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} /></div>
+                                            <div className="border-t border-gray-100 pt-6 space-y-4 mb-4">
+                                                <div className="mb-6"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Product Type</label><input type="text" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E]" /></div>
+                                                <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
+                                            </div>
                                         </>
                                     )}
                                 </div>
