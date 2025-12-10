@@ -78,10 +78,13 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelSource, setModelSource] = useState<'ai' | 'upload'>('ai');
-    const [aiGender, setAiGender] = useState('Female');
-    const [aiEthnicity, setAiEthnicity] = useState('International');
-    const [aiSkinTone, setAiSkinTone] = useState('Fair Tone');
-    const [aiBodyType, setAiBodyType] = useState('Slim Build');
+    
+    // Removed Default Values - User must select
+    const [aiGender, setAiGender] = useState('');
+    const [aiEthnicity, setAiEthnicity] = useState('');
+    const [aiSkinTone, setAiSkinTone] = useState('');
+    const [aiBodyType, setAiBodyType] = useState('');
+    
     const [productType, setProductType] = useState('');
     const [productVibe, setProductVibe] = useState('Clean Studio');
     const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
@@ -141,10 +144,38 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         } catch (e: any) { console.error(e); logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', auth.user?.uid); alert(`Generation failed: ${e.message}. No credits deducted.`); } finally { setLoading(false); }
     };
 
-    const handleNewSession = () => { results.forEach(url => URL.revokeObjectURL(url)); setMainImage(null); setBackImage(null); setModelImage(null); setResults([]); setMode(null); setViewIndex(null); setPackSize(5); setModelSource('ai'); setAiGender('Female'); setAiEthnicity('International'); setAiSkinTone('Fair Tone'); setAiBodyType('Slim Build'); setProductType(''); setProductVibe('Clean Studio'); };
+    const handleNewSession = () => { 
+        results.forEach(url => URL.revokeObjectURL(url)); 
+        setMainImage(null); 
+        setBackImage(null); 
+        setModelImage(null); 
+        setResults([]); 
+        setMode(null); 
+        setViewIndex(null); 
+        setPackSize(5); 
+        setModelSource('ai'); 
+        
+        // Reset to empty
+        setAiGender(''); 
+        setAiEthnicity(''); 
+        setAiSkinTone(''); 
+        setAiBodyType(''); 
+        
+        setProductType(''); 
+        setProductVibe('Clean Studio'); 
+    };
+    
     const handleDownloadAll = async () => { if (results.length === 0) return; for (let i = 0; i < results.length; i++) { downloadImage(results[i], `merchant-asset-${i+1}.png`); await new Promise(r => setTimeout(r, 500)); } };
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
-    const canGenerate = !!mainImage && !isLowCredits;
+    
+    // Updated Logic: Check if model details are selected if mode is apparel + ai model
+    const canGenerate = !!mainImage && !isLowCredits && (
+        mode === 'product' || 
+        (mode === 'apparel' && (
+            (modelSource === 'upload' && !!modelImage) || 
+            (modelSource === 'ai' && !!aiGender && !!aiEthnicity && !!aiSkinTone && !!aiBodyType)
+        ))
+    );
 
     return (
         <>
