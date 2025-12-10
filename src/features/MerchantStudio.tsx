@@ -3,12 +3,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, ImageModal } from '../components/FeatureLayout';
 import { 
-    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon
+    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError } from '../firebase';
+import { saveCreation, deductCredits, logApiError, submitFeedback } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
+
+const FeedbackSparkle = () => (
+  <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
+    <div className="absolute animate-[ping_0.5s_ease-out_forwards] text-yellow-300 opacity-90 scale-150">✨</div>
+    <div className="absolute -top-6 -right-6 text-yellow-200 w-4 h-4 animate-[bounce_0.6s_infinite]">✦</div>
+    <div className="absolute -bottom-4 -left-6 text-yellow-400 w-3 h-3 animate-[pulse_0.4s_infinite]">★</div>
+    <div className="absolute top-0 left-0 w-full h-full border-2 border-yellow-300 rounded-full animate-[ping_0.6s_ease-out_forwards] opacity-60"></div>
+  </div>
+);
 
 const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
     <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
@@ -96,6 +105,12 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [viewIndex, setViewIndex] = useState<number | null>(null);
 
+    // Feedback State
+    const [heroCreationId, setHeroCreationId] = useState<string | null>(null);
+    const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
+    const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
+    const [showThankYou, setShowThankYou] = useState(false);
+
     const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || appConfig?.featureCosts['Merchant Studio'] || 25;
     let cost = baseCost;
     if (packSize === 5 && appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)']) cost = appConfig.featureCosts['Pixa Ecommerce Kit (5 Assets)'];
@@ -134,7 +149,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const handleGenerate = async () => {
         if (!mainImage || !mode || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
-        setLoading(true); results.forEach(url => URL.revokeObjectURL(url)); setResults([]);
+        setLoading(true); results.forEach(url => URL.revokeObjectURL(url)); setResults([]); setHeroCreationId(null);
         try {
             const outputBase64Images = await generateMerchantBatch({
                 type: mode, mainImage: mainImage.base64, backImage: backImage?.base64, modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
@@ -142,12 +157,18 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 productType: productType, productVibe: productVibe, packSize: packSize
             });
             if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
+            
             const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
             setResults(blobUrls);
+            
+            const creationIds = [];
             for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode); const dataUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
-                saveCreation(auth.user.uid, dataUri, `Ecommerce Kit: ${label}`);
+                const id = await saveCreation(auth.user.uid, dataUri, `Ecommerce Kit: ${label}`);
+                creationIds.push(id);
             }
+            if (creationIds.length > 0) setHeroCreationId(creationIds[0]);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Ecommerce Kit');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
@@ -164,6 +185,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setViewIndex(null); 
         setPackSize(5); 
         setModelSource(null); // Reset to null 
+        setHeroCreationId(null);
+        setFeedbackGiven(null);
+        setAnimatingFeedback(null);
+        setShowThankYou(false);
         
         // Reset to empty
         setAiGender(''); 
@@ -173,6 +198,22 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         
         setProductType(''); 
         setProductVibe('Clean Studio'); 
+    };
+
+    const handleFeedback = async (type: 'up' | 'down') => {
+        if (animatingFeedback) return;
+        setAnimatingFeedback(type);
+        
+        if (auth.user && heroCreationId && results.length > 0) {
+            submitFeedback(auth.user.uid, heroCreationId, type, 'Pixa Ecommerce Kit', results[0], auth.user.email, auth.user.name);
+        }
+
+        setTimeout(() => {
+            setFeedbackGiven(type); 
+            setAnimatingFeedback(null); 
+            setShowThankYou(true);
+            setTimeout(() => setShowThankYou(false), 3000);
+        }, 1000);
     };
     
     const handleDownloadAll = async () => { if (results.length === 0) return; for (let i = 0; i < results.length; i++) { downloadImage(results[i], `merchant-asset-${i+1}.png`); await new Promise(r => setTimeout(r, 500)); } };
@@ -201,6 +242,31 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 <div className={MerchantStyles.heroResultContainer} onClick={() => setViewIndex(0)}>
                                     <div className={MerchantStyles.heroLabel}>{getLabel(0, mode)}</div>
                                     <img src={results[0]} className="w-full h-full object-contain p-6 transition-transform group-hover/hero:scale-[1.02]" alt="Hero" />
+                                    
+                                    {/* Feedback UI */}
+                                    <div className="absolute bottom-6 left-6 z-20 flex flex-col items-start gap-2 pointer-events-none">
+                                        {showThankYou && (
+                                            <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
+                                                <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
+                                                <span>Thanks for feedback!</span>
+                                            </div>
+                                        )}
+                                        
+                                        {!feedbackGiven && heroCreationId && (
+                                            <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-500 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result">
+                                                    <ThumbUpIcon className="w-5 h-5" />
+                                                    {animatingFeedback === 'up' && <FeedbackSparkle />}
+                                                </button>
+                                                <div className="w-px bg-white/10 my-1"></div>
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-500 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result">
+                                                    <ThumbDownIcon className="w-5 h-5" />
+                                                    {animatingFeedback === 'down' && <FeedbackSparkle />}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="absolute bottom-6 right-6 pointer-events-none"><button onClick={(e) => { e.stopPropagation(); downloadImage(results[0], 'merchant-hero.png'); }} className={MerchantStyles.heroDownloadBtn}><DownloadIcon className="w-4 h-4"/> Download</button></div>
                                 </div>
                                 <div className={MerchantStyles.resultGridContainer}>
