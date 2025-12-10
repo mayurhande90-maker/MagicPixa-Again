@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import { 
   SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon
 } from './components/icons';
+import { HomeStyles } from './styles/Home.styles';
 
 interface HomePageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -189,24 +190,24 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   return (
     <>
       <Header navigateTo={navigateTo} auth={auth} />
-      <main className="bg-[#FFFFFF] pb-20 lg:pb-0">
+      <main className={HomeStyles.main}>
         {/* Hero Section */}
-        <section id="home" className="text-center py-20 px-4">
-            <div className="relative max-w-5xl mx-auto bg-white p-8 sm:p-12 md:p-20 rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden">
-                <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
-                <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob"></div>
-                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <section id="home" className={HomeStyles.heroSection}>
+            <div className={HomeStyles.heroContainer}>
+                <div className={HomeStyles.heroBackgroundGrid}></div>
+                <div className={HomeStyles.heroBlob1}></div>
+                <div className={HomeStyles.heroBlob2}></div>
                 
-                <div className="relative z-10 max-w-4xl mx-auto">
-                    <h1 className="text-4xl md:text-6xl font-bold text-[#1A1A1E] mb-4 leading-tight">
+                <div className={HomeStyles.heroContent}>
+                    <h1 className={HomeStyles.heroTitle}>
                         Create Stunning Visuals, <span className="text-[#4D7CFF]">No Prompt Required</span>
                     </h1>
-                    <p className="text-lg md:text-xl text-[#5F6368] max-w-2xl mx-auto mb-10">
+                    <p className={HomeStyles.heroSubtitle}>
                         MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
                     </p>
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                      className="bg-[#F9D230] text-[#1A1A1E] font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/30 hover:bg-[#dfbc2b]"
+                      className={HomeStyles.heroButton}
                     >
                         Start Creating for Free
                     </button>
@@ -218,27 +219,27 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         {/* Sections below are hidden on mobile to provide a focused, non-scrolling experience */}
         <div className="hidden lg:block">
             {/* Features Section */}
-            <section id="features" className="py-20 px-4 bg-[#F6F7FA]">
-                <div className="max-w-6xl mx-auto text-center bg-white p-8 sm:p-12 md:p-16 rounded-3xl shadow-sm border border-gray-200/80">
-                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Everything You Need to Create</h2>
-                    <p className="text-lg text-[#5F6368] mb-12">One powerful toolkit for all your creative needs.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <section id="features" className={HomeStyles.featuresSection}>
+                <div className={HomeStyles.featuresContainer}>
+                    <h2 className={HomeStyles.sectionHeader}>Everything You Need to Create</h2>
+                    <p className={HomeStyles.sectionSubheader}>One powerful toolkit for all your creative needs.</p>
+                    <div className={HomeStyles.featureGrid}>
                         {featuresWithConfig.map((feature, index) => (
                             <div 
                                 key={index} 
                                 onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
-                                className={`relative bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left transition-transform duration-300 ${feature.disabled ? 'opacity-60 cursor-not-allowed' : 'transform hover:-translate-y-2 cursor-pointer'}`}
+                                className={`${HomeStyles.featureCard} ${feature.disabled ? HomeStyles.featureCardDisabled : HomeStyles.featureCardEnabled}`}
                             >
                                 {feature.disabled && (
                                     <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                                         Coming Soon
                                     </div>
                                 )}
-                                <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}>
+                                <div className={`${HomeStyles.featureIconContainer} ${feature.color}`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{feature.title}</h3>
-                                <p className="text-[#5F6368]">{feature.description}</p>
+                                <h3 className={HomeStyles.featureTitle}>{feature.title}</h3>
+                                <p className={HomeStyles.featureDescription}>{feature.description}</p>
                             </div>
                         ))}
                     </div>
@@ -246,13 +247,13 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </section>
 
             {/* Reviews Section */}
-            <section id="reviews" className="py-20 px-4 bg-white">
-                <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Loved by Creators Everywhere</h2>
-                    <p className="text-lg text-[#5F6368] mb-12">Don't just take our word for it. Here's what our users say.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section id="reviews" className={HomeStyles.reviewsSection}>
+                <div className={HomeStyles.reviewsContainer}>
+                    <h2 className={HomeStyles.sectionHeader}>Loved by Creators Everywhere</h2>
+                    <p className={HomeStyles.sectionSubheader}>Don't just take our word for it. Here's what our users say.</p>
+                    <div className={HomeStyles.reviewsGrid}>
                         {reviews.map((review, index) => (
-                            <div key={index} className="bg-[#F6F7FA] p-8 rounded-2xl shadow-sm border border-gray-200/80 text-left">
+                            <div key={index} className={HomeStyles.reviewCard}>
                                 <div className="flex items-center mb-4">
                                     {[...Array(5)].map((_, i) => <StarIcon key={i} className="w-5 h-5 text-yellow-400" />)}
                                 </div>
@@ -268,16 +269,16 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-20 px-4 bg-[#F6F7FA]">
-                <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Recharge Your Creative Energy</h2>
-                    <p className="text-lg text-[#5F6368] mb-12">Simple, one-time credit packs. No subscriptions needed.</p>
+            <section id="pricing" className={HomeStyles.pricingSection}>
+                <div className={HomeStyles.reviewsContainer}>
+                    <h2 className={HomeStyles.sectionHeader}>Recharge Your Creative Energy</h2>
+                    <p className={HomeStyles.sectionSubheader}>Simple, one-time credit packs. No subscriptions needed.</p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
+                    <div className={HomeStyles.pricingGrid}>
                         {creditPacks.map((pack, index) => (
-                            <div key={index} className={`bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2 ${pack.popular ? 'border-[#F9D230] shadow-lg shadow-yellow-500/10' : 'border-gray-200/80'}`}>
+                            <div key={index} className={`${HomeStyles.pricingCard} ${pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard}`}>
                                 {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
-                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{pack.name}</h3>
+                                <h3 className={HomeStyles.featureTitle}>{pack.name}</h3>
                                 <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                                 
                                 <div className="my-2">
@@ -301,7 +302,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 
                                 <button 
                                     onClick={() => navigateTo('dashboard', 'billing')}
-                                    className={`w-full mt-auto py-3 rounded-xl font-semibold transition-colors ${pack.popular ? 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b]' : 'bg-gray-100 text-[#1A1A1E] hover:bg-gray-200'}`}
+                                    className={`${HomeStyles.pricingButton} ${pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard}`}
                                 >
                                     Buy Now
                                 </button>

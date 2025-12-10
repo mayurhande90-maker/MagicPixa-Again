@@ -11,6 +11,7 @@ import {
     StarIcon,
     LifebuoyIcon
 } from './icons';
+import { AdminStyles } from '../styles/Admin.styles';
 
 // Sub-components
 import { AdminOverview } from './admin/AdminOverview';
@@ -34,22 +35,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
             onClick={() => setActiveTab(id)} 
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                activeTab === id 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-500 hover:bg-gray-100'
-            }`}
+            className={`${AdminStyles.tabButton} ${activeTab === id ? AdminStyles.tabActive : AdminStyles.tabInactive}`}
         > 
             <Icon className="w-4 h-4" /> {label} 
         </button> 
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto pb-24">
+        <div className={AdminStyles.container}>
             {/* Header and Tabs */}
-            <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
-                <h1 className="text-3xl font-bold text-[#1A1A1E] flex items-center gap-3"><ShieldCheckIcon className="w-8 h-8 text-indigo-600" /> Admin Command</h1>
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+            <div className={AdminStyles.header}>
+                <h1 className={AdminStyles.title}><ShieldCheckIcon className="w-8 h-8 text-indigo-600" /> Admin Command</h1>
+                <div className={AdminStyles.tabsContainer}>
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />

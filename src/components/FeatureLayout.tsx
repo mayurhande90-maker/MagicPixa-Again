@@ -16,61 +16,26 @@ import {
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 import { submitFeedback, auth } from '../firebase';
+import { FeatureStyles } from '../styles/FeatureLayout.styles';
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
-        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
-        <input id={id} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E] placeholder-gray-400" {...props} />
+        {label && <label htmlFor={id} className={FeatureStyles.inputLabel}>{label}</label>}
+        <input id={id} className={FeatureStyles.inputField} {...props} />
     </div>
 );
 
 export const TextAreaField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
-        {label && <label htmlFor={id} className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label}</label>}
-        <textarea id={id} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E] placeholder-gray-400 resize-none" rows={4} {...props} />
-    </div>
-);
-
-// Visual Selector for Prompt-Less UI - Premium Card Style
-export const VisualSelector: React.FC<{ 
-    label: string; 
-    options: { id: string; label: string; color?: string }[]; 
-    selected: string; 
-    onSelect: (id: string) => void; 
-}> = ({ label, options, selected, onSelect }) => (
-    <div className="mb-8">
-        <div className="flex items-center justify-between mb-3 ml-1">
-             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-             <span className="text-[10px] bg-gray-200 text-gray-500 px-2 py-1 rounded-full font-bold tracking-wide">REQUIRED</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-            {options.map(opt => {
-                const isSelected = selected === opt.id;
-                return (
-                    <button 
-                        key={opt.id} 
-                        onClick={() => onSelect(opt.id)}
-                        className={`relative group overflow-hidden rounded-2xl p-4 text-left transition-all duration-300 border-2 ${
-                            isSelected 
-                            ? 'border-[#4D7CFF] bg-[#4D7CFF]/5 shadow-md' 
-                            : 'border-transparent bg-white hover:bg-gray-50 hover:border-gray-200'
-                        }`}
-                    >
-                        <div className={`w-full h-full flex flex-col justify-between gap-3`}>
-                            <div className={`w-3 h-3 rounded-full ${isSelected ? 'bg-[#4D7CFF]' : 'bg-gray-300 group-hover:bg-gray-400'} transition-colors duration-300`}></div>
-                            <span className={`font-bold text-sm ${isSelected ? 'text-[#1A1A1E]' : 'text-gray-500 group-hover:text-gray-700'} transition-colors duration-300`}>{opt.label}</span>
-                        </div>
-                    </button>
-                )
-            })}
-        </div>
+        {label && <label htmlFor={id} className={FeatureStyles.inputLabel}>{label}</label>}
+        <textarea id={id} className={`${FeatureStyles.inputField} resize-none`} rows={4} {...props} />
     </div>
 );
 
 export const SelectionGrid: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
-    <div className="mb-6 animate-fadeIn">
+    <div className={FeatureStyles.selectionContainer}>
         <div className="flex items-center justify-between mb-3 ml-1">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+            <label className={FeatureStyles.inputLabel}>{label}</label>
             {value && (
                  <button onClick={() => onChange('')} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">
                      Clear
@@ -84,11 +49,7 @@ export const SelectionGrid: React.FC<{ label: string; options: string[]; value: 
                     <button 
                         key={opt}
                         onClick={() => onChange(opt)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
-                            isSelected 
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'
-                        }`}
+                        className={`${FeatureStyles.selectionButton} ${isSelected ? FeatureStyles.selectionButtonActive : FeatureStyles.selectionButtonInactive}`}
                     >
                         {opt}
                     </button>
@@ -179,7 +140,7 @@ export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: numb
         setIsClaimed(true);
         setTimeout(() => {
             onClose();
-        }, 2500); // Allow user to see the success state for 2.5 seconds
+        }, 2500); 
     };
 
     return (
@@ -336,49 +297,45 @@ export const FeatureLayout: React.FC<{
             }
         }
 
-        // DELAYED HIDING:
-        // 1. Keep buttons visible for 3 seconds so user sees selection.
-        // 2. Hide buttons, show "Thank You".
-        // 3. Hide "Thank You" after another 3 seconds.
         setTimeout(() => {
-            setFeedbackGiven(type); // Hides buttons
+            setFeedbackGiven(type); 
             setAnimatingFeedback(null); 
-            setShowThankYou(true); // Show message
+            setShowThankYou(true);
             
             setTimeout(() => setShowThankYou(false), 3000);
         }, 3000); 
     };
 
     return (
-        <div className="flex flex-col p-6 lg:p-8 max-w-[1800px] mx-auto bg-[#FFFFFF]">
+        <div className={FeatureStyles.wrapper}>
             {/* Header */}
-            <div className="mb-5 border-b border-gray-100 pb-4">
-                <div className="flex items-center gap-4 mb-2">
+            <div className={FeatureStyles.header}>
+                <div className={FeatureStyles.titleRow}>
                     {rawIcon ? (
                         <div className="transition-transform hover:scale-105">
                             {icon}
                         </div>
                     ) : (
-                        <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className={FeatureStyles.iconContainer}>
                             {icon}
                         </div>
                     )}
-                    <h1 className="text-2xl font-bold text-[#1A1A1E]">{title}</h1>
+                    <h1 className={FeatureStyles.titleText}>{title}</h1>
                 </div>
-                {description && <p className="text-sm text-gray-500 font-medium max-w-2xl">{description}</p>}
+                {description && <p className={FeatureStyles.description}>{description}</p>}
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className={FeatureStyles.gridContainer}>
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                <div className={`w-full flex flex-col justify-start ${contentHeightClass}`}>
+                <div className={`${FeatureStyles.canvasContainer} ${contentHeightClass}`}>
                     {resultImage ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] rounded-3xl relative animate-fadeIn overflow-hidden shadow-inner group">
-                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 to-[#1a1a1a] opacity-50"></div>
+                        <div className={FeatureStyles.resultContainer}>
+                             <div className={FeatureStyles.resultOverlay}></div>
                              <img 
                                 src={resultImage} 
-                                className="w-full h-full object-contain shadow-2xl relative z-10 cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]" 
+                                className={FeatureStyles.resultImage}
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
@@ -466,14 +423,14 @@ export const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                <div className={`flex flex-col ${contentHeightClass}`}>
-                    <div className="bg-[#F6F7FA] p-5 rounded-3xl flex-1 flex-col h-full border border-gray-100 overflow-hidden flex">
-                        <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Configuration</h3>
+                <div className={`${FeatureStyles.controlsContainer} ${contentHeightClass}`}>
+                    <div className={FeatureStyles.controlsBox}>
+                        <div className={FeatureStyles.controlsHeader}>
+                            <h3 className={FeatureStyles.controlsTitle}>Configuration</h3>
                             <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
                         </div>
                         
-                        <div ref={scrollRef} className={`flex-1 ${disableScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'} pr-1 flex flex-col relative`}>
+                        <div ref={scrollRef} className={`${FeatureStyles.controlsScrollArea} ${disableScroll ? 'overflow-hidden' : ''}`}>
                             <div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-48'}`}>
                                 <div className={`flex-col ${disableScroll ? 'flex h-full' : 'space-y-2'}`}>
                                     {rightContent}
@@ -482,15 +439,11 @@ export const FeatureLayout: React.FC<{
                         </div>
 
                         {!hideGenerateButton && (
-                            <div className="pt-6 border-t border-gray-200 bg-[#F6F7FA] flex-shrink-0 z-10">
+                            <div className={FeatureStyles.actionArea}>
                                 <button 
                                     onClick={onGenerate} 
                                     disabled={isGenerating || !canGenerate}
-                                    className={`group w-full text-lg font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-3 active:scale-95 ${
-                                        generateButtonStyle?.className 
-                                        ? generateButtonStyle.className 
-                                        : "bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] shadow-yellow-500/20 hover:shadow-yellow-500/40"
-                                    }`}
+                                    className={`${FeatureStyles.generateButton} ${generateButtonStyle?.className}`}
                                 >
                                     {isGenerating ? (
                                         <>
@@ -504,10 +457,10 @@ export const FeatureLayout: React.FC<{
                                         </>
                                     )}
                                 </button>
-                                <div className="text-center mt-2 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                <div className={FeatureStyles.costBadge}>
                                     {creditCost === 0 ? (
                                             <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-100">
-                                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                <span className="w-1.5 h-1.5 bg-green-50 rounded-full animate-pulse"></span>
                                                 Sponsored by Daily Mission
                                             </div>
                                     ) : (

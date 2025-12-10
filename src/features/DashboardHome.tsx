@@ -35,6 +35,7 @@ import {
     PixaTryOnIcon,
     PixaMockupIcon
 } from '../components/icons';
+import { DashboardStyles } from '../styles/Dashboard.styles';
 
 const DailyQuest: React.FC<{ 
     user: User | null;
@@ -70,11 +71,7 @@ const DailyQuest: React.FC<{
     }, [user]);
 
     return (
-        <div className={`rounded-3xl p-4 shadow-md border relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:shadow-xl ${
-            isLocked 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-gradient-to-br from-[#2C2C2E] to-[#1C1C1E] border-gray-700 text-white'
-        }`}>
+        <div className={`${DashboardStyles.questCard} ${isLocked ? DashboardStyles.questCardLocked : DashboardStyles.questCardActive}`}>
             {!isLocked && <div className="absolute top-0 right-0 w-32 h-32 bg-[#F9D230]/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-[#F9D230]/20 transition-colors"></div>}
             
             <div>
@@ -226,13 +223,13 @@ export const DashboardHome: React.FC<{
     ];
 
     return (
-        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto animate-fadeIn">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className={DashboardStyles.container}>
+            <div className={DashboardStyles.header}>
                 <div>
-                    <h1 className="text-3xl font-bold text-[#1A1A1E]">
+                    <h1 className={DashboardStyles.welcomeTitle}>
                         {getGreeting()}, {user?.name}!
                     </h1>
-                    <p className="text-gray-500 mt-1">Ready to create something magic today?</p>
+                    <p className={DashboardStyles.welcomeSubtitle}>Ready to create something magic today?</p>
                 </div>
                 
                 <button 
@@ -243,8 +240,8 @@ export const DashboardHome: React.FC<{
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12 items-stretch">
-                <div className="lg:col-span-3 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col h-[450px]">
+            <div className={DashboardStyles.heroGrid}>
+                <div className={DashboardStyles.latestCreationCard}>
                     {loadingCreations ? (
                          <div className="h-full flex items-center justify-center text-gray-400">Loading activity...</div>
                     ) : latestCreation ? (
@@ -279,7 +276,7 @@ export const DashboardHome: React.FC<{
                             </div>
                         </div>
                     ) : (
-                        <div className="h-full bg-gradient-to-br from-[#1A1A1E] to-[#2a2a2e] p-8 flex flex-col md:flex-row justify-between items-center text-white relative overflow-hidden">
+                        <div className={DashboardStyles.emptyStateCard}>
                              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
                              
                              <div className="relative z-10 max-w-md">
@@ -296,8 +293,8 @@ export const DashboardHome: React.FC<{
                     )}
                 </div>
 
-                <div className="lg:col-span-2 flex flex-col gap-4 h-full">
-                    <div className="shrink-0 h-[155px] bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between relative overflow-hidden group">
+                <div className={DashboardStyles.statsColumn}>
+                    <div className={DashboardStyles.loyaltyCard}>
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-8 -mt-8 group-hover:bg-indigo-100 transition-colors"></div>
                         
                         <div className="relative z-10 flex items-center justify-between">
@@ -308,7 +305,7 @@ export const DashboardHome: React.FC<{
                                          <InformationCircleIcon className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <h3 className="text-xl font-black text-[#1A1A1E]">
+                                <h3 className={DashboardStyles.loyaltyTitle}>
                                     {lifetimeGens} <span className="text-sm font-medium text-gray-400">Generations</span>
                                 </h3>
                             </div>
@@ -325,8 +322,8 @@ export const DashboardHome: React.FC<{
                                 <span className="text-indigo-600">Progress</span>
                                 <span className="text-gray-500">Next: +{nextReward} Credits</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative" style={{ width: `${progressPercent}%` }}>
+                            <div className={DashboardStyles.progressBarBg}>
+                                <div className={DashboardStyles.progressBarFill} style={{ width: `${progressPercent}%` }}>
                                      <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
                                 </div>
                             </div>
@@ -340,8 +337,8 @@ export const DashboardHome: React.FC<{
             </div>
 
             <div>
-                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">All Creative Tools</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <h2 className={DashboardStyles.toolsSectionTitle}>All Creative Tools</h2>
+                <div className={DashboardStyles.toolsGrid}>
                     {tools.map(tool => {
                         const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
                         const isTransparent = tool.color === ''; 
@@ -351,10 +348,10 @@ export const DashboardHome: React.FC<{
                                 key={tool.id}
                                 onClick={() => setActiveView(tool.id as View)}
                                 disabled={isDisabled}
-                                className={`flex flex-col items-center text-center p-5 rounded-2xl transition-all duration-300 border group ${
+                                className={`${DashboardStyles.toolCard} ${
                                     isDisabled 
-                                    ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
-                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1'
+                                    ? DashboardStyles.toolCardDisabled
+                                    : DashboardStyles.toolCardEnabled
                                 }`}
                             >
                                 {isTransparent ? (
@@ -362,7 +359,7 @@ export const DashboardHome: React.FC<{
                                         <tool.icon className="w-14 h-14" />
                                     </div>
                                 ) : (
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${tool.color} shadow-sm`}>
+                                    <div className={`${DashboardStyles.toolIconContainer} ${tool.color}`}>
                                         <tool.icon className="w-6 h-6 text-white" />
                                     </div>
                                 )}
