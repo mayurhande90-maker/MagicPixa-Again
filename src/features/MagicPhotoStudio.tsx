@@ -5,7 +5,7 @@ import {
     PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon
 } from '../components/icons';
 import { 
-    FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone 
+    FeatureLayout, MilestoneSuccessModal, checkMilestone 
 } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
@@ -16,6 +16,27 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
+
+// Internal Component for Bento Grid Style Selections
+const BentoSelection = ({ label, options, value, onChange }: { label: string, options: string[], value: string, onChange: (val: string) => void }) => (
+    <div className={PhotoStudioStyles.promptContainer}>
+        <div className={PhotoStudioStyles.promptHeader}>
+            <label className={PhotoStudioStyles.promptLabel}>{label}</label>
+            {value && <button onClick={() => onChange('')} className={PhotoStudioStyles.promptClearBtn}>Clear</button>}
+        </div>
+        <div className={PhotoStudioStyles.categoryGrid}>
+            {options.map((opt: string) => (
+                <button 
+                    key={opt} 
+                    onClick={() => onChange(opt)} 
+                    className={`${PhotoStudioStyles.categoryBtn} ${value === opt ? PhotoStudioStyles.categoryBtnActive : PhotoStudioStyles.categoryBtnInactive}`}
+                >
+                    {opt}
+                </button>
+            ))}
+        </div>
+    </div>
+);
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
@@ -73,9 +94,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < currentCost;
 
-    // ... (Keep existing useEffects and handlers same as before) ...
-    // Re-implementation of crucial logic for brevity, assuming handlers are unchanged
-    
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -333,8 +351,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                         const promptValue = isModel ? (promptItem as any).prompt : promptItem;
                                                         return (
                                                             <button key={idx} onClick={() => handlePromptSelect(promptValue)} style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}} className={`${PhotoStudioStyles.promptButton} ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${selectedPrompt === promptValue ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive}`}>
-                                                                <div className={`${PhotoStudioStyles.promptBorder} ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}></div>
-                                                                <div className={`${PhotoStudioStyles.promptContent} ${selectedPrompt === promptValue ? 'bg-transparent' : 'bg-white'}`}>
+                                                                <div className={`${PhotoStudioStyles.promptBorder} ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-0'}`}></div>
+                                                                <div className={`${PhotoStudioStyles.promptContent} ${selectedPrompt === promptValue ? 'border-transparent' : ''}`}>
                                                                     <span className={`${PhotoStudioStyles.promptText} ${selectedPrompt === promptValue ? PhotoStudioStyles.promptTextActive : PhotoStudioStyles.promptTextInactive}`}>"{displayText}"</span>
                                                                 </div>
                                                             </button>
@@ -349,28 +367,23 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                     <div className="space-y-6 animate-fadeIn">
                                         {studioMode === 'product' ? (
                                             <>
-                                                 <div>
-                                                     <div className={PhotoStudioStyles.promptHeader}>
-                                                        <label className={PhotoStudioStyles.promptLabel}>1. Product Category</label>
-                                                        {category && <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className={PhotoStudioStyles.promptClearBtn}>Clear</button>}
-                                                     </div>
-                                                     <div className="flex flex-wrap gap-2">
-                                                        {categories.map(opt => (
-                                                            <button key={opt} onClick={() => { setCategory(opt); setBrandStyle(''); setVisualType(''); autoScroll(); }} className={`${PhotoStudioStyles.categoryBtn} ${category === opt ? PhotoStudioStyles.categoryBtnActive : PhotoStudioStyles.categoryBtnInactive}`}>{opt}</button>
-                                                        ))}
-                                                     </div>
-                                                </div>
-                                                {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); setVisualType(''); autoScroll(); }} />}
-                                                {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
+                                                 <BentoSelection 
+                                                    label="1. Product Category" 
+                                                    options={categories} 
+                                                    value={category} 
+                                                    onChange={(val) => { setCategory(val); setBrandStyle(''); setVisualType(''); autoScroll(); }} 
+                                                 />
+                                                {category && <BentoSelection label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); setVisualType(''); autoScroll(); }} />}
+                                                {category && brandStyle && <BentoSelection label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
                                             </>
                                         ) : (
                                             <>
-                                                <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
-                                                {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
-                                                {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); autoScroll(); }} />}
-                                                {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); autoScroll(); }} />}
-                                                {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
-                                                {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
+                                                <BentoSelection label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
+                                                {modelComposition && <BentoSelection label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
+                                                {modelType && <BentoSelection label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); autoScroll(); }} />}
+                                                {modelRegion && <BentoSelection label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); autoScroll(); }} />}
+                                                {skinTone && <BentoSelection label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
+                                                {bodyType && <BentoSelection label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
                                             </>
                                         )}
                                     </div>
