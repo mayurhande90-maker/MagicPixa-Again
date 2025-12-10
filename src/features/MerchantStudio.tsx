@@ -5,7 +5,7 @@ import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, Im
 import { 
     ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon
 } from '../components/icons';
-import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
+import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, deductCredits, logApiError, submitFeedback } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
@@ -166,8 +166,14 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             
             const creationIds = [];
             for (let i = 0; i < outputBase64Images.length; i++) {
-                const label = getLabel(i, mode); const dataUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
-                const id = await saveCreation(auth.user.uid, dataUri, `Ecommerce Kit: ${label}`);
+                const label = getLabel(i, mode); 
+                const rawUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
+                
+                // Compress specifically for Firestore storage to stay under 1MB document limit
+                // 1024px width and 0.7 quality provides good balance of visual quality and file size (<300KB usually)
+                const storedUri = await resizeImage(rawUri, 1024, 0.7);
+                
+                const id = await saveCreation(auth.user.uid, storedUri, `Ecommerce Kit: ${label}`);
                 creationIds.push(id);
             }
             if (creationIds.length > 0) setHeroCreationId(creationIds[0]);
