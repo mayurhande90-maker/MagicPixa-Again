@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, Suspense, lazy } from 'react';
+import React, { useState, useRef, Suspense, lazy, useEffect } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -27,7 +27,6 @@ import {
 } from './components/icons';
 
 // --- LAZY LOADED FEATURES ---
-// This splits the code so users only download the tools they actually use.
 const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio').then(module => ({ default: module.MagicPhotoStudio })));
 const MagicInterior = lazy(() => import('./features/MagicInterior').then(module => ({ default: module.MagicInterior })));
 const MagicApparel = lazy(() => import('./features/MagicApparel').then(module => ({ default: module.MagicApparel })));
@@ -67,6 +66,9 @@ interface DashboardPageProps {
     setAppConfig: (config: AppConfig) => void;
 }
 
+// 10 Minutes in Milliseconds
+const SESSION_TIMEOUT = 10 * 60 * 1000; 
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
     auth, 
@@ -79,15 +81,66 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     setAppConfig 
 }) => {
     const [showReferralModal, setShowReferralModal] = useState(false);
+    
+    // --- SMART SESSION MANAGEMENT ---
+    // Tracks which features are currently 'mounted' in the DOM (hidden or visible)
+    const [activeSessions, setActiveSessions] = useState<Set<View>>(new Set(['home_dashboard']));
+    // Tracks the last time a view was the 'activeView'
+    const lastActiveRef = useRef<Record<string, number>>({ 'home_dashboard': Date.now() });
 
-    const renderContent = () => {
-        switch (activeView) {
+    // Intercept View Changes to Manage Sessions
+    const handleViewChange = (newView: View) => {
+        setActiveView(newView);
+        // Add to active sessions (if not already there)
+        setActiveSessions(prev => {
+            const next = new Set(prev);
+            next.add(newView);
+            return next;
+        });
+        // Update timestamp
+        lastActiveRef.current[newView] = Date.now();
+    };
+
+    // Garbage Collector: Remove inactive sessions to save memory
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            setActiveSessions(prev => {
+                const next = new Set(prev);
+                let hasChanges = false;
+
+                next.forEach(viewId => {
+                    // CRITICAL: NEVER kill the view currently on screen
+                    if (viewId === activeView) {
+                        lastActiveRef.current[viewId] = now; // Refresh timestamp
+                        return;
+                    }
+
+                    // Check timeout
+                    const lastActive = lastActiveRef.current[viewId] || 0;
+                    if (now - lastActive > SESSION_TIMEOUT) {
+                        console.log(`[Session GC] Killing inactive session: ${viewId}`);
+                        next.delete(viewId);
+                        hasChanges = true;
+                    }
+                });
+
+                return hasChanges ? next : prev;
+            });
+        }, 60000); // Run every 60 seconds
+
+        return () => clearInterval(interval);
+    }, [activeView]); // Dependency on activeView ensures we have the latest ref
+
+    // Component Factory
+    const renderFeatureComponent = (viewId: View) => {
+        switch (viewId) {
             case 'home_dashboard':
             case 'dashboard':
                 return <DashboardHome 
                         user={auth.user} 
                         navigateTo={navigateTo} 
-                        setActiveView={setActiveView} 
+                        setActiveView={handleViewChange} 
                         appConfig={appConfig} 
                         openReferralModal={() => setShowReferralModal(true)}
                         />;
@@ -98,7 +151,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':
-                 // Replaced BrandKitAI with MerchantStudio
                  return <MerchantStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'thumbnail_studio':
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
@@ -124,19 +176,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <SupportCenter auth={auth} />;
             case 'billing':
                 if (auth.user) {
-                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveView} />;
+                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={handleViewChange} />;
                 }
                 return null;
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
             default:
-                return <DashboardHome 
-                        user={auth.user} 
-                        navigateTo={navigateTo} 
-                        setActiveView={setActiveView} 
-                        appConfig={appConfig} 
-                        openReferralModal={() => setShowReferralModal(true)}
-                       />;
+                return null;
         }
     };
 
@@ -147,7 +193,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 auth={{
                     ...auth, 
                     isDashboard: true, 
-                    setActiveView,
+                    setActiveView: handleViewChange,
                 }} 
             />
             <div className="flex flex-1 overflow-hidden">
@@ -155,18 +201,28 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     user={auth.user}
                     setUser={auth.setUser}
                     activeView={activeView}
-                    setActiveView={setActiveView}
+                    setActiveView={handleViewChange}
                     navigateTo={navigateTo}
                     appConfig={appConfig}
                     openReferralModal={() => setShowReferralModal(true)}
                 />
-                {/* 
-                    FIX: Condition added to set overflow-hidden ONLY for support_center.
-                    This prevents double scrolling on Support Center while keeping normal scroll for other pages.
-                */}
+                
+                {/* Main Content Area - Supports Multi-Session Rendering */}
                 <main className={`flex-1 bg-white custom-scrollbar relative ${activeView === 'support_center' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     <Suspense fallback={<PageLoader />}>
-                        {renderContent()}
+                        {/* Map over all active sessions and render them. Only the active one is visible. */}
+                        {Array.from(activeSessions).map(viewId => (
+                            <div 
+                                key={viewId} 
+                                style={{ 
+                                    display: activeView === viewId ? 'block' : 'none',
+                                    height: '100%',
+                                    width: '100%' 
+                                }}
+                            >
+                                {renderFeatureComponent(viewId)}
+                            </div>
+                        ))}
                     </Suspense>
                 </main>
             </div>
