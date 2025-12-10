@@ -25,7 +25,8 @@ interface ThumbnailInputs {
     referenceImage?: { base64: string; mimeType: string } | null; 
     subjectImage?: { base64: string; mimeType: string } | null; 
     hostImage?: { base64: string; mimeType: string } | null; 
-    guestImage?: { base64: string; mimeType: string } | null; 
+    guestImage?: { base64: string; mimeType: string } | null;
+    elementImage?: { base64: string; mimeType: string } | null; 
 }
 
 export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string> => {
@@ -56,6 +57,11 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
                 const optSubject = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
                 parts.push({ text: "MAIN SUBJECT PHOTO:" });
                 parts.push({ inlineData: { data: optSubject.data, mimeType: optSubject.mimeType } });
+            }
+            if (inputs.elementImage) {
+                const optElement = await optimizeImage(inputs.elementImage.base64, inputs.elementImage.mimeType);
+                parts.push({ text: "SECONDARY ELEMENT / PROP (Product, Car, etc.):" });
+                parts.push({ inlineData: { data: optElement.data, mimeType: optElement.mimeType } });
             }
         }
 
@@ -93,6 +99,17 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         if (inputs.referenceImage) {
             prompt += `
             - **REFERENCE ANALYSIS**: Copy the visual hierarchy, color boldness, and font weight from the reference. IGNORE the text content, copy the VIBE.
+            `;
+        }
+
+        if (inputs.elementImage) {
+            prompt += `
+            *** ELEMENT INTEGRATION (CRITICAL) ***
+            - A Secondary Element (Car, Product, Gadget) has been provided.
+            - **Composition**: Place this element prominently alongside the Main Subject.
+            - **Interaction**: The Main Subject should be interacting with it (holding it, pointing at it, leaning on it) or standing next to it to show ownership/context.
+            - **Blending**: Ensure the lighting matches. The element must look like it belongs in the scene, not pasted on.
+            - **Scale**: Make the element large enough to be instantly recognizable on a small screen.
             `;
         }
         
