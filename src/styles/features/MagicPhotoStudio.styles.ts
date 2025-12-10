@@ -35,29 +35,33 @@ export const PhotoStudioStyles = {
   // --- NEW: Bento Grid Styles for Inner Controls ---
 
   // Prompt Selection Area
-  promptContainer: "mb-6 animate-fadeIn",
-  promptHeader: "flex items-center justify-between mb-3 px-1",
-  promptLabel: "text-xs font-bold text-gray-400 uppercase tracking-widest",
-  promptClearBtn: "text-[10px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer",
-  promptTag: "text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold border border-blue-100",
+  promptContainer: "mb-4 animate-fadeIn",
+  promptHeader: "flex items-center justify-between mb-2 px-1",
+  promptLabel: "text-[10px] font-bold text-gray-400 uppercase tracking-widest",
+  promptClearBtn: "text-[9px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-md transition-colors cursor-pointer",
+  promptTag: "text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold border border-blue-100",
   
-  // Prompt Pills (List Items)
-  promptButton: "group relative w-full text-left rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 mb-3 last:mb-0 cursor-pointer overflow-hidden",
-  promptButtonActive: "ring-2 ring-indigo-500 ring-offset-2 shadow-md scale-[1.01]",
-  promptButtonInactive: "hover:shadow-md border border-transparent",
+  // Prompt Pills (List Items) - AI Suggestions
+  // Updated for Gradient Border + Transparent Background + Italic + Smaller
+  promptButton: "group relative w-full text-left rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 mb-2 last:mb-0 cursor-pointer overflow-hidden p-[1px] shadow-sm hover:shadow-md active:scale-95",
+  promptButtonActive: "scale-[1.01] shadow-md",
+  promptButtonInactive: "",
   
-  promptBorder: "absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-  promptContent: "relative w-full p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 flex items-center justify-between z-10 group-hover:border-blue-200/50 transition-colors",
+  // The Gradient Background (Acts as border due to p-[1px] on parent)
+  promptBorder: "absolute inset-0 bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 opacity-60 group-hover:opacity-100 transition-opacity duration-300",
   
-  promptText: "text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors line-clamp-2",
-  promptTextActive: "text-indigo-700 font-bold",
+  // The Inner Content (Masks the center to create border effect)
+  promptContent: "relative w-full px-3 py-2 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-between z-10 group-hover:bg-white/95 transition-colors h-full",
+  
+  promptText: "text-xs font-medium italic text-gray-600 group-hover:text-gray-900 transition-colors line-clamp-2",
+  promptTextActive: "text-indigo-700 font-bold not-italic",
   promptTextInactive: "",
 
-  // Selection Grid Buttons (Bento Chips)
-  categoryGrid: "grid grid-cols-2 gap-3",
-  categoryBtn: "px-4 py-3 rounded-xl text-xs font-bold border transition-all duration-300 transform active:scale-95 flex items-center justify-center text-center min-h-[50px] cursor-pointer",
-  categoryBtnActive: "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg shadow-indigo-500/30 scale-105",
-  categoryBtnInactive: "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-white hover:to-gray-50",
+  // Selection Grid Buttons (Bento Chips) - Product Category & Attributes
+  categoryGrid: "grid grid-cols-2 gap-2",
+  categoryBtn: "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all duration-300 transform active:scale-95 flex items-center justify-center text-center min-h-[36px] cursor-pointer leading-tight",
+  categoryBtnActive: "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105",
+  categoryBtnInactive: "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm hover:bg-gray-50",
   
   // Navigation
   backButton: "group flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors py-2 px-1 mb-4 w-fit",
