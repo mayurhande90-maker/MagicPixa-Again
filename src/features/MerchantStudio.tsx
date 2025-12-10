@@ -12,32 +12,39 @@ import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 
 const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
     <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
-        {/* Orb Decoration */}
+        {/* Animated Glow Orb */}
         <div className={`${MerchantStyles.packOrb} ${selected ? MerchantStyles.packOrbSelected : MerchantStyles.packOrbInactive}`}></div>
         
         {/* Popular Badge */}
-        {isPopular && <div className={MerchantStyles.packPopular}>BEST</div>}
+        {isPopular && <div className={MerchantStyles.packPopular}>Best Value</div>}
         
-        {/* Selection Indicator */}
+        {/* Selection Checkmark */}
         {selected && (
             <div className="absolute top-2 right-2 z-20">
-                <div className="w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-md animate-fadeIn">
-                    <CheckIcon className="w-2.5 h-2.5 text-white"/>
+                <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-fadeIn ring-2 ring-white">
+                    <CheckIcon className="w-3 h-3 text-white"/>
                 </div>
             </div>
         )}
 
         <div className={MerchantStyles.packContent}>
-            <span className={`${MerchantStyles.packLabel} ${selected ? 'text-indigo-600' : 'text-gray-400'}`}>{label}</span>
+            {/* Header */}
+            <div>
+                <span className={`${MerchantStyles.packLabel} ${selected ? MerchantStyles.packLabelSelected : MerchantStyles.packLabelInactive}`}>
+                    {label}
+                </span>
+                <div className={MerchantStyles.packCountContainer}>
+                    <span className={`${MerchantStyles.packCount} ${selected ? MerchantStyles.packCountSelected : MerchantStyles.packCountInactive}`}>
+                        {size}
+                    </span>
+                    <span className={MerchantStyles.packUnit}>Assets</span>
+                </div>
+            </div>
             
-            <div className="mt-auto">
-                <div className="flex items-baseline">
-                    <span className={MerchantStyles.packCount}>{size}</span>
-                    <span className={MerchantStyles.packUnit}>ASSETS</span>
-                </div>
-                <div className={`${MerchantStyles.packCost} ${selected ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200' : ''}`}>
-                    <CreditCoinIcon className="w-3 h-3 text-yellow-500"/> {cost}
-                </div>
+            {/* Footer / Cost */}
+            <div className={`${MerchantStyles.packCost} ${selected ? MerchantStyles.packCostSelected : MerchantStyles.packCostInactive}`}>
+                {selected ? <SparklesIcon className="w-3 h-3 text-yellow-300"/> : <CreditCoinIcon className="w-3 h-3 text-current opacity-70"/>} 
+                {cost} Credits
             </div>
         </div>
     </button>

@@ -25,30 +25,42 @@ export const MerchantStyles = {
   actionBtn: "absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75",
   actionIcon: "w-4 h-4 text-gray-900",
   
-  // --- PACK SELECTION STYLES (NEW) ---
-  packGrid: "grid grid-cols-3 gap-3 w-full mb-6",
+  // --- PACK SELECTION STYLES (PREMIUM) ---
+  packGrid: "grid grid-cols-3 gap-4 w-full mb-8", // Increased gap for premium spacing
 
-  // Reduced height to h-28 for a smaller, compact look
-  packCard: "group relative w-full h-28 rounded-2xl overflow-hidden transition-all duration-300 ease-out text-left border flex flex-col",
-  
-  // Pack States with Gradients
-  packCardSelected: "border-indigo-500/30 ring-2 ring-indigo-500/10 shadow-lg -translate-y-1 bg-gradient-to-br from-[#E0E7FF] via-[#EEF2FF] to-[#F5F3FF]", 
-  packCardInactive: "border-gray-200 bg-gradient-to-br from-[#F9FAFB] to-[#F3F4F6] hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5 hover:from-white hover:to-indigo-50",
+  // Base Card Structure
+  packCard: "group relative w-full h-32 rounded-2xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] text-left border flex flex-col items-start p-1",
 
-  // Pack Decor
-  packOrb: "absolute w-20 h-20 rounded-full blur-xl transition-all duration-500 -top-6 -right-6 pointer-events-none",
-  packOrbSelected: "opacity-60 bg-gradient-to-tr from-blue-400 to-indigo-300 scale-110",
-  packOrbInactive: "opacity-0 group-hover:opacity-10 bg-gray-400",
+  // Interactive States
+  packCardSelected: "border-indigo-500/30 bg-gradient-to-b from-white to-indigo-50/80 shadow-[0_12px_24px_-8px_rgba(99,102,241,0.25)] -translate-y-1.5 ring-1 ring-indigo-500/20 z-10",
+  packCardInactive: "border-gray-100 bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1",
 
-  // Pack Badge
-  packPopular: "absolute top-0 right-0 bg-gradient-to-bl from-[#F9D230] to-yellow-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-xl z-20 shadow-sm",
+  // Content Container
+  packContent: "relative z-10 w-full h-full p-3 flex flex-col justify-between",
 
-  // Pack Content
-  packContent: "relative z-10 p-3 flex flex-col h-full justify-between",
-  packLabel: "text-[9px] font-black uppercase tracking-wider",
-  packCount: "text-2xl font-black text-gray-900 leading-none",
-  packUnit: "text-[8px] font-bold text-gray-400 ml-0.5",
-  packCost: "flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-white/60 backdrop-blur-sm w-fit px-1.5 py-0.5 rounded-full border border-gray-100/50",
+  // Typography - Label
+  packLabel: "text-[9px] font-black uppercase tracking-[0.15em] transition-colors",
+  packLabelSelected: "text-indigo-600",
+  packLabelInactive: "text-gray-400 group-hover:text-gray-600",
+
+  // Typography - Count
+  packCountContainer: "flex items-baseline gap-1 mt-1",
+  packCount: "text-4xl font-black tracking-tighter leading-none transition-all duration-300",
+  packCountSelected: "text-indigo-900 drop-shadow-sm scale-110 origin-left",
+  packCountInactive: "text-gray-200 group-hover:text-gray-700",
+  packUnit: "text-[9px] font-bold text-gray-400 uppercase tracking-wide",
+
+  // Cost Pill (Premium Tag)
+  packCost: "flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all w-fit mt-auto shadow-sm",
+  packCostSelected: "bg-indigo-600 text-white shadow-indigo-500/40",
+  packCostInactive: "bg-gray-50 text-gray-500 border border-gray-100 group-hover:bg-[#1A1A1E] group-hover:text-white group-hover:border-transparent",
+
+  // Decor & Badges
+  packOrb: "absolute w-24 h-24 rounded-full blur-2xl transition-all duration-500 -top-8 -right-8 pointer-events-none opacity-0 group-hover:opacity-100",
+  packOrbSelected: "bg-indigo-400/20 opacity-100",
+  packOrbInactive: "bg-gray-200/30",
+
+  packPopular: "absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[8px] font-black px-2.5 py-1 rounded-bl-xl z-20 shadow-sm uppercase tracking-wider",
   
   // Results
   heroResultContainer: "lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero",
