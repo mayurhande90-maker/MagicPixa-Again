@@ -321,15 +321,15 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                                 <div 
                                                                     key={idx} 
                                                                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }} 
-                                                                    className="group relative rounded-xl p-[1px] bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 animate-[fadeInUp_0.5s_ease-out] hover:shadow-md cursor-pointer"
+                                                                    className="group relative rounded-full p-[1px] bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 animate-[fadeInUp_0.5s_ease-out] hover:shadow-md cursor-pointer"
                                                                     onClick={() => handlePromptSelect(promptValue)}
                                                                 >
-                                                                    <div className={`w-full h-full rounded-xl bg-white/40 hover:bg-white/60 backdrop-blur-sm p-3.5 flex items-center justify-between transition-all duration-200`}>
-                                                                        <span className={`text-sm font-medium italic ${isSelected ? 'text-indigo-700 font-bold' : 'text-slate-700'}`}>
+                                                                    <div className={`w-full h-full rounded-full bg-white/40 hover:bg-white/60 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between transition-all duration-200`}>
+                                                                        <span className={`text-xs font-medium italic ${isSelected ? 'text-indigo-700 font-bold' : 'text-slate-700'}`}>
                                                                             "{displayText}"
                                                                         </span>
-                                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'bg-white/50 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
-                                                                            <ArrowRightIcon className="w-3 h-3" />
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'bg-white/50 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
+                                                                            <ArrowRightIcon className="w-2.5 h-2.5" />
                                                                         </div>
                                                                     </div>
                                                                 </div>
