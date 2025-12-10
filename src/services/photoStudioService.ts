@@ -84,21 +84,19 @@ export const analyzeProductForModelPrompts = async (
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
         const prompt = `Analyze the uploaded product image.
-        Generate 4 distinct, high-quality "Model Photography Scenarios" perfectly suited for this specific item.
+        Generate 4 distinct "Model Photography Concepts" perfectly suited for this item.
         
-        **Goal**: Create commercial-grade prompts that a professional photographer would use to sell this product.
-        
-        **Scenarios to Generate**:
-        1. **Studio Hero**: A clean, professional shot focusing on the product and model's face/interaction.
-        2. **Lifestyle Context**: The product being used in its natural environment (e.g. gym for water bottle, cafe for laptop, vanity for skincare).
-        3. **Close-Up Interaction**: Focus on hands holding or using the item to show scale and texture.
-        4. **Creative Editorial**: A stylized, mood-driven shot (e.g. golden hour, urban street, luxury minimalist).
+        For each concept, provide two fields:
+        1. **display**: A short, conversational instruction (like a director telling a photographer what to do). 
+           - Examples: "Show a model holding this in a sunny cafe", "Have a professional model wear this in a studio", "Close-up of hands using this product".
+           - Keep it under 10 words.
+        2. **prompt**: The detailed, technical image generation prompt. Include lighting (softbox, golden hour), camera (85mm, f/1.8), and subject details.
 
         **JSON Output Format**:
         [
           { 
-            "display": "Short Label (Max 4 words). e.g. 'Cozy Living Room'", 
-            "prompt": "Detailed image generation prompt: [Subject Action], [Environment], [Lighting], [Camera Angle]. e.g. 'A stylish woman drinking coffee in a blurred cozy living room, morning sunlight, authentic smile, 50mm lens'" 
+            "display": "Show a model wearing this in a city street", 
+            "prompt": "Full body shot of a stylish model walking down a blurred city street wearing the product, cinematic lighting, 85mm lens, high fashion look." 
           }
         ]
         
@@ -134,10 +132,10 @@ export const analyzeProductForModelPrompts = async (
     } catch (e) {
         console.error("Error analyzing product for model prompts:", e);
         return [
-            { display: "Professional Studio Portrait", prompt: "A professional studio shot of a model posing confidently with the product, softbox lighting, clean neutral background, sharp focus, 4k commercial photography." },
-            { display: "Lifestyle In-Context", prompt: "A candid lifestyle shot of a model using the product in a bright, modern environment suited to the item, natural sunlight, authentic emotion, shallow depth of field." },
-            { display: "Close-Up Hand Detail", prompt: "A detailed macro shot of hands gently holding the product to show scale and texture, soft bokeh background, elegant composition." },
-            { display: "Outdoor Golden Hour", prompt: "A warm outdoor shot during golden hour, model interacting with the product in a scenic location, cinematic backlighting, dreamy atmosphere." }
+            { display: "Show a model posing professionally in a studio", prompt: "A professional studio shot of a model posing confidently with the product, softbox lighting, clean neutral background, sharp focus, 4k commercial photography." },
+            { display: "Have a model use this in a bright modern home", prompt: "A candid lifestyle shot of a model using the product in a bright, modern living room environment, natural sunlight, authentic emotion, shallow depth of field." },
+            { display: "Close-up of hands holding the product gently", prompt: "A detailed macro shot of hands gently holding the product to show scale and texture, soft bokeh background, elegant composition." },
+            { display: "Show a model with this outdoors at sunset", prompt: "A warm outdoor shot during golden hour, model interacting with the product in a scenic location, cinematic backlighting, dreamy atmosphere." }
         ];
     }
 }
@@ -212,7 +210,7 @@ export const generateModelShot = async (
 
       let userSelectionPart = "";
       if (inputs.freeformPrompt) {
-          userSelectionPart = `USER PROMPT: "${inputs.freeformPrompt}".`;
+          userSelectionPart = `USER PROMPT (STRICT INSTRUCTION): "${inputs.freeformPrompt}".`;
       } else {
           userSelectionPart = `
           Composition: ${inputs.composition || 'Single Model'}
@@ -237,7 +235,7 @@ export const generateModelShot = async (
   - PHYSICS: The product must have weight. Clothing must drape with gravity.
 
   *** FRAMING & SCALE ***
-  - Follow User Framing: "${inputs.framing}".
+  - Follow User Framing: "${inputs.framing || 'As described in prompt'}".
   - **Scale**: Estimate real-world size of the object. A 50ml jar fits in a palm. A tote bag hangs from a shoulder.
   
   INPUTS:
