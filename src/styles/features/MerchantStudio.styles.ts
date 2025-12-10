@@ -25,12 +25,29 @@ export const MerchantStyles = {
   actionBtn: "absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75",
   actionIcon: "w-4 h-4 text-gray-900",
   
-  // Pack Cards (Existing styles kept for functionality)
-  packCard: "relative flex flex-col items-start p-3 rounded-xl border-2 transition-all w-full text-left h-full",
-  packCardSelected: "border-indigo-500 bg-indigo-50/50 shadow-sm",
-  packCardInactive: "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50",
-  packPopularBadge: "absolute -top-2.5 right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1",
-  packPrice: "flex items-center gap-1 text-xs font-bold",
+  // --- PACK SELECTION STYLES (NEW) ---
+  packGrid: "grid grid-cols-3 gap-3 w-full mb-6",
+
+  packCard: "group relative w-full aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 ease-out text-left border flex flex-col",
+  
+  // Pack States
+  packCardSelected: "border-indigo-500/30 ring-2 ring-indigo-500/10 shadow-lg -translate-y-1 bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FF] to-[#E1F5FE]", 
+  packCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5",
+
+  // Pack Decor
+  packOrb: "absolute w-20 h-20 rounded-full blur-xl transition-all duration-500 -top-6 -right-6 pointer-events-none",
+  packOrbSelected: "opacity-60 bg-gradient-to-tr from-blue-400 to-indigo-300 scale-110",
+  packOrbInactive: "opacity-0 group-hover:opacity-10 bg-gray-400",
+
+  // Pack Badge
+  packPopular: "absolute top-0 right-0 bg-gradient-to-bl from-[#F9D230] to-yellow-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-xl z-20 shadow-sm",
+
+  // Pack Content
+  packContent: "relative z-10 p-3 flex flex-col h-full",
+  packLabel: "text-[9px] font-black uppercase tracking-wider mb-auto",
+  packCount: "text-2xl font-black text-gray-900 leading-none",
+  packUnit: "text-[8px] font-bold text-gray-400 ml-0.5",
+  packCost: "flex items-center gap-1 text-[9px] font-bold text-gray-500 mt-1.5 bg-white/60 backdrop-blur-sm w-fit px-1.5 py-0.5 rounded-full border border-gray-100/50",
   
   // Results
   heroResultContainer: "lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero",

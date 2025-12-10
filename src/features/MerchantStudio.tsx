@@ -12,14 +12,34 @@ import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 
 const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
     <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
-        {isPopular && <div className={MerchantStyles.packPopularBadge}><StarIcon className="w-2.5 h-2.5 fill-current"/> POPULAR</div>}
-        <div className="flex justify-between items-start w-full mb-1">
-            <span className={`text-xs font-bold uppercase tracking-wider ${selected ? 'text-indigo-700' : 'text-gray-500'}`}>{label}</span>
-            <div className={`${MerchantStyles.packPrice} ${selected ? 'text-indigo-900' : 'text-gray-700'}`}><CreditCoinIcon className="w-3 h-3 opacity-50"/> {cost}</div>
+        {/* Orb Decoration */}
+        <div className={`${MerchantStyles.packOrb} ${selected ? MerchantStyles.packOrbSelected : MerchantStyles.packOrbInactive}`}></div>
+        
+        {/* Popular Badge */}
+        {isPopular && <div className={MerchantStyles.packPopular}>BEST</div>}
+        
+        {/* Selection Indicator */}
+        {selected && (
+            <div className="absolute top-2 right-2 z-20">
+                <div className="w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-md animate-fadeIn">
+                    <CheckIcon className="w-2.5 h-2.5 text-white"/>
+                </div>
+            </div>
+        )}
+
+        <div className={MerchantStyles.packContent}>
+            <span className={`${MerchantStyles.packLabel} ${selected ? 'text-indigo-600' : 'text-gray-400'}`}>{label}</span>
+            
+            <div className="mt-auto">
+                <div className="flex items-baseline">
+                    <span className={MerchantStyles.packCount}>{size}</span>
+                    <span className={MerchantStyles.packUnit}>ASSETS</span>
+                </div>
+                <div className={`${MerchantStyles.packCost} ${selected ? 'bg-indigo-100/50 text-indigo-700 border-indigo-200' : ''}`}>
+                    <CreditCoinIcon className="w-3 h-3 text-yellow-500"/> {cost}
+                </div>
+            </div>
         </div>
-        <div className="mt-auto"><span className="text-2xl font-black text-gray-800">{size}</span><span className="text-[10px] text-gray-400 font-bold ml-1">ASSETS</span></div>
-        <p className="text-[9px] text-gray-400 mt-1 leading-tight">{subLabel}</p>
-        {selected && <div className="absolute bottom-2 right-2 text-indigo-500"><CheckIcon className="w-4 h-4"/></div>}
     </button>
 );
 
@@ -188,7 +208,17 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             {mode && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="flex items-center justify-between"><button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">← BACK TO MODE</button><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{mode} Mode</span></div>
-                                    <div className="bg-gradient-to-b from-gray-50 to-white p-4 rounded-xl border border-gray-100"><div className="flex items-center justify-between mb-4"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Pack Size</label></div><div className="grid grid-cols-3 gap-3 h-28"><PackCard size={5} label="Standard" subLabel="Essentials (Hero, Side, Back)" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} /><PackCard size={7} label="Extended" subLabel="+ Creative & Lifestyle" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} /><PackCard size={10} label="Ultimate" subLabel="+ Golden Hour, Action & More" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} /></div></div>
+                                    
+                                    {/* Pack Selection */}
+                                    <div className="mb-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block ml-1">Pack Size</label>
+                                        <div className={MerchantStyles.packGrid}>
+                                            <PackCard size={5} label="Standard" subLabel="Essentials" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} />
+                                            <PackCard size={7} label="Extended" subLabel="+ Creative" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} />
+                                            <PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} />
+                                        </div>
+                                    </div>
+
                                     <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
                                     {mode === 'apparel' && (
                                         <>
