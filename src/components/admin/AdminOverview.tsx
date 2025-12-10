@@ -198,19 +198,35 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ onNavigate }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {activeUsers.map(user => (
-                                <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
-                                    <td className="p-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-[10px]">{user.name?.[0]}</div>
-                                            <div className="truncate max-w-[150px] font-medium text-gray-900">{user.email}</div>
-                                        </div>
-                                    </td>
-                                    <td className="p-3"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{user.plan || 'Free'}</span></td>
-                                    <td className="p-3 font-mono text-gray-600">{user.credits}</td>
-                                    <td className="p-3 text-right text-xs font-bold text-green-600">{formatRelativeTime(user.lastActive)}</td>
-                                </tr>
-                            ))}
+                            {activeUsers.map(user => {
+                                // Logic for "Currently Online" (Active in last 5 mins)
+                                const isOnline = user.lastActive && ((user.lastActive as any).toDate ? (user.lastActive as any).toDate() : new Date((user.lastActive as any).seconds * 1000)).getTime() > Date.now() - 5 * 60 * 1000;
+                                
+                                // Format actual clock time
+                                const actualTime = user.lastActive ? ((user.lastActive as any).toDate ? (user.lastActive as any).toDate() : new Date((user.lastActive as any).seconds * 1000)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+
+                                return (
+                                    <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                                        <td className="p-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xs">{user.name?.[0]}</div>
+                                                    {isOnline && (
+                                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm animate-pulse" title="Currently Active"></div>
+                                                    )}
+                                                </div>
+                                                <div className="truncate max-w-[150px] font-medium text-gray-900">{user.email}</div>
+                                            </div>
+                                        </td>
+                                        <td className="p-3"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{user.plan || 'Free'}</span></td>
+                                        <td className="p-3 font-mono text-gray-600">{user.credits}</td>
+                                        <td className="p-3 text-right">
+                                            <div className="text-xs font-bold text-green-600">{formatRelativeTime(user.lastActive)}</div>
+                                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{actualTime}</div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {activeUsers.length === 0 && (
                                 <tr><td colSpan={4} className="p-6 text-center text-gray-400 text-xs">No active users in the last few minutes.</td></tr>
                             )}
