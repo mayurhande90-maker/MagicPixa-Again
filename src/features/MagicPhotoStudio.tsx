@@ -303,14 +303,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && !selectedPrompt && (
                                                 <div className="bg-indigo-50/40 rounded-2xl p-5 border border-indigo-100 mb-6 transition-all hover:border-indigo-200 hover:shadow-sm">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <label className="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                                                        <label className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                                                             <SparklesIcon className="w-3.5 h-3.5 text-indigo-500" />
                                                             AI Blueprints
                                                         </label>
-                                                        <span className={PhotoStudioStyles.promptTag}>Pixa Recommends</span>
+                                                        <span className="text-[10px] bg-white text-indigo-600 px-2 py-1 rounded-full font-bold shadow-sm border border-indigo-100">Pixa Recommends</span>
                                                     </div>
                                                     
-                                                    <div className="flex flex-col gap-2">
+                                                    <div className="flex flex-col gap-2.5">
                                                         {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
                                                             const isModel = studioMode === 'model';
                                                             const displayText = isModel ? (promptItem as any).display : promptItem;
@@ -320,11 +320,17 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                                     key={idx} 
                                                                     onClick={() => handlePromptSelect(promptValue)} 
                                                                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }} 
-                                                                    className={`${PhotoStudioStyles.promptButton} animate-[fadeInUp_0.5s_ease-out] ${selectedPrompt === promptValue ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive} w-full`}
+                                                                    className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex items-center justify-between group animate-[fadeInUp_0.5s_ease-out] bg-white hover:translate-x-1 ${
+                                                                        selectedPrompt === promptValue 
+                                                                        ? 'border-[#4D7CFF] ring-1 ring-[#4D7CFF] shadow-sm' 
+                                                                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                                                                    }`}
                                                                 >
-                                                                    <div className={`${PhotoStudioStyles.promptBorder} opacity-0 group-hover:opacity-100`}></div>
-                                                                    <div className={`${PhotoStudioStyles.promptContent} bg-white`}>
-                                                                        <span className={`${PhotoStudioStyles.promptText} ${PhotoStudioStyles.promptTextInactive} text-xs text-gray-600`}>"{displayText}"</span>
+                                                                    <span className={`text-sm font-medium ${selectedPrompt === promptValue ? 'text-[#4D7CFF]' : 'text-gray-700 group-hover:text-gray-900'}`}>
+                                                                        {displayText}
+                                                                    </span>
+                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${selectedPrompt === promptValue ? 'bg-[#4D7CFF] text-white' : 'bg-gray-50 text-gray-300 group-hover:bg-[#4D7CFF] group-hover:text-white'}`}>
+                                                                        <ArrowRightIcon className="w-3 h-3" />
                                                                     </div>
                                                                 </button>
                                                             )
