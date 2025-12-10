@@ -114,6 +114,14 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     useEffect(() => { return () => { results.forEach(url => URL.revokeObjectURL(url)); }; }, [results]);
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
 
+    const autoScroll = () => {
+        if (scrollRef.current) {
+            setTimeout(() => {
+                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        }
+    };
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -268,7 +276,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <div className="border-t border-gray-100 pt-6">
                                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
                                                 <div className={MerchantStyles.modelSelectionGrid}>
-                                                    <button onClick={() => setModelSource('ai')} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
                                                         <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
                                                             <SparklesIcon className="w-5 h-5"/>
                                                         </div>
@@ -276,7 +284,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                         {modelSource === 'ai' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
                                                     </button>
                                                     
-                                                    <button onClick={() => setModelSource('upload')} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
                                                         <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
                                                             <UserIcon className="w-5 h-5"/>
                                                         </div>
