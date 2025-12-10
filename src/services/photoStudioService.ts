@@ -83,15 +83,26 @@ export const analyzeProductForModelPrompts = async (
         // Optimization: Use 512px for analysis
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyse the product. Generate 4 model scenarios based on **Visual Storytelling**.
+        const prompt = `Analyze the uploaded product image.
+        Generate 4 distinct, high-quality "Model Photography Scenarios" perfectly suited for this specific item.
         
-        The scenarios should use "Single Frame Storytelling": Subject + Tension/Context + Resolution (Product).
+        **Goal**: Create commercial-grade prompts that a professional photographer would use to sell this product.
         
-        1. **Tight Close Shot (Intimacy/Texture)**: Focus on the tactile experience.
-        2. **Mid Shot (Trust/Identity)**: Focus on the model's expression connecting with the product.
-        3. **Wide/Lifestyle (Context)**: Show the product fitting into a real life (Social Proof).
+        **Scenarios to Generate**:
+        1. **Studio Hero**: A clean, professional shot focusing on the product and model's face/interaction.
+        2. **Lifestyle Context**: The product being used in its natural environment (e.g. gym for water bottle, cafe for laptop, vanity for skincare).
+        3. **Close-Up Interaction**: Focus on hands holding or using the item to show scale and texture.
+        4. **Creative Editorial**: A stylized, mood-driven shot (e.g. golden hour, urban street, luxury minimalist).
+
+        **JSON Output Format**:
+        [
+          { 
+            "display": "Short Label (Max 4 words). e.g. 'Cozy Living Room'", 
+            "prompt": "Detailed image generation prompt: [Subject Action], [Environment], [Lighting], [Camera Angle]. e.g. 'A stylish woman drinking coffee in a blurred cozy living room, morning sunlight, authentic smile, 50mm lens'" 
+          }
+        ]
         
-        Return a JSON array of objects with "display" (natural question) and "prompt" (detailed technical description).`;
+        Return ONLY the JSON array.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash', // Switched to Flash for instant analysis
@@ -117,20 +128,16 @@ export const analyzeProductForModelPrompts = async (
             }
         });
         const jsonText = response.text?.trim();
-        if (!jsonText) return [
-            { display: "Can you create a close-up of a model holding this?", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
-            { display: "Show me a wide shot of friends using this product outdoors.", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
-            { display: "Generate a professional studio shot of a model.", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
-            { display: "Can you show a tight detail shot in hand?", prompt: "Tight detail macro shot of hands holding the product to show texture" }
-        ];
+        if (!jsonText) throw new Error("Empty response");
+        
         return JSON.parse(jsonText);
     } catch (e) {
         console.error("Error analyzing product for model prompts:", e);
         return [
-            { display: "Can you create a close-up of a model holding this?", prompt: "Close-up of a model holding the product near their face, soft studio lighting" },
-            { display: "Show me a wide shot of friends using this product outdoors.", prompt: "Wide lifestyle shot of a group of friends engaging with the product outdoors" },
-            { display: "Generate a professional studio shot of a model.", prompt: "Mid-shot of a professional model interacting with the product in a clean studio" },
-            { display: "Can you show a tight detail shot in hand?", prompt: "Tight detail macro shot of hands holding the product to show texture" }
+            { display: "Professional Studio Portrait", prompt: "A professional studio shot of a model posing confidently with the product, softbox lighting, clean neutral background, sharp focus, 4k commercial photography." },
+            { display: "Lifestyle In-Context", prompt: "A candid lifestyle shot of a model using the product in a bright, modern environment suited to the item, natural sunlight, authentic emotion, shallow depth of field." },
+            { display: "Close-Up Hand Detail", prompt: "A detailed macro shot of hands gently holding the product to show scale and texture, soft bokeh background, elegant composition." },
+            { display: "Outdoor Golden Hour", prompt: "A warm outdoor shot during golden hour, model interacting with the product in a scenic location, cinematic backlighting, dreamy atmosphere." }
         ];
     }
 }
