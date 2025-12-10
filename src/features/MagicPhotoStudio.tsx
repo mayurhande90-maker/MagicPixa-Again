@@ -270,31 +270,40 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className={PhotoStudioStyles.modeGrid}>
+                                    {/* Product Shot Card */}
                                     <button onClick={() => handleModeSelect('product')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardProduct}`}>
-                                        <div className={`${PhotoStudioStyles.modeBgGradient} ${PhotoStudioStyles.modeBgProduct}`}></div>
-                                        <div className="relative z-10 flex flex-col items-center text-center">
-                                            <div className={`${PhotoStudioStyles.modeIconContainer} ${PhotoStudioStyles.modeIconProduct}`}>
-                                                <CubeIcon className="w-7 h-7"/>
-                                            </div>
-                                            <h3 className={PhotoStudioStyles.modeTitle}>Product Shot</h3>
-                                            <p className={PhotoStudioStyles.modeDesc}>Studio lighting, podiums, and nature settings.</p>
+                                        <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbProduct}`}></div>
+                                        
+                                        <div className={PhotoStudioStyles.iconGlass}>
+                                            <CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/>
                                         </div>
-                                        <div className={PhotoStudioStyles.actionArrow}>
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionArrowIcon}/>
+
+                                        <div className={PhotoStudioStyles.contentWrapper}>
+                                            <h3 className={PhotoStudioStyles.title}>Product Shot</h3>
+                                            <p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p>
+                                        </div>
+
+                                        <div className={PhotoStudioStyles.actionBtn}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
                                         </div>
                                     </button>
+
+                                    {/* Model Shot Card */}
                                     <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardModel}`}>
-                                        <div className={`${PhotoStudioStyles.modeBgGradient} ${PhotoStudioStyles.modeBgModel}`}></div>
-                                        <div className="relative z-10 flex flex-col items-center text-center">
-                                            <div className={`${PhotoStudioStyles.modeIconContainer} ${PhotoStudioStyles.modeIconModel}`}>
-                                                <UsersIcon className="w-7 h-7"/>
-                                            </div>
-                                            <h3 className={PhotoStudioStyles.modeTitle}>Model Shot</h3>
-                                            <p className={PhotoStudioStyles.modeDesc}>Realistic human models holding or wearing your product.</p>
+                                        <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbModel}`}></div>
+                                        
+                                        <div className={PhotoStudioStyles.iconGlass}>
+                                            <UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/>
                                         </div>
-                                        <div className={PhotoStudioStyles.actionArrow}>
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionArrowIcon}/>
+
+                                        <div className={PhotoStudioStyles.contentWrapper}>
+                                            <h3 className={PhotoStudioStyles.title}>Model Shot</h3>
+                                            <p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p>
+                                        </div>
+
+                                        <div className={PhotoStudioStyles.actionBtn}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
                                         </div>
                                     </button>
                                 </div>
