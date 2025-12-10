@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Purchase } from '../../types';
-import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStats, getTotalRevenue } from '../../firebase';
-import { CreditCardIcon, FilterIcon, UsersIcon, StarIcon, LifebuoyIcon, AudioWaveIcon, CogIcon, SystemIcon } from '../icons';
+import { getRecentSignups, getRecentPurchases, getDashboardStats, getRevenueStats, getTotalRevenue, subscribeToRecentActiveUsers } from '../../firebase';
+import { CreditCardIcon, FilterIcon, UsersIcon, StarIcon, LifebuoyIcon, AudioWaveIcon, CogIcon, SystemIcon, EyeIcon } from '../icons';
 
 interface AdminOverviewProps {
     onNavigate: (tab: 'overview' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback') => void;
@@ -18,9 +18,19 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ onNavigate }) => {
     const [revenueFilter, setRevenueFilter] = useState<'7d' | '30d' | '6m' | '1y' | 'lifetime' | 'custom'>('lifetime');
     const [showRevenueFilterMenu, setShowRevenueFilterMenu] = useState(false);
     const [customRange, setCustomRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+    
+    // Real-Time Active Users State
+    const [activeUsers, setActiveUsers] = useState<User[]>([]);
 
     useEffect(() => {
         loadOverview();
+        
+        // Setup real-time listener for active users
+        const unsubscribe = subscribeToRecentActiveUsers((users) => {
+            setActiveUsers(users);
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     const fetchRevenueWithFilter = async () => {
@@ -87,6 +97,21 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ onNavigate }) => {
 
     const getFilterLabel = (f: string) => { switch(f) { case '7d': return 'Last 7 Days'; case '30d': return 'Last 30 Days'; case '6m': return 'Last 6 Months'; case '1y': return 'Last 1 Year'; case 'custom': return 'Custom Range'; default: return 'Lifetime'; } };
 
+    const formatRelativeTime = (timestamp: any) => {
+        if (!timestamp) return 'Offline';
+        try {
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffMins < 1440) return `${Math.floor(diffMins/60)}h ago`;
+            return date.toLocaleDateString();
+        } catch (e) { return '-'; }
+    };
+
     if (isLoading) {
         return (
             <div className="space-y-8 animate-pulse">
@@ -150,6 +175,47 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ onNavigate }) => {
                         <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span className="text-xs font-bold uppercase tracking-wider text-gray-400">System</span></div>
                         <p className="text-lg font-bold">Operational</p>
                     </div>
+                </div>
+            </div>
+
+            {/* LIVE ACTIVE USERS LIST */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide">Live Active Users</h3>
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">{activeUsers.length} Online Recently</span>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+                            <tr>
+                                <th className="p-3">User</th>
+                                <th className="p-3">Plan</th>
+                                <th className="p-3">Credits</th>
+                                <th className="p-3 text-right">Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {activeUsers.map(user => (
+                                <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                                    <td className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-[10px]">{user.name?.[0]}</div>
+                                            <div className="truncate max-w-[150px] font-medium text-gray-900">{user.email}</div>
+                                        </div>
+                                    </td>
+                                    <td className="p-3"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{user.plan || 'Free'}</span></td>
+                                    <td className="p-3 font-mono text-gray-600">{user.credits}</td>
+                                    <td className="p-3 text-right text-xs font-bold text-green-600">{formatRelativeTime(user.lastActive)}</td>
+                                </tr>
+                            ))}
+                            {activeUsers.length === 0 && (
+                                <tr><td colSpan={4} className="p-6 text-center text-gray-400 text-xs">No active users in the last few minutes.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

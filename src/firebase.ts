@@ -72,6 +72,19 @@ export const signInWithGoogle = async () => {
     }
 };
 
+// Explicit function to update last active timestamp cheaply
+export const updateUserLastActive = async (uid: string) => {
+    if (!db) return;
+    try {
+        await db.collection('users').doc(uid).update({
+            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        // Ignore errors (e.g., if user doc doesn't exist yet, getOrCreate will handle it)
+        console.warn("Could not update lastActive", e);
+    }
+};
+
 export const getOrCreateUserProfile = async (uid: string, name: string, email: string | null) => {
     if (!db) return;
     const userRef = db.collection('users').doc(uid);
@@ -105,14 +118,12 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         return newUser;
     }
     
-    // Existing User: Update Last Active Timestamp
+    // Fallback update if this function is called explicitly
     try {
         await userRef.update({
             lastActive: firebase.firestore.FieldValue.serverTimestamp()
         });
-    } catch (e) {
-        console.error("Error updating lastActive timestamp:", e);
-    }
+    } catch (e) { console.error("Error updating lastActive:", e); }
     
     const userData = doc.data() as User;
     
@@ -527,6 +538,23 @@ export const getAllUsers = async (limit = 100) => {
     if (!db) return [];
     const snapshot = await db.collection('users').limit(limit).get(); 
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+};
+
+// REAL-TIME LISTENER FOR ADMIN
+export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => {
+    if (!db) {
+        callback([]);
+        return () => {};
+    }
+    return db.collection('users')
+        .orderBy('lastActive', 'desc')
+        .limit(limit)
+        .onSnapshot((snapshot) => {
+            const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+            callback(users);
+        }, (error) => {
+            console.error("Error subscribing to active users:", error);
+        });
 };
 
 export const getUser = async (uid: string) => {

@@ -15,6 +15,7 @@ import {
     subscribeToAnnouncement,
     subscribeToAppConfig,
     updateUserProfile,
+    updateUserLastActive,
     getMissingConfigKeys,
     isConfigValid
 } from './firebase';
@@ -108,7 +109,7 @@ function App() {
       return () => unsubscribe();
   }, []);
 
-  // 3. Auth Listener
+  // 3. Auth Listener & Active Status
   useEffect(() => {
     if (!firebaseAuth) {
         setLoading(false);
@@ -116,6 +117,9 @@ function App() {
     }
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
+        // ALWAYS Update Last Active on app load/refresh
+        updateUserLastActive(firebaseUser.uid);
+
         subscribeToUserProfile(firebaseUser.uid, (profile) => {
             if (profile) {
                 setUser(profile);
