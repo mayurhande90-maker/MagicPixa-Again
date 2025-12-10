@@ -1,14 +1,24 @@
 
 export const PhotoStudioStyles = {
-  // Mode Selection Cards
-  modeCard: "group relative p-6 bg-white border-2 border-gray-100 rounded-3xl text-left transition-all hover:shadow-lg hover:-translate-y-1",
-  modeCardBlueHover: "hover:border-blue-500",
-  modeCardPurpleHover: "hover:border-purple-500",
-  modeIconBase: "p-3 rounded-full transition-colors",
-  modeIconBlue: "bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
-  modeIconPurple: "bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white",
-  modeTitle: "text-lg font-bold text-gray-800",
-  modeDesc: "text-xs text-gray-500",
+  // Mode Selection Cards - Premium Redesign
+  modeCard: "group relative flex flex-col justify-start p-6 bg-white rounded-3xl border border-gray-100 transition-all duration-300 hover:shadow-xl hover:shadow-gray-200/40 hover:-translate-y-1 overflow-hidden h-auto min-h-[180px] text-left",
+  
+  modeCardProduct: "hover:border-blue-200",
+  modeCardModel: "hover:border-purple-200",
+
+  modeBgGradient: "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+  modeBgProduct: "bg-gradient-to-br from-blue-50/50 via-transparent to-transparent",
+  modeBgModel: "bg-gradient-to-br from-purple-50/50 via-transparent to-transparent",
+
+  modeIconContainer: "w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110 shadow-sm z-10 border border-gray-50",
+  modeIconProduct: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-blue-200 group-hover:border-blue-500",
+  modeIconModel: "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-purple-200 group-hover:border-purple-500",
+
+  modeTitle: "text-xl font-black text-gray-800 group-hover:text-gray-900 mb-2 leading-tight tracking-tight",
+  modeDesc: "text-sm text-gray-500 font-medium leading-relaxed group-hover:text-gray-600 max-w-[90%]",
+  
+  actionArrow: "absolute top-6 right-6 opacity-0 transform -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300",
+  actionArrowIcon: "w-5 h-5 text-gray-300 group-hover:text-gray-400",
 
   // Prompt Pills
   promptContainer: "transition-all duration-300 mb-6",

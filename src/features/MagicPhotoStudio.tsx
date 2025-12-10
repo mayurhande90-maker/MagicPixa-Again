@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
-    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon 
+    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon
 } from '../components/icons';
 import { 
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone 
@@ -271,19 +271,31 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button onClick={() => handleModeSelect('product')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardBlueHover}`}>
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <div className={`${PhotoStudioStyles.modeIconBase} ${PhotoStudioStyles.modeIconBlue}`}><CubeIcon className="w-6 h-6"/></div>
-                                            <span className={PhotoStudioStyles.modeTitle}>Product Shot</span>
+                                    <button onClick={() => handleModeSelect('product')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardProduct}`}>
+                                        <div className={`${PhotoStudioStyles.modeBgGradient} ${PhotoStudioStyles.modeBgProduct}`}></div>
+                                        <div className="relative z-10 flex flex-col items-center text-center">
+                                            <div className={`${PhotoStudioStyles.modeIconContainer} ${PhotoStudioStyles.modeIconProduct}`}>
+                                                <CubeIcon className="w-7 h-7"/>
+                                            </div>
+                                            <h3 className={PhotoStudioStyles.modeTitle}>Product Shot</h3>
+                                            <p className={PhotoStudioStyles.modeDesc}>Studio lighting, podiums, and nature settings.</p>
                                         </div>
-                                        <p className={PhotoStudioStyles.modeDesc}>Studio lighting, podiums, and nature settings.</p>
+                                        <div className={PhotoStudioStyles.actionArrow}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionArrowIcon}/>
+                                        </div>
                                     </button>
-                                    <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardPurpleHover}`}>
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <div className={`${PhotoStudioStyles.modeIconBase} ${PhotoStudioStyles.modeIconPurple}`}><UsersIcon className="w-6 h-6"/></div>
-                                            <span className={PhotoStudioStyles.modeTitle}>Model Shot</span>
+                                    <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardModel}`}>
+                                        <div className={`${PhotoStudioStyles.modeBgGradient} ${PhotoStudioStyles.modeBgModel}`}></div>
+                                        <div className="relative z-10 flex flex-col items-center text-center">
+                                            <div className={`${PhotoStudioStyles.modeIconContainer} ${PhotoStudioStyles.modeIconModel}`}>
+                                                <UsersIcon className="w-7 h-7"/>
+                                            </div>
+                                            <h3 className={PhotoStudioStyles.modeTitle}>Model Shot</h3>
+                                            <p className={PhotoStudioStyles.modeDesc}>Realistic human models holding or wearing your product.</p>
                                         </div>
-                                        <p className={PhotoStudioStyles.modeDesc}>Realistic human models holding or wearing your product.</p>
+                                        <div className={PhotoStudioStyles.actionArrow}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionArrowIcon}/>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
