@@ -62,6 +62,12 @@ export const MerchantStyles = {
 
   packPopular: "absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[8px] font-black px-2.5 py-1 rounded-bl-xl z-20 shadow-sm uppercase tracking-wider",
   
+  // --- MODEL SELECTION STYLES (BENTO) ---
+  modelSelectionGrid: "grid grid-cols-2 gap-4 mb-6",
+  modelSelectionCard: "group relative w-full h-24 rounded-2xl border transition-all duration-300 ease-out flex flex-col items-center justify-center gap-2 overflow-hidden text-center cursor-pointer",
+  modelSelectionCardSelected: "border-indigo-500/30 bg-gradient-to-br from-[#E0E7FF] to-[#EEF2FF] shadow-md ring-1 ring-indigo-500/20 -translate-y-0.5",
+  modelSelectionCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-sm hover:-translate-y-0.5",
+
   // Results
   heroResultContainer: "lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero",
   heroLabel: "absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 border border-white/10 uppercase tracking-wider",

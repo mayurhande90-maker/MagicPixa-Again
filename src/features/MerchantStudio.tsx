@@ -15,12 +15,12 @@ const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; co
         {/* Animated Glow Orb */}
         <div className={`${MerchantStyles.packOrb} ${selected ? MerchantStyles.packOrbSelected : MerchantStyles.packOrbInactive}`}></div>
         
-        {/* Popular Badge */}
+        {/* Popular Badge (Top Right) */}
         {isPopular && <div className={MerchantStyles.packPopular}>Best Value</div>}
         
-        {/* Selection Checkmark */}
+        {/* Selection Checkmark - Moved to Bottom Right to avoid overlapping with Badge */}
         {selected && (
-            <div className="absolute top-2 right-2 z-20">
+            <div className="absolute bottom-3 right-3 z-20">
                 <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-fadeIn ring-2 ring-white">
                     <CheckIcon className="w-3 h-3 text-white"/>
                 </div>
@@ -230,7 +230,39 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     {mode === 'apparel' && (
                                         <>
                                             <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-gray-400"/>} heightClass="h-24" />
-                                            <div className="border-t border-gray-100 pt-6"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label><div className="grid grid-cols-2 gap-3 mb-4"><button onClick={() => setModelSource('ai')} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${modelSource === 'ai' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}><SparklesIcon className="w-5 h-5 mb-1"/><span className="text-xs font-bold">Pixa Model</span></button><button onClick={() => setModelSource('upload')} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${modelSource === 'upload' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}><UserIcon className="w-5 h-5 mb-1"/><span className="text-xs font-bold">My Model</span></button></div>{modelSource === 'ai' ? (<div className="space-y-4 animate-fadeIn"><SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} /><SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} /><SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} /><SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} /></div>) : (<CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />)}</div>
+                                            
+                                            {/* Model Selection - Updated to Bento Style */}
+                                            <div className="border-t border-gray-100 pt-6">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
+                                                <div className={MerchantStyles.modelSelectionGrid}>
+                                                    <button onClick={() => setModelSource('ai')} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <SparklesIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-xs font-bold ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
+                                                        {modelSource === 'ai' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                    
+                                                    <button onClick={() => setModelSource('upload')} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <UserIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-xs font-bold ${modelSource === 'upload' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>My Model</span>
+                                                        {modelSource === 'upload' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                </div>
+
+                                                {modelSource === 'ai' ? (
+                                                    <div className="space-y-4 animate-fadeIn">
+                                                        <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
+                                                        <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
+                                                        <SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} />
+                                                        <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
+                                                    </div>
+                                                ) : (
+                                                    <CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />
+                                                )}
+                                            </div>
                                         </>
                                     )}
                                     {mode === 'product' && (
