@@ -195,7 +195,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onResetResult={result ? undefined : () => setResult(null)}
             onNewSession={result ? undefined : handleNewSession}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
-            resultHeightClass="h-[600px]"
+            resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }}
             scrollRef={scrollRef}
@@ -315,24 +315,24 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                             const isModel = studioMode === 'model';
                                                             const displayText = isModel ? (promptItem as any).display : promptItem;
                                                             const promptValue = isModel ? (promptItem as any).prompt : promptItem;
+                                                            const isSelected = selectedPrompt === promptValue;
+
                                                             return (
-                                                                <button 
+                                                                <div 
                                                                     key={idx} 
-                                                                    onClick={() => handlePromptSelect(promptValue)} 
                                                                     style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }} 
-                                                                    className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex items-center justify-between group animate-[fadeInUp_0.5s_ease-out] bg-white hover:translate-x-1 ${
-                                                                        selectedPrompt === promptValue 
-                                                                        ? 'border-[#4D7CFF] ring-1 ring-[#4D7CFF] shadow-sm' 
-                                                                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                                                                    }`}
+                                                                    className="group relative rounded-xl p-[1px] bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 animate-[fadeInUp_0.5s_ease-out] hover:shadow-md cursor-pointer"
+                                                                    onClick={() => handlePromptSelect(promptValue)}
                                                                 >
-                                                                    <span className={`text-sm font-medium ${selectedPrompt === promptValue ? 'text-[#4D7CFF]' : 'text-gray-700 group-hover:text-gray-900'}`}>
-                                                                        {displayText}
-                                                                    </span>
-                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${selectedPrompt === promptValue ? 'bg-[#4D7CFF] text-white' : 'bg-gray-50 text-gray-300 group-hover:bg-[#4D7CFF] group-hover:text-white'}`}>
-                                                                        <ArrowRightIcon className="w-3 h-3" />
+                                                                    <div className={`w-full h-full rounded-xl bg-white/40 hover:bg-white/60 backdrop-blur-sm p-3.5 flex items-center justify-between transition-all duration-200`}>
+                                                                        <span className={`text-sm font-medium italic ${isSelected ? 'text-indigo-700 font-bold' : 'text-slate-700'}`}>
+                                                                            "{displayText}"
+                                                                        </span>
+                                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'bg-white/50 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
+                                                                            <ArrowRightIcon className="w-3 h-3" />
+                                                                        </div>
                                                                     </div>
-                                                                </button>
+                                                                </div>
                                                             )
                                                         })}
                                                     </div>
