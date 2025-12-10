@@ -77,7 +77,9 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [modelSource, setModelSource] = useState<'ai' | 'upload'>('ai');
+    
+    // Changed: Initialize as null so no box is pre-selected
+    const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     
     // Removed Default Values - User must select
     const [aiGender, setAiGender] = useState('');
@@ -153,7 +155,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setMode(null); 
         setViewIndex(null); 
         setPackSize(5); 
-        setModelSource('ai'); 
+        setModelSource(null); // Reset to null 
         
         // Reset to empty
         setAiGender(''); 
@@ -283,15 +285,20 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                     </button>
                                                 </div>
 
-                                                {modelSource === 'ai' ? (
+                                                {/* CONDITIONAL RENDERING BASED ON SELECTION */}
+                                                {modelSource === 'ai' && (
                                                     <div className="space-y-4 animate-fadeIn">
                                                         <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
                                                         <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
                                                         <SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} />
                                                         <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
                                                     </div>
-                                                ) : (
-                                                    <CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />
+                                                )}
+                                                
+                                                {modelSource === 'upload' && (
+                                                    <div className="animate-fadeIn">
+                                                        <CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />
+                                                    </div>
                                                 )}
                                             </div>
                                         </>
