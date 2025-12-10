@@ -2,8 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
-    FeatureLayout, 
-    UploadPlaceholder
+    FeatureLayout
 } from '../components/FeatureLayout';
 import { 
     saveCreation, 
@@ -184,7 +183,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                             )}
                         </div>
                     ) : (
-                        // Custom Light Upload Placeholder
+                        // Standardized Upload Placeholder (Product Studio Style)
                         <div 
                             onClick={() => fileInputRef.current?.click()}
                             onDragOver={handleDragOver}
@@ -193,84 +192,96 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                             onDrop={handleDrop}
                             className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden ${
                                 isDragging 
-                                ? 'border-indigo-500 bg-indigo-50' 
-                                : 'border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/30'
+                                ? 'border-indigo-500 bg-indigo-50/10' 
+                                : 'border-gray-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'
                             }`}
                         >
-                            {/* Background Grid Pattern - Dark dots on light bg */}
-                            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                            
-                            <div className="relative z-10 p-6 bg-white rounded-full shadow-md mb-4 group-hover:scale-110 transition-transform duration-300 border border-gray-100">
-                                <UploadIcon className="w-10 h-10 text-indigo-500" />
+                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+                                <FlagIcon className="w-12 h-12 text-indigo-400 group-hover:text-indigo-600 transition-colors duration-300" />
                             </div>
                             
-                            <div className="relative z-10 text-center">
-                                <p className="text-lg font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">Upload Mission Asset</p>
-                                <div className="bg-white/80 rounded-full px-3 py-1 inline-block mt-2 border border-gray-100"><p className="text-xs font-bold text-indigo-500 uppercase tracking-widest transition-colors">Click to Browse</p></div>
+                            <div className="relative z-10 mt-6 text-center space-y-2 px-6">
+                                <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Mission Asset</p>
+                                <div className="bg-gray-50 rounded-full px-3 py-1 inline-block border border-gray-200">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p>
+                                </div>
                                 <p className="text-[10px] text-gray-400 mt-3 font-medium">Recommended: High quality image matching the mission.</p>
                             </div>
+                            
+                            {isDragging && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none">
+                                    <div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce">
+                                        <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
+                                            <UploadIcon className="w-5 h-5"/> Drop to Upload!
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )
                 }
                 rightContent={
-                    <div className="h-full w-full relative overflow-hidden rounded-3xl bg-white shadow-sm flex flex-col border border-gray-100">
-                        {/* Animated Background Gradients - Light */}
-                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-50 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-purple-50 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
+                    <div className="h-full w-full relative overflow-hidden rounded-3xl bg-[#1A1A1E] shadow-2xl flex flex-col border border-gray-800">
+                        {/* Animated Background Gradients - Dark Theme */}
+                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-purple-500/10 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
                         
                         {/* Content */}
                         <div className="relative z-10 flex flex-col h-full p-8 text-left">
                             
                             {/* Top Badge */}
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                    <SparklesIcon className="w-3 h-3 text-amber-500" />
+                            <div className="flex justify-between items-start mb-10">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                    <SparklesIcon className="w-3 h-3" />
                                     Daily Challenge
                                 </div>
                                 {!isLocked && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
                                         <span className="relative flex h-2 w-2">
-                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                         </span>
-                                        <span className="text-[10px] font-bold text-emerald-600 tracking-wider uppercase">Active</span>
+                                        <span className="text-[10px] font-bold text-green-400 tracking-wider uppercase">Active</span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Typography */}
-                            <div className="mb-6">
-                                <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
+                            {/* Prominent Typography */}
+                            <div className="mb-8">
+                                <h2 className="text-4xl md:text-5xl font-black text-white leading-[1.1] mb-6 tracking-tight drop-shadow-sm">
                                     {mission.title}
                                 </h2>
-                                <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
-                                <p className="text-gray-600 text-sm md:text-base leading-relaxed font-medium border-l-2 border-indigo-100 pl-4">
-                                    {mission.description}
-                                </p>
+                                <div className="w-20 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mb-8"></div>
+                                
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+                                    <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                                        {mission.description}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Spacer */}
                             <div className="flex-1"></div>
 
-                            {/* Premium Reward Card - Light Version */}
+                            {/* Premium Reward Card - Dark Version */}
                             <div className="relative group mt-auto">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur-sm"></div>
-                                <div className="relative flex items-center justify-between bg-white rounded-xl p-5 border border-amber-100 shadow-sm">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur-sm"></div>
+                                <div className="relative flex items-center justify-between bg-[#252529] rounded-xl p-6 border border-white/10 shadow-xl">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-100 to-yellow-50 flex items-center justify-center shadow-inner transform group-hover:scale-110 transition-transform duration-300">
-                                            <CheckIcon className="w-6 h-6 text-amber-600" />
+                                        <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 shadow-inner transform group-hover:scale-110 transition-transform duration-300">
+                                            <CheckIcon className="w-7 h-7 text-yellow-400" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Reward Bounty</p>
-                                            <p className="text-gray-800 font-bold text-sm">Upon Completion</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reward Bounty</p>
+                                            <p className="text-white font-bold text-base">Upon Completion</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <div className="flex items-baseline justify-end gap-1">
-                                            <span className="text-3xl font-black text-gray-900">
+                                            <span className="text-4xl font-black text-white tracking-tight">
                                                 +{mission.reward}
                                             </span>
-                                            <span className="text-xs font-bold text-amber-500">CR</span>
+                                            <span className="text-sm font-bold text-yellow-400">CR</span>
                                         </div>
                                     </div>
                                 </div>
