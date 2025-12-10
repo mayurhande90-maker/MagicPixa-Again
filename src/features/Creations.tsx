@@ -35,8 +35,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     // Cleanup Ref to ensure it runs once per mount
     const cleanupRan = useRef(false);
 
-    const isUnlimitedStorage = auth.user?.storageTier === 'unlimited';
-
     useEffect(() => {
         let isMounted = true;
 
@@ -48,8 +46,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 const allCreations = data as Creation[];
                 
                 // --- LAZY CLEANUP LOGIC ---
-                // Only run if user is Limited tier and we haven't run it yet this session
-                if (!isUnlimitedStorage && !cleanupRan.current) {
+                // Policy Update: 15 Days Retention for ALL users to improve performance.
+                if (!cleanupRan.current) {
                     cleanupRan.current = true;
                     
                     const now = new Date();
@@ -61,7 +59,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         const diffTime = Math.abs(now.getTime() - cDate.getTime());
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                         
-                        if (diffDays > 30) {
+                        // Limit lowered to 15 days for everyone
+                        if (diffDays > 15) {
                             expiredCreations.push(c);
                         } else {
                             validCreations.push(c);
@@ -72,7 +71,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         console.log(`Auto-cleaning ${expiredCreations.length} expired images...`);
                         
                         // Execute deletions in background
-                        // We don't await this to block the UI render, but we update local state immediately
                         Promise.all(expiredCreations.map(c => deleteCreation(auth.user!.uid, c)))
                             .then(() => {
                                 console.log("Auto-cleanup complete");
@@ -80,7 +78,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                             .catch(err => console.error("Auto-cleanup error", err));
 
                         // Show notification
-                        setToastMsg(`Cleaned up ${expiredCreations.length} expired images (older than 30 days).`);
+                        setToastMsg(`Cleaned up ${expiredCreations.length} expired images (older than 15 days).`);
                         
                         if (isMounted) {
                             setCreations(validCreations);
@@ -104,7 +102,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         loadAndCleanup();
 
         return () => { isMounted = false; };
-    }, [auth.user, isUnlimitedStorage]);
+    }, [auth.user]);
 
     const uniqueFeatures = useMemo(() => Array.from(new Set(creations.map(c => c.feature))).sort(), [creations]);
 
@@ -206,7 +204,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         // Convert Set to Array to iterate
         const idsToDownload = Array.from(selectedIds);
         
-        // User feedback (optional toast could go here)
         console.log(`Downloading ${total} files...`);
 
         for (let i = 0; i < idsToDownload.length; i++) {
@@ -220,7 +217,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
             }
         }
         
-        // Optional: Exit select mode after download
         setIsSelectMode(false);
         setSelectedIds(new Set());
     };
@@ -236,11 +232,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 for (const id of idsToDelete) {
                     const creation = creations.find(c => c.id === id);
                     if (creation) {
-                        // Fire and forget deletion to speed up UI, or await if strict consistency needed
                         await deleteCreation(auth.user.uid, creation);
                     }
                 }
-                // Update UI
                 setCreations(prev => prev.filter(c => !selectedIds.has(c.id)));
                 setIsSelectMode(false);
                 setSelectedIds(new Set());
@@ -318,26 +312,18 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             </div>
 
-            {/* Storage Policy Banner (Only for Limited Tier) */}
-            {!isUnlimitedStorage && (
-                <div className="mb-8 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-full text-orange-500 shadow-sm">
-                            <InformationCircleIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-bold text-gray-800">Limited Storage (30 Days)</p>
-                            <p className="text-xs text-gray-600">Your free storage retains images for 30 days. Upgrade for unlimited history.</p>
-                        </div>
+            {/* Storage Policy Banner - VISIBLE TO ALL */}
+            <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-full text-blue-500 shadow-sm">
+                        <InformationCircleIcon className="w-5 h-5" />
                     </div>
-                    <button 
-                        onClick={() => navigateTo('dashboard', 'billing')}
-                        className="bg-white text-[#1A1A1E] px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2 whitespace-nowrap"
-                    >
-                        <CreditCardIcon className="w-4 h-4 text-blue-600"/> Upgrade to Studio/Agency
-                    </button>
+                    <div>
+                        <p className="text-sm font-bold text-gray-800">15-Day Temporary Gallery</p>
+                        <p className="text-xs text-gray-600">To maintain optimal performance, creations are automatically deleted 15 days after generation. Please download your favorites!</p>
+                    </div>
                 </div>
-            )}
+            </div>
 
             {loading ? (
                 <div className="flex justify-center py-20">
@@ -355,8 +341,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                 {group.items.map(c => {
                                     const isSelected = selectedIds.has(c.id);
                                     const daysOld = getDaysOld(c);
-                                    const daysRemaining = 30 - daysOld;
-                                    const isExpiringSoon = !isUnlimitedStorage && daysRemaining <= 5;
+                                    // Retention is now 15 days for everyone
+                                    const daysRemaining = 15 - daysOld;
+                                    const isExpiringSoon = daysRemaining <= 5;
 
                                     return (
                                         <div 
