@@ -28,11 +28,12 @@ export const MerchantStyles = {
   // --- PACK SELECTION STYLES (NEW) ---
   packGrid: "grid grid-cols-3 gap-3 w-full mb-6",
 
-  packCard: "group relative w-full aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 ease-out text-left border flex flex-col",
+  // Reduced height to h-28 for a smaller, compact look
+  packCard: "group relative w-full h-28 rounded-2xl overflow-hidden transition-all duration-300 ease-out text-left border flex flex-col",
   
-  // Pack States
-  packCardSelected: "border-indigo-500/30 ring-2 ring-indigo-500/10 shadow-lg -translate-y-1 bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FF] to-[#E1F5FE]", 
-  packCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5",
+  // Pack States with Gradients
+  packCardSelected: "border-indigo-500/30 ring-2 ring-indigo-500/10 shadow-lg -translate-y-1 bg-gradient-to-br from-[#E0E7FF] via-[#EEF2FF] to-[#F5F3FF]", 
+  packCardInactive: "border-gray-200 bg-gradient-to-br from-[#F9FAFB] to-[#F3F4F6] hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5 hover:from-white hover:to-indigo-50",
 
   // Pack Decor
   packOrb: "absolute w-20 h-20 rounded-full blur-xl transition-all duration-500 -top-6 -right-6 pointer-events-none",
@@ -43,11 +44,11 @@ export const MerchantStyles = {
   packPopular: "absolute top-0 right-0 bg-gradient-to-bl from-[#F9D230] to-yellow-500 text-white text-[8px] font-bold px-2 py-1 rounded-bl-xl z-20 shadow-sm",
 
   // Pack Content
-  packContent: "relative z-10 p-3 flex flex-col h-full",
-  packLabel: "text-[9px] font-black uppercase tracking-wider mb-auto",
+  packContent: "relative z-10 p-3 flex flex-col h-full justify-between",
+  packLabel: "text-[9px] font-black uppercase tracking-wider",
   packCount: "text-2xl font-black text-gray-900 leading-none",
   packUnit: "text-[8px] font-bold text-gray-400 ml-0.5",
-  packCost: "flex items-center gap-1 text-[9px] font-bold text-gray-500 mt-1.5 bg-white/60 backdrop-blur-sm w-fit px-1.5 py-0.5 rounded-full border border-gray-100/50",
+  packCost: "flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-white/60 backdrop-blur-sm w-fit px-1.5 py-0.5 rounded-full border border-gray-100/50",
   
   // Results
   heroResultContainer: "lg:w-2/3 h-[50vh] lg:h-full bg-white relative border-b lg:border-b-0 lg:border-r border-gray-200 cursor-zoom-in group/hero",
