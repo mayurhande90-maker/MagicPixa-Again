@@ -93,8 +93,8 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             credits: 10,
             totalCreditsAcquired: 10,
             plan: 'Free',
-            signUpDate: firebase.firestore.Timestamp.now() as any,
-            lastActive: firebase.firestore.Timestamp.now() as any,
+            signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
+            lastActive: firebase.firestore.FieldValue.serverTimestamp() as any,
             storageTier: 'limited',
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
             referralCount: 0,
@@ -103,6 +103,15 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         };
         await userRef.set(newUser);
         return newUser;
+    }
+    
+    // Existing User: Update Last Active Timestamp
+    try {
+        await userRef.update({
+            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Error updating lastActive timestamp:", e);
     }
     
     const userData = doc.data() as User;

@@ -16,7 +16,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ auth, appConfig }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 10;
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'credits'>('newest');
+    const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'credits' | 'last_active'>('newest');
     const [isLoading, setIsLoading] = useState(false);
     const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null);
 
@@ -66,9 +66,19 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ auth, appConfig }) => {
             const term = searchTerm.toLowerCase();
             result = result.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term) || u.uid?.toLowerCase().includes(term));
         }
-        if (sortMode === 'newest') { result.sort((a, b) => { const da = a.signUpDate ? (a.signUpDate as any).seconds : 0; const db = b.signUpDate ? (b.signUpDate as any).seconds : 0; return db - da; }); } 
-        else if (sortMode === 'oldest') { result.sort((a, b) => { const da = a.signUpDate ? (a.signUpDate as any).seconds : 0; const db = b.signUpDate ? (b.signUpDate as any).seconds : 0; return da - db; }); } 
-        else if (sortMode === 'credits') { result.sort((a, b) => (b.credits || 0) - (a.credits || 0)); }
+        if (sortMode === 'newest') { 
+            result.sort((a, b) => { const da = a.signUpDate ? (a.signUpDate as any).seconds : 0; const db = b.signUpDate ? (b.signUpDate as any).seconds : 0; return db - da; }); 
+        } else if (sortMode === 'oldest') { 
+            result.sort((a, b) => { const da = a.signUpDate ? (a.signUpDate as any).seconds : 0; const db = b.signUpDate ? (b.signUpDate as any).seconds : 0; return da - db; }); 
+        } else if (sortMode === 'credits') { 
+            result.sort((a, b) => (b.credits || 0) - (a.credits || 0)); 
+        } else if (sortMode === 'last_active') {
+            result.sort((a, b) => {
+                const da = a.lastActive ? (a.lastActive as any).seconds : 0;
+                const db = b.lastActive ? (b.lastActive as any).seconds : 0;
+                return db - da; 
+            });
+        }
         setFilteredUsers(result);
         setCurrentPage(1);
     }, [allUsers, searchTerm, sortMode]);
@@ -83,7 +93,15 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ auth, appConfig }) => {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fadeIn">
             <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
                 <div className="flex items-center gap-3"><h3 className="font-bold text-gray-800">Users ({filteredUsers.length})</h3><button onClick={exportUsersCSV} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"><DownloadIcon className="w-3 h-3"/> Export CSV</button></div>
-                <div className="flex gap-2"><select value={sortMode} onChange={(e) => setSortMode(e.target.value as any)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold focus:outline-none"><option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="credits">Most Credits</option></select><input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 w-48"/></div>
+                <div className="flex gap-2">
+                    <select value={sortMode} onChange={(e) => setSortMode(e.target.value as any)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold focus:outline-none cursor-pointer">
+                        <option value="newest">Joined: Newest</option>
+                        <option value="oldest">Joined: Oldest</option>
+                        <option value="last_active">Recently Active</option>
+                        <option value="credits">Most Credits</option>
+                    </select>
+                    <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-500 w-48"/>
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
