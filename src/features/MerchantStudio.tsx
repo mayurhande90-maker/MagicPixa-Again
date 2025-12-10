@@ -9,6 +9,8 @@ import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../uti
 import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, deductCredits, logApiError, submitFeedback } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
+// @ts-ignore
+import JSZip from 'jszip';
 
 const FeedbackSparkle = () => (
   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
@@ -104,6 +106,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [results, setResults] = useState<string[]>([]);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [viewIndex, setViewIndex] = useState<number | null>(null);
+    const [isZipping, setIsZipping] = useState(false);
 
     // Feedback State
     const [heroCreationId, setHeroCreationId] = useState<string | null>(null);
@@ -189,6 +192,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setFeedbackGiven(null);
         setAnimatingFeedback(null);
         setShowThankYou(false);
+        setIsZipping(false);
         
         // Reset to empty
         setAiGender(''); 
@@ -216,7 +220,41 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         }, 1000);
     };
     
-    const handleDownloadAll = async () => { if (results.length === 0) return; for (let i = 0; i < results.length; i++) { downloadImage(results[i], `merchant-asset-${i+1}.png`); await new Promise(r => setTimeout(r, 500)); } };
+    const handleDownloadAll = async () => {
+        if (results.length === 0 || !mode) return;
+        setIsZipping(true);
+        try {
+            const zip = new JSZip();
+            const promises = results.map(async (url, index) => {
+                const label = getLabel(index, mode);
+                const cleanLabel = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const filename = `pixa_${cleanLabel}_${index + 1}.jpg`;
+                const response = await fetch(url);
+                const blob = await response.blob();
+                zip.file(filename, blob);
+            });
+            await Promise.all(promises);
+            const content = await zip.generateAsync({ type: "blob" });
+            const zipUrl = URL.createObjectURL(content);
+            const link = document.createElement('a');
+            link.href = zipUrl;
+            link.download = `pixa-ecommerce-pack-${new Date().toISOString().slice(0,10)}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(zipUrl);
+        } catch (e) {
+            console.error("Zip failed", e);
+            alert("Failed to create zip file. Downloading individually.");
+            for (let i = 0; i < results.length; i++) {
+                downloadImage(results[i], `merchant-asset-${i+1}.jpg`);
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } finally {
+            setIsZipping(false);
+        }
+    };
+
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
     // Updated Logic: Check if model details are selected if mode is apparel + ai model
@@ -272,7 +310,14 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 </div>
                                 <div className={MerchantStyles.resultGridContainer}>
                                     <div className="p-4 space-y-4 pb-20">
-                                        <div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Pack ({results.length})</span>{results.length > 0 && (<button onClick={handleDownloadAll} className="text-[10px] font-bold text-blue-600 hover:underline">Download All</button>)}</div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Pack ({results.length})</span>
+                                            {results.length > 0 && (
+                                                <button onClick={handleDownloadAll} disabled={isZipping} className="text-[10px] font-bold text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-wait">
+                                                    {isZipping ? 'Zipping...' : 'Download All (ZIP)'}
+                                                </button>
+                                            )}
+                                        </div>
                                         {results.slice(1).map((res, idx) => (<div key={idx} className={MerchantStyles.resultThumbnail} onClick={() => setViewIndex(idx + 1)}><div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">{getLabel(idx + 1, mode)}</div><div className="aspect-[4/3]"><img src={res} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`Variant ${idx+1}`} /></div><div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => { e.stopPropagation(); downloadImage(res, `merchant-variant-${idx+1}.png`); }} className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"><DownloadIcon className="w-4 h-4"/></button></div></div>))}
                                     </div>
                                     <div className={MerchantStyles.scrollCue}><div className={MerchantStyles.scrollCueBadge}>Scroll for more</div></div>
