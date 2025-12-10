@@ -99,23 +99,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':
                  // Replaced BrandKitAI with MerchantStudio
-                 return <MerchantStudio auth={auth} appConfig={appConfig} />;
+                 return <MerchantStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'thumbnail_studio':
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
-                 return <BrandStylistAI auth={auth} appConfig={appConfig} />;
+                 return <BrandStylistAI auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'magic_realty':
-                 return <MagicRealty auth={auth} appConfig={appConfig} />;
+                 return <MagicRealty auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'soul':
-                 return <PixaTogether auth={auth} appConfig={appConfig} />;
+                 return <PixaTogether auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'colour':
-                 return <PixaPhotoRestore auth={auth} appConfig={appConfig} />;
+                 return <PixaPhotoRestore auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'interior':
-                 return <MagicInterior auth={auth} appConfig={appConfig} />;
+                 return <MagicInterior auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'apparel':
-                 return <MagicApparel auth={auth} appConfig={appConfig} />;
+                 return <MagicApparel auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'mockup':
-                 return <MagicMockup auth={auth} appConfig={appConfig} />;
+                 return <MagicMockup auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'caption':
                  return <CaptionAI auth={auth} appConfig={appConfig} />;
             case 'daily_mission':
