@@ -9,7 +9,7 @@ export interface Base64File {
  * Checks for:
  * 1. File existence
  * 2. File type (must be image)
- * 3. File size (max 20MB to prevent crashes, resized later)
+ * 3. File size (max 50MB to prevent crashes, resized later)
  */
 const validateFile = (file: File): void => {
     if (!file) throw new Error("No file provided.");
@@ -19,8 +19,9 @@ const validateFile = (file: File): void => {
         throw new Error("Invalid file type. Please upload an image (JPG, PNG, WEBP).");
     }
 
-    // Check File Size (Max 20MB)
-    const MAX_SIZE_MB = 20;
+    // Check File Size (Max 50MB)
+    // We allow larger files initially because we compress them client-side before sending.
+    const MAX_SIZE_MB = 50;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         throw new Error(`Image is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please upload an image under ${MAX_SIZE_MB}MB.`);
     }
