@@ -3,33 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, ImageModal } from '../components/FeatureLayout';
 import { 
-    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon
+    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, deductCredits, logApiError } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
-
-const ModeCard: React.FC<{
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-    selected: boolean;
-    onClick: () => void;
-    color: 'blue' | 'purple';
-}> = ({ title, description, icon, selected, onClick, color }) => {
-    const isBlue = color === 'blue';
-    const selectedClass = isBlue ? MerchantStyles.modeCardBlueSelected : MerchantStyles.modeCardPurpleSelected;
-    
-    return (
-        <button onClick={onClick} className={`${MerchantStyles.modeCard} ${selected ? selectedClass : MerchantStyles.modeCardInactive}`}>
-            <div className={`${MerchantStyles.modeIcon} ${selected ? (isBlue ? 'text-blue-600' : 'text-purple-600') : 'text-gray-400'}`}>{icon}</div>
-            <h3 className={`font-bold text-sm mb-0.5 ${selected ? (isBlue ? 'text-blue-900' : 'text-purple-900') : 'text-gray-700'}`}>{title}</h3>
-            <p className={`text-[10px] ${selected ? (isBlue ? 'text-blue-700' : 'text-purple-700') : 'text-gray-400'}`}>{description}</p>
-            {selected && <div className={`absolute top-2 right-2 text-white p-0.5 rounded-full ${isBlue ? 'bg-blue-500' : 'bg-purple-500'}`}><CheckIcon className="w-3 h-3" /></div>}
-        </button>
-    );
-};
 
 const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
     <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
@@ -173,7 +152,39 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">The selected pack requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge</button></div>
                     ) : (
                         <div className="space-y-8 p-1 animate-fadeIn">
-                            {!mode && (<div className="grid grid-cols-2 gap-4"><ModeCard title="Apparel" description="Virtual Model Shoot" icon={<ApparelIcon className="w-8 h-8"/>} selected={mode === 'apparel'} onClick={() => setMode('apparel')} color="blue" /><ModeCard title="Product" description="E-com Pack" icon={<CubeIcon className="w-8 h-8"/>} selected={mode === 'product'} onClick={() => setMode('product')} color="purple" /></div>)}
+                            {!mode && (
+                                <div className={MerchantStyles.modeGrid}>
+                                    {/* Apparel Card */}
+                                    <button onClick={() => setMode('apparel')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardApparel}`}>
+                                        <div className={`${MerchantStyles.orb} ${MerchantStyles.orbApparel}`}></div>
+                                        <div className={MerchantStyles.iconGlass}>
+                                            <ApparelIcon className="w-6 h-6 text-purple-600" />
+                                        </div>
+                                        <div className={MerchantStyles.contentWrapper}>
+                                            <h3 className={MerchantStyles.title}>Apparel</h3>
+                                            <p className={MerchantStyles.desc}>Virtual Model Shoot</p>
+                                        </div>
+                                        <div className={MerchantStyles.actionBtn}>
+                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
+                                        </div>
+                                    </button>
+
+                                    {/* Product Card */}
+                                    <button onClick={() => setMode('product')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardProduct}`}>
+                                        <div className={`${MerchantStyles.orb} ${MerchantStyles.orbProduct}`}></div>
+                                        <div className={MerchantStyles.iconGlass}>
+                                            <CubeIcon className="w-6 h-6 text-blue-600" />
+                                        </div>
+                                        <div className={MerchantStyles.contentWrapper}>
+                                            <h3 className={MerchantStyles.title}>Product</h3>
+                                            <p className={MerchantStyles.desc}>E-com Pack</p>
+                                        </div>
+                                        <div className={MerchantStyles.actionBtn}>
+                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
                             {mode && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="flex items-center justify-between"><button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">← BACK TO MODE</button><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{mode} Mode</span></div>
@@ -197,7 +208,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setMainImage)} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
             {viewIndex !== null && results.length > 0 && (<ImageModal imageUrl={results[viewIndex]} onClose={() => setViewIndex(null)} onDownload={() => downloadImage(results[viewIndex], 'merchant-asset.png')} hasNext={viewIndex < results.length - 1} hasPrev={viewIndex > 0} onNext={() => setViewIndex(viewIndex + 1)} onPrev={() => setViewIndex(viewIndex - 1)} />)}
         </>
