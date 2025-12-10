@@ -156,7 +156,8 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 
                 onResetResult={() => { setResult(null); setLastCreationId(null); }}
                 onNewSession={() => { setImage(null); setResult(null); setLastCreationId(null); }}
-                resultHeightClass="h-[600px]"
+                resultHeightClass="h-[750px]"
+                disableScroll={true}
                 hideGenerateButton={isLocked}
                 // Redesigned Button: Premium Gold
                 generateButtonStyle={{
