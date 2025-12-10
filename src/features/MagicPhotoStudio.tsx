@@ -73,9 +73,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < currentCost;
 
-    // ... (Keep existing useEffects and handlers same as before) ...
-    // Re-implementation of crucial logic for brevity, assuming handlers are unchanged
-    
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -266,115 +263,151 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button>
                     </div>
                 ) : (
-                    <div className="space-y-4 animate-fadeIn p-1">
+                    <div className="space-y-4 animate-fadeIn p-1 h-full flex flex-col">
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
                                 <div className={PhotoStudioStyles.modeGrid}>
-                                    {/* Product Shot Card */}
                                     <button onClick={() => handleModeSelect('product')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardProduct}`}>
                                         <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbProduct}`}></div>
-                                        
-                                        <div className={PhotoStudioStyles.iconGlass}>
-                                            <CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/>
-                                        </div>
-
-                                        <div className={PhotoStudioStyles.contentWrapper}>
-                                            <h3 className={PhotoStudioStyles.title}>Product Shot</h3>
-                                            <p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p>
-                                        </div>
-
-                                        <div className={PhotoStudioStyles.actionBtn}>
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
-                                        </div>
+                                        <div className={PhotoStudioStyles.iconGlass}><CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/></div>
+                                        <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Product Shot</h3><p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p></div>
+                                        <div className={PhotoStudioStyles.actionBtn}><ArrowRightIcon className={PhotoStudioStyles.actionIcon}/></div>
                                     </button>
-
-                                    {/* Model Shot Card */}
                                     <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardModel}`}>
                                         <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbModel}`}></div>
-                                        
-                                        <div className={PhotoStudioStyles.iconGlass}>
-                                            <UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/>
-                                        </div>
-
-                                        <div className={PhotoStudioStyles.contentWrapper}>
-                                            <h3 className={PhotoStudioStyles.title}>Model Shot</h3>
-                                            <p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p>
-                                        </div>
-
-                                        <div className={PhotoStudioStyles.actionBtn}>
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
-                                        </div>
+                                        <div className={PhotoStudioStyles.iconGlass}><UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/></div>
+                                        <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Model Shot</h3><p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p></div>
+                                        <div className={PhotoStudioStyles.actionBtn}><ArrowRightIcon className={PhotoStudioStyles.actionIcon}/></div>
                                     </button>
                                 </div>
                             </div>
                         )}
                         {studioMode && (
-                            <div className="animate-fadeIn relative">
-                                <div className="flex items-center mb-4 -ml-2"> 
+                            <div className="animate-fadeIn relative flex flex-col h-full">
+                                <div className="flex items-center mb-4 -ml-2 shrink-0"> 
                                     <button onClick={() => { setStudioMode(null); setSelectedPrompt(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }} className={PhotoStudioStyles.backButton}>
                                         <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
                                     </button>
                                 </div>
-                                {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType) || isAnalyzing || isAnalyzingModel) && (
-                                    <div className={PhotoStudioStyles.promptContainer}>
-                                        {(isAnalyzing || isAnalyzingModel) ? (
-                                            <div className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-gray-100 opacity-50"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pixa is Thinking...</p></div>
-                                        ) : (
-                                            <div>
-                                                <div className={PhotoStudioStyles.promptHeader}>
-                                                    <label className={PhotoStudioStyles.promptLabel}>Pixa's Ideas</label>
-                                                    {selectedPrompt ? <button onClick={() => setSelectedPrompt(null)} className={PhotoStudioStyles.promptClearBtn}>Clear Selection</button> : <span className={PhotoStudioStyles.promptTag}>Pixa Recommends</span>}
+
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                    {(isAnalyzing || isAnalyzingModel) ? (
+                                        <div className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4 border border-gray-100 bg-gray-50/50 h-64 opacity-50">
+                                            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">Pixa is Thinking...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* BOX 1: AI BLUEPRINTS (Hidden if manual controls started) */}
+                                            {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && !selectedPrompt && (
+                                                <div className="bg-indigo-50/40 rounded-2xl p-5 border border-indigo-100 mb-6 transition-all hover:border-indigo-200 hover:shadow-sm">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <label className="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                                                            <SparklesIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                            AI Blueprints
+                                                        </label>
+                                                        <span className={PhotoStudioStyles.promptTag}>Pixa Recommends</span>
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-col gap-2">
+                                                        {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
+                                                            const isModel = studioMode === 'model';
+                                                            const displayText = isModel ? (promptItem as any).display : promptItem;
+                                                            const promptValue = isModel ? (promptItem as any).prompt : promptItem;
+                                                            return (
+                                                                <button 
+                                                                    key={idx} 
+                                                                    onClick={() => handlePromptSelect(promptValue)} 
+                                                                    style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }} 
+                                                                    className={`${PhotoStudioStyles.promptButton} animate-[fadeInUp_0.5s_ease-out] ${selectedPrompt === promptValue ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive} w-full`}
+                                                                >
+                                                                    <div className={`${PhotoStudioStyles.promptBorder} opacity-0 group-hover:opacity-100`}></div>
+                                                                    <div className={`${PhotoStudioStyles.promptContent} bg-white`}>
+                                                                        <span className={`${PhotoStudioStyles.promptText} ${PhotoStudioStyles.promptTextInactive} text-xs text-gray-600`}>"{displayText}"</span>
+                                                                    </div>
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col gap-2">
-                                                    {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
-                                                        const isModel = studioMode === 'model';
-                                                        const displayText = isModel ? (promptItem as any).display : promptItem;
-                                                        const promptValue = isModel ? (promptItem as any).prompt : promptItem;
-                                                        return (
-                                                            <button key={idx} onClick={() => handlePromptSelect(promptValue)} style={!selectedPrompt ? { animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' } : {}} className={`${PhotoStudioStyles.promptButton} ${!selectedPrompt && 'animate-[fadeInUp_0.5s_ease-out]'} ${selectedPrompt === promptValue ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive}`}>
-                                                                <div className={`${PhotoStudioStyles.promptBorder} ${selectedPrompt === promptValue ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}></div>
-                                                                <div className={`${PhotoStudioStyles.promptContent} ${selectedPrompt === promptValue ? 'bg-transparent' : 'bg-white'}`}>
-                                                                    <span className={`${PhotoStudioStyles.promptText} ${selectedPrompt === promptValue ? PhotoStudioStyles.promptTextActive : PhotoStudioStyles.promptTextInactive}`}>"{displayText}"</span>
+                                            )}
+
+                                            {/* DIVIDER (Hidden if manual controls started) */}
+                                            {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && !selectedPrompt && (
+                                                <div className="relative flex items-center py-2 mb-6 opacity-70">
+                                                    <div className="flex-grow border-t border-gray-300"></div>
+                                                    <span className="flex-shrink-0 mx-3 text-[9px] font-black text-gray-400 uppercase tracking-widest px-2 py-1 bg-gray-100 rounded-full">OR BUILD YOUR OWN</span>
+                                                    <div className="flex-grow border-t border-gray-300"></div>
+                                                </div>
+                                            )}
+
+                                            {/* SELECTED PROMPT VIEW */}
+                                            {selectedPrompt && (
+                                                <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-200 mb-6 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Selected Blueprint</p>
+                                                        <p className="text-sm font-medium text-indigo-900 line-clamp-2">
+                                                            {studioMode === 'model' 
+                                                                ? suggestedModelPrompts.find(p => (p as any).prompt === selectedPrompt)?.display 
+                                                                : selectedPrompt}
+                                                        </p>
+                                                    </div>
+                                                    <button onClick={() => setSelectedPrompt(null)} className="p-2 hover:bg-indigo-100 rounded-full text-indigo-500 transition-colors">
+                                                        <XIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* BOX 2: MANUAL CONTROLS */}
+                                            {!selectedPrompt && (
+                                                <div className={`transition-all duration-500 ${((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) ? 'bg-white rounded-2xl p-5 border border-gray-200 shadow-sm' : ''}`}>
+                                                    
+                                                    {/* Header for Box 2 */}
+                                                    {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && (
+                                                        <div className="mb-5 flex items-center gap-2 border-b border-gray-100 pb-3">
+                                                            <div className="p-1.5 bg-gray-100 rounded-lg">
+                                                                <CubeIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                            </div>
+                                                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">
+                                                                Custom Studio Config
+                                                            </label>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="space-y-6 animate-fadeIn">
+                                                        {studioMode === 'product' ? (
+                                                            <>
+                                                                 <div>
+                                                                     <div className={PhotoStudioStyles.promptHeader}>
+                                                                        <label className={PhotoStudioStyles.promptLabel}>1. Product Category</label>
+                                                                        {category && <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className={PhotoStudioStyles.promptClearBtn}>Clear</button>}
+                                                                     </div>
+                                                                     <div className="flex flex-wrap gap-2">
+                                                                        {categories.map(opt => (
+                                                                            <button key={opt} onClick={() => { setCategory(opt); setBrandStyle(''); setVisualType(''); autoScroll(); }} className={`${PhotoStudioStyles.categoryBtn} ${category === opt ? PhotoStudioStyles.categoryBtnActive : PhotoStudioStyles.categoryBtnInactive}`}>{opt}</button>
+                                                                        ))}
+                                                                     </div>
                                                                 </div>
-                                                            </button>
-                                                        )
-                                                    })}
+                                                                {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); setVisualType(''); autoScroll(); }} />}
+                                                                {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
+                                                                {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
+                                                                {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); autoScroll(); }} />}
+                                                                {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); autoScroll(); }} />}
+                                                                {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
+                                                                {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                {!selectedPrompt && !isAnalyzing && !isAnalyzingModel && (
-                                    <div className="space-y-6 animate-fadeIn">
-                                        {studioMode === 'product' ? (
-                                            <>
-                                                 <div>
-                                                     <div className={PhotoStudioStyles.promptHeader}>
-                                                        <label className={PhotoStudioStyles.promptLabel}>1. Product Category</label>
-                                                        {category && <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className={PhotoStudioStyles.promptClearBtn}>Clear</button>}
-                                                     </div>
-                                                     <div className="flex flex-wrap gap-2">
-                                                        {categories.map(opt => (
-                                                            <button key={opt} onClick={() => { setCategory(opt); setBrandStyle(''); setVisualType(''); autoScroll(); }} className={`${PhotoStudioStyles.categoryBtn} ${category === opt ? PhotoStudioStyles.categoryBtnActive : PhotoStudioStyles.categoryBtnInactive}`}>{opt}</button>
-                                                        ))}
-                                                     </div>
-                                                </div>
-                                                {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); setVisualType(''); autoScroll(); }} />}
-                                                {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
-                                                {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
-                                                {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); autoScroll(); }} />}
-                                                {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); autoScroll(); }} />}
-                                                {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
-                                                {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
