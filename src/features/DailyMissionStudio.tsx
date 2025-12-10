@@ -206,7 +206,8 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                             
                             <div className="relative z-10 text-center">
                                 <p className="text-lg font-bold text-slate-200 group-hover:text-white transition-colors">Upload Mission Asset</p>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 group-hover:text-indigo-400 transition-colors">Drag & Drop or Click</p>
+                                <div className="bg-slate-800/50 rounded-full px-3 py-1 inline-block mt-2"><p className="text-xs font-bold text-indigo-400 uppercase tracking-widest transition-colors">Click to Browse</p></div>
+                                <p className="text-[10px] text-slate-500 mt-3 font-medium">Recommended: High quality image matching the mission.</p>
                             </div>
                         </div>
                     )
