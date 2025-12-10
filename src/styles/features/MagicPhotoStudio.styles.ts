@@ -48,6 +48,9 @@ export const PhotoStudioStyles = {
   promptTextActive: "text-white",
   promptTextInactive: "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 bg-white",
 
+  // Category Grid
+  categoryGrid: "grid grid-cols-2 gap-3",
+
   // Category Buttons
   categoryBtn: "px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform",
   categoryBtnActive: "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105",
