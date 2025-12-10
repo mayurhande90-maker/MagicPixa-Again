@@ -16,7 +16,7 @@ import {
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 import { submitFeedback, auth } from '../firebase';
-import { FeatureStyles } from '../styles/FeatureLayout.styles';
+import { FeatureStyles } from '../styles/FeatureLayout.styles.ts';
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
@@ -122,7 +122,7 @@ export const ImageModal: React.FC<{
                             </button>
                         )}
                         {onDelete && (
-                            <button onClick={onDelete} className="bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50 px-6 py-3 rounded-full font-bold transition-colors flex items-center gap-2 backdrop-blur-md hover:scale-105 transform">
+                            <button onClick={onDelete} className="bg-red-500/20 hover:bg-red-500/30 text-red-50 border border-red-500/50 px-6 py-3 rounded-full font-bold transition-colors flex items-center gap-2 backdrop-blur-md hover:scale-105 transform">
                                 <TrashIcon className="w-5 h-5"/> Delete
                             </button>
                         )}
@@ -346,8 +346,8 @@ export const FeatureLayout: React.FC<{
                                  </div>
                              )}
 
-                             {/* Feedback UI */}
-                             <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center gap-2 z-30 pointer-events-none">
+                             {/* Feedback UI - REPOSITIONED to Bottom Left with Label */}
+                             <div className="absolute bottom-20 left-4 flex flex-col items-start gap-2 z-30 pointer-events-none">
                                 {showThankYou && (
                                     <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
                                         <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
@@ -357,36 +357,39 @@ export const FeatureLayout: React.FC<{
                                 
                                 {/* Buttons Container - Only show if creationId exists to prevent broken admin links */}
                                 {!feedbackGiven && creationId && (
-                                    <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
-                                        
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
-                                            className={`relative p-2 rounded-full transition-all duration-200 ${
-                                                animatingFeedback === 'up' 
-                                                ? 'bg-green-500 text-white scale-110 shadow-lg' 
-                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
-                                            }`}
-                                            title="Good Result"
-                                        >
-                                            <ThumbUpIcon className="w-5 h-5" />
-                                            {animatingFeedback === 'up' && <FeedbackSparkle />}
-                                        </button>
-                                        
-                                        <div className="w-px bg-white/10 my-1"></div>
-                                        
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
-                                            className={`relative p-2 rounded-full transition-all duration-200 ${
-                                                animatingFeedback === 'down' 
-                                                ? 'bg-red-500 text-white scale-110 shadow-lg' 
-                                                : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
-                                            }`}
-                                            title="Bad Result"
-                                        >
-                                            <ThumbDownIcon className="w-5 h-5" />
-                                            {animatingFeedback === 'down' && <FeedbackSparkle />}
-                                        </button>
-                                    </div>
+                                    <>
+                                        <span className="text-[10px] font-bold text-white/90 shadow-black/50 drop-shadow-md ml-1 bg-black/20 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">Do you like this result?</span>
+                                        <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
+                                            
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
+                                                className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                    animatingFeedback === 'up' 
+                                                    ? 'bg-green-500 text-white scale-110 shadow-lg' 
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                                }`}
+                                                title="Good Result"
+                                            >
+                                                <ThumbUpIcon className="w-5 h-5" />
+                                                {animatingFeedback === 'up' && <FeedbackSparkle />}
+                                            </button>
+                                            
+                                            <div className="w-px bg-white/10 my-1"></div>
+                                            
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
+                                                className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                    animatingFeedback === 'down' 
+                                                    ? 'bg-red-500 text-white scale-110 shadow-lg' 
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                                }`}
+                                                title="Bad Result"
+                                            >
+                                                <ThumbDownIcon className="w-5 h-5" />
+                                                {animatingFeedback === 'down' && <FeedbackSparkle />}
+                                            </button>
+                                        </div>
+                                    </>
                                 )}
                              </div>
                              
