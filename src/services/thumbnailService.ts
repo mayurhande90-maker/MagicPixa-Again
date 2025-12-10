@@ -66,33 +66,34 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         }
 
         // Construct Highly Specific System Prompt with Design Logic
-        let prompt = `You are an Elite Social Media Thumbnail Designer using the "3% Design Rule".
+        let prompt = `You are an Elite Viral Content Designer specializing in high-CTR thumbnails.
         
-        TASK: Create a viral, high-CTR thumbnail.
+        TASK: Transform the input raw photo(s) into a Hyper-Realistic, Click-Magnet Thumbnail.
         CATEGORY: "${inputs.category}".
         CONTEXT: "${inputs.title}".
         
-        *** DESIGN SCIENCE FOR THUMBNAILS ***
-        1. **The 2-Second Rule**: The image must be understood instantly.
-        2. **High Contrast**: Use high-contrast focal points. The Subject vs Background separation must be extreme.
-        3. **Narrative-First**: The image must imply a story or tension ("Open Loop").
-        4. **Emotion Trigger**: Use the subject's facial expression or the scene's drama to trigger curiosity immediately.
+        *** CORE VISUAL PHILOSOPHY: HYPER-REALISM ***
+        1. **Texture Fidelity**: Skin must have pores. Metal must have specular highlights. Fabric must have weave. No "smooth plastic" AI look.
+        2. **Lighting Physics**: Use cinematic lighting (Rim Lighting, Volumetric Fog, High Contrast) to separate the subject from the background.
+        3. **Compositing**: The subject must look grounded in the scene, not pasted on. Matching color temperature is critical.
         `;
 
         if (inputs.format === 'portrait') {
             prompt += `
-            *** INSTAGRAM PORTRAIT PROTOCOL (9:16) ***
-            - **Format**: 9:16 Vertical (1080x1920).
-            - **Safe Zone**: CRITICAL: The main subject and hook text MUST be centered within the middle 1:1 square. This ensures it looks perfect on the Instagram Profile Grid (which crops to square).
-            - **UI Clearance**: Do NOT place crucial text in the top 15% (Header) or bottom 20% (Reels UI overlays). Keep text central.
-            - **Typography**: Use massive, bold font sizes (min 36px equivalent). Center alignment preferred.
+            *** VERTICAL FORMAT (9:16) - REELS/TIKTOK PROTOCOL ***
+            - **Dimensions**: 1080x1920 (Vertical).
+            - **Safe Zone (CRITICAL)**: Keep the top 15% clear (System UI) and the bottom 25% clear (Caption/Audio UI). Place the main subject and hook text in the **MIDDLE 60%**.
+            - **"The Grid Rule"**: Ensure the absolute most important visual element is centered so it looks perfect when cropped to a 1:1 square on a profile grid.
+            - **Immersive Depth**: Use a shallow depth of field (f/1.8). Keep the subject razor sharp, but blur the background (Bokeh) to reduce mobile visual clutter.
+            - **Typography**: Use TALL, CONDENSED, BOLD sans-serif fonts. Stack text vertically if needed. White text with heavy black drop-shadows for readability on any background.
             `;
         } else {
             prompt += `
-            *** YOUTUBE LANDSCAPE PROTOCOL (16:9) ***
-            - **Format**: 16:9 Landscape.
-            - **Layout**: Use the "Rule of Thirds". Place the main subject's eyes on a power point.
-            - **Composition**: Wide cinematic framing suitable for video feeds.
+            *** HORIZONTAL FORMAT (16:9) - YOUTUBE PROTOCOL ***
+            - **Dimensions**: 1920x1080 (Horizontal).
+            - **Rule of Thirds**: Place the main subject's eyes on a power point.
+            - **Visual Anchors**: Create a clear separation between the "Hook" (Text/Action) and the "Subject" (Emotion).
+            - **Cinema Style**: Wide cinematic framing. Anamorphic lens flare style if appropriate for the category.
             `;
         }
 
@@ -124,6 +125,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
              *** TEXT RENDERING ***
              - Render exactly: "${inputs.customText}".
              - Style: Big, Bold, Sans-Serif. Maximum legibility on small mobile screens.
+             - **Constraint**: Ensure text does not cover the subject's eyes.
              `;
         } else {
              prompt += `
