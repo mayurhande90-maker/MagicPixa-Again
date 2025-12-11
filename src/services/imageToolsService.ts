@@ -256,24 +256,30 @@ export const generateMagicSoul = async (
         if (!optB) {
              // SINGLE HEADSHOT LOGIC
              mainPrompt += `
-             *** PROFESSIONAL LINKEDIN HEADSHOT MODE (SINGLE) ***
-             - **TASK**: Create a hyper-realistic LinkedIn/Corporate profile photo.
-             - **IDENTITY LOCK**: Do NOT change facial features, hair style, or body structure. The person must look exactly like themselves, just better lit and dressed.
-             - **ATTIRE**: High-Quality Business Formal (Suit, Blazer, Professional Dress). Texture must be realistic fabric.
-             - **ENVIRONMENT**: Blurred professional office depth-of-field OR solid neutral studio background.
-             - **POSE**: Confident, approachable head-and-shoulders portrait. Looking at camera.
-             - **LIGHTING**: Flattering softbox lighting. Rembrandt or Butterfly lighting.
-             - **REALISM**: 85mm lens, f/1.8. Skin texture must be visible (pores, slight imperfections). NO plastic smoothing.
+             *** PROFESSIONAL CORPORATE HEADSHOT (EXECUTIVE TIER) ***
+             - **TASK**: Generate a world-class, hyper-realistic LinkedIn/Executive profile photo.
+             - **CAMERA SPECS**: Hasselblad X2D 100C style. 85mm Prime Lens at f/2.8.
+             - **IDENTITY LOCK**: Do NOT change facial features, bone structure, or hair density. The person must look exactly like themselves, just professionally photographed.
+             - **ATTIRE**: Premium Business Formal.
+               * Men: Well-fitted Navy/Charcoal suit, crisp white shirt. Optional tie. Fabric must look like wool/cotton (visible weave).
+               * Women: Structured professional blazer (Black/Camel/Navy) or high-end business dress. Modest and elegant.
+             - **LIGHTING**: "Cinematic Corporate". Large Softbox key light at 45 degrees. Subtle rim light on hair/shoulders to separate subject from background. Fill light to reduce harsh shadows under eyes.
+             - **SKIN TEXTURE (CRITICAL)**: Skin must be ORGANIC. Visible pores, micro-details, and natural subsurface scattering. DO NOT apply "plastic" smoothing or AI filters.
+             - **BACKGROUND**:
+               * Option A: Softly blurred, modern architectural office (glass, steel, depth).
+               * Option B: Clean, textured neutral studio backdrop (Dark Grey or Cream).
+             - **POSE**: Head and shoulders composition. Body angled 30 degrees, face turned to camera. Chin slightly down. Confident, trustworthy, approachable expression.
              `;
         } else {
              // DUO LOGIC
              mainPrompt += `
-             *** PROFESSIONAL DUO MODE ***
-             - **TASK**: Create a high-end corporate/LinkedIn style duo portrait.
-             - **ATTIRE**: Force High-Quality Business Formal (Suits, Blazers) regardless of input clothing.
-             - **ENVIRONMENT**: Modern, clean, well-lit studio or blurred upscale office background.
-             - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap.
-             - **LIGHTING**: Softbox studio lighting, perfectly balanced.
+             *** PROFESSIONAL DUO CORPORATE PORTRAIT ***
+             - **TASK**: Create a high-end business partners/co-founders portrait (Forbes/Fortune Magazine style).
+             - **ATTIRE**: Coordinated Business Formal. Dark suits/blazers. Crisp and professional.
+             - **ENVIRONMENT**: Modern, clean, well-lit executive studio or blurred upscale office background.
+             - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap (one shoulder behind). Balanced height and eye levels.
+             - **LIGHTING**: Even, soft studio lighting. Large light source to cover both subjects without casting shadows on each other.
+             - **REALISM**: High fidelity skin texture and fabric details. No "wax figure" look.
              `;
         }
     } else {
@@ -311,9 +317,9 @@ export const generateMagicSoul = async (
     ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe.")}
     
     ${inputs.autoFix ? `*** AUTO-FIX & QUALITY ***
-    - Output in High Definition.
-    - Remove noise. Sharpen faces. Balance exposure. Correct distortions.
-    - Ensure lighting consistency.` : ""}
+    - Output in High Definition (4K).
+    - Remove noise/grain from input. Sharpen eyes. Balance exposure. Correct lens distortion.
+    - Ensure lighting consistency across faces.` : ""}
 
     *** NEGATIVE CONSTRAINTS ***
     - Never blend identities. 
