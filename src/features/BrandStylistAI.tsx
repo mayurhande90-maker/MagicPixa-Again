@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -172,13 +172,14 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     >
                                         <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div>
                                         <div className={BrandStylistStyles.iconGlass}>
-                                            <CopyIcon className={`w-5 h-5 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
+                                            <CopyIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
                                         </div>
-                                        <div className="relative z-10">
-                                            <span className={`${BrandStylistStyles.modeTitle} ${genMode === 'replica' ? BrandStylistStyles.titleReplica : BrandStylistStyles.titleInactive}`}>Replica</span>
-                                            <p className={`${BrandStylistStyles.modeDesc} ${genMode === 'replica' ? BrandStylistStyles.descReplica : BrandStylistStyles.descInactive}`}>
-                                                Strictly copy layout & lighting.
-                                            </p>
+                                        <div className={BrandStylistStyles.contentWrapper}>
+                                            <h3 className={BrandStylistStyles.modeTitle}>Replica</h3>
+                                            <p className={BrandStylistStyles.modeDesc}>Strictly copy layout & lighting.</p>
+                                        </div>
+                                        <div className={BrandStylistStyles.actionBtn}>
+                                            <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
                                         </div>
                                     </button>
 
@@ -188,13 +189,14 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     >
                                         <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div>
                                         <div className={BrandStylistStyles.iconGlass}>
-                                            <MagicWandIcon className={`w-5 h-5 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
+                                            <MagicWandIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
                                         </div>
-                                        <div className="relative z-10">
-                                            <span className={`${BrandStylistStyles.modeTitle} ${genMode === 'remix' ? BrandStylistStyles.titleRemix : BrandStylistStyles.titleInactive}`}>Reimagine</span>
-                                            <p className={`${BrandStylistStyles.modeDesc} ${genMode === 'remix' ? BrandStylistStyles.descRemix : BrandStylistStyles.descInactive}`}>
-                                                Use style but invent layout.
-                                            </p>
+                                        <div className={BrandStylistStyles.contentWrapper}>
+                                            <h3 className={BrandStylistStyles.modeTitle}>Reimagine</h3>
+                                            <p className={BrandStylistStyles.modeDesc}>Use style but invent layout.</p>
+                                        </div>
+                                        <div className={BrandStylistStyles.actionBtn}>
+                                            <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
                                         </div>
                                     </button>
                                 </div>
