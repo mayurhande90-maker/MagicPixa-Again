@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon } from '../components/icons';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -114,6 +114,9 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [mode, setMode] = useState<'creative' | 'reenact' | 'professional'>('creative');
     const [relationship, setRelationship] = useState('Friends');
     
+    // Single Subject Toggle for Professional Mode
+    const [isSingleSubject, setIsSingleSubject] = useState(false);
+    
     // Creative Params
     const [mood, setMood] = useState('Happy');
     const [environment, setEnvironment] = useState('Outdoor Park');
@@ -147,10 +150,19 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing facial biometrics...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
+    // When switching modes, ensure state is clean
+    useEffect(() => {
+        if (mode !== 'professional') {
+            setIsSingleSubject(false);
+        }
+    }, [mode]);
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
 
     const handleGenerate = async () => {
-        if (!personA || !personB || !auth.user) return;
+        // If single subject mode is active, we don't need Person B
+        if (!personA || (!isSingleSubject && !personB) || !auth.user) return;
+        
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
@@ -171,7 +183,14 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 autoFix
             };
 
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, personB.base64.base64, personB.base64.mimeType, config);
+            const res = await generateMagicSoul(
+                personA.base64.base64, 
+                personA.base64.mimeType, 
+                isSingleSubject ? null : personB?.base64.base64, 
+                isSingleSubject ? null : personB?.base64.mimeType, 
+                config
+            );
+            
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -201,12 +220,13 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleNewSession = () => { setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); setLastCreationId(null); setCustomDescription(''); };
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    const canGenerate = !!personA && !!personB && !isLowCredits;
+    
+    const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits;
 
     return (
         <>
             <FeatureLayout
-                title="Pixa Together" description="Merge two people into one hyper-realistic photo. Choose a theme, era, or reenact a specific pose." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or professional headshots." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Magic" }} scrollRef={scrollRef}
                 leftContent={
@@ -214,13 +234,13 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
                         
                         {!personA && !personB ? (
-                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload two people to begin.</p></div>
+                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload people to begin.</p></div>
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
                                 {/* Visual Representation of inputs */}
                                 <div className="relative w-64 h-80">
-                                    {personA && <div className={PixaTogetherStyles.visualCardA}><img src={personA.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>Person A</div></div>}
-                                    {personB && <div className={PixaTogetherStyles.visualCardB} style={{ left: personA ? '40px' : '0', top: personA ? '40px' : '0' }}><img src={personB.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>Person B</div></div>}
+                                    {personA && <div className={PixaTogetherStyles.visualCardA}><img src={personA.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>{isSingleSubject ? 'Subject' : 'Person A'}</div></div>}
+                                    {personB && !isSingleSubject && <div className={PixaTogetherStyles.visualCardB} style={{ left: personA ? '40px' : '0', top: personA ? '40px' : '0' }}><img src={personB.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>Person B</div></div>}
                                 </div>
                                 {mode === 'reenact' && refPose && (
                                     <div className={PixaTogetherStyles.refPoseOverlay}>
@@ -238,10 +258,59 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         <div className="space-y-6 p-2 animate-fadeIn">
                             
                             {/* 1. Subjects */}
-                            <PremiumCard title="Subjects" icon={<UserIcon className="w-5 h-5"/>}>
+                            <PremiumCard className="relative overflow-visible">
+                                <div className="flex justify-between items-center mb-5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><UserIcon className="w-5 h-5"/></div>
+                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
+                                    </div>
+                                    
+                                    {/* Subject Toggle for Professional Mode */}
+                                    {mode === 'professional' && (
+                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => setIsSingleSubject(true)}
+                                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Single
+                                            </button>
+                                            <button 
+                                                onClick={() => setIsSingleSubject(false)}
+                                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Duo
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumUpload label="Person A" uploadText="Add Person A Photo" image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
-                                    <PremiumUpload label="Person B" uploadText="Add Person B Photo" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
+                                    <PremiumUpload 
+                                        label={isSingleSubject ? "Subject" : "Person A"} 
+                                        uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} 
+                                        image={personA} 
+                                        onUpload={handleUpload(setPersonA)} 
+                                        onClear={() => setPersonA(null)} 
+                                        icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} 
+                                    />
+                                    
+                                    {!isSingleSubject && (
+                                        <PremiumUpload 
+                                            label="Person B" 
+                                            uploadText="Add Person B" 
+                                            image={personB} 
+                                            onUpload={handleUpload(setPersonB)} 
+                                            onClear={() => setPersonB(null)} 
+                                            icon={<UserIcon className="w-6 h-6 text-pink-300"/>} 
+                                        />
+                                    )}
+                                    
+                                    {isSingleSubject && (
+                                        <div className="h-40 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center bg-gray-50/50 opacity-50 select-none">
+                                            <div className="p-3 bg-white rounded-full mb-2 shadow-sm"><CheckIcon className="w-5 h-5 text-gray-300"/></div>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Single Mode Active</span>
+                                        </div>
+                                    )}
                                 </div>
                             </PremiumCard>
 
@@ -268,7 +337,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     />
                                     <EngineModeCard 
                                         title="Pro Headshot" 
-                                        desc="Corporate Look" 
+                                        desc="LinkedIn / Corp" 
                                         icon={<UserIcon className="w-5 h-5"/>} 
                                         selected={mode === 'professional'} 
                                         onClick={() => setMode('professional')} 
@@ -341,7 +410,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 <div className={PixaTogetherStyles.proModeBanner}>
                                     <SparklesIcon className="w-4 h-4 text-blue-600 mb-1" />
                                     <span className="font-bold block mb-1 uppercase tracking-wide">LinkedIn Mode Active</span>
-                                    <p className="opacity-80">AI will automatically dress subjects in business attire and place them in a high-end studio or office setting.</p>
+                                    <p className="opacity-80">AI will automatically dress the subject in business attire and place them in a high-end studio or office setting. Facial features are locked for realism.</p>
                                 </div>
                             )}
                         </div>

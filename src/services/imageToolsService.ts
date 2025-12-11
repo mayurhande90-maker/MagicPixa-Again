@@ -183,37 +183,48 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
 export const generateMagicSoul = async (
   personABase64: string,
   personAMimeType: string,
-  personBBase64: string,
-  personBMimeType: string,
+  personBBase64: string | null | undefined,
+  personBMimeType: string | null | undefined,
   inputs: PixaTogetherConfig
 ): Promise<string> => {
   const ai = getAiClient();
   try {
     // 1. Parallel optimization
-    const promises = [
-        optimizeImage(personABase64, personAMimeType),
-        optimizeImage(personBBase64, personBMimeType)
-    ];
+    const optimizePromises = [optimizeImage(personABase64, personAMimeType)];
+    
+    if (personBBase64 && personBMimeType) {
+        optimizePromises.push(optimizeImage(personBBase64, personBMimeType));
+    }
     
     if (inputs.mode === 'reenact' && inputs.referencePoseBase64 && inputs.referencePoseMimeType) {
-        promises.push(optimizeImage(inputs.referencePoseBase64, inputs.referencePoseMimeType));
+        optimizePromises.push(optimizeImage(inputs.referencePoseBase64, inputs.referencePoseMimeType));
     }
 
-    const results = await Promise.all(promises);
+    const results = await Promise.all(optimizePromises);
     const optA = results[0];
-    const optB = results[1];
-    const optPose = results.length > 2 ? results[2] : null;
+    // If personB exists, it's the second result.
+    const optB = (personBBase64 && personBMimeType) ? results[1] : null;
+    // Pose is last if it exists
+    const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? results[results.length - 1] : null;
 
     // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS (The "Brain")
-    // Analyze faces to get text descriptions that reinforce the image input.
-    // This helps "lock" details that the image generator might miss.
-    const [biometricsA, biometricsB] = await Promise.all([
-        analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A"),
-        analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B")
-    ]);
+    const analysisPromises = [analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A")];
+    if (optB) {
+        analysisPromises.push(analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B"));
+    }
+    
+    const biometricsResults = await Promise.all(analysisPromises);
+    const biometricsA = biometricsResults[0];
+    const biometricsB = optB ? biometricsResults[1] : "";
 
     // 3. PHASE 2: GENERATION PROMPT ENGINEERING
-    let mainPrompt = `Generate a single combined photograph using Person A and Person B.`;
+    let mainPrompt = "";
+    
+    if (!optB) {
+        mainPrompt = `Generate a single professional portrait of Person A.`;
+    } else {
+        mainPrompt = `Generate a single combined photograph using Person A and Person B.`;
+    }
     
     // --- IDENTITY LOCK BLOCK ---
     mainPrompt += `
@@ -223,12 +234,12 @@ export const generateMagicSoul = async (
     [PERSON A PROFILE]:
     ${biometricsA}
     
-    [PERSON B PROFILE]:
-    ${biometricsB}
+    ${optB ? `[PERSON B PROFILE]:
+    ${biometricsB}` : ''}
     
     **INSTRUCTION**: Use the uploaded images as the visual source, but use the text profiles above to VALIDATE the generated faces. 
     - The output faces must be pixel-perfect matches to the inputs.
-    - Do NOT blend features. Person A must look like Person A. Person B must look like Person B.
+    - Do NOT blend features.
     - Preserves moles, scars, and specific eye shapes mentioned in the profile.
     `;
 
@@ -238,18 +249,33 @@ export const generateMagicSoul = async (
         *** REENACTMENT MODE (STRICT) ***
         - **TASK**: Recreate the scene from the "REFERENCE POSE" image exactly.
         - **POSE & COMPOSITION**: Copy the exact body positions, camera angle, distance, and physical interaction from the Reference Pose image.
-        - **CASTING**: Replace the people in the Reference Pose with Person A and Person B.
+        - **CASTING**: Replace the people in the Reference Pose with Person A ${optB ? 'and Person B' : ''}.
         - **CONTEXT**: Keep the general vibe/setting of the reference image.
         `;
     } else if (inputs.mode === 'professional') {
-        mainPrompt += `
-        *** PROFESSIONAL DUO MODE ***
-        - **TASK**: Create a high-end corporate/LinkedIn style duo portrait.
-        - **ATTIRE**: Force High-Quality Business Formal (Suits, Blazers) regardless of input clothing.
-        - **ENVIRONMENT**: Modern, clean, well-lit studio or blurred upscale office background.
-        - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap.
-        - **LIGHTING**: Softbox studio lighting, perfectly balanced.
-        `;
+        if (!optB) {
+             // SINGLE HEADSHOT LOGIC
+             mainPrompt += `
+             *** PROFESSIONAL LINKEDIN HEADSHOT MODE (SINGLE) ***
+             - **TASK**: Create a hyper-realistic LinkedIn/Corporate profile photo.
+             - **IDENTITY LOCK**: Do NOT change facial features, hair style, or body structure. The person must look exactly like themselves, just better lit and dressed.
+             - **ATTIRE**: High-Quality Business Formal (Suit, Blazer, Professional Dress). Texture must be realistic fabric.
+             - **ENVIRONMENT**: Blurred professional office depth-of-field OR solid neutral studio background.
+             - **POSE**: Confident, approachable head-and-shoulders portrait. Looking at camera.
+             - **LIGHTING**: Flattering softbox lighting. Rembrandt or Butterfly lighting.
+             - **REALISM**: 85mm lens, f/1.8. Skin texture must be visible (pores, slight imperfections). NO plastic smoothing.
+             `;
+        } else {
+             // DUO LOGIC
+             mainPrompt += `
+             *** PROFESSIONAL DUO MODE ***
+             - **TASK**: Create a high-end corporate/LinkedIn style duo portrait.
+             - **ATTIRE**: Force High-Quality Business Formal (Suits, Blazers) regardless of input clothing.
+             - **ENVIRONMENT**: Modern, clean, well-lit studio or blurred upscale office background.
+             - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap.
+             - **LIGHTING**: Softbox studio lighting, perfectly balanced.
+             `;
+        }
     } else {
         // CREATIVE MODE
         mainPrompt += `
@@ -269,14 +295,8 @@ export const generateMagicSoul = async (
         mainPrompt += `
         *** USER CUSTOM VISION (DEEP SEARCH ENABLED) ***
         The user has provided specific details: "${inputs.customDescription}".
-        - **ACTION**: Use your search tool to understand specific locations, styles, or concepts mentioned here (e.g. if they say "Santorini at sunset", ensure the lighting and architecture are geographically accurate).
+        - **ACTION**: Use your search tool to understand specific locations, styles, or concepts mentioned here.
         - Integrate this description into the scene intelligently.
-        `;
-    } else if (inputs.environment && inputs.environment !== 'Custom') {
-         mainPrompt += `
-        *** ENVIRONMENT GROUNDING ***
-        - **LOCATION**: "${inputs.environment}".
-        - **ACTION**: Ensure the lighting, background elements, and atmosphere match this specific location realistically.
         `;
     }
 
@@ -284,7 +304,7 @@ export const generateMagicSoul = async (
     mainPrompt += `
     *** FEATURE LOCKS ***
     ${inputs.locks.age ? "- **LOCK AGE**: Do NOT make them younger or older. Maintain current age." : ""}
-    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly (unless Time Travel/Universe overrides it)." : ""}
+    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly." : ""}
     ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards." : ""}
     
     *** CLOTHING LOGIC ***
@@ -293,21 +313,25 @@ export const generateMagicSoul = async (
     ${inputs.autoFix ? `*** AUTO-FIX & QUALITY ***
     - Output in High Definition.
     - Remove noise. Sharpen faces. Balance exposure. Correct distortions.
-    - Ensure lighting consistency between the two subjects.` : ""}
+    - Ensure lighting consistency.` : ""}
 
     *** NEGATIVE CONSTRAINTS ***
     - Never blend identities. 
     - Never hallucinate new facial features not present in input.
-    - Do not generate random people in the background unless it's a crowd scene.
+    - Do not generate random people in the background.
+    - The photo should look NATURAL, not like an AI generation.
     `;
 
     // 4. CONSTRUCT PAYLOAD
     const parts: any[] = [
         { text: "Person A Reference:" },
-        { inlineData: { data: optA.data, mimeType: optA.mimeType } },
-        { text: "Person B Reference:" },
-        { inlineData: { data: optB.data, mimeType: optB.mimeType } }
+        { inlineData: { data: optA.data, mimeType: optA.mimeType } }
     ];
+    
+    if (optB) {
+        parts.push({ text: "Person B Reference:" });
+        parts.push({ inlineData: { data: optB.data, mimeType: optB.mimeType } });
+    }
 
     if (optPose) {
         parts.push({ text: "REFERENCE POSE / COMPOSITION TARGET:" });
