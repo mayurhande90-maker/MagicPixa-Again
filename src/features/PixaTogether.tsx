@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, SelectionGrid, InputField, TextAreaField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon } from '../components/icons';
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -13,26 +13,92 @@ import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
-const CompactUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32" }) => {
+// --- PREMIUM UI COMPONENTS ---
+
+const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
+    <div className={`bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)] ${className}`}>
+        {title && (
+            <div className="flex items-center gap-2 mb-5">
+                {icon && <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">{icon}</div>}
+                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{title}</h3>
+            </div>
+        )}
+        {children}
+    </div>
+);
+
+const PremiumUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-        <div className="relative w-full group h-full">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{label}</label>
+        <div className="relative w-full group">
+            <div className="flex justify-between items-center mb-2 px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
+            </div>
             {image ? (
-                <div className={`relative w-full ${heightClass} bg-white rounded-2xl border border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-2" alt={label} />
-                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-20 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
+                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
+                    </div>
                 </div>
             ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}>
-                    <div className="p-2.5 bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-transform">{icon}</div>
-                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2">{`Upload ${label}`}</p>
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
+                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
+                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide">Add Photo</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
         </div>
     );
 };
+
+const PremiumSelector: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
+    <div className="mb-5">
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">{label}</label>
+        <div className="flex flex-wrap gap-2">
+            {options.map(opt => {
+                const isSelected = value === opt;
+                return (
+                    <button 
+                        key={opt}
+                        onClick={() => onChange(opt)}
+                        className={`relative px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border ${
+                            isSelected 
+                            ? 'bg-[#1A1A1E] text-white border-[#1A1A1E] shadow-lg transform -translate-y-0.5' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                        {opt}
+                    </button>
+                )
+            })}
+        </div>
+    </div>
+);
+
+const PremiumToggle: React.FC<{ label: string; active: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
+            active 
+            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' 
+            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+        }`}
+    >
+        <span className="text-xs font-bold">{label}</span>
+        <div className={`w-8 h-4 rounded-full relative transition-colors ${active ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+            <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-300 ${active ? 'left-4.5' : 'left-0.5'}`}></div>
+        </div>
+    </button>
+);
+
+const PremiumInput: React.FC<any> = ({ label, ...props }) => (
+    <div className="mb-5">
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">{label}</label>
+        <input className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder-gray-400" {...props} />
+    </div>
+);
 
 export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -165,68 +231,92 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className="space-y-6 p-1 animate-fadeIn">
-                            {/* 1. People Uploads */}
-                            <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">1. Select People</label>
+                        <div className="space-y-6 p-2 animate-fadeIn">
+                            
+                            {/* 1. Subjects */}
+                            <PremiumCard title="Subjects" icon={<UserIcon className="w-5 h-5"/>}>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <CompactUpload label="Person A" image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-5 h-5 text-indigo-400"/>} />
-                                    <CompactUpload label="Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-5 h-5 text-pink-400"/>} />
+                                    <PremiumUpload label="Person A" image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
+                                    <PremiumUpload label="Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
                                 </div>
-                            </div>
+                            </PremiumCard>
 
                             {/* 2. Mode Selection */}
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">2. Generation Mode</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <button onClick={() => setMode('creative')} className={`p-2 rounded-xl text-[10px] font-bold uppercase border transition-all ${mode === 'creative' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white border-gray-200 text-gray-500'}`}>Creative</button>
-                                    <button onClick={() => setMode('reenact')} className={`p-2 rounded-xl text-[10px] font-bold uppercase border transition-all ${mode === 'reenact' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white border-gray-200 text-gray-500'}`}>Re-Enact</button>
-                                    <button onClick={() => setMode('professional')} className={`p-2 rounded-xl text-[10px] font-bold uppercase border transition-all ${mode === 'professional' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-200 text-gray-500'}`}>Pro Headshot</button>
+                                <div className="flex items-center gap-2 mb-3 px-1">
+                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><MagicWandIcon className="w-4 h-4"/></div>
+                                    <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 bg-gray-50 p-1 rounded-2xl border border-gray-100">
+                                    <button onClick={() => setMode('creative')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'creative' ? 'bg-white shadow-md text-indigo-600 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Creative</button>
+                                    <button onClick={() => setMode('reenact')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'reenact' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Re-Enact</button>
+                                    <button onClick={() => setMode('professional')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'professional' ? 'bg-[#1A1A1E] shadow-md text-white scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Pro Headshot</button>
                                 </div>
                             </div>
 
                             {/* 3. Conditional Controls */}
                             {mode === 'creative' && (
-                                <div className="animate-fadeIn space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                    <SelectionGrid label="Relationship" options={['Couple', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <SelectionGrid label="Vibe / Mood" options={['Happy', 'Romantic', 'Serious', 'Funny', 'Candid']} value={mood} onChange={setMood} />
-                                        <SelectionGrid label="Setting" options={['Outdoor Park', 'Beach', 'City Street', 'Cozy Home', 'Cafe']} value={environment} onChange={setEnvironment} />
-                                    </div>
-                                    <div className="pt-2 border-t border-gray-200">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Magic Controls (Optional)</label>
-                                        <div className="grid grid-cols-2 gap-3 mb-3">
-                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600"><option>Present Day</option><option>1990s Vintage</option><option>1920s Noir</option><option>Future Sci-Fi</option><option>Medieval</option></select>
-                                            <select value={universe} onChange={(e) => setUniverse(e.target.value)} className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600"><option>Photorealistic</option><option>Disney Pixar</option><option>Anime Style</option><option>Oil Painting</option><option>Cyberpunk</option></select>
+                                <PremiumCard className="animate-fadeIn">
+                                    <PremiumSelector label="Relationship" options={['Couple', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
+                                            <select value={mood} onChange={(e) => setMood(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
+                                                {['Happy', 'Romantic', 'Serious', 'Funny', 'Candid'].map(o => <option key={o}>{o}</option>)}
+                                            </select>
                                         </div>
-                                        <InputField placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} />
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Setting</label>
+                                            <select value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
+                                                {['Outdoor Park', 'Beach', 'City Street', 'Cozy Home', 'Cafe'].map(o => <option key={o}>{o}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
-                                </div>
+                                    
+                                    <div className="pt-4 border-t border-gray-50">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <SparklesIcon className="w-3 h-3 text-amber-500" />
+                                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Magic Overrides</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full p-2.5 bg-amber-50/50 border border-amber-100 rounded-xl text-xs font-bold text-amber-900 outline-none hover:bg-amber-50 transition-colors cursor-pointer">
+                                                <option>Present Day</option><option>1990s Vintage</option><option>1920s Noir</option><option>Future Sci-Fi</option><option>Medieval</option>
+                                            </select>
+                                            <select value={universe} onChange={(e) => setUniverse(e.target.value)} className="w-full p-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs font-bold text-purple-900 outline-none hover:bg-purple-50 transition-colors cursor-pointer">
+                                                <option>Photorealistic</option><option>Disney Pixar</option><option>Anime Style</option><option>Oil Painting</option><option>Cyberpunk</option>
+                                            </select>
+                                        </div>
+                                        <PremiumInput placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} label="Custom Vision" />
+                                    </div>
+                                </PremiumCard>
                             )}
 
                             {mode === 'reenact' && (
-                                <div className="animate-fadeIn bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm"><CameraIcon className="w-5 h-5 text-blue-500" /></div>
-                                        <div><h4 className="text-sm font-bold text-blue-900">Pose Reference</h4><p className="text-xs text-blue-600/80 mb-3">Upload a photo to copy the exact pose and composition.</p></div>
+                                <PremiumCard className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100" title="Pose Match">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm"><CameraIcon className="w-4 h-4 text-blue-500" /></div>
+                                        <div><h4 className="text-xs font-bold text-blue-900">Reference Shot</h4><p className="text-[10px] text-blue-600/80 mt-0.5">Upload a photo to copy the exact pose and composition.</p></div>
                                     </div>
-                                    <CompactUpload label="Reference Pose" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<UploadIcon className="w-5 h-5 text-blue-400"/>} heightClass="h-32" />
-                                </div>
+                                    <PremiumUpload label="Reference Pose" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<UploadIcon className="w-5 h-5 text-blue-400"/>} heightClass="h-32" />
+                                </PremiumCard>
                             )}
 
                             {mode === 'professional' && (
-                                <div className={PixaTogetherStyles.proModeBanner}><SparklesIcon className="w-4 h-4 text-blue-600 mb-1" /><span className="font-bold block mb-1">LinkedIn Mode Active</span><p>AI will automatically dress subjects in business attire and place them in a high-end studio or office setting.</p></div>
+                                <div className={PixaTogetherStyles.proModeBanner}>
+                                    <SparklesIcon className="w-4 h-4 text-blue-600 mb-1" />
+                                    <span className="font-bold block mb-1 uppercase tracking-wide">LinkedIn Mode Active</span>
+                                    <p className="opacity-80">AI will automatically dress subjects in business attire and place them in a high-end studio or office setting.</p>
+                                </div>
                             )}
 
                             {/* 4. Advanced Locks */}
-                            <div className="pt-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Identity Locks</label>
+                            <PremiumCard title="Identity Tuning" icon={<ShieldCheckIcon className="w-5 h-5"/>}>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setLocks({...locks, age: !locks.age})} className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${locks.age ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-gray-400 border-gray-200'}`}>Age {locks.age ? 'Locked' : ''}</button>
-                                    <button onClick={() => setLocks({...locks, hair: !locks.hair})} className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${locks.hair ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-gray-400 border-gray-200'}`}>Hair {locks.hair ? 'Locked' : ''}</button>
-                                    <button onClick={() => setLocks({...locks, accessories: !locks.accessories})} className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${locks.accessories ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-gray-400 border-gray-200'}`}>Glasses {locks.accessories ? 'Locked' : ''}</button>
+                                    <PremiumToggle label="Lock Age" active={locks.age} onClick={() => setLocks({...locks, age: !locks.age})} />
+                                    <PremiumToggle label="Lock Hair" active={locks.hair} onClick={() => setLocks({...locks, hair: !locks.hair})} />
+                                    <PremiumToggle label="Glasses" active={locks.accessories} onClick={() => setLocks({...locks, accessories: !locks.accessories})} />
                                 </div>
-                            </div>
+                            </PremiumCard>
                         </div>
                     )
                 }
