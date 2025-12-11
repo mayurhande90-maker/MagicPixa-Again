@@ -125,9 +125,14 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     return (
         <>
             <FeatureLayout
-                title="Pixa AdMaker" description="Turn your product photos into high-converting ad creatives by mimicking successful styles." icon={<MagicAdsIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={handleGenerate} onNewSession={handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits}
+                title="Pixa AdMaker" description="Turn your product photos into high-converting ad creatives by mimicking successful styles." icon={<MagicAdsIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} 
+                creationId={lastCreationId}
+                onResetResult={undefined} // Removed duplicate regenerate
+                onNewSession={undefined} // Removed duplicate new session
+                customActionButtons={null} // Removed duplicate editor
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} 
+                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits}
                 generateButtonStyle={{ className: genMode === 'remix' || !referenceImage ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]" : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: !referenceImage ? "Auto-Pilot Generate" : "Generate Ad Creative" }} scrollRef={scrollRef}
-                customActionButtons={resultImage ? (<button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"><MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span></button>) : null}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className={`h-full rounded-full animate-[progress_2s_ease-in-out_infinite] ${genMode === 'remix' ? 'bg-gradient-to-r from-purple-400 to-pink-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${genMode === 'remix' ? 'bg-purple-50' : 'bg-blue-50'}`}><MagicAdsIcon className={`w-10 h-10 ${genMode === 'remix' ? 'text-purple-500' : 'text-blue-500'}`} /></div><h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload Product & Reference to preview.</p></div>)}
@@ -185,14 +190,13 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 />
                             </div>
 
-                            {/* Row 3: Mode / Auto-Pilot */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">3</span>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
-                                </div>
-                                
-                                {referenceImage ? (
+                            {/* Row 3: Mode / Auto-Pilot - Only show if reference exists */}
+                            {referenceImage && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">3</span>
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
+                                    </div>
                                     <div className={BrandStylistStyles.modeGrid}>
                                         <button 
                                             onClick={() => setGenMode('replica')} 
@@ -228,21 +232,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             </div>
                                         </button>
                                     </div>
-                                ) : (
-                                    // Auto-Pilot Mode Indicator
-                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100 flex gap-3 items-start animate-fadeIn">
-                                        <div className="bg-white p-2 rounded-xl shadow-sm shrink-0">
-                                            <SparklesIcon className="w-5 h-5 text-indigo-500 animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold text-indigo-900 mb-1">Pixa Auto-Pilot Active</h3>
-                                            <p className="text-xs text-indigo-700/80 leading-relaxed">
-                                                No reference provided. Pixa Agent will research <strong>2025 trends</strong> for this product category and generate a high-conversion layout automatically.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
 
                             {/* Row 4: Text Content */}
                             <div className="space-y-5 pt-4 border-t border-gray-100">
@@ -300,6 +291,18 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     deductCredit={handleDeductEditCredit}
                 />
             )}
+            
+            {/* Refund/Report Modal */}
+            {showRefundModal && (
+                <RefundModal 
+                    onClose={() => setShowRefundModal(false)} 
+                    onConfirm={handleRefundRequest} 
+                    isProcessing={isRefunding} 
+                    featureName="Ad Creative" 
+                />
+            )}
+            
+            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
     );
 };
