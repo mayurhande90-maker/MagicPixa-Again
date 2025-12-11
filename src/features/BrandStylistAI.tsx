@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon, ReplicaIcon, ReimagineIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -172,7 +172,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     >
                                         <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div>
                                         <div className={BrandStylistStyles.iconGlass}>
-                                            <CopyIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
+                                            <ReplicaIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
                                         </div>
                                         <div className={BrandStylistStyles.contentWrapper}>
                                             <h3 className={BrandStylistStyles.modeTitle}>Replica</h3>
@@ -189,7 +189,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     >
                                         <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div>
                                         <div className={BrandStylistStyles.iconGlass}>
-                                            <MagicWandIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
+                                            <ReimagineIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
                                         </div>
                                         <div className={BrandStylistStyles.contentWrapper}>
                                             <h3 className={BrandStylistStyles.modeTitle}>Reimagine</h3>

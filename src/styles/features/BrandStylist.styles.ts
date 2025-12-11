@@ -4,7 +4,7 @@ export const BrandStylistStyles = {
   modeGrid: "grid grid-cols-2 gap-4 mb-6",
 
   // Base Card Style (Matches PhotoStudio structure)
-  modeCard: "group relative w-full h-48 rounded-[1.5rem] overflow-hidden transition-all duration-500 ease-out border text-left",
+  modeCard: "group relative w-full h-32 rounded-[1.5rem] overflow-hidden transition-all duration-500 ease-out border text-left",
   
   // Interactive States
   modeCardReplica: "bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FF] to-[#E1F5FE] border-blue-200 shadow-xl shadow-blue-100 hover:-translate-y-1 ring-1 ring-blue-300", 
@@ -17,16 +17,16 @@ export const BrandStylistStyles = {
   orbRemix: "bg-gradient-to-tr from-purple-300 to-orange-200 -top-10 -right-10",
 
   // Glassmorphic Icon Container
-  iconGlass: "absolute top-4 left-4 w-12 h-12 rounded-xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110 group-hover:bg-white/60",
+  iconGlass: "absolute top-4 left-4 w-10 h-10 rounded-xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110 group-hover:bg-white/60",
   iconReplica: "text-blue-600",
   iconRemix: "text-purple-600",
   iconInactive: "text-gray-400",
 
   // Content Layout
-  contentWrapper: "absolute inset-0 flex flex-col justify-end p-5 z-10",
+  contentWrapper: "absolute inset-0 flex flex-col justify-end p-4 z-10",
 
   // Typography
-  modeTitle: "text-lg font-black text-gray-900 mb-1 tracking-tight group-hover:translate-x-1 transition-transform duration-300",
+  modeTitle: "text-sm font-bold text-gray-900 mb-1 tracking-tight group-hover:translate-x-1 transition-transform duration-300",
   
   modeDesc: "text-[10px] font-medium leading-relaxed text-gray-600 max-w-[90%] group-hover:text-gray-800",
 
