@@ -230,9 +230,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
                                         <InputField placeholder="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                                        <InputField placeholder="Offer / CTA" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
-                                        <InputField placeholder="Website" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
-                                        <InputField placeholder="Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
+                                        <InputField placeholder="Offer / CTA (Optional)" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
+                                        <InputField placeholder="Website (Optional)" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
+                                        <InputField placeholder="Location (Optional)" value={address} onChange={(e: any) => setAddress(e.target.value)} />
                                     </div>
                                     <InputField
                                         label="Context (Required)"
