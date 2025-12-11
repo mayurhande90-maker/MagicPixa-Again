@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
     DownloadIcon, 
@@ -275,6 +275,9 @@ export const FeatureLayout: React.FC<{
     const [showThankYou, setShowThankYou] = useState(false);
     const [isFeedbackLocked, setIsFeedbackLocked] = useState(false);
     
+    // New ref for the canvas/left column to enable auto-scroll
+    const canvasRef = useRef<HTMLDivElement>(null);
+    
     const contentHeightClass = resultHeightClass || 'h-[560px]';
 
     useEffect(() => {
@@ -284,6 +287,15 @@ export const FeatureLayout: React.FC<{
         setIsFeedbackLocked(false);
         setAnimatingFeedback(null);
     }, [resultImage]);
+
+    // Auto-scroll to canvas when generation starts
+    useEffect(() => {
+        if (isGenerating && canvasRef.current) {
+            setTimeout(() => {
+                canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }, [isGenerating]);
 
     const handleFeedback = async (type: 'up' | 'down') => {
         if (isFeedbackLocked || animatingFeedback) return;
@@ -340,7 +352,7 @@ export const FeatureLayout: React.FC<{
             <div className={FeatureStyles.gridContainer}>
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                <div className={`${FeatureStyles.canvasContainer} ${contentHeightClass}`}>
+                <div ref={canvasRef} className={`${FeatureStyles.canvasContainer} ${contentHeightClass} scroll-mt-24`}>
                     {resultImage ? (
                         <div className={FeatureStyles.resultContainer}>
                              <div className={FeatureStyles.resultOverlay}></div>
