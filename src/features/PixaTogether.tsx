@@ -257,7 +257,38 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
                         <div className="space-y-6 p-2 animate-fadeIn">
                             
-                            {/* 1. Subjects */}
+                            {/* 1. Mode Selection (Moved to Top) */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3 px-1">
+                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><MagicWandIcon className="w-4 h-4"/></div>
+                                    <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
+                                </div>
+                                <div className={PixaTogetherStyles.engineGrid}>
+                                    <EngineModeCard 
+                                        title="Creative" 
+                                        desc="Themed Art" 
+                                        icon={<SparklesIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'creative'} 
+                                        onClick={() => setMode('creative')} 
+                                    />
+                                    <EngineModeCard 
+                                        title="Pose Match" 
+                                        desc="Copy Structure" 
+                                        icon={<CameraIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'reenact'} 
+                                        onClick={() => setMode('reenact')} 
+                                    />
+                                    <EngineModeCard 
+                                        title="Pro Headshot" 
+                                        desc="LinkedIn / Corp" 
+                                        icon={<UserIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'professional'} 
+                                        onClick={() => setMode('professional')} 
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 2. Subjects (Moved Below Mode) */}
                             <PremiumCard className="relative overflow-visible">
                                 <div className="flex justify-between items-center mb-5">
                                     <div className="flex items-center gap-2">
@@ -313,37 +344,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     )}
                                 </div>
                             </PremiumCard>
-
-                            {/* 2. Mode Selection */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3 px-1">
-                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><MagicWandIcon className="w-4 h-4"/></div>
-                                    <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
-                                </div>
-                                <div className={PixaTogetherStyles.engineGrid}>
-                                    <EngineModeCard 
-                                        title="Creative" 
-                                        desc="Themed Art" 
-                                        icon={<SparklesIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'creative'} 
-                                        onClick={() => setMode('creative')} 
-                                    />
-                                    <EngineModeCard 
-                                        title="Pose Match" 
-                                        desc="Copy Structure" 
-                                        icon={<CameraIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'reenact'} 
-                                        onClick={() => setMode('reenact')} 
-                                    />
-                                    <EngineModeCard 
-                                        title="Pro Headshot" 
-                                        desc="LinkedIn / Corp" 
-                                        icon={<UserIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'professional'} 
-                                        onClick={() => setMode('professional')} 
-                                    />
-                                </div>
-                            </div>
 
                             {/* 3. Conditional Controls */}
                             {mode === 'creative' && (
