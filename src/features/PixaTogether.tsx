@@ -112,7 +112,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     
     // Modes
     const [mode, setMode] = useState<'creative' | 'reenact' | 'professional'>('creative');
-    const [relationship, setRelationship] = useState('Friends');
+    const [relationship, setRelationship] = useState('');
     
     // Single Subject Toggle for Professional Mode
     const [isSingleSubject, setIsSingleSubject] = useState(false);
@@ -221,7 +221,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
-    const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits;
+    // Updated Logic: Check for relationship in creative mode
+    const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits && (mode === 'creative' ? !!relationship : true);
 
     return (
         <>
