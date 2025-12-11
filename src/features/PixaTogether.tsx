@@ -239,9 +239,22 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
                                 {/* Visual Representation of inputs */}
-                                <div className="relative w-64 h-80">
-                                    {personA && <div className={PixaTogetherStyles.visualCardA}><img src={personA.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>{isSingleSubject ? 'Subject' : 'Person A'}</div></div>}
-                                    {personB && !isSingleSubject && <div className={PixaTogetherStyles.visualCardB} style={{ left: personA ? '40px' : '0', top: personA ? '40px' : '0' }}><img src={personB.url} className="w-full h-full object-cover" /><div className={PixaTogetherStyles.visualLabel}>Person B</div></div>}
+                                <div className="relative w-72 h-80 mx-auto">
+                                    {personA && (
+                                        <div 
+                                            className={PixaTogetherStyles.visualCardA} 
+                                            style={(!personB || isSingleSubject) ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
+                                        >
+                                            <img src={personA.url} className="w-full h-full object-cover" />
+                                            <div className={PixaTogetherStyles.visualLabel}>{isSingleSubject ? 'Subject' : 'Person A'}</div>
+                                        </div>
+                                    )}
+                                    {personB && !isSingleSubject && (
+                                        <div className={PixaTogetherStyles.visualCardB}>
+                                            <img src={personB.url} className="w-full h-full object-cover" />
+                                            <div className={PixaTogetherStyles.visualLabel}>Person B</div>
+                                        </div>
+                                    )}
                                 </div>
                                 {mode === 'reenact' && refPose && (
                                     <div className={PixaTogetherStyles.refPoseOverlay}>
