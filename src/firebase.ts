@@ -307,6 +307,28 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
     });
 };
 
+export const claimMilestoneBonus = async (uid: string, amount: number) => {
+    if (!db) throw new Error("DB not initialized");
+    const userRef = db.collection('users').doc(uid);
+    
+    await db.runTransaction(async (t) => {
+        t.update(userRef, {
+            credits: firebase.firestore.FieldValue.increment(amount)
+        });
+        
+        const txRef = userRef.collection('transactions').doc();
+        t.set(txRef, {
+            feature: 'Milestone Reward',
+            creditChange: `+${amount}`,
+            cost: 0,
+            date: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    });
+    
+    const snap = await userRef.get();
+    return snap.data() as User;
+};
+
 export const getCreditHistory = async (uid: string) => {
     if (!db) return [];
     const snapshot = await db.collection('users').doc(uid).collection('transactions')

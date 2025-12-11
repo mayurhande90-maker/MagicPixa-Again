@@ -7,7 +7,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError, submitFeedback } from '../firebase';
+import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
 import JSZip from 'jszip';
@@ -182,6 +182,12 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
         } catch (e: any) { console.error(e); logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', auth.user?.uid); alert(`Generation failed: ${e.message}. No credits deducted.`); } finally { setLoading(false); }
+    };
+
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
     const handleNewSession = () => { 
@@ -445,7 +451,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
             {viewIndex !== null && results.length > 0 && (<ImageModal imageUrl={results[viewIndex]} onClose={() => setViewIndex(null)} onDownload={() => downloadImage(results[viewIndex], 'merchant-asset.png')} hasNext={viewIndex < results.length - 1} hasPrev={viewIndex > 0} onNext={() => setViewIndex(viewIndex + 1)} onPrev={() => setViewIndex(viewIndex - 1)} />)}
         </>
     );

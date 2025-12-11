@@ -133,14 +133,24 @@ export const ImageModal: React.FC<{
     );
 };
 
-export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number }> = ({ onClose, bonus = 5 }) => {
+export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: number; onClaim: () => Promise<void> }> = ({ onClose, bonus = 5, onClaim }) => {
     const [isClaimed, setIsClaimed] = useState(false);
+    const [claiming, setClaiming] = useState(false);
 
-    const handleClaim = () => {
-        setIsClaimed(true);
-        setTimeout(() => {
+    const handleClaim = async () => {
+        if (claiming) return;
+        setClaiming(true);
+        try {
+            await onClaim();
+            setIsClaimed(true);
+            setTimeout(() => {
+                onClose();
+            }, 2500); 
+        } catch(e) {
+            console.error(e);
+            alert("Failed to claim bonus. Please try again.");
             onClose();
-        }, 2500); 
+        }
     };
 
     return (
@@ -163,9 +173,10 @@ export const MilestoneSuccessModal: React.FC<{ onClose: () => void; bonus?: numb
                          
                          <button 
                             onClick={handleClaim} 
-                            className="w-full bg-white text-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all shadow-lg hover:scale-[1.02] active:scale-95"
+                            disabled={claiming}
+                            className="w-full bg-white text-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                          >
-                             Collect Bonus
+                             {claiming ? 'Processing...' : 'Collect Bonus'}
                          </button>
                      </div>
                  ) : (
