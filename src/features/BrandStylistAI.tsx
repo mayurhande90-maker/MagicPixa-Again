@@ -16,7 +16,23 @@ import { BrandStylistStyles } from '../styles/features/BrandStylist.styles';
 const CompactUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; optional?: boolean; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-        <div className="relative w-full group h-full"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">{label} {optional && <span className="text-gray-300 font-normal">(Optional)</span>}</label>{image ? (<div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}><img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} /><button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"><XIcon className="w-3 h-3"/></button></div>) : (<div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}><div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">{icon}</div><p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p><p className="text-[9px] text-gray-300 mt-1">Best: High Res</p></div>)}<input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} /></div>
+        <div className="relative w-full group h-full">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{label} {optional && <span className="text-gray-300 font-normal opacity-50 ml-1">(Optional)</span>}</label>
+            {image ? (
+                <div className={`relative w-full ${heightClass} bg-white rounded-2xl border border-blue-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-all`}>
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 relative z-10" alt={label} />
+                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-20 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="p-2.5 bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-transform relative z-10 border border-gray-100">{icon}</div>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2 relative z-10">Upload</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+        </div>
     );
 };
 
@@ -88,28 +104,129 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>
                     ) : (
-                        <div className={`space-y-6 p-1 animate-fadeIn flex flex-col h-full relative ${loading ? 'opacity-50 pointer-events-none cursor-not-allowed grayscale-[0.5]' : ''}`}>
-                            <div><div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Upload Assets</label></div><div className="grid grid-cols-2 gap-4"><CompactUpload label="Product Image" image={productImage} onUpload={handleUpload(setProductImage)} onClear={() => setProductImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400" />} /><CompactUpload label="Brand Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />} optional={true} /></div></div>
-                            <div><CompactUpload label="2. Reference Style (Ad/Design)" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />} heightClass="h-40" /></div>
+                        <div className={`space-y-8 p-2 animate-fadeIn flex flex-col h-full relative ${loading ? 'opacity-50 pointer-events-none cursor-not-allowed grayscale-[0.5]' : ''}`}>
+                            
+                            {/* Row 1: Assets */}
                             <div>
-                                <div className="flex items-center justify-between mb-2 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Creativity Level</label></div>
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <button onClick={() => setGenMode('replica')} className={`${BrandStylistStyles.modeButton} ${genMode === 'replica' ? BrandStylistStyles.modeButtonReplica : BrandStylistStyles.modeButtonInactive}`}>
-                                        <div className="flex items-center gap-2"><div className={`${BrandStylistStyles.modeIconContainer} ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`}><CopyIcon className="w-3.5 h-3.5" /></div><span className={`${BrandStylistStyles.modeTitle} ${genMode === 'replica' ? BrandStylistStyles.titleReplica : BrandStylistStyles.titleInactive}`}>Replica</span></div><p className={`${BrandStylistStyles.modeDesc} ${genMode === 'replica' ? BrandStylistStyles.descReplica : BrandStylistStyles.descInactive}`}>Copy exact layout & lighting structure.</p>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">1</span>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Source Assets</label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CompactUpload
+                                        label="Product"
+                                        image={productImage}
+                                        onUpload={handleUpload(setProductImage)}
+                                        onClear={() => setProductImage(null)}
+                                        icon={<UploadTrayIcon className="w-6 h-6 text-blue-400" />}
+                                    />
+                                    <CompactUpload
+                                        label="Logo"
+                                        image={logoImage}
+                                        onUpload={handleUpload(setLogoImage)}
+                                        onClear={() => setLogoImage(null)}
+                                        icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />}
+                                        optional={true}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Reference */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold">2</span>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Style Reference</label>
+                                </div>
+                                <CompactUpload
+                                    label="Ad / Design Image"
+                                    image={referenceImage}
+                                    onUpload={handleUpload(setReferenceImage)}
+                                    onClear={() => setReferenceImage(null)}
+                                    icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
+                                    heightClass="h-40"
+                                />
+                            </div>
+
+                            {/* Row 3: Mode */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">3</span>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
+                                </div>
+                                <div className={BrandStylistStyles.modeGrid}>
+                                    <button 
+                                        onClick={() => setGenMode('replica')} 
+                                        className={`${BrandStylistStyles.modeCard} ${genMode === 'replica' ? BrandStylistStyles.modeCardReplica : BrandStylistStyles.modeCardInactive}`}
+                                    >
+                                        <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div>
+                                        <div className={BrandStylistStyles.iconGlass}>
+                                            <CopyIcon className={`w-5 h-5 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <span className={`${BrandStylistStyles.modeTitle} ${genMode === 'replica' ? BrandStylistStyles.titleReplica : BrandStylistStyles.titleInactive}`}>Replica</span>
+                                            <p className={`${BrandStylistStyles.modeDesc} ${genMode === 'replica' ? BrandStylistStyles.descReplica : BrandStylistStyles.descInactive}`}>
+                                                Strictly copy layout & lighting.
+                                            </p>
+                                        </div>
                                     </button>
-                                    <button onClick={() => setGenMode('remix')} className={`${BrandStylistStyles.modeButton} ${genMode === 'remix' ? BrandStylistStyles.modeButtonRemix : BrandStylistStyles.modeButtonInactive}`}>
-                                        <div className="flex items-center gap-2"><div className={`${BrandStylistStyles.modeIconContainer} ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`}><MagicWandIcon className="w-3.5 h-3.5" /></div><span className={`${BrandStylistStyles.modeTitle} ${genMode === 'remix' ? BrandStylistStyles.titleRemix : BrandStylistStyles.titleInactive}`}>Reimagine</span></div><p className={`${BrandStylistStyles.modeDesc} ${genMode === 'remix' ? BrandStylistStyles.descRemix : BrandStylistStyles.descInactive}`}>Use style but invent a new layout.</p>
+
+                                    <button 
+                                        onClick={() => setGenMode('remix')} 
+                                        className={`${BrandStylistStyles.modeCard} ${genMode === 'remix' ? BrandStylistStyles.modeCardRemix : BrandStylistStyles.modeCardInactive}`}
+                                    >
+                                        <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div>
+                                        <div className={BrandStylistStyles.iconGlass}>
+                                            <MagicWandIcon className={`w-5 h-5 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <span className={`${BrandStylistStyles.modeTitle} ${genMode === 'remix' ? BrandStylistStyles.titleRemix : BrandStylistStyles.titleInactive}`}>Reimagine</span>
+                                            <p className={`${BrandStylistStyles.modeDesc} ${genMode === 'remix' ? BrandStylistStyles.descRemix : BrandStylistStyles.descInactive}`}>
+                                                Use style but invent layout.
+                                            </p>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
-                            <div className="space-y-4 pt-2 border-t border-gray-100">
+
+                            {/* Row 4: Text Content */}
+                            <div className="space-y-5 pt-4 border-t border-gray-100">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Target Language</label>
-                                    <div className="flex gap-2">{['English', 'Hindi', 'Marathi'].map(lang => (<button key={lang} onClick={() => setLanguage(lang)} className={`${BrandStylistStyles.languageButton} ${language === lang ? BrandStylistStyles.langActive : BrandStylistStyles.langInactive}`}>{lang}</button>))}</div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Target Language</label>
+                                    <div className="flex gap-2">
+                                        {['English', 'Hindi', 'Marathi'].map(lang => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => setLanguage(lang)}
+                                                className={`${BrandStylistStyles.languageButton} ${
+                                                    language === lang
+                                                        ? BrandStylistStyles.langActive
+                                                        : BrandStylistStyles.langInactive
+                                                }`}
+                                            >
+                                                {lang}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider -mb-2 ml-1">4. Ad Copy</label>
-                                <div className="grid grid-cols-2 gap-3"><InputField placeholder="Title / Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} /><InputField placeholder="CTA / Offer" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} /><InputField placeholder="Website" value={website} onChange={(e: any) => setWebsite(e.target.value)} /><InputField placeholder="Address/Location" value={address} onChange={(e: any) => setAddress(e.target.value)} /></div>
-                                <InputField label="Description / Context (Required)" placeholder="e.g. Organic Coffee, morning energy boost" value={description} onChange={(e: any) => setDescription(e.target.value)} />
+
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">4</span>
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ad Copy Details</label>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <InputField placeholder="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                                        <InputField placeholder="Offer / CTA" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
+                                        <InputField placeholder="Website" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
+                                        <InputField placeholder="Location" value={address} onChange={(e: any) => setAddress(e.target.value)} />
+                                    </div>
+                                    <InputField
+                                        label="Context (Required)"
+                                        placeholder="e.g. Organic Coffee, morning energy boost"
+                                        value={description}
+                                        onChange={(e: any) => setDescription(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )
@@ -117,9 +234,16 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Ad Creative" />}
-            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+            
+            {/* Magic Editor Modal */}
+            {showMagicEditor && resultImage && (
+                <MagicEditorModal 
+                    imageUrl={resultImage} 
+                    onClose={() => setShowMagicEditor(false)} 
+                    onSave={handleEditorSave}
+                    deductCredit={handleDeductEditCredit}
+                />
+            )}
         </>
     );
 };
