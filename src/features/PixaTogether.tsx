@@ -27,7 +27,7 @@ const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: 
     </div>
 );
 
-const PremiumUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
+const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
         <div className="relative w-full group">
@@ -45,7 +45,7 @@ const PremiumUpload: React.FC<{ label: string; image: { url: string } | null; on
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
                     <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
-                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide">Add Photo</p>
+                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -65,7 +65,7 @@ const PremiumSelector: React.FC<{ label: string; options: string[]; value: strin
                         onClick={() => onChange(opt)}
                         className={`relative px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border ${
                             isSelected 
-                            ? 'bg-[#1A1A1E] text-white border-[#1A1A1E] shadow-lg transform -translate-y-0.5' 
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' 
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                     >
@@ -77,20 +77,25 @@ const PremiumSelector: React.FC<{ label: string; options: string[]; value: strin
     </div>
 );
 
-const PremiumToggle: React.FC<{ label: string; active: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
-    <button 
-        onClick={onClick}
-        className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
-            active 
-            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' 
-            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
-        }`}
+const EngineModeCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    selected: boolean; 
+    onClick: () => void; 
+}> = ({ title, desc, icon, selected, onClick }) => (
+    <div 
+        onClick={onClick} 
+        className={`${PixaTogetherStyles.engineCard} ${selected ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}
     >
-        <span className="text-xs font-bold">{label}</span>
-        <div className={`w-8 h-4 rounded-full relative transition-colors ${active ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-300 ${active ? 'left-4.5' : 'left-0.5'}`}></div>
+        <div>
+            <h4 className={PixaTogetherStyles.engineTitle}>{title}</h4>
+            <p className={`${PixaTogetherStyles.engineDesc} ${selected ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>{desc}</p>
         </div>
-    </button>
+        <div className={`${PixaTogetherStyles.engineIconBox} ${selected ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}>
+            {icon}
+        </div>
+    </div>
 );
 
 const PremiumInput: React.FC<any> = ({ label, ...props }) => (
@@ -114,12 +119,12 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [environment, setEnvironment] = useState('Outdoor Park');
     const [pose, setPose] = useState('Standing Together');
     const [timeline, setTimeline] = useState('Present Day');
-    const [universe, setUniverse] = useState('Photorealistic');
     const [customDescription, setCustomDescription] = useState('');
 
     // Settings
     const [faceStrength, setFaceStrength] = useState(0.8);
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Match Vibe');
+    // Enforce Age and Hair locks by default
     const [locks, setLocks] = useState({ age: true, hair: true, accessories: false });
     const [autoFix, setAutoFix] = useState(true);
 
@@ -157,7 +162,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 environment,
                 pose,
                 timeline,
-                universe,
                 customDescription,
                 referencePoseBase64: refPose?.base64.base64,
                 referencePoseMimeType: refPose?.base64.mimeType,
@@ -185,7 +189,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefunding(true); 
         try { 
             // Pass current config for context
-            const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, universe, customDescription, faceStrength, clothingMode, locks, autoFix };
+            const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, faceStrength, clothingMode, locks, autoFix };
             const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined, config); 
             if (res.success) { 
                 if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } 
@@ -236,8 +240,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {/* 1. Subjects */}
                             <PremiumCard title="Subjects" icon={<UserIcon className="w-5 h-5"/>}>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumUpload label="Person A" image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
-                                    <PremiumUpload label="Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
+                                    <PremiumUpload label="Person A" uploadText="Add Person A Photo" image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
+                                    <PremiumUpload label="Person B" uploadText="Add Person B Photo" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
                                 </div>
                             </PremiumCard>
 
@@ -247,10 +251,28 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><MagicWandIcon className="w-4 h-4"/></div>
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 bg-gray-50 p-1 rounded-2xl border border-gray-100">
-                                    <button onClick={() => setMode('creative')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'creative' ? 'bg-white shadow-md text-indigo-600 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Creative</button>
-                                    <button onClick={() => setMode('reenact')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'reenact' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Re-Enact</button>
-                                    <button onClick={() => setMode('professional')} className={`py-3 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all ${mode === 'professional' ? 'bg-[#1A1A1E] shadow-md text-white scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>Pro Headshot</button>
+                                <div className={PixaTogetherStyles.engineGrid}>
+                                    <EngineModeCard 
+                                        title="Creative" 
+                                        desc="Themed Art" 
+                                        icon={<SparklesIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'creative'} 
+                                        onClick={() => setMode('creative')} 
+                                    />
+                                    <EngineModeCard 
+                                        title="Re-Enact" 
+                                        desc="Pose Match" 
+                                        icon={<CameraIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'reenact'} 
+                                        onClick={() => setMode('reenact')} 
+                                    />
+                                    <EngineModeCard 
+                                        title="Pro Headshot" 
+                                        desc="Corporate Look" 
+                                        icon={<UserIcon className="w-5 h-5"/>} 
+                                        selected={mode === 'professional'} 
+                                        onClick={() => setMode('professional')} 
+                                    />
                                 </div>
                             </div>
 
@@ -278,12 +300,14 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                             <SparklesIcon className="w-3 h-3 text-amber-500" />
                                             <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Magic Overrides</span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
                                             <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full p-2.5 bg-amber-50/50 border border-amber-100 rounded-xl text-xs font-bold text-amber-900 outline-none hover:bg-amber-50 transition-colors cursor-pointer">
-                                                <option>Present Day</option><option>1990s Vintage</option><option>1920s Noir</option><option>Future Sci-Fi</option><option>Medieval</option>
-                                            </select>
-                                            <select value={universe} onChange={(e) => setUniverse(e.target.value)} className="w-full p-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs font-bold text-purple-900 outline-none hover:bg-purple-50 transition-colors cursor-pointer">
-                                                <option>Photorealistic</option><option>Disney Pixar</option><option>Anime Style</option><option>Oil Painting</option><option>Cyberpunk</option>
+                                                <option>Present Day</option>
+                                                <option>Future Sci-Fi</option>
+                                                <option>1990s Vintage</option>
+                                                <option>1920s Noir</option>
+                                                <option>Medieval</option>
                                             </select>
                                         </div>
                                         <PremiumInput placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} label="Custom Vision" />
@@ -297,7 +321,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <div className="p-2 bg-white rounded-lg shadow-sm"><CameraIcon className="w-4 h-4 text-blue-500" /></div>
                                         <div><h4 className="text-xs font-bold text-blue-900">Reference Shot</h4><p className="text-[10px] text-blue-600/80 mt-0.5">Upload a photo to copy the exact pose and composition.</p></div>
                                     </div>
-                                    <PremiumUpload label="Reference Pose" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<UploadIcon className="w-5 h-5 text-blue-400"/>} heightClass="h-32" />
+                                    <PremiumUpload label="Reference Pose" uploadText="Upload Pose Ref" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<UploadIcon className="w-5 h-5 text-blue-400"/>} heightClass="h-32" />
                                 </PremiumCard>
                             )}
 
@@ -308,15 +332,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <p className="opacity-80">AI will automatically dress subjects in business attire and place them in a high-end studio or office setting.</p>
                                 </div>
                             )}
-
-                            {/* 4. Advanced Locks */}
-                            <PremiumCard title="Identity Tuning" icon={<ShieldCheckIcon className="w-5 h-5"/>}>
-                                <div className="flex gap-2">
-                                    <PremiumToggle label="Lock Age" active={locks.age} onClick={() => setLocks({...locks, age: !locks.age})} />
-                                    <PremiumToggle label="Lock Hair" active={locks.hair} onClick={() => setLocks({...locks, hair: !locks.hair})} />
-                                    <PremiumToggle label="Glasses" active={locks.accessories} onClick={() => setLocks({...locks, accessories: !locks.accessories})} />
-                                </div>
-                            </PremiumCard>
                         </div>
                     )
                 }

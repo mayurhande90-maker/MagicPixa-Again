@@ -22,4 +22,19 @@ export const PixaTogetherStyles = {
   
   refPoseOverlay: "absolute bottom-4 right-4 w-32 aspect-[3/4] bg-white rounded-xl shadow-2xl border-4 border-white transform rotate-6 z-30 animate-fadeInUp",
   refPoseBadge: "absolute top-2 right-2 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase",
+
+  // New Engine Card Styles
+  engineGrid: "flex flex-col gap-3",
+  engineCard: "relative w-full p-4 rounded-2xl border-2 text-left transition-all duration-300 cursor-pointer overflow-hidden group hover:shadow-md",
+  engineCardSelected: "border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 shadow-lg ring-1 ring-indigo-500/20",
+  engineCardInactive: "border-gray-100 bg-white hover:border-indigo-200",
+  
+  engineIconBox: "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+  engineIconSelected: "bg-white text-indigo-600 shadow-sm",
+  engineIconInactive: "bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500",
+  
+  engineTitle: "font-black text-sm text-gray-900 mb-1 relative z-10",
+  engineDesc: "text-[10px] font-bold uppercase tracking-wider relative z-10",
+  engineDescSelected: "text-indigo-600",
+  engineDescInactive: "text-gray-400 group-hover:text-indigo-400",
 };
