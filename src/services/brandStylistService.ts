@@ -52,8 +52,8 @@ const getBestAspectRatio = (base64: string, mimeType: string): Promise<string> =
 export const generateStyledBrandAsset = async (
     productBase64: string,
     productMime: string,
-    referenceBase64: string,
-    referenceMime: string,
+    referenceBase64: string | undefined,
+    referenceMime: string | undefined,
     logoBase64: string | undefined,
     logoMime: string | undefined,
     productName: string,
@@ -69,8 +69,12 @@ export const generateStyledBrandAsset = async (
 ): Promise<string> => {
     const ai = getAiClient();
     
-    // 0. Determine Target Aspect Ratio from Reference Image
-    const targetAspectRatio = await getBestAspectRatio(referenceBase64, referenceMime);
+    // Auto-Pilot Mode detection (No reference provided)
+    const isAutoPilot = !referenceBase64 || !referenceMime;
+
+    // 0. Determine Target Aspect Ratio
+    // If ref exists, match it. If not, default to 1:1 or use product logic (simplified to 1:1 for Auto)
+    const targetAspectRatio = isAutoPilot ? "1:1" : await getBestAspectRatio(referenceBase64!, referenceMime!);
 
     const [
         optProductLow, 
@@ -80,14 +84,50 @@ export const generateStyledBrandAsset = async (
         optLogoHigh
     ] = await Promise.all([
         optimizeImage(productBase64, productMime, 512),
-        optimizeImage(referenceBase64, referenceMime, 512),
+        (!isAutoPilot && referenceBase64 && referenceMime) ? optimizeImage(referenceBase64, referenceMime, 512) : Promise.resolve(null),
         optimizeImage(productBase64, productMime, 1024),
-        optimizeImage(referenceBase64, referenceMime, 1024),
+        (!isAutoPilot && referenceBase64 && referenceMime) ? optimizeImage(referenceBase64, referenceMime, 1024) : Promise.resolve(null),
         logoBase64 && logoMime ? optimizeImage(logoBase64, logoMime, 1024) : Promise.resolve(null)
     ]);
 
-    // Step 1: Deep Analysis & "3% Rule" Layout Strategy
-    const analysisPrompt = `You are a Creative Director applying the "3% Design Rule" for High-Conversion Ads.
+    // Step 1: Deep Analysis & Blueprint Strategy
+    let analysisPrompt = "";
+    let analysisParts: any[] = [];
+    let config: any = {};
+
+    if (isAutoPilot) {
+        // --- AUTO-PILOT MODE (Research) ---
+        analysisPrompt = `You are a World-Class Advertising Director.
+        
+        TASK: Research & Plan a High-Conversion Ad for this Product.
+        PRODUCT CONTEXT: "${productDescription}"
+        
+        **STEP 1: TREND RESEARCH (Use Google Search)**
+        - Search for "Trending ad designs for ${productDescription} 2025".
+        - Identify current best-performing layouts, color palettes, and typography styles for this specific niche.
+        - Find what visual hooks are working (e.g., Minimalism, Bold Typography, Neon visuals, Nature themes).
+        
+        **STEP 2: BLUEPRINT CREATION**
+        Based on your research, hallucinate a "Reference Style" that would perform best.
+        - Define a visual style that maximizes CTR.
+        - Plan a layout that follows the "3% Design Rule" (Visual Hierarchy, Cognitive Load).
+        
+        **OUTPUT REQUIREMENT**:
+        Fill the JSON schema below as if you were analyzing a top-tier reference image.
+        `;
+        
+        analysisParts = [
+            { text: "USER PRODUCT:" },
+            { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
+            { text: analysisPrompt }
+        ];
+        
+        // Enable Search for Auto-Pilot
+        config.tools = [{ googleSearch: {} }];
+
+    } else {
+        // --- REFERENCE MODE (Visual Analysis) ---
+        analysisPrompt = `You are a Creative Director applying the "3% Design Rule" for High-Conversion Ads.
         INPUTS: Reference Image (Target Style), Product Image (User Item).
         
         **DESIGN SCIENCE AUDIT (Analyze the Reference):**
@@ -98,11 +138,21 @@ export const generateStyledBrandAsset = async (
         
         **TASK**: 
         Plan a new layout for the User's Product that mimics this success formula.
-        - **Headline**: Write a catchy, verb-led headline (2-5 words) for "${productDescription}" in ${language}.
-        - **Conversion**: Ensure the "Offer/CTA" placement is obvious and high-contrast.
-    `;
+        `;
+        
+        analysisParts = [
+            { text: "REFERENCE IMAGE (Style/Vibe):" },
+            { inlineData: { data: optRefLow!.data, mimeType: optRefLow!.mimeType } },
+            { text: "USER ASSET (To be transformed):" },
+            { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
+            { text: analysisPrompt }
+        ];
+    }
 
+    // Common JSON Schema Instruction
     const jsonSchemaPart = `
+    - **Headline**: Write a catchy, verb-led headline (2-5 words) for "${productDescription}" in ${language}.
+    
     OUTPUT JSON:
     {
         "visualStyle": "Detailed description of lighting, colors, and composition...",
@@ -121,18 +171,14 @@ export const generateStyledBrandAsset = async (
         "technicalExecution": "Lighting and blending notes"
     }`;
 
+    analysisParts.push({ text: jsonSchemaPart });
+
+    // Execute Analysis
     const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: {
-            parts: [
-                { text: "REFERENCE IMAGE (Style/Vibe):" },
-                { inlineData: { data: optRefLow.data, mimeType: optRefLow.mimeType } },
-                { text: "USER ASSET (To be transformed):" },
-                { inlineData: { data: optProductLow.data, mimeType: optProductLow.mimeType } },
-                { text: analysisPrompt + jsonSchemaPart }
-            ]
-        },
+        contents: { parts: analysisParts },
         config: {
+            ...config,
             responseMimeType: "application/json",
             responseSchema: {
                 type: Type.OBJECT,
@@ -152,7 +198,7 @@ export const generateStyledBrandAsset = async (
                     textInstructions: { type: Type.STRING },
                     technicalExecution: { type: Type.STRING }
                 },
-                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType", "referenceHasProductName", "referenceHasOfferBadge"]
+                required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType"]
             }
         }
     }));
@@ -184,27 +230,28 @@ export const generateStyledBrandAsset = async (
         typographyInstruction = `**2D TYPOGRAPHY**: Flat, clean, vector-style text. Use weights (Bold vs Light) to create hierarchy.`;
     }
 
-    const showProduct = productName && blueprint.referenceHasProductName;
-    const showOffer = specialOffer && blueprint.referenceHasOfferBadge;
-    const showWebsite = website && blueprint.referenceHasWebsite;
-    const showAddress = address && blueprint.referenceHasAddress;
+    // Logic to force elements if User Input exists, even if Ref doesn't have them
+    const showProduct = productName ? true : blueprint.referenceHasProductName;
+    const showOffer = specialOffer ? true : blueprint.referenceHasOfferBadge;
+    const showWebsite = website ? true : blueprint.referenceHasWebsite;
+    const showAddress = address ? true : blueprint.referenceHasAddress;
 
     let dynamicTextInstructions = `
     - **HEADLINE**: Render "${blueprint.generatedHeadline}" in the PRIMARY OPTICAL ZONE (Top or Center Left). 
       **STYLE**: ${fontStyle}. ${typographyInstruction}
     `;
 
-    if (showProduct) {
-        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at ${blueprint.productNamePlacement}.\n`;
+    if (showProduct && productName) {
+        dynamicTextInstructions += `- **PRODUCT NAME**: Render "${productName}" at ${blueprint.productNamePlacement || 'Bottom Center'}.\n`;
     }
 
-    if (showOffer) {
-        dynamicTextInstructions += `- **OFFER (The Hook)**: Render "${specialOffer}" as a High-Contrast Element (Badge/Sticker) at ${blueprint.offerPlacement}. Must trigger the "Fear of Missing Out" or "Value" emotion.\n`;
+    if (showOffer && specialOffer) {
+        dynamicTextInstructions += `- **OFFER (The Hook)**: Render "${specialOffer}" as a High-Contrast Element (Badge/Sticker) at ${blueprint.offerPlacement || 'Top Right'}. Must trigger the "Fear of Missing Out" or "Value" emotion.\n`;
     }
 
-    if (showWebsite) dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at ${blueprint.contactPlacement}.\n`;
-    if (showAddress) dynamicTextInstructions += `- **ADDRESS**: Render "${address}" at ${blueprint.contactPlacement}.\n`;
-    dynamicTextInstructions += `- **NO PHONE NUMBER**: Do not render phone numbers.\n`;
+    if (showWebsite && website) dynamicTextInstructions += `- **WEBSITE**: Render "${website}" at ${blueprint.contactPlacement || 'Bottom'}.\n`;
+    if (showAddress && address) dynamicTextInstructions += `- **ADDRESS**: Render "${address}" at ${blueprint.contactPlacement || 'Bottom'}.\n`;
+    dynamicTextInstructions += `- **NO PHONE NUMBER**: Do not render phone numbers unless explicitly asked.\n`;
 
     if (optLogoHigh && logoBase64) {
          dynamicTextInstructions += `- **LOGO**: Place USER LOGO at: ${blueprint.logoPlacement || 'Top Center'}.\n`;

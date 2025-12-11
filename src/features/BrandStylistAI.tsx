@@ -79,11 +79,34 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     };
 
     const handleGenerate = async () => {
-        if (!productImage || !referenceImage || !auth.user || !description) return;
+        // Reference is now optional
+        if (!productImage || !auth.user || !description) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
-        setLoading(true); setLoadingText("Pixa is Analyzing, Relighting & Harmonizing..."); setResultImage(null); setLastCreationId(null);
+        
+        // Determine Loading Text based on mode
+        const isAutoPilot = !referenceImage;
+        setLoadingText(isAutoPilot ? "Pixa Agent is Researching Trends..." : "Pixa is Analyzing, Relighting & Harmonizing...");
+        
+        setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
-            const assetUrl = await generateStyledBrandAsset(productImage.base64.base64, productImage.base64.mimeType, referenceImage.base64.base64, referenceImage.base64.mimeType, logoImage?.base64.base64, logoImage?.base64.mimeType, productName, website, specialOffer, address, description, genMode, language, 'physical', undefined, 'Modern Sans');
+            const assetUrl = await generateStyledBrandAsset(
+                productImage.base64.base64,
+                productImage.base64.mimeType,
+                referenceImage?.base64.base64 || '', // Pass empty if missing
+                referenceImage?.base64.mimeType || '', // Pass empty if missing
+                logoImage?.base64.base64,
+                logoImage?.base64.mimeType,
+                productName,
+                website,
+                specialOffer,
+                address,
+                description,
+                genMode,
+                language,
+                'physical',
+                undefined,
+                'Modern Sans'
+            );
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
             const finalImageUrl = `data:image/png;base64,${assetUrl}`; const creationId = await saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -95,13 +118,15 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const handleNewSession = () => { setProductImage(null); setLogoImage(null); setReferenceImage(null); setResultImage(null); setProductName(''); setWebsite(''); setSpecialOffer(''); setAddress(''); setDescription(''); setGenMode('replica'); setLanguage('English'); setLastCreationId(null); };
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa AdMaker (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    const canGenerate = !!productImage && !!referenceImage && !isLowCredits && !!description;
+    
+    // Updated validity check: Reference is now optional
+    const canGenerate = !!productImage && !isLowCredits && !!description;
 
     return (
         <>
             <FeatureLayout
                 title="Pixa AdMaker" description="Turn your product photos into high-converting ad creatives by mimicking successful styles." icon={<MagicAdsIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={handleGenerate} onNewSession={handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ className: genMode === 'remix' ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]" : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Ad Creative" }} scrollRef={scrollRef}
+                generateButtonStyle={{ className: genMode === 'remix' || !referenceImage ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-none hover:scale-[1.02]" : "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: !referenceImage ? "Auto-Pilot Generate" : "Generate Ad Creative" }} scrollRef={scrollRef}
                 customActionButtons={resultImage ? (<button onClick={() => setShowMagicEditor(true)} className="bg-[#4D7CFF] hover:bg-[#3b63cc] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"><MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white"/> <span>Magic Editor</span></button>) : null}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -156,50 +181,67 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     onClear={() => setReferenceImage(null)}
                                     icon={<CloudUploadIcon className="w-5 h-5 text-yellow-500" />}
                                     heightClass="h-40"
+                                    optional={true} // Marked as Optional
                                 />
                             </div>
 
-                            {/* Row 3: Mode */}
+                            {/* Row 3: Mode / Auto-Pilot */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">3</span>
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label>
                                 </div>
-                                <div className={BrandStylistStyles.modeGrid}>
-                                    <button 
-                                        onClick={() => setGenMode('replica')} 
-                                        className={`${BrandStylistStyles.modeCard} ${genMode === 'replica' ? BrandStylistStyles.modeCardReplica : BrandStylistStyles.modeCardInactive}`}
-                                    >
-                                        <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div>
-                                        <div className={BrandStylistStyles.iconGlass}>
-                                            <ReplicaIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
-                                        </div>
-                                        <div className={BrandStylistStyles.contentWrapper}>
-                                            <h3 className={BrandStylistStyles.modeTitle}>Replica</h3>
-                                            <p className={BrandStylistStyles.modeDesc}>Strictly copy layout & lighting.</p>
-                                        </div>
-                                        <div className={BrandStylistStyles.actionBtn}>
-                                            <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
-                                        </div>
-                                    </button>
+                                
+                                {referenceImage ? (
+                                    <div className={BrandStylistStyles.modeGrid}>
+                                        <button 
+                                            onClick={() => setGenMode('replica')} 
+                                            className={`${BrandStylistStyles.modeCard} ${genMode === 'replica' ? BrandStylistStyles.modeCardReplica : BrandStylistStyles.modeCardInactive}`}
+                                        >
+                                            <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div>
+                                            <div className={BrandStylistStyles.iconGlass}>
+                                                <ReplicaIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} />
+                                            </div>
+                                            <div className={BrandStylistStyles.contentWrapper}>
+                                                <h3 className={BrandStylistStyles.modeTitle}>Replica</h3>
+                                                <p className={BrandStylistStyles.modeDesc}>Strictly copy layout & lighting.</p>
+                                            </div>
+                                            <div className={BrandStylistStyles.actionBtn}>
+                                                <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
+                                            </div>
+                                        </button>
 
-                                    <button 
-                                        onClick={() => setGenMode('remix')} 
-                                        className={`${BrandStylistStyles.modeCard} ${genMode === 'remix' ? BrandStylistStyles.modeCardRemix : BrandStylistStyles.modeCardInactive}`}
-                                    >
-                                        <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div>
-                                        <div className={BrandStylistStyles.iconGlass}>
-                                            <ReimagineIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
+                                        <button 
+                                            onClick={() => setGenMode('remix')} 
+                                            className={`${BrandStylistStyles.modeCard} ${genMode === 'remix' ? BrandStylistStyles.modeCardRemix : BrandStylistStyles.modeCardInactive}`}
+                                        >
+                                            <div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div>
+                                            <div className={BrandStylistStyles.iconGlass}>
+                                                <ReimagineIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} />
+                                            </div>
+                                            <div className={BrandStylistStyles.contentWrapper}>
+                                                <h3 className={BrandStylistStyles.modeTitle}>Reimagine</h3>
+                                                <p className={BrandStylistStyles.modeDesc}>Use style but invent layout.</p>
+                                            </div>
+                                            <div className={BrandStylistStyles.actionBtn}>
+                                                <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
+                                            </div>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // Auto-Pilot Mode Indicator
+                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100 flex gap-3 items-start animate-fadeIn">
+                                        <div className="bg-white p-2 rounded-xl shadow-sm shrink-0">
+                                            <SparklesIcon className="w-5 h-5 text-indigo-500 animate-pulse" />
                                         </div>
-                                        <div className={BrandStylistStyles.contentWrapper}>
-                                            <h3 className={BrandStylistStyles.modeTitle}>Reimagine</h3>
-                                            <p className={BrandStylistStyles.modeDesc}>Use style but invent layout.</p>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-indigo-900 mb-1">Pixa Auto-Pilot Active</h3>
+                                            <p className="text-xs text-indigo-700/80 leading-relaxed">
+                                                No reference provided. Pixa Agent will research <strong>2025 trends</strong> for this product category and generate a high-conversion layout automatically.
+                                            </p>
                                         </div>
-                                        <div className={BrandStylistStyles.actionBtn}>
-                                            <ArrowRightIcon className={BrandStylistStyles.actionIcon}/>
-                                        </div>
-                                    </button>
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Row 4: Text Content */}
