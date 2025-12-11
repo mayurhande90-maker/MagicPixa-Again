@@ -24,17 +24,17 @@ export const PixaTogetherStyles = {
   refPoseBadge: "absolute top-2 right-2 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase",
 
   // New Engine Card Styles
-  engineGrid: "flex flex-col gap-3",
-  engineCard: "relative w-full p-4 rounded-2xl border-2 text-left transition-all duration-300 cursor-pointer overflow-hidden group hover:shadow-md",
+  engineGrid: "grid grid-cols-3 gap-2",
+  engineCard: "relative w-full p-3 rounded-2xl border-2 text-left transition-all duration-300 cursor-pointer overflow-hidden group hover:shadow-md flex flex-col justify-end min-h-[90px]",
   engineCardSelected: "border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 shadow-lg ring-1 ring-indigo-500/20",
   engineCardInactive: "border-gray-100 bg-white hover:border-indigo-200",
   
-  engineIconBox: "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+  engineIconBox: "absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors",
   engineIconSelected: "bg-white text-indigo-600 shadow-sm",
   engineIconInactive: "bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500",
   
-  engineTitle: "font-black text-sm text-gray-900 mb-1 relative z-10",
-  engineDesc: "text-[10px] font-bold uppercase tracking-wider relative z-10",
+  engineTitle: "font-black text-xs text-gray-900 mb-0.5 relative z-10",
+  engineDesc: "text-[9px] font-bold uppercase tracking-wider relative z-10 leading-tight",
   engineDescSelected: "text-indigo-600",
   engineDescInactive: "text-gray-400 group-hover:text-indigo-400",
 };
