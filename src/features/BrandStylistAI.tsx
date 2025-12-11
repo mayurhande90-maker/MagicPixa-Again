@@ -128,7 +128,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         image={productImage}
                                         onUpload={handleUpload(setProductImage)}
                                         onClear={() => setProductImage(null)}
-                                        icon={<CloudUploadIcon className="w-8 h-8" />}
+                                        icon={<CloudUploadIcon className="w-6 h-6" />}
                                     />
                                     <CompactUpload
                                         label="Logo"
@@ -136,7 +136,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         image={logoImage}
                                         onUpload={handleUpload(setLogoImage)}
                                         onClear={() => setLogoImage(null)}
-                                        icon={<CloudUploadIcon className="w-8 h-8" />}
+                                        icon={<CloudUploadIcon className="w-6 h-6" />}
                                         optional={true}
                                     />
                                 </div>
@@ -154,7 +154,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                     image={referenceImage}
                                     onUpload={handleUpload(setReferenceImage)}
                                     onClear={() => setReferenceImage(null)}
-                                    icon={<CloudUploadIcon className="w-8 h-8" />}
+                                    icon={<CloudUploadIcon className="w-6 h-6" />}
                                     heightClass="h-40"
                                 />
                             </div>
