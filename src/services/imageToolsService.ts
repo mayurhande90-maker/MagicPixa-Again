@@ -32,6 +32,33 @@ const optimizeImageForEditing = async (base64: string, mimeType: string): Promis
     }
 };
 
+// --- PROMPT MAPPINGS FOR PIXA TOGETHER ---
+const MOOD_PROMPTS: Record<string, string> = {
+    'Happy': 'Bright, cheerful, high-key lighting, genuine smiles, warm color temperature, vibrant and energetic atmosphere.',
+    'Cinematic': 'Dramatic lighting, high contrast, anamorphic lens look, movie-still aesthetic, deep teal and orange color grading, emotional depth.',
+    'Romantic': 'Soft focus, dreamy backlight, golden hour glow, intimate atmosphere, warm pastel tones, gentle bokeh.',
+    'Vintage': 'Film grain texture, sepia or desaturated tones, 90s aesthetic, nostalgic feel, slightly soft sharpness like analog photography.',
+    'Luxury': 'High-end fashion editorial style, polished, elegant, sharp focus, rich textures, sophisticated lighting.',
+    'Adventure': 'Dynamic lighting, wind in hair, outdoorsy feel, vibrant natural colors, energetic composition.',
+    'Candid': 'Natural, unposed look, documentary style, authentic lighting, "caught in the moment" feel.',
+    'Professional': 'Clean, sharp, balanced studio lighting, neutral tones, confident and trustworthy atmosphere.',
+    'Ethereal': 'Soft, dreamy, fantasy-like atmosphere, light leaks, pastel color palette, angelic glow.',
+    'Moody': 'Low-key lighting, deep shadows, mysterious atmosphere, desaturated colors, intense and emotional.'
+};
+
+const ENVIRONMENT_PROMPTS: Record<string, string> = {
+    'Outdoor Park': 'A lush green park with dappled sunlight through trees, soft nature background.',
+    'Beach': 'A sunny beach with blue ocean and white sand, bright natural daylight.',
+    'Luxury Rooftop': 'A high-end city rooftop at twilight with glowing city skyline lights in the background, glass railings, chic furniture.',
+    'City Street': 'A bustling urban street with blurred cars and city lights, modern architecture context.',
+    'Cozy Home': 'A warm, inviting living room with soft furniture, plants, and window light.',
+    'Cafe': 'A stylish coffee shop interior with warm ambient lighting and blurred cafe background.',
+    'Deep Forest': 'A dense forest with tall trees, ferns, and mystical shafts of light piercing through the canopy.',
+    'Modern Studio': 'A clean, minimalist studio background with a solid color backdrop and professional 3-point lighting setup.',
+    'Snowy Mountain': 'A majestic snowy mountain peak, cold winter lighting, white snow and blue sky contrast.',
+    'Sunset Beach': 'A beach at golden hour, warm orange sun reflecting on the water, dramatic clouds.'
+};
+
 // Step 1: Deep Forensic Analysis (Text Model)
 const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string): Promise<string> => {
     const prompt = `Act as a Smithsonian Photo Conservator. Perform a Deep Forensic Analysis of this damaged/aged photo.
@@ -284,11 +311,25 @@ export const generateMagicSoul = async (
         }
     } else {
         // CREATIVE MODE
+        
+        // Lookup rich descriptions for Mood and Environment
+        const moodDesc = inputs.mood ? (MOOD_PROMPTS[inputs.mood] || inputs.mood) : 'Hyper-realistic';
+        const envDesc = inputs.environment ? (ENVIRONMENT_PROMPTS[inputs.environment] || inputs.environment) : 'Neutral background';
+
         mainPrompt += `
         *** CREATIVE MODE ***
-        - **Relationship**: ${inputs.relationship}
-        - **Mood**: ${inputs.mood}
-        - **Environment**: ${inputs.environment}
+        - **Relationship Dynamic**: ${inputs.relationship}. Ensure the interaction reflects this closeness (or distance).
+        
+        *** ATMOSPHERE & COLOR GRADING (The Vibe) ***
+        - **Selection**: "${inputs.mood}"
+        - **Visual Execution**: ${moodDesc}
+        - **Camera Feel**: Adjust lens choice, depth of field, and film stock emulation to match this mood.
+        
+        *** SCENE & ENVIRONMENT ***
+        - **Selection**: "${inputs.environment}"
+        - **Visual Execution**: ${envDesc}
+        - **Integration**: Subjects must look grounded in this specific environment (matching shadows, reflections, and color spill).
+        
         - **Pose**: ${inputs.pose}
         
         ${inputs.timeline && inputs.timeline !== 'Present Day' ? `- **TIME TRAVEL ENGINE**: Render the entire scene (clothing, hair styling, film stock quality, background) to look authentically like the **${inputs.timeline}**.` : ''}
@@ -314,7 +355,7 @@ export const generateMagicSoul = async (
     ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards." : ""}
     
     *** CLOTHING LOGIC ***
-    ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe.")}
+    ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe defined above.")}
     
     ${inputs.autoFix ? `*** AUTO-FIX & QUALITY ***
     - Output in High Definition (4K).
