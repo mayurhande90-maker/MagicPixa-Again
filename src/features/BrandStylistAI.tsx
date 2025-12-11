@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -13,7 +13,16 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandStylistStyles } from '../styles/features/BrandStylist.styles';
 
-const CompactUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; optional?: boolean; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional }) => {
+const CompactUpload: React.FC<{ 
+    label: string; 
+    image: { url: string } | null; 
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+    onClear: () => void; 
+    icon: React.ReactNode; 
+    heightClass?: string; 
+    optional?: boolean;
+    uploadText?: string;
+}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional, uploadText }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
         <div className="relative w-full group h-full">
@@ -28,7 +37,7 @@ const CompactUpload: React.FC<{ label: string; image: { url: string } | null; on
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="p-2.5 bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-transform relative z-10 border border-gray-100">{icon}</div>
-                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2 relative z-10">Upload</p>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2 relative z-10">{uploadText || `Upload ${label}`}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -115,17 +124,19 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 <div className="grid grid-cols-2 gap-4">
                                     <CompactUpload
                                         label="Product"
+                                        uploadText="Upload Product"
                                         image={productImage}
                                         onUpload={handleUpload(setProductImage)}
                                         onClear={() => setProductImage(null)}
-                                        icon={<UploadTrayIcon className="w-6 h-6 text-blue-400" />}
+                                        icon={<CloudUploadIcon className="w-8 h-8" />}
                                     />
                                     <CompactUpload
                                         label="Logo"
+                                        uploadText="Upload Logo"
                                         image={logoImage}
                                         onUpload={handleUpload(setLogoImage)}
                                         onClear={() => setLogoImage(null)}
-                                        icon={<BrandKitIcon className="w-6 h-6 text-indigo-400" />}
+                                        icon={<CloudUploadIcon className="w-8 h-8" />}
                                         optional={true}
                                     />
                                 </div>
@@ -139,10 +150,11 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 </div>
                                 <CompactUpload
                                     label="Ad / Design Image"
+                                    uploadText="Upload Reference Image"
                                     image={referenceImage}
                                     onUpload={handleUpload(setReferenceImage)}
                                     onClear={() => setReferenceImage(null)}
-                                    icon={<LightbulbIcon className="w-6 h-6 text-yellow-500" />}
+                                    icon={<CloudUploadIcon className="w-8 h-8" />}
                                     heightClass="h-40"
                                 />
                             </div>
