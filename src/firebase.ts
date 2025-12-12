@@ -1,10 +1,10 @@
 
-// ... existing imports ...
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
+import { resizeImage } from './utils/imageUtils';
 
 // ... existing configuration code ...
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -244,8 +244,21 @@ export const getAnnouncement = async () => {
 // ... Creations & Credits ...
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
+    
+    let finalImage = imageUrl;
+    
+    // Firestore limit is 1MB. Safety check: Compress if > 800KB
+    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
+        try {
+            // Compress to HD (1024px) JPEG @ 70% quality to fit in Firestore
+            finalImage = await resizeImage(finalImage, 1024, 0.7);
+        } catch (e) {
+            console.warn("Image compression failed, attempting save with original...", e);
+        }
+    }
+
     const docRef = await db.collection('users').doc(uid).collection('creations').add({
-        imageUrl,
+        imageUrl: finalImage,
         feature,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         storagePath: ''
