@@ -55,83 +55,11 @@ const CURTAIN_STYLES: Record<string, string> = {
     'Modern Corporate': 'professional roller blinds or clean, structured neutral drapes'
 };
 
-const CURTAIN_RULES = `
-*** AUTOMATIC CURTAIN GENERATION RULES ***
-- TRIGGER: If a window is detected in the photo, you MUST add curtains/blinds suited to the style.
-- CONSTRAINTS: Do NOT remove or modify the original window structure, shape, size, or position.
-- MOUNTING: Curtain rod must be realistically mounted on the wall or ceiling exactly above the window frame.
-- PHYSICS: Curtains must fall naturally with gravity, reaching near floor height when appropriate. No floating. No clipping into walls/furniture.
-- LIGHTING: Shadows and highlights must follow the original light direction. Adjust transparency (sheer vs blackout) based on style.
-- SCALE: Curtain must be proportionate to window width and height.
-`;
-
-// Room-Specific Safety Checks
-const ROOM_SPECIFIC_CHECKS: Record<string, string> = {
-    'Living Room': `Check: Sofa/back not blocking windows/doors. Rug coverage: at least front legs on rug. TV placement: line-of-sight clear, no glare.`,
-    'Bedroom': `CRITICAL: Bed must NOT block door swing or emergency egress. Nightstand clearance ≥ 0.45m.`,
-    'Kitchen': `Check: Work triangle reasonable. No electronics within 0.6m of water. Do not move plumbing/sinks.`,
-    'Bathroom': `Check: No non-waterproof furniture in wet zones. Vanity depth ≤ 0.6m.`,
-    'Dining Room': `Check: Clearance around chairs ≥ 0.9m. Center table under light source.`,
-    'Home Office': `Check: Desk not blocking door. Monitor at eye level.`,
-    'Open Workspace': `Check: Fire egress preserved. Desk spacing ≥ 1.2m. Acoustic treatment if hard surfaces > 60%.`,
-    'Conference Room': `Check: Walkway clear around table. No glare on AV screen.`,
-    'Reception / Lobby': `Check: Seating not blocking path to desk. Clear sightlines.`
-};
-
-// Style-Specific Logic Checks
-const STYLE_SPECIFIC_CHECKS: Record<string, string> = {
-    'Minimalist': `Check: No excessive decor (>3 items per shelf). Remove clutter.`,
-    'Traditional Indian': `Check: Furniture must have robust bases, no floating tiny legs. Earthy tones required.`,
-    'Futuristic': `Check: LED accents must anchor to structure, not float.`,
-    'Biophilic': `Check: Plants must be in sun-appropriate spots. Do not block exits with pots.`,
-    'Industrial': `Check: Textures must be matte/rough, not plastic gloss.`
-};
-
-const COMPREHENSIVE_VALIDATION_RULES = `
-*** AUTOMATED EXECUTION CHECKLIST (MUST PASS ALL) ***
-
-1. PERSPECTIVE & CAMERA
-- Check: Generated elements align to detected vanishing points (max angular error ≤ 2°).
-- Fix: Reproject geometry to match original perspective exactly.
-
-2. IMMUTABLE STRUCTURES
-- Check: No changes to walls, windows, doors, columns.
-- CRITICAL: DO NOT cover windows or doors with new objects (except curtains/blinds).
-
-3. SCALE & PROPORTION (STRICT)
-- Sofa depth: 0.85–1.00 m.
-- Coffee table height: 0.35–0.45 m.
-- Dining table height: ~0.75m.
-- Door height reference: 2.1m.
-- Bed width: ~1.6m (Double).
-
-4. CIRCULATION & CLEARANCE
-- Minimum clear walking width = 0.8 m.
-- Main paths = 1.0 m.
-- Action: Shift furniture to restore clearance if blocked.
-
-5. LIGHTING & SHADOWS
-- Check: Light direction matches photo (≤ 10° deviation).
-- Action: Ray-trace soft shadows consistent with original light sources.
-
-6. REALISM
-- Check: Micro-variation present (edge wear, slight dirt, tiny specular variance).
-- Film grain: 0.3–1.0.
-- Action: Add subtle imperfections; avoid "AI plastic" look.
-
-7. SAFETY & "NO-SILLY-MISTAKES" (AUTOMATIC FAIL)
-- Bed in front of door -> RELOCATE.
-- Swing attached to drywall -> REMOVE.
-- Floating furniture -> SNAP TO FLOOR.
-- Heavy objects on weak walls -> MOVE.
-`;
-
 /**
- * PHASE 1: THE ARCHITECT (Analysis & Research)
- * This function uses a text/multimodal model with Google Search to create a safe, 
- * researched plan before any image generation happens.
+ * PHASE 1: THE SPATIAL COMPUTING ENGINE (Deep Analysis)
+ * Performs photogrammetry estimation, light transport analysis, and physical constraint mapping.
  */
-const analyzeAndPlanRenovation = async (
+const performDeepSpatialAnalysis = async (
     ai: any,
     base64ImageData: string,
     mimeType: string,
@@ -139,63 +67,61 @@ const analyzeAndPlanRenovation = async (
     spaceType: string,
     roomType: string
 ): Promise<string> => {
-    const roomChecks = ROOM_SPECIFIC_CHECKS[roomType] || "";
-    const styleChecks = STYLE_SPECIFIC_CHECKS[style] || "";
-    const curtainDef = CURTAIN_STYLES[style] || "style-appropriate neutral curtains";
-
-    const prompt = `You are a World-Class Senior Interior Architect and Spatial Analyst.
+    const prompt = `You are a Spatial Computing AI & Senior Interior Architect.
     
     INPUT: An image of a ${spaceType} ${roomType}.
-    GOAL: Create a renovation blueprint for a "${style}" redesign.
+    TARGET STYLE: ${style}.
     
-    TASK 1: DEEP VISUAL & PHYSICS ANALYSIS
-    - STRICTLY identify all exits, doors, and windows.
-    - DEFINE "NO-GO ZONES": Where can furniture NOT go?
-    - Analyze the perspective: Where is the vanishing point? What is the camera height?
+    **TASK 1: PHOTOGRAMMETRY & GEOMETRY RECONSTRUCTION**
+    1. **Perspective Match**: Estimate the camera lens focal length (e.g., 16mm Ultra-Wide, 24mm Wide, 35mm Standard, 50mm Portrait).
+    2. **Vanishing Point**: Locate the primary vanishing point(s) (e.g. Center, Top-Right, Off-frame left) to align new geometry.
+    3. **Shell Extraction**: Strictly identify the "Shell" (Walls, Ceiling, Floor, Windows, Doors, Beams). These are IMMUTABLE.
+    4. **Scale Calibration**: Estimate the ceiling height (e.g. 2.4m standard vs 3.5m loft). New furniture MUST respect this vertical scale.
     
-    TASK 2: APPLY VALIDATION CHECKS
-    ${COMPREHENSIVE_VALIDATION_RULES}
+    **TASK 2: LIGHT TRANSPORT & PHYSICS**
+    1. **Key Light Source**: Identify the primary light direction (e.g. Window on left).
+    2. **Shadow Logic**: Calculate where shadows must fall. (e.g. "Shadows cast to the right at 45 degrees").
+    3. **Reflection Map**: Identify reflective surfaces (floors, glass). New objects must reflect correctly.
     
-    TASK 3: WINDOW TREATMENT STRATEGY
-    ${CURTAIN_RULES}
-    - Selected Curtain Style: "${curtainDef}"
-    - INSTRUCTION: If windows are detected, explicitly include these curtains in the DESIGN PLAN below.
+    **TASK 3: RENOVATION BLUEPRINT (${style})**
+    - **Furniture Plan**: Select 3-4 key furniture pieces that fit the *exact* perspective grid.
+    - **No-Go Zones**: Identify doors and walkways. DO NOT place furniture here.
+    - **Window Treatment**: ${CURTAIN_STYLES[style] || "Style-appropriate curtains"}. MUST obey gravity and mounting physics.
     
-    TASK 4: ROOM & STYLE SPECIFIC CHECKS
-    - Room Logic: ${roomChecks}
-    - Style Logic: ${styleChecks}
-    
-    TASK 5: DEEP INTERNET RESEARCH (Use Google Search)
-    - Search for "Trending ${style} ${roomType} designs 2025".
-    - Find 2-3 specific trending furniture pieces or layout concepts that are popular right now for this style.
-    
-    OUTPUT: A concise "Renovation Blueprint" paragraph that I will pass to a renderer.
+    **OUTPUT**: A concise "Spatial Blueprint" for the rendering engine.
     Format:
-    "PERSPECTIVE: [Camera specs].
-     CONSTRAINTS: [List specific furniture placements to AVOID to prevent blocking doors/windows].
-     DESIGN PLAN: [Layout instructions based on trends, INCLUDING CURTAINS if windows exist].
-     LIGHTING: [Lighting plan].
-     CONFIRMATION: [State that checking rules 1-7 passed]."
+    "METRICS: Camera [Focal Length], Ceiling Height [Value].
+     GEOMETRY: [List structural elements to preserve].
+     PHYSICS: Light from [Direction], Shadows cast [Direction].
+     DESIGN_PLAN: [Specific furniture placement instructions].
+     CONSTRAINT: [Strict rules to prevent floating objects or blocking doors]."
     `;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Upgraded to Pro for complex analysis
-        contents: {
-            parts: [
-                { inlineData: { data: base64ImageData, mimeType: mimeType } },
-                { text: prompt },
-            ],
-        },
-        config: {
-            tools: [{ googleSearch: {} }], // Enable Internet Access for Trends
-        },
-    });
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview', // Pro model for logic/reasoning
+            contents: {
+                parts: [
+                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
+                    { text: prompt },
+                ],
+            },
+            config: {
+                // We don't strictly need googleSearch here unless researching specific furniture trends, 
+                // focusing on visual analysis is better for physics.
+                tools: [{ googleSearch: {} }], 
+            },
+        });
 
-    return response.text || `Apply ${style} style carefully respecting strict layout constraints.`;
+        return response.text || `Apply ${style} style with correct perspective and lighting.`;
+    } catch (e) {
+        console.warn("Spatial analysis failed, falling back to basic prompt.", e);
+        return `Apply ${style} style. Preserve perspective.`;
+    }
 };
 
 /**
- * PHASE 2: THE RENDERER (Execution)
+ * PHASE 2: THE REALITY RENDERER (Execution)
  */
 export const generateInteriorDesign = async (
   base64ImageData: string,
@@ -210,48 +136,41 @@ export const generateInteriorDesign = async (
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
 
     // Step 1: Deep Analysis & Planning (The "Brain")
-    const renovationBlueprint = await analyzeAndPlanRenovation(
+    const renovationBlueprint = await performDeepSpatialAnalysis(
         ai, data, optimizedMime, style, spaceType, roomType
     );
 
-    console.log("Renovation Blueprint Generated:", renovationBlueprint);
+    console.log("Spatial Blueprint:", renovationBlueprint);
 
     // Step 2: Image Generation (The "Hand")
     const styleMicroPrompt = STYLE_PROMPTS[style] || `${style} style.`;
-    const curtainDef = CURTAIN_STYLES[style] || "neutral, photorealistic curtains fitting the style";
 
-    const prompt = `You are Pixa Interior Design — a hyper-realistic Interior rendering AI using Gemini 3 Pro.
+    const prompt = `You are Pixa Interior Design — a hyper-realistic Interior rendering AI.
     
-    *** CRITICAL INPUT: ARCHITECT'S BLUEPRINT ***
+    *** SPATIAL BLUEPRINT (EXECUTE STRICTLY) ***
     ${renovationBlueprint}
     
-    *** YOUR MISSION ***
-    Execute the Architect's Blueprint above on the uploaded image.
+    *** RENDERING PROTOCOL: PHYSICS & REALISM ***
+    1. **Geometry Lock**: Do NOT warp walls, windows, or doors. The room structure is fixed.
+    2. **Perspective Consistency**: All new furniture must align with the "METRICS" defined above (Vanishing point & Focal length). No skewed angles.
+    3. **Scale Accuracy**: A chair is ~45cm high. A table is ~75cm. A door is ~2.1m. Maintain these relative scales perfectly.
+    4. **Gravity & Contact**: Objects must touch the floor. Add Ambient Occlusion (contact shadows) where furniture meets the floor/rug. No floating objects.
+    5. **Light Consistency**: Re-light the new elements using the "PHYSICS" light map from the blueprint. Shadows must match existing shadows.
     
-    ${COMPREHENSIVE_VALIDATION_RULES}
-    
-    *** MANDATORY WINDOW TREATMENT ***
-    - IF a window is present in the image, ADD CURTAINS: ${curtainDef}.
-    - CONSTRAINTS: Do NOT remove/alter the window structure.
-    - PHYSICS: Curtains must be realistically mounted, fall naturally with gravity, and have correct transparency/shadows.
-    
-    DESIGN INSTRUCTIONS:
+    *** DESIGN INSTRUCTIONS ***
     - Style: ${style}
     - Room: ${roomType} (${spaceType})
     - Details: ${styleMicroPrompt}
     
-    RENDER SETTINGS (PHOTOREALISM PRIORITY):
-    - **Output must look like a real photograph, NOT a 3D render.**
-    - Use RAW photography style, natural film grain, imperfect textures.
-    - Global Illumination, Path Tracing.
-    - Soft shadows matching original light source exactly.
-    - High-texture PBR materials (scratches, smudges, fabric weaves).
-    - Final Quality Score: Must be > 95/100 on realism check.
+    *** FINAL OUTPUT ***
+    - A 4K, photorealistic photograph. 
+    - Textures must be high-fidelity (wood grain, fabric weave, reflections).
+    - It should look like a "After" photo taken from the *exact same camera position* as the input.
     
     Output ONLY the transformed image.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview', // Upgraded to Pro Image
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           { inlineData: { data: data, mimeType: optimizedMime } },

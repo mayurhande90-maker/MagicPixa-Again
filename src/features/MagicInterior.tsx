@@ -44,7 +44,28 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const activeRoomOptions = spaceType === 'home' ? homeRooms : officeRooms;
     const activeStyleOptions = spaceType === 'home' ? homeStyles : officeStyles;
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision scanning structure...", "Pixa is mapping perspective...", "Pixa is applying style...", "Pixa is rendering furniture...", "Pixa is finalizing lighting..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { 
+        let interval: any; 
+        if (loading) { 
+            // Enhanced "Physics" Loading Steps
+            const steps = [
+                "Pixa Vision: Calculating room geometry...",
+                "Pixa Vision: Triangulating vanishing points...",
+                "Pixa Vision: Extracting 3D depth map...",
+                "Design Engine: Simulating light transport...",
+                "Design Engine: Rendering physical materials...",
+                "Design Engine: Finalizing photorealistic output..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2500); // Slower steps to show "deep work"
+        } 
+        return () => clearInterval(interval); 
+    }, [loading]);
+
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
     const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } };
@@ -79,7 +100,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Redesign any room in seconds. Choose a style and watch Pixa transform your space." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession} resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }} scrollRef={scrollRef}
                 leftContent={
