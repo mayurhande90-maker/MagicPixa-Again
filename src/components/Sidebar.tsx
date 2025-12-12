@@ -23,15 +23,15 @@ const NavButton: React.FC<{
         key={item.id}
         onClick={onClick}
         disabled={item.disabled}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-left group ${
             activeView === item.id
                 ? 'bg-[#4D7CFF]/15 text-[#4D7CFF]'
                 : item.disabled
                 ? 'text-gray-400 cursor-not-allowed'
-                : 'text-[#5F6368] hover:bg-gray-100'
+                : 'text-[#5F6368] hover:bg-white hover:shadow-sm hover:text-[#1A1A1E] hover:translate-x-1'
         }`}
     >
-        <item.icon className="w-5 h-5 flex-shrink-0" />
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${activeView === item.id ? '' : 'group-hover:scale-110'}`} />
         <span className="truncate">{item.label}</span>
         {item.disabled && (
             <span className="ml-auto text-[10px] bg-gray-200 text-gray-500 font-bold px-1.5 py-0.5 rounded-full">
@@ -152,9 +152,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
             
             <button 
                 onClick={openReferralModal}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left text-purple-600 hover:bg-purple-50 mt-4"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-left text-purple-600 hover:bg-purple-100 hover:shadow-sm mt-4 group"
             >
-                <GiftIcon className="w-5 h-5" />
+                <GiftIcon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
                 <span>Refer & Earn</span>
                 <span className="ml-auto text-[10px] bg-purple-200 text-purple-700 font-bold px-1.5 py-0.5 rounded-full">
                     NEW
