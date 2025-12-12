@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon } from '../components/icons';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -23,23 +23,30 @@ const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
     'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
 };
 
+// --- INTERNAL ICONS ---
+const PaletteIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>;
+const PlusIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
+const HomeIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
+const ScaleIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>;
+
 // --- PRO MODE CONFIGURATIONS ---
 const PRO_ARCHETYPES = [
-    { label: 'Corporate Executive', attire: 'Dark Navy/Black Power Suit, Crisp White Shirt, Silk Tie (if male)', vibe: 'Authoritative, Trustworthy, Leadership' },
-    { label: 'Tech Founder', attire: 'High-end T-shirt with Blazer, or Smart Casual Polo', vibe: 'Innovative, Approachable, Visionary' },
-    { label: 'Creative Director', attire: 'Stylish Turtleneck, Designer Glasses, Textured Blazer', vibe: 'Artistic, Sophisticated, Modern' },
-    { label: 'Medical Professional', attire: 'White Coat over professional clothes or Premium Scrubs', vibe: 'Caring, Clean, Expert' },
-    { label: 'Realtor / Sales', attire: 'Bright, sharp Business Formal, approachable colors', vibe: 'Friendly, Energetic, Successful' },
-    { label: 'Legal / Finance', attire: 'Strictly Formal Charcoal Suit, conservative styling', vibe: 'Serious, Competent, Reliable' }
+    { id: 'executive', label: 'Corporate Executive', attire: 'Navy Power Suit, Crisp Shirt', vibe: 'Leadership', icon: <BuildingIcon className="w-4 h-4"/> },
+    { id: 'tech', label: 'Tech Founder', attire: 'Premium T-Shirt & Blazer', vibe: 'Visionary', icon: <SparklesIcon className="w-4 h-4"/> },
+    { id: 'creative', label: 'Creative Director', attire: 'Turtleneck & Designer Glasses', vibe: 'Sophisticated', icon: <PaletteIcon className="w-4 h-4"/> },
+    { id: 'medical', label: 'Medical Pro', attire: 'White Coat / Premium Scrubs', vibe: 'Expert Care', icon: <PlusIcon className="w-4 h-4"/> },
+    { id: 'realtor', label: 'Realtor / Sales', attire: 'Modern Business Formal', vibe: 'Friendly', icon: <HomeIcon className="w-4 h-4"/> },
+    { id: 'legal', label: 'Legal / Finance', attire: 'Charcoal Suit, Conservative', vibe: 'Serious', icon: <ScaleIcon className="w-4 h-4"/> }
 ];
 
 const PRO_BACKGROUNDS = [
-    { label: 'Studio Grey', desc: 'Classic neutral backdrop, distinct separation', prompt: 'Solid neutral grey studio backdrop with soft gradient' },
-    { label: 'Modern Office Blur', desc: 'Depth of field, glass walls, bright', prompt: 'Blurred modern open-plan office background, bokeh lights, glass architecture' },
-    { label: 'City Skyline', desc: 'High floor window view, blurred city', prompt: 'Blurred cityscape through a high-rise window, soft daylight' },
-    { label: 'Library / Bookshelf', desc: 'Intellectual, warm tones', prompt: 'Blurred academic library or mahogany bookshelf background' },
-    { label: 'Outdoor Garden', desc: 'Natural light, greenery', prompt: 'Soft focus manicured garden, natural sunlight' }
+    { id: 'studio', label: 'Studio Grey', desc: 'Neutral & Clean', prompt: 'Solid neutral grey studio backdrop with soft gradient' },
+    { id: 'office', label: 'Modern Office', desc: 'Glass & Light', prompt: 'Blurred modern open-plan office background, bokeh lights, glass architecture' },
+    { id: 'city', label: 'City Skyline', desc: 'High-Rise View', prompt: 'Blurred cityscape through a high-rise window, soft daylight' },
+    { id: 'library', label: 'Library', desc: 'Warm Academic', prompt: 'Blurred academic library or mahogany bookshelf background' },
+    { id: 'outdoor', label: 'Garden', desc: 'Natural Light', prompt: 'Soft focus manicured garden, natural sunlight' }
 ];
+
 
 // --- PREMIUM UI COMPONENTS ---
 
@@ -449,7 +456,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                             <g fill="none">
                                                 <rect width="256" height="256" fill="#fff" rx="60"/>
                                                 <rect width="256" height="256" fill="#0A66C2" rx="60"/>
-                                                <path fill="#fff" d="M184.715 217.685h29.27a4 4 0 0 0 4-3.999l.015-61.842c0-32.323-6.965-57.168-44.738-57.168c-14.359-.534-27.9 6.868-35.207 19.228a.32.32 0 0 1-.595-.161V101.66a4 4 0 0 0-4-4h-27.777a4 4 0 0 0-4 4v112.02a4 4 0 0 0 4 4h29.268a4 4 0 0 0 4-4v-55.373c0-15.657 2.97-30.82 22.381-30.82c19.135 0 19.383 17.916 19.383 31.834v54.364a4 4 0 0 0 4 4ZM38 59.627c0 11.865 9.767 21.627 21.632 21.627c11.862-.001 21.623-9.769 21.623-21.631C81.253 47.761 71.491 38 59.628 38C47.762 38 38 47.763 38 59.627Zm6.959 158.058h29.307a4 4 0 0 0 4-4V101.66a4 4 0 0 0-4-4H44.959a4 4 0 0 0-4 4v112.025a4 4 0 0 0 4 4Z"/>
+                                                <path fill="#fff" d="M184.715 217.685h29.27a4 4 0 0 0 4-3.999l.015-61.842c0-32.323-6.965-57.168-44.738-57.168c-14.359-.534-27.9 6.868-35.207 19.228a.32.32 0 0 1-.595-.161V101.66a4 4 0 0 0-4-4h-27.777a4 4 0 0 0-4 4v112.02a4 4 0 0 0 4-4h29.268a4 4 0 0 0 4-4v-55.373c0-15.657 2.97-30.82 22.381-30.82c19.135 0 19.383 17.916 19.383 31.834v54.364a4 4 0 0 0 4 4ZM38 59.627c0 11.865 9.767 21.627 21.632 21.627c11.862-.001 21.623-9.769 21.623-21.631C81.253 47.761 71.491 38 59.628 38C47.762 38 38 47.763 38 59.627Zm6.959 158.058h29.307a4 4 0 0 0 4-4V101.66a4 4 0 0 0-4-4H44.959a4 4 0 0 0-4 4v112.025a4 4 0 0 0 4 4Z"/>
                                             </g>
                                         </svg>
                                         <div>
@@ -458,44 +465,48 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         </div>
                                     </div>
 
-                                    {/* 1. Profession / Archetype */}
+                                    {/* 1. Profession / Archetype - Clean Card Selection */}
                                     <div className="mb-6">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">Professional Archetype</label>
                                         <div className="grid grid-cols-2 gap-3">
                                             {PRO_ARCHETYPES.map(arch => (
                                                 <button
-                                                    key={arch.label}
+                                                    key={arch.id}
                                                     onClick={() => setProArchetype(arch.label)}
-                                                    className={`p-3 rounded-xl border text-left transition-all relative overflow-hidden group ${proArchetype === arch.label ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                                                    className={`relative p-4 rounded-2xl border text-left transition-all duration-200 group ${proArchetype === arch.label ? 'border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600/20' : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'}`}
                                                 >
-                                                    <p className="text-xs font-bold mb-1 relative z-10">{arch.label}</p>
-                                                    <p className={`text-[9px] leading-tight relative z-10 ${proArchetype === arch.label ? 'text-indigo-200' : 'text-gray-400'}`}>{arch.attire.split(',')[0]}</p>
-                                                    {proArchetype === arch.label && <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>}
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className={`p-2 rounded-lg ${proArchetype === arch.label ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400 group-hover:text-gray-600'}`}>
+                                                            {arch.icon}
+                                                        </div>
+                                                        {proArchetype === arch.label && <div className="bg-indigo-600 text-white rounded-full p-0.5"><CheckIcon className="w-3 h-3"/></div>}
+                                                    </div>
+                                                    
+                                                    <p className={`text-xs font-bold mb-1 ${proArchetype === arch.label ? 'text-indigo-900' : 'text-gray-900'}`}>{arch.label}</p>
+                                                    <p className={`text-[10px] leading-tight line-clamp-2 ${proArchetype === arch.label ? 'text-indigo-600 font-medium' : 'text-gray-500'}`}>{arch.attire}</p>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* 2. Background Selector */}
+                                    {/* 2. Background Selector - Bento Grid */}
                                     <div className="mb-4">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">Studio Environment</label>
-                                        <div className="space-y-2">
+                                        <div className="grid grid-cols-2 gap-3">
                                             {PRO_BACKGROUNDS.map(bg => (
                                                 <button
-                                                    key={bg.label}
+                                                    key={bg.id}
                                                     onClick={() => setProBackground(bg.label)}
-                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${proBackground === bg.label ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-100' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
+                                                    className={`flex flex-col items-start p-3 rounded-xl border transition-all ${proBackground === bg.label ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-100' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
                                                 >
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex justify-between w-full mb-2">
                                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${proBackground === bg.label ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
                                                             <BuildingIcon className="w-4 h-4"/>
                                                         </div>
-                                                        <div className="text-left">
-                                                            <p className={`text-xs font-bold ${proBackground === bg.label ? 'text-gray-900' : 'text-gray-600'}`}>{bg.label}</p>
-                                                            <p className="text-[9px] text-gray-400">{bg.desc}</p>
-                                                        </div>
+                                                        {proBackground === bg.label && <div className="w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
                                                     </div>
-                                                    {proBackground === bg.label && <div className="w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    <p className={`text-xs font-bold ${proBackground === bg.label ? 'text-gray-900' : 'text-gray-700'}`}>{bg.label}</p>
+                                                    <p className="text-[9px] text-gray-400 mt-0.5">{bg.desc}</p>
                                                 </button>
                                             ))}
                                         </div>
