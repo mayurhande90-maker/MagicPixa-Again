@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { AuthProps, Ticket } from '../../types';
 import { sendSupportMessage, createTicket, ChatMessage, analyzeErrorScreenshot } from '../../services/supportService';
 import { fileToBase64 } from '../../utils/imageUtils';
@@ -9,7 +9,8 @@ import {
     PaperAirplaneIcon,
     TrashIcon,
     ArrowDownIcon,
-    LifebuoyIcon
+    LifebuoyIcon,
+    ArrowUpIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -25,6 +26,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
     
+    // Pagination State
+    const [historyLimit, setHistoryLimit] = useState(10);
+    const [isRestoringScroll, setIsRestoringScroll] = useState(false);
+    
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
 
@@ -34,18 +39,29 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputFocusRef = useRef<HTMLTextAreaElement>(null);
 
+    // Derived state for display
+    const displayedMessages = messages.slice(-historyLimit);
+    const hasMoreHistory = messages.length > historyLimit;
+
     useEffect(() => {
         if (auth.user) {
             loadChatHistory();
         }
     }, [auth.user]);
 
-    // Auto-scroll effect
+    // Auto-scroll effect - Only if NOT loading older messages
     useEffect(() => {
-        if (!loadingHistory) {
+        if (!loadingHistory && !isRestoringScroll) {
             scrollToBottom();
         }
-    }, [loadingHistory, messages]);
+    }, [loadingHistory, messages]); // Dependencies adjusted to avoid scroll on pagination
+
+    // Reset restoring scroll flag after render
+    useEffect(() => {
+        if (isRestoringScroll) {
+            setIsRestoringScroll(false);
+        }
+    }, [displayedMessages]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -62,11 +78,34 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
     };
 
+    const handleLoadMore = () => {
+        if (scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const previousScrollHeight = container.scrollHeight;
+            const previousScrollTop = container.scrollTop;
+
+            setIsRestoringScroll(true);
+            setHistoryLimit(prev => prev + 10);
+
+            // Use requestAnimationFrame to adjust scroll position after DOM update
+            requestAnimationFrame(() => {
+                if (container) {
+                    const newScrollHeight = container.scrollHeight;
+                    // Adjust scrollTop to maintain visual position
+                    container.scrollTop = newScrollHeight - previousScrollHeight + previousScrollTop;
+                }
+            });
+        } else {
+            setHistoryLimit(prev => prev + 10);
+        }
+    };
+
     const handleClearChat = async () => {
         if (!auth.user) return;
         if (confirm("Clear your entire chat history? This cannot be undone.")) {
             setMessages([]);
             setHasInteracted(false);
+            setHistoryLimit(10);
             await clearSupportChat(auth.user.uid);
             loadChatHistory(); // Reload to show welcome message
         }
@@ -112,6 +151,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         if (!textToSend.trim() || !auth.user) return;
 
         setHasInteracted(true);
+        // Reset scroll lock when sending new message
+        setIsRestoringScroll(false);
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
@@ -123,7 +164,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         setMessages(prev => [...prev, userMsg]);
         if (!textOverride) setInputText('');
         setIsTyping(true);
-        // Scroll triggered by useEffect
         
         saveSupportMessage(auth.user.uid, userMsg).catch(e => console.warn("User msg save failed", e));
 
@@ -204,6 +244,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             const base64 = await fileToBase64(file);
             
             setHasInteracted(true);
+            setIsRestoringScroll(false);
 
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
@@ -231,7 +272,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     };
 
     return (
-        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-[2rem] shadow-xl border border-white/50 relative overflow-hidden group w-full">
+        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
             
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
@@ -257,62 +298,75 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-12 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-6 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
             >
                 {loadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center">
                         <ChatSkeleton />
                     </div>
                 ) : (
-                    messages.map((msg, index) => (
-                        <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
-                            <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                
-                                {/* Avatar */}
-                                <div className="mb-1 hidden sm:block shrink-0">
-                                    {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
-                                </div>
+                    <>
+                        {hasMoreHistory && (
+                            <div className="flex justify-center mb-4">
+                                <button 
+                                    onClick={handleLoadMore}
+                                    className="text-xs font-bold text-indigo-500 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm"
+                                >
+                                    <ArrowUpIcon className="w-3 h-3" /> Load Previous Messages
+                                </button>
+                            </div>
+                        )}
 
-                                {/* Message Bubble */}
-                                <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
-                                    <div className={`px-5 py-3.5 rounded-[1.5rem] shadow-sm text-sm leading-relaxed relative border transition-all ${
-                                        msg.role === 'user' 
-                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-500/20 border-transparent' 
-                                        : 'bg-white text-slate-700 rounded-tl-none border-gray-100 shadow-sm'
-                                    }`}>
-                                        {msg.role === 'user' 
-                                            ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                            : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
-                                        }
+                        {displayedMessages.map((msg, index) => (
+                            <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
+                                <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    
+                                    {/* Avatar */}
+                                    <div className="mb-1 hidden sm:block shrink-0">
+                                        {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                     </div>
 
-                                    {/* Embedded Widgets */}
-                                    {msg.type === 'proposal' && msg.ticketDraft && (
-                                        <div className="pl-2">
-                                            <TicketProposalCard 
-                                                draft={msg.ticketDraft} 
-                                                onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
-                                                onCancel={() => handleCancelTicket(msg.id)}
-                                                isSubmitting={submittingTicketId === msg.id}
-                                                isSubmitted={msg.isSubmitted || false}
-                                            />
+                                    {/* Message Bubble */}
+                                    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}>
+                                        <div className={`px-5 py-3.5 rounded-[1.5rem] shadow-sm text-sm leading-relaxed relative border transition-all ${
+                                            msg.role === 'user' 
+                                            ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-500/20 border-transparent' 
+                                            : 'bg-white text-slate-700 rounded-tl-none border-gray-100 shadow-sm'
+                                        }`}>
+                                            {msg.role === 'user' 
+                                                ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                                : <FormattedMessage text={msg.content} isWelcome={index === 0 && !hasMoreHistory && msg.content.includes("### Good")} />
+                                            }
                                         </div>
-                                    )}
-                                    
-                                    <span className={`text-[10px] font-medium mt-1.5 px-2 opacity-50 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                            </div>
 
-                            {/* Quick Actions (Contextual - Only on last bot message if no interaction yet) */}
-                            {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
-                                <div className="w-full mt-6 pl-0 sm:pl-14">
-                                    <QuickActions onAction={handleQuickAction} className="justify-start" />
+                                        {/* Embedded Widgets */}
+                                        {msg.type === 'proposal' && msg.ticketDraft && (
+                                            <div className="pl-2">
+                                                <TicketProposalCard 
+                                                    draft={msg.ticketDraft} 
+                                                    onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
+                                                    onCancel={() => handleCancelTicket(msg.id)}
+                                                    isSubmitting={submittingTicketId === msg.id}
+                                                    isSubmitted={msg.isSubmitted || false}
+                                                />
+                                            </div>
+                                        )}
+                                        
+                                        <span className={`text-[10px] font-medium mt-1.5 px-2 opacity-50 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))
+
+                                {/* Quick Actions (Contextual - Only on last bot message if no interaction yet) */}
+                                {!hasInteracted && index === displayedMessages.length - 1 && msg.role === 'model' && (
+                                    <div className="w-full mt-6 pl-0 sm:pl-14">
+                                        <QuickActions onAction={handleQuickAction} className="justify-start" />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </>
                 )}
                 
                 {isTyping && (
@@ -339,7 +393,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 </button>
             )}
 
-            {/* Input Area */}
+            {/* Input Area - Fixed at Bottom */}
             <div className="flex-none p-4 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
                 
                 {hasInteracted && !loadingHistory && !isTyping && (

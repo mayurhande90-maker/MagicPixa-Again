@@ -5,7 +5,6 @@ import { getUserTickets } from '../services/supportService';
 import { 
     LifebuoyIcon, 
     TicketIcon, 
-    CreditCoinIcon,
     ShieldCheckIcon
 } from '../components/icons';
 import { SupportChatWindow } from './support/SupportChatWindow';
@@ -68,12 +67,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             )}
                         </div>
 
-                        {/* Credits - Visible everywhere */}
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
-                            <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
-                            <span className="text-xs font-bold text-gray-700">{auth.user?.credits} CR</span>
-                        </div>
-
                         {/* Mobile Sidebar Toggle */}
                         <button 
                             onClick={() => setSidebarOpen(!sidebarOpen)} 
@@ -87,8 +80,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             {/* Main Content Area - Absolute Positioning Strategy for Robustness */}
             <div className="flex-1 w-full relative overflow-hidden z-10">
-                <div className="absolute inset-0 p-4 lg:p-6 overflow-hidden flex justify-center">
-                    <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <div className="absolute inset-0 p-0 sm:p-4 lg:p-6 overflow-hidden flex justify-center">
+                    <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 h-full">
                         {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
                         <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
 
