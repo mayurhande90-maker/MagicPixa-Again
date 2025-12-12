@@ -43,15 +43,16 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
     // Auto-scroll effect - Always scroll to bottom when messages update
     useEffect(() => {
-        if (!loadingHistory) {
+        if (!loadingHistory && messages.length > 0) {
             scrollToBottom();
         }
     }, [loadingHistory, messages]);
 
     const scrollToBottom = () => {
-        setTimeout(() => {
+        // Use requestAnimationFrame for better timing with layout updates
+        requestAnimationFrame(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 150);
+        });
     };
 
     const handleScroll = () => {
@@ -65,11 +66,21 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
 
     const handleNewChat = async () => {
         if (!auth.user) return;
-        if (confirm("Start a new support session? This will clear the current conversation.")) {
+        
+        // Confirm first
+        if (window.confirm("Start a new support session? This will clear the current conversation.")) {
+            setLoadingHistory(true); // Show skeleton immediately to hide old chat/empty state flicker
             setMessages([]);
             setHasInteracted(false);
-            await clearSupportChat(auth.user.uid);
-            loadChatHistory(); // Reload to show welcome message
+            
+            try {
+                await clearSupportChat(auth.user.uid);
+            } catch (e) {
+                console.error("Failed to clear chat", e);
+            }
+            
+            // Reload to generate welcome message
+            await loadChatHistory();
         }
     };
 
@@ -124,6 +135,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         setMessages(prev => [...prev, userMsg]);
         if (!textOverride) setInputText('');
         setIsTyping(true);
+        scrollToBottom(); // Instant scroll for user message
         
         saveSupportMessage(auth.user.uid, userMsg).catch(e => console.warn("User msg save failed", e));
 
@@ -245,18 +257,21 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 </div>
             </div>
 
-            {/* Main Chat Scroll Area */}
+            {/* Main Chat Scroll Area - Added flex flex-col to parent */}
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-6 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-6 pb-6 space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col"
             >
                 {loadingHistory ? (
-                    <div className="h-full flex flex-col items-center justify-center">
+                    <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
                         <ChatSkeleton />
                     </div>
                 ) : (
                     <>
+                        {/* Add margin-top: auto to push content to bottom when sparse */}
+                        <div className="flex-1"></div> 
+                        
                         {messages.map((msg, index) => (
                             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
                                 <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -310,7 +325,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                 )}
                 
                 {isTyping && (
-                    <div className="flex items-center gap-3 animate-fadeIn pl-2">
+                    <div className="flex items-center gap-3 animate-fadeIn pl-2 mb-2">
                         <PixaBotIcon />
                         <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1.5 items-center">
                             <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
