@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, LifebuoyIcon } from './icons';
+import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, ScannerIcon, MockupIcon, UsersIcon, HomeIcon, NotesIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
     { type: 'divider', label: 'Account' },
     { id: 'billing', label: 'Billing & Credits', icon: CreditCardIcon, disabled: false },
-    { id: 'support_center', label: 'Help & Support', icon: LifebuoyIcon, disabled: false },
+    { id: 'support_center', label: 'Help & Support', icon: PixaSupportIcon, disabled: false },
   ];
 
   const navStructure = allNavItems.map(item => {
