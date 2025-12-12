@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
