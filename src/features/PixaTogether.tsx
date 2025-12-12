@@ -13,6 +13,16 @@ import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
+// --- CONFIGURATION CONSTANTS ---
+
+const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
+    'Present Day': ['Outdoor Park', 'Beach', 'Luxury Rooftop', 'City Street', 'Cozy Home', 'Cafe', 'Deep Forest', 'Modern Studio', 'Snowy Mountain', 'Sunset Beach'],
+    'Future Sci-Fi': ['Neon City', 'Space Station', 'Cyberpunk Rooftop', 'Holo-Deck', 'Alien Planet', 'Starship Bridge', 'Crystal Forest', 'High-Tech Lab'],
+    '1990s Vintage': ['90s Mall', 'Retro Arcade', 'Grunge Garage', 'Neon Diner', 'Video Store', 'High School Hallway', 'Suburban Street', 'Vintage Bedroom'],
+    '1920s Noir': ['Jazz Club', 'Art Deco Hotel', 'Rainy Street', 'Speakeasy', 'Vintage Train', 'Gatsby Mansion', 'Smoky Bar', 'Classic Theater'],
+    'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
+};
+
 // --- PREMIUM UI COMPONENTS ---
 
 const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
@@ -119,9 +129,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     
     // Creative Params
     const [mood, setMood] = useState('Happy');
-    const [environment, setEnvironment] = useState('Outdoor Park');
-    const [pose, setPose] = useState('Standing Together');
     const [timeline, setTimeline] = useState('Present Day');
+    // Initialize environment based on default timeline
+    const [environment, setEnvironment] = useState(TIMELINE_ENVIRONMENTS['Present Day'][0]);
+    
+    const [pose, setPose] = useState('Standing Together');
     const [customDescription, setCustomDescription] = useState('');
 
     // Settings
@@ -146,6 +158,16 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Derived state for available environments
+    const availableEnvironments = TIMELINE_ENVIRONMENTS[timeline] || TIMELINE_ENVIRONMENTS['Present Day'];
+
+    // Update environment when timeline changes to prevent conflicts
+    useEffect(() => {
+        if (!availableEnvironments.includes(environment)) {
+            setEnvironment(availableEnvironments[0]);
+        }
+    }, [timeline, availableEnvironments, environment]);
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
@@ -363,6 +385,22 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {mode === 'creative' && (
                                 <PremiumCard className="animate-fadeIn">
                                     <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
+                                    
+                                    {/* Magic Overrides / Time Travel First */}
+                                    <div className="mb-4 pb-4 border-b border-gray-100">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <SparklesIcon className="w-3 h-3 text-indigo-500" />
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
+                                        </div>
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
+                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
+                                                {Object.keys(TIMELINE_ENVIRONMENTS).map(t => <option key={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Environment & Mood (Filtered by Timeline) */}
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
@@ -373,26 +411,12 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Setting</label>
                                             <select value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
-                                                {['Outdoor Park', 'Beach', 'Luxury Rooftop', 'City Street', 'Cozy Home', 'Cafe', 'Deep Forest', 'Modern Studio', 'Snowy Mountain', 'Sunset Beach'].map(o => <option key={o}>{o}</option>)}
+                                                {availableEnvironments.map(o => <option key={o}>{o}</option>)}
                                             </select>
                                         </div>
                                     </div>
                                     
-                                    <div className="pt-4 border-t border-gray-100">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <SparklesIcon className="w-3 h-3 text-indigo-500" />
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
-                                        </div>
-                                        <div className="mb-4">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
-                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
-                                                <option>Present Day</option>
-                                                <option>Future Sci-Fi</option>
-                                                <option>1990s Vintage</option>
-                                                <option>1920s Noir</option>
-                                                <option>Medieval</option>
-                                            </select>
-                                        </div>
+                                    <div className="pt-2">
                                         <PremiumInput placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} label="Custom Vision" />
                                     </div>
                                 </PremiumCard>
