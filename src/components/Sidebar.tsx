@@ -65,8 +65,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'scanner', label: 'Magic Scanner', icon: ScannerIcon, disabled: true },
     { id: 'notes', label: 'Magic Notes', icon: NotesIcon, disabled: true },
     { type: 'divider', label: 'Account' },
-    { id: 'support_center', label: 'Help & Support', icon: LifebuoyIcon, disabled: false }, // Added
     { id: 'billing', label: 'Billing & Credits', icon: CreditCardIcon, disabled: false },
+    { id: 'support_center', label: 'Help & Support', icon: LifebuoyIcon, disabled: false },
   ];
 
   const navStructure = allNavItems.map(item => {
