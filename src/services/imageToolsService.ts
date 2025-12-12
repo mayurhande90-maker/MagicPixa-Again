@@ -59,6 +59,46 @@ const ENVIRONMENT_PROMPTS: Record<string, string> = {
     'Sunset Beach': 'A beach at golden hour, warm orange sun reflecting on the water, dramatic clouds.'
 };
 
+// --- DEEP RESEARCH TIMELINE RULES ---
+const TIMELINE_RULES: Record<string, string> = {
+    'Present Day': `
+        **ERA PROTOCOL: CONTEMPORARY REALISM**
+        - **Camera**: Sony A7R V or Canon R5. Sharp, digital clarity.
+        - **Materials**: Modern fabrics (cotton blend, denim, polyester), modern architecture (glass, steel, concrete).
+        - **Lighting**: Natural dynamic range, modern practical lights (LEDs, fluorescents) or sunlight.
+    `,
+    'Future Sci-Fi': `
+        **ERA PROTOCOL: YEAR 2150 CYBERPUNK**
+        - **Aesthetic**: Blade Runner / Tron Legacy / High-Tech.
+        - **Materials**: Iridescent fabrics, latex, carbon fiber, transparent tech-wear, holographic accents.
+        - **Environment**: Clean geometry, floating interfaces, metallic surfaces.
+        - **Lighting**: Volumetric fog, neon rim lights (cyan/magenta), deep shadows, anamorphic lens flares.
+    `,
+    '1990s Vintage': `
+        **ERA PROTOCOL: LATE 90s ANALOG**
+        - **Aesthetic**: Disposable Kodak Camera / 35mm Film.
+        - **Visuals**: Direct on-camera flash (harsh shadows behind subject), slight motion blur, high saturation primaries.
+        - **Fashion**: Denim jackets, plaid, oversized fits, grunge influence.
+        - **Texture**: Visible film grain, slight color bleeding, "imperfect" home photo look.
+    `,
+    '1920s Noir': `
+        **ERA PROTOCOL: ROARING TWENTIES / ART DECO**
+        - **Aesthetic**: The Great Gatsby / Peaky Blinders.
+        - **Fashion**: Men in tuxedos/three-piece wool suits. Women in flapper dresses, pearls, headbands, silk, velvet.
+        - **Environment**: Art Deco patterns, gold inlays, marble, smoke-filled jazz clubs, opulent ballrooms.
+        - **Lighting**: Chiaroscuro (High contrast), dramatic spotlighting, soft focus filters (Vaseline on lens look).
+        - **Color**: Rich, deep colors (Gold, Black, Burgundy) OR Silver Nitrate B&W if requested.
+    `,
+    'Medieval': `
+        **ERA PROTOCOL: 14th CENTURY FANTASY REALISM**
+        - **Aesthetic**: Game of Thrones / Lord of the Rings.
+        - **Materials**: Rough-spun wool, heavy linen, fur pelts, leather armor, chainmail, velvet capes. NO zippers, NO plastic, NO modern makeup.
+        - **Environment**: Cold stone castles, torch-lit taverns, misty ancient forests.
+        - **Lighting**: Firelight (warm, flickering), candlelight, or diffuse overcast daylight.
+        - **Texture**: Gritty, high-detail texture on skin and fabric.
+    `
+};
+
 // Step 1: Deep Forensic Analysis (Text Model)
 const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string): Promise<string> => {
     const prompt = `Act as a Smithsonian Photo Conservator. Perform a Deep Forensic Analysis of this damaged/aged photo.
@@ -66,7 +106,7 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     1. **Historical Context**: Estimate the decade/era based on clothing and hair. This determines the color palette.
     2. **Subject Identity**: Describe the person's ethnicity, estimated age, facial structure, and expression.
     3. **Damage Report**: Identify artifacts to REMOVE (scratches, dust, blur, tearing, sepia cast, halftone dots).
-    4. **Reconstruction Plan**: What details are missing that need to be hallucinated plausibly (e.g., "reconstruct left eye based on right eye symmetry", "fix tattered collar")?
+    4. **Reconstruction Plan**: What details are missing that need to be hallucinated plausibly (e.g. "reconstruct left eye based on right eye symmetry", "fix tattered collar")?
     
     Output a concise "Restoration Blueprint" paragraph.`;
 
@@ -235,6 +275,7 @@ export const generateMagicSoul = async (
     const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? results[results.length - 1] : null;
 
     // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS (The "Brain")
+    // We analyze the faces first to create a text anchor for the image generation model
     const analysisPromises = [analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A")];
     if (optB) {
         analysisPromises.push(analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B"));
@@ -245,143 +286,110 @@ export const generateMagicSoul = async (
     const biometricsB = optB ? biometricsResults[1] : "";
 
     // 3. PHASE 2: GENERATION PROMPT ENGINEERING
-    let mainPrompt = "";
     
-    if (!optB) {
-        mainPrompt = `Generate a single professional portrait of Person A.`;
-    } else {
-        mainPrompt = `Generate a single combined photograph using Person A and Person B.`;
-    }
+    // --- PART 1: THE IDENTITY ANCHOR ---
+    let mainPrompt = `
+    *** STRICT IDENTITY PRESERVATION PROTOCOL ***
+    You are a Photographic Cloning Engine.
     
-    // --- IDENTITY LOCK BLOCK ---
-    mainPrompt += `
-    *** IDENTITY PRESERVATION PROTOCOL (CRITICAL) ***
-    We have analyzed the subjects. You MUST adhere to these biometric profiles:
+    **SUBJECT A**:
+    - VISUAL SOURCE: Input Image 1.
+    - BIOMETRICS: ${biometricsA}
     
-    [PERSON A PROFILE]:
-    ${biometricsA}
+    ${optB ? `**SUBJECT B**:
+    - VISUAL SOURCE: Input Image 2.
+    - BIOMETRICS: ${biometricsB}` : ''}
     
-    ${optB ? `[PERSON B PROFILE]:
-    ${biometricsB}` : ''}
-    
-    **INSTRUCTION**: Use the uploaded images as the visual source, but use the text profiles above to VALIDATE the generated faces. 
-    - The output faces must be pixel-perfect matches to the inputs.
-    - Do NOT blend features.
-    - Preserves moles, scars, and specific eye shapes mentioned in the profile.
+    **CRITICAL CONSTRAINT: THE "SACRED ASSET" RULE**
+    1. **NO FACE SWAPPING**: You must render the EXACT faces provided in the input images.
+    2. **NO STRUCTURE CHANGE**: Maintain the exact skeletal structure, nose shape, eye distance, and jawline.
+    3. **NO BODY MORPHING**: Maintain the subject's Body Mass Index (BMI), shoulder width, and height ratios. Do NOT idealize or slim the bodies unless explicitly told.
+    4. **HAIR**: ${inputs.locks.hair ? "LOCK HAIR: Maintain exact hairstyle, hairline, and color." : "Adapt hair slightly to wind/lighting, but keep length and style recognizable."}
     `;
 
-    // --- MODE SPECIFIC INSTRUCTIONS ---
+    // --- PART 2: THE TIMELINE ENGINE ---
+    // This injects the deep research rules for the specific era
+    const selectedTimeline = inputs.timeline || 'Present Day';
+    const timelineInstructions = TIMELINE_RULES[selectedTimeline] || TIMELINE_RULES['Present Day'];
+
+    mainPrompt += `
+    *** RENDERING ENGINE: ${selectedTimeline.toUpperCase()} ***
+    ${timelineInstructions}
+    
+    **INSTRUCTION**: Apply this era's materials, lighting, and camera artifacts to the scene and the subjects' clothing/skin texture.
+    - IF Medieval: Skin should look natural/unmakeup-ed. Clothes must be heavy weave.
+    - IF 1920s: Skin can be powdered. High contrast lighting.
+    `;
+
+    // --- PART 3: MODE SPECIFIC INSTRUCTIONS ---
     if (inputs.mode === 'reenact') {
         mainPrompt += `
         *** REENACTMENT MODE (STRICT) ***
         - **TASK**: Recreate the scene from the "REFERENCE POSE" image exactly.
-        - **POSE & COMPOSITION**: Copy the exact body positions, camera angle, distance, and physical interaction from the Reference Pose image.
-        - **CASTING**: Replace the people in the Reference Pose with Person A ${optB ? 'and Person B' : ''}.
-        - **CONTEXT**: Keep the general vibe/setting of the reference image.
+        - **POSE**: Copy body positions, arm placements, and camera angle 1:1.
+        - **CASTING**: Replace the reference actors with Subject A ${optB ? 'and Subject B' : ''}, keeping their identities.
         `;
     } else if (inputs.mode === 'professional') {
-        if (!optB) {
-             // SINGLE HEADSHOT LOGIC
-             mainPrompt += `
-             *** PROFESSIONAL CORPORATE HEADSHOT (EXECUTIVE TIER) ***
-             - **TASK**: Generate a world-class, hyper-realistic LinkedIn/Executive profile photo.
-             - **CAMERA SPECS**: Hasselblad X2D 100C style. 85mm Prime Lens at f/2.8.
-             - **IDENTITY LOCK**: Do NOT change facial features, bone structure, or hair density. The person must look exactly like themselves, just professionally photographed.
-             - **ATTIRE**: Premium Business Formal.
-               * Men: Well-fitted Navy/Charcoal suit, crisp white shirt. Optional tie. Fabric must look like wool/cotton (visible weave).
-               * Women: Structured professional blazer (Black/Camel/Navy) or high-end business dress. Modest and elegant.
-             - **LIGHTING**: "Cinematic Corporate". Large Softbox key light at 45 degrees. Subtle rim light on hair/shoulders to separate subject from background. Fill light to reduce harsh shadows under eyes.
-             - **SKIN TEXTURE (CRITICAL)**: Skin must be ORGANIC. Visible pores, micro-details, and natural subsurface scattering. DO NOT apply "plastic" smoothing or AI filters.
-             - **BACKGROUND**:
-               * Option A: Softly blurred, modern architectural office (glass, steel, depth).
-               * Option B: Clean, textured neutral studio backdrop (Dark Grey or Cream).
-             - **POSE**: Head and shoulders composition. Body angled 30 degrees, face turned to camera. Chin slightly down. Confident, trustworthy, approachable expression.
-             `;
-        } else {
-             // DUO LOGIC
-             mainPrompt += `
-             *** PROFESSIONAL DUO CORPORATE PORTRAIT ***
-             - **TASK**: Create a high-end business partners/co-founders portrait (Forbes/Fortune Magazine style).
-             - **ATTIRE**: Coordinated Business Formal. Dark suits/blazers. Crisp and professional.
-             - **ENVIRONMENT**: Modern, clean, well-lit executive studio or blurred upscale office background.
-             - **POSE**: Professional, confident standing pose. Side-by-side or slight overlap (one shoulder behind). Balanced height and eye levels.
-             - **LIGHTING**: Even, soft studio lighting. Large light source to cover both subjects without casting shadows on each other.
-             - **REALISM**: High fidelity skin texture and fabric details. No "wax figure" look.
-             `;
-        }
+        mainPrompt += `
+        *** PROFESSIONAL PORTRAIT MODE ***
+        - **Attire**: Premium Business Formal (Suits, Blazers).
+        - **Setting**: ${inputs.environment === 'Modern Studio' ? 'High-end Photography Studio, Neutral Grey Backdrop' : 'Blurred Executive Office'}.
+        - **Lighting**: "Rembrandt" or "Butterfly" studio lighting. Softboxes. No harsh shadows.
+        - **Vibe**: Trustworthy, Competent, Leadership.
+        `;
     } else {
         // CREATIVE MODE
-        
-        // Lookup rich descriptions for Mood and Environment
-        const moodDesc = inputs.mood ? (MOOD_PROMPTS[inputs.mood] || inputs.mood) : 'Hyper-realistic';
+        const moodDesc = inputs.mood ? (MOOD_PROMPTS[inputs.mood] || inputs.mood) : 'Realistic';
         const envDesc = inputs.environment ? (ENVIRONMENT_PROMPTS[inputs.environment] || inputs.environment) : 'Neutral background';
 
         mainPrompt += `
-        *** CREATIVE MODE ***
-        - **Relationship Dynamic**: ${inputs.relationship}. Ensure the interaction reflects this closeness (or distance).
-        
-        *** ATMOSPHERE & COLOR GRADING (The Vibe) ***
-        - **Selection**: "${inputs.mood}"
-        - **Visual Execution**: ${moodDesc}
-        - **Camera Feel**: Adjust lens choice, depth of field, and film stock emulation to match this mood.
-        
-        *** SCENE & ENVIRONMENT ***
-        - **Selection**: "${inputs.environment}"
-        - **Visual Execution**: ${envDesc}
-        - **Integration**: Subjects must look grounded in this specific environment (matching shadows, reflections, and color spill).
-        
+        *** CREATIVE SCENE COMPOSITION ***
+        - **Relationship**: ${inputs.relationship} (Reflect this in proximity and body language).
+        - **Setting**: ${inputs.environment} -> ${envDesc}
+        - **Mood**: ${inputs.mood} -> ${moodDesc}
         - **Pose**: ${inputs.pose}
-        
-        ${inputs.timeline && inputs.timeline !== 'Present Day' ? `- **TIME TRAVEL ENGINE**: Render the entire scene (clothing, hair styling, film stock quality, background) to look authentically like the **${inputs.timeline}**.` : ''}
-        
-        ${inputs.universe && inputs.universe !== 'Photorealistic' ? `- **UNIVERSE ENGINE**: Render the output in the visual style of **${inputs.universe}**. Adjust texture, rendering style, and lighting to match this art style.` : '- **STYLE**: Hyper-realistic photography.'}
         `;
     }
 
     if (inputs.customDescription) {
         mainPrompt += `
-        *** USER CUSTOM VISION (DEEP SEARCH ENABLED) ***
-        The user has provided specific details: "${inputs.customDescription}".
-        - **ACTION**: Use your search tool to understand specific locations, styles, or concepts mentioned here.
-        - Integrate this description into the scene intelligently.
+        *** USER CUSTOM VISION ***
+        " ${inputs.customDescription} "
+        - INTEGRATION: Seamlessly blend this user request with the Timeline rules above.
         `;
     }
 
-    // --- FEATURE LOCKS & FIXES ---
+    // --- PART 4: CLOTHING & FINAL POLISH ---
     mainPrompt += `
-    *** FEATURE LOCKS ***
-    ${inputs.locks.age ? "- **LOCK AGE**: Do NOT make them younger or older. Maintain current age." : ""}
-    ${inputs.locks.hair ? "- **LOCK HAIR**: Maintain original hairstyle and hair color exactly." : ""}
-    ${inputs.locks.accessories ? "- **LOCK ACCESSORIES**: Keep glasses, facial hair/beards." : ""}
-    
     *** CLOTHING LOGIC ***
-    ${inputs.mode === 'professional' ? "- **CLOTHING**: FORCE BUSINESS ATTIRE." : (inputs.clothingMode === 'Keep Original' ? "- **CLOTHING**: Keep original outfits." : "- **CLOTHING**: Change outfits to match the Scene/Era/Vibe defined above.")}
+    ${inputs.clothingMode === 'Match Vibe' 
+        ? `**AUTO-STYLE**: Generate clothing that perfectly matches the **${selectedTimeline}** era and **${inputs.environment || 'Setting'}**. 
+           - Example: If Medieval, generate tunics/gowns. If 1920s, generate tuxedos/flapper dresses. If Future, generate tech-wear.
+           - Ensure fabric textures match the era (e.g., wool vs synthetic).`
+        : inputs.clothingMode === 'Professional Attire' 
+            ? "**FORCE**: Business Formal suits/blazers." 
+            : "**KEEP**: Attempt to keep original clothing style but relight it."}
     
-    ${inputs.autoFix ? `*** AUTO-FIX & QUALITY ***
-    - Output in High Definition (4K).
-    - Remove noise/grain from input. Sharpen eyes. Balance exposure. Correct lens distortion.
-    - Ensure lighting consistency across faces.` : ""}
-
-    *** NEGATIVE CONSTRAINTS ***
-    - Never blend identities. 
-    - Never hallucinate new facial features not present in input.
-    - Do not generate random people in the background.
-    - The photo should look NATURAL, not like an AI generation.
+    *** FINAL OUTPUT ***
+    Generate a SINGLE, coherently lit, photorealistic image.
+    - Check: Do the faces match the inputs? (Must be YES).
+    - Check: Does the lighting match the Era? (Must be YES).
+    - Check: Is the resolution high? (Must be YES).
     `;
 
     // 4. CONSTRUCT PAYLOAD
     const parts: any[] = [
-        { text: "Person A Reference:" },
+        { text: "INPUT IMAGE 1 (Reference for Person A):" },
         { inlineData: { data: optA.data, mimeType: optA.mimeType } }
     ];
     
     if (optB) {
-        parts.push({ text: "Person B Reference:" });
+        parts.push({ text: "INPUT IMAGE 2 (Reference for Person B):" });
         parts.push({ inlineData: { data: optB.data, mimeType: optB.mimeType } });
     }
 
     if (optPose) {
-        parts.push({ text: "REFERENCE POSE / COMPOSITION TARGET:" });
+        parts.push({ text: "REFERENCE POSE TARGET:" });
         parts.push({ inlineData: { data: optPose.data, mimeType: optPose.mimeType } });
     }
 
@@ -392,8 +400,7 @@ export const generateMagicSoul = async (
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
-          // Enable Google Search for "Deep Search" capability on environment/context
-          tools: [{ googleSearch: {} }] 
+          tools: [{ googleSearch: {} }] // Enable search for niche era details if needed
       },
     });
 
@@ -406,126 +413,53 @@ export const generateMagicSoul = async (
   }
 };
 
-export const generateMockup = async (
-  base64ImageData: string,
-  mimeType: string,
-  mockupType: string
-): Promise<string> => {
-  const ai = getAiClient();
-  try {
-    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
-
-    const prompt = `Task: Professional Product Mockup.
-    
-    Input: A design/logo file.
-    Target Item: ${mockupType}.
-    
-    Instructions:
-    1. Generate a photorealistic image of the Target Item (${mockupType}) in a professional studio setting.
-    2. Apply the Input Design onto the surface of the Target Item.
-    3. **Physics**: The design must wrap around curves, folds, and textures (e.g., displacement map effect).
-    4. **Lighting**: The design must interact with the scene lighting (reflections, shadows).`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
-      contents: {
-        parts: [
-          { inlineData: { data: data, mimeType: optimizedMime } },
-          { text: prompt },
-        ],
-      },
-      config: { responseModalities: [Modality.IMAGE] },
-    });
-
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
-  } catch (error) {
-    console.error("Error generating mockup:", error);
-    throw error;
-  }
-};
-
-export const generateStyledImage = async (
-    productImages: string[],
-    prompt: string
-): Promise<string> => {
-    const ai = getAiClient();
-    // Use the first product image as reference
-    const { data, mimeType } = await optimizeImage(productImages[0], 'image/png');
-    
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: {
-            parts: [
-                { inlineData: { data: data, mimeType: mimeType } }, 
-                { text: `Stylized Generation. Prompt: ${prompt}` }
-            ]
-        },
-        config: { responseModalities: [Modality.IMAGE] }
-    });
-    
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
-};
-
 export const removeElementFromImage = async (
     base64ImageData: string,
     mimeType: string,
     maskBase64: string
 ): Promise<string> => {
     const ai = getAiClient();
-    
-    // Use Higher Resolution Optimizer for BOTH Source and Mask to ensure alignment
-    // If we optimize one but not the other, the coordinate systems mismatch.
-    const [optImg, optMask] = await Promise.all([
-        optimizeImageForEditing(base64ImageData, mimeType),
-        optimizeImageForEditing(maskBase64, "image/png")
-    ]);
+    try {
+        const { data: optImage, mimeType: optMime } = await optimizeImageForEditing(base64ImageData, mimeType);
+        // Ensure mask is also optimized to match resolution/size constraints
+        const { data: optMask, mimeType: maskMime } = await optimizeImageForEditing(maskBase64, 'image/png');
 
-    const prompt = `You are an advanced AI Photo Editor using Gemini 3 Pro.
-    
-    TASK: MAGIC ERASER / INPAINTING.
-    
-    INPUTS:
-    1. Source Image.
-    2. Mask Image (Black & White).
-    
-    **STRICT MASK DEFINITION:**
-    - **WHITE AREA** (Pixel value 255) = **THE OBJECT TO REMOVE**.
-    - **BLACK AREA** (Pixel value 0) = **THE REFERENCE BACKGROUND (KEEP)**.
-    
-    **INSTRUCTIONS:**
-    1. **IDENTIFY**: Look at the WHITE area in the Mask. Find the corresponding object in the Source Image.
-    2. **DELETE**: Completely erase everything inside the White Mask area.
-    3. **SYNTHESIZE**: Fill the erased hole by analyzing the patterns, lighting, and textures of the surrounding BLACK area.
-       - If the background is a wall, extend the wall.
-       - If it's a floor, continue the floor texture.
-       - If it's complex, hallucinate a plausible background that fits seamlessly.
-    4. **BLEND**: The edges must be invisible. No blurry patches. No artifacts.
-    
-    **NEGATIVE CONSTRAINTS:**
-    - Do NOT just blur the object. REMOVE IT.
-    - Do NOT leave a ghost or silhouette.
-    - Do NOT alter the Black (Safe) area.
-    
-    Output ONLY the final clean image.`;
-    
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: {
-            parts: [
-                { inlineData: { data: optImg.data, mimeType: optImg.mimeType } },
-                { text: "MASK LAYER (White=Remove, Black=Keep):" },
-                { inlineData: { data: optMask.data, mimeType: "image/png" } },
-                { text: prompt } 
-            ]
-        },
-        config: { responseModalities: [Modality.IMAGE] }
-    });
-    
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+        const prompt = `Task: Magic Eraser / Inpainting.
+        
+        INPUTS:
+        1. Source Image.
+        2. Mask Image (Black & White).
+        
+        INSTRUCTION:
+        - The Mask Image defines the area to EDIT.
+        - **White Pixels** in the mask = Area to Remove/Inpaint.
+        - **Black Pixels** in the mask = Area to Keep Unchanged.
+        
+        ACTION:
+        - Remove the object/element highlighted by the White Pixels in the Mask.
+        - Inpaint the removed area with realistic background texture, lighting, and details to make it disappear seamlessly.
+        - Do NOT change the rest of the image.
+        
+        OUTPUT:
+        - The final edited image.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: optImage, mimeType: optMime } },
+                    { inlineData: { data: optMask, mimeType: maskMime } },
+                    { text: prompt }
+                ]
+            },
+            config: { responseModalities: [Modality.IMAGE] }
+        });
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("No image generated.");
+    } catch (error) {
+        console.error("Error removing element:", error);
+        throw error;
+    }
 };
