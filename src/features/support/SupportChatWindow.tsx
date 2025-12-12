@@ -10,6 +10,7 @@ import {
     TrashIcon,
     ArrowDownIcon,
     LifebuoyIcon,
+    PlusIcon,
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -62,9 +63,9 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
     };
 
-    const handleClearChat = async () => {
+    const handleNewChat = async () => {
         if (!auth.user) return;
-        if (confirm("Clear your entire chat history? This cannot be undone.")) {
+        if (confirm("Start a new support session? This will clear the current conversation.")) {
             setMessages([]);
             setHasInteracted(false);
             await clearSupportChat(auth.user.uid);
@@ -243,12 +244,12 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
                 </div>
                 <button 
-                    onClick={handleClearChat}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors text-[10px] font-bold uppercase tracking-wide border border-transparent hover:border-red-100"
-                    title="Clear Chat History"
+                    onClick={handleNewChat}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg text-xs font-bold uppercase tracking-wide transform hover:-translate-y-0.5 active:translate-y-0"
+                    title="Start New Session"
                 >
-                    <TrashIcon className="w-3.5 h-3.5" />
-                    Clear History
+                    <PlusIcon className="w-3.5 h-3.5" />
+                    New Chat
                 </button>
             </div>
 
