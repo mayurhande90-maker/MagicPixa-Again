@@ -127,6 +127,33 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     }
 };
 
+// Step 2: Deep Scene Analysis for Pose Match (Ensure Strict Adherence)
+const analyzeReferenceScene = async (ai: any, base64: string, mimeType: string): Promise<string> => {
+    const prompt = `Describe this image in extreme detail for a VFX Head-Replacement task.
+    
+    1. **Attire**: Describe the clothing exactly (e.g. "Red velvet Lehenga with gold embroidery", "Black tuxedo with bow tie", "Casual beach wear").
+    2. **Environment**: Describe the background exactly (e.g. "Wedding mandap with floral decoration", "Office desk", "Eiffel Tower").
+    3. **Lighting/Mood**: Describe the light (e.g. "Flash photography", "Golden hour", "Neon lights").
+    
+    Output a concise paragraph describing the SCENE and ATTIRE.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64, mimeType: mimeType } },
+                    { text: prompt }
+                ]
+            }
+        });
+        return response.text || "Specific scene and attire.";
+    } catch (e) {
+        console.warn("Scene analysis failed", e);
+        return "Specific scene and attire.";
+    }
+};
+
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,
@@ -274,16 +301,13 @@ export const generateMagicSoul = async (
     // Pose is last if it exists
     const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? results[results.length - 1] : null;
 
-    // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS (The "Brain")
-    // We analyze the faces first to create a text anchor for the image generation model
-    const analysisPromises = [analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A")];
-    if (optB) {
-        analysisPromises.push(analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B"));
-    }
-    
-    const biometricsResults = await Promise.all(analysisPromises);
-    const biometricsA = biometricsResults[0];
-    const biometricsB = optB ? biometricsResults[1] : "";
+    // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS & SCENE ANALYSIS (The "Brain")
+    const biometricsAPromise = analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A");
+    const biometricsBPromise = optB ? analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B") : Promise.resolve("");
+    // NEW: Analyze Scene if Reenact
+    const sceneAnalysisPromise = (inputs.mode === 'reenact' && optPose) ? analyzeReferenceScene(ai, optPose.data, optPose.mimeType) : Promise.resolve("");
+
+    const [biometricsA, biometricsB, referenceSceneDesc] = await Promise.all([biometricsAPromise, biometricsBPromise, sceneAnalysisPromise]);
 
     // 3. PHASE 2: GENERATION PROMPT ENGINEERING
     
@@ -324,29 +348,34 @@ export const generateMagicSoul = async (
     // --- PART 3: MODE SPECIFIC INSTRUCTIONS ---
     if (inputs.mode === 'reenact') {
         mainPrompt += `
-        *** MODE: VIRTUAL HEAD REPLACEMENT (VFX COMPOSITOR) ***
+        *** MODE: PRECISE FACE SWAP / HEAD REPLACEMENT ***
         
-        **MASTER CANVAS**: The "REFERENCE POSE TARGET" image.
-        **TEXTURE SOURCE**: "INPUT IMAGE 1" (Person A).
+        **BASE IMAGE CONTEXT (FROZEN SCENE)**: 
+        ${referenceSceneDesc}
         
-        **EXECUTION PROTOCOL (HARMONIZED STRUCTURE LOCK):**
+        **STRICT EXECUTION RULES**:
         1. **GEOMETRY LOCK**: You MUST retain 100% of the Reference Image's:
-           - Clothing folds and texture.
+           - Clothing folds, texture, and exact style (as described above).
            - Body pose and skeletal structure.
-           - Background details and lighting direction.
+           - Background details, location, and lighting direction (as described above).
            - Camera angle and lens distortion.
            
-        2. **IDENTITY INJECTION**: 
+        2. **SCENE INTEGRITY**:
+           - If the reference description says "Wedding", the output MUST be a Wedding.
+           - If the reference says "Winter clothes", the output MUST have Winter clothes.
+           - **DO NOT** hallucinate a new setting (like a park) if it contradicts the reference.
+           
+        3. **IDENTITY INJECTION**: 
            - Replace the HEAD/FACE of the person in the Reference Image with the face of Person A.
            - If Person B is provided, replace the second person in the Reference.
            
-        3. **SKIN HARMONIZATION (CRITICAL)**:
+        4. **SKIN HARMONIZATION (CRITICAL)**:
            - The User Face (Source) has a specific skin tone.
            - **ACTION**: Re-tint the exposed skin of the Reference Body (neck, hands, arms) to match the User Face.
            - Ensure the lighting on the face matches the Reference Scene's lighting direction.
            - Blend the neck seam perfectly.
            
-        **OUTPUT GOAL**: A seamless photorealistic composite where the user appears to be wearing the reference outfit in the reference scene. No "sticker face" effect.
+        **OUTPUT GOAL**: A seamless photorealistic composite where the user appears to be wearing the EXACT reference outfit in the EXACT reference scene.
         `;
     } else if (inputs.mode === 'professional') {
         mainPrompt += `
