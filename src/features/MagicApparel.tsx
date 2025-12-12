@@ -94,7 +94,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     </p>
                                 </div>
                                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex items-center justify-center text-center h-full transition-all hover:bg-gray-100 shadow-sm">
-                                    <p className="text-[10px] font-medium text-gray-500 leading-tight">
+                                    <p className="text-[10px] font-bold text-gray-500 leading-tight">
                                         To transfer a full outfit, upload the same image to both slots.
                                     </p>
                                 </div>
