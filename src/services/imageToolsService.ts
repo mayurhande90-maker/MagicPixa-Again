@@ -127,15 +127,16 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     }
 };
 
-// Step 2: Deep Scene Analysis for Pose Match (Ensure Strict Adherence)
-const analyzeReferenceScene = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Describe this image in extreme detail for a VFX Head-Replacement task.
+// Step 2: Technical Spec Analysis for VFX Compositing (New Logic)
+const analyzeReferenceTechSpecs = async (ai: any, base64: string, mimeType: string): Promise<string> => {
+    const prompt = `Act as a VFX Supervisor. Perform a Technical Lighting & Texture Audit of this reference image.
     
-    1. **Attire**: Describe the clothing exactly (e.g. "Red velvet Lehenga with gold embroidery", "Black tuxedo with bow tie", "Casual beach wear").
-    2. **Environment**: Describe the background exactly (e.g. "Wedding mandap with floral decoration", "Office desk", "Eiffel Tower").
-    3. **Lighting/Mood**: Describe the light (e.g. "Flash photography", "Golden hour", "Neon lights").
+    1. **Lighting Map**: Where is the primary light source coming from? (e.g. "Hard sunlight top-right", "Soft diffused window light left"). What is the shadow hardness?
+    2. **Color Grade**: What is the white balance/tint? (e.g. "Warm golden hour", "Cool fluorescent").
+    3. **ISO/Grain**: Describe the image noise level (e.g. "Clean digital", "Heavy film grain", "Low-light noise").
+    4. **Skin Shader**: Describe the texture of the body's skin (e.g. "Sweaty/Specular", "Matte/Powdered", "Subsurface scattering visible").
     
-    Output a concise paragraph describing the SCENE and ATTIRE.`;
+    Output a concise TECHNICAL READOUT paragraph.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -147,10 +148,10 @@ const analyzeReferenceScene = async (ai: any, base64: string, mimeType: string):
                 ]
             }
         });
-        return response.text || "Specific scene and attire.";
+        return response.text || "Match lighting and grain of reference.";
     } catch (e) {
-        console.warn("Scene analysis failed", e);
-        return "Specific scene and attire.";
+        console.warn("Tech spec analysis failed", e);
+        return "Match lighting and grain of reference.";
     }
 };
 
@@ -301,13 +302,13 @@ export const generateMagicSoul = async (
     // Pose is last if it exists
     const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? results[results.length - 1] : null;
 
-    // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS & SCENE ANALYSIS (The "Brain")
+    // 2. PHASE 1: DEEP BIOMETRIC ANALYSIS & TECH SPECS (The "Brain")
     const biometricsAPromise = analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A");
     const biometricsBPromise = optB ? analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B") : Promise.resolve("");
-    // NEW: Analyze Scene if Reenact
-    const sceneAnalysisPromise = (inputs.mode === 'reenact' && optPose) ? analyzeReferenceScene(ai, optPose.data, optPose.mimeType) : Promise.resolve("");
+    // NEW: Analyze Tech Specs if Reenact (Critical for Realism)
+    const techSpecsPromise = (inputs.mode === 'reenact' && optPose) ? analyzeReferenceTechSpecs(ai, optPose.data, optPose.mimeType) : Promise.resolve("");
 
-    const [biometricsA, biometricsB, referenceSceneDesc] = await Promise.all([biometricsAPromise, biometricsBPromise, sceneAnalysisPromise]);
+    const [biometricsA, biometricsB, referenceTechSpecs] = await Promise.all([biometricsAPromise, biometricsBPromise, techSpecsPromise]);
 
     // 3. PHASE 2: GENERATION PROMPT ENGINEERING
     
@@ -348,34 +349,26 @@ export const generateMagicSoul = async (
     // --- PART 3: MODE SPECIFIC INSTRUCTIONS ---
     if (inputs.mode === 'reenact') {
         mainPrompt += `
-        *** MODE: PRECISE FACE SWAP / HEAD REPLACEMENT ***
+        *** MODE: HIGH-FIDELITY FACE SWAP (VFX PIPELINE) ***
         
-        **BASE IMAGE CONTEXT (FROZEN SCENE)**: 
-        ${referenceSceneDesc}
+        **SOURCE**: Person A (The Identity).
+        **TARGET**: Reference Pose (The Body/Scene).
         
-        **STRICT EXECUTION RULES**:
-        1. **GEOMETRY LOCK**: You MUST retain 100% of the Reference Image's:
-           - Clothing folds, texture, and exact style (as described above).
-           - Body pose and skeletal structure.
-           - Background details, location, and lighting direction (as described above).
-           - Camera angle and lens distortion.
-           
-        2. **SCENE INTEGRITY**:
-           - If the reference description says "Wedding", the output MUST be a Wedding.
-           - If the reference says "Winter clothes", the output MUST have Winter clothes.
-           - **DO NOT** hallucinate a new setting (like a park) if it contradicts the reference.
-           
-        3. **IDENTITY INJECTION**: 
-           - Replace the HEAD/FACE of the person in the Reference Image with the face of Person A.
-           - If Person B is provided, replace the second person in the Reference.
-           
-        4. **SKIN HARMONIZATION (CRITICAL)**:
-           - The User Face (Source) has a specific skin tone.
-           - **ACTION**: Re-tint the exposed skin of the Reference Body (neck, hands, arms) to match the User Face.
-           - Ensure the lighting on the face matches the Reference Scene's lighting direction.
-           - Blend the neck seam perfectly.
-           
-        **OUTPUT GOAL**: A seamless photorealistic composite where the user appears to be wearing the EXACT reference outfit in the EXACT reference scene.
+        **TECHNICAL SPECS (FROM REFERENCE)**:
+        ${referenceTechSpecs}
+        
+        **VFX COMPOSITING EXECUTION RULES**:
+        1. **IDENTITY TRANSFER**: Map the facial features (Eyes, Nose, Mouth, Bone Structure) of Person A onto the head of the Reference Target.
+        2. **EXPRESSION MATCH**: Adapt Person A's face to match the *expression* of the Reference Target (e.g. if Reference is smiling, Person A MUST smile).
+        3. **LIGHTING MATCH (CRITICAL)**: You MUST relight Person A's face to match the "Lighting Map" defined above. 
+           - If the reference has a shadow on the left cheek, the new face MUST have the exact same shadow.
+           - If the reference is backlit, the face must be backlit.
+        4. **SKIN SHADER MATCH**: Color grade Person A's skin to match the **Skin Shader** of the reference body (Neck/Hands). 
+           - Match the hue, saturation, and luminance.
+           - **Blend the neck seam perfectly** using a gradient mask logic.
+        5. **TEXTURE MATCH**: Apply the "**ISO/Grain**" of the reference image to the new face. Do not output a smooth "AI face" on a grainy photo.
+        
+        **CONSTRAINT**: PRESERVE THE REFERENCE IMAGE PIXELS EVERYWHERE ELSE. Only change the face area. The outfit, body, and background must remain IDENTICAL to the Reference Target.
         `;
     } else if (inputs.mode === 'professional') {
         mainPrompt += `
@@ -423,7 +416,7 @@ export const generateMagicSoul = async (
     *** FINAL OUTPUT ***
     Generate a SINGLE, coherently lit, photorealistic image.
     - Check: Do the faces match the inputs? (Must be YES).
-    - Check: Does the lighting match the Era? (Must be YES).
+    - Check: Does the lighting match the Era/Reference? (Must be YES).
     - Check: Is the resolution high? (Must be YES).
     `;
 
