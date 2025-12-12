@@ -28,7 +28,7 @@ const NavButton: React.FC<{
                 ? 'bg-[#4D7CFF]/15 text-[#4D7CFF]'
                 : item.disabled
                 ? 'text-gray-400 cursor-not-allowed'
-                : 'text-[#5F6368] hover:bg-white hover:shadow-sm hover:text-[#1A1A1E] hover:translate-x-1'
+                : 'text-[#5F6368] hover:bg-white hover:text-[#4D7CFF] hover:shadow-sm hover:translate-x-1'
         }`}
     >
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${activeView === item.id ? '' : 'group-hover:scale-110'}`} />
