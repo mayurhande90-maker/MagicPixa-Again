@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon } from '../components/icons';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -22,6 +22,24 @@ const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
     '1920s Noir': ['Jazz Club', 'Art Deco Hotel', 'Rainy Street', 'Speakeasy', 'Vintage Train', 'Gatsby Mansion', 'Smoky Bar', 'Classic Theater'],
     'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
 };
+
+// --- PRO MODE CONFIGURATIONS ---
+const PRO_ARCHETYPES = [
+    { label: 'Corporate Executive', attire: 'Dark Navy/Black Power Suit, Crisp White Shirt, Silk Tie (if male)', vibe: 'Authoritative, Trustworthy, Leadership' },
+    { label: 'Tech Founder', attire: 'High-end T-shirt with Blazer, or Smart Casual Polo', vibe: 'Innovative, Approachable, Visionary' },
+    { label: 'Creative Director', attire: 'Stylish Turtleneck, Designer Glasses, Textured Blazer', vibe: 'Artistic, Sophisticated, Modern' },
+    { label: 'Medical Professional', attire: 'White Coat over professional clothes or Premium Scrubs', vibe: 'Caring, Clean, Expert' },
+    { label: 'Realtor / Sales', attire: 'Bright, sharp Business Formal, approachable colors', vibe: 'Friendly, Energetic, Successful' },
+    { label: 'Legal / Finance', attire: 'Strictly Formal Charcoal Suit, conservative styling', vibe: 'Serious, Competent, Reliable' }
+];
+
+const PRO_BACKGROUNDS = [
+    { label: 'Studio Grey', desc: 'Classic neutral backdrop, distinct separation', prompt: 'Solid neutral grey studio backdrop with soft gradient' },
+    { label: 'Modern Office Blur', desc: 'Depth of field, glass walls, bright', prompt: 'Blurred modern open-plan office background, bokeh lights, glass architecture' },
+    { label: 'City Skyline', desc: 'High floor window view, blurred city', prompt: 'Blurred cityscape through a high-rise window, soft daylight' },
+    { label: 'Library / Bookshelf', desc: 'Intellectual, warm tones', prompt: 'Blurred academic library or mahogany bookshelf background' },
+    { label: 'Outdoor Garden', desc: 'Natural light, greenery', prompt: 'Soft focus manicured garden, natural sunlight' }
+];
 
 // --- PREMIUM UI COMPONENTS ---
 
@@ -127,10 +145,13 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Single Subject Toggle for Professional Mode
     const [isSingleSubject, setIsSingleSubject] = useState(false);
     
+    // Professional Mode Specifics
+    const [proArchetype, setProArchetype] = useState(PRO_ARCHETYPES[0].label);
+    const [proBackground, setProBackground] = useState(PRO_BACKGROUNDS[0].label);
+
     // Creative Params
     const [mood, setMood] = useState('Happy');
     const [timeline, setTimeline] = useState('Present Day');
-    // Initialize environment based on default timeline
     const [environment, setEnvironment] = useState(TIMELINE_ENVIRONMENTS['Present Day'][0]);
     
     const [pose, setPose] = useState('Standing Together');
@@ -139,7 +160,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Settings
     const [faceStrength, setFaceStrength] = useState(0.8);
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Match Vibe');
-    // Enforce Age and Hair locks by default
     const [locks, setLocks] = useState({ age: true, hair: true, accessories: false });
     const [autoFix, setAutoFix] = useState(true);
 
@@ -159,10 +179,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Derived state for available environments
     const availableEnvironments = TIMELINE_ENVIRONMENTS[timeline] || TIMELINE_ENVIRONMENTS['Present Day'];
 
-    // Update environment when timeline changes to prevent conflicts
     useEffect(() => {
         if (!availableEnvironments.includes(environment)) {
             setEnvironment(availableEnvironments[0]);
@@ -172,35 +190,68 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    // When switching modes, ensure state is clean
     useEffect(() => {
         if (mode !== 'professional') {
             setIsSingleSubject(false);
+        } else {
+            // Default professional mode to single subject
+            setIsSingleSubject(true);
         }
     }, [mode]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
 
     const handleGenerate = async () => {
-        // If single subject mode is active, we don't need Person B
         if (!personA || (!isSingleSubject && !personB) || !auth.user) return;
-        
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
+            // CONSTRUCT WORLD CLASS PROMPT IF PROFESSIONAL MODE
+            let finalCustomDesc = customDescription;
+            let finalEnvironment = environment;
+            let finalMood = mood;
+            
+            if (mode === 'professional') {
+                const archetypeData = PRO_ARCHETYPES.find(a => a.label === proArchetype) || PRO_ARCHETYPES[0];
+                const backgroundData = PRO_BACKGROUNDS.find(b => b.label === proBackground) || PRO_BACKGROUNDS[0];
+                
+                // We construct a heavy "Override" description that the backend service will respect
+                finalCustomDesc = `
+                *** WORLD CLASS HEADSHOT PROTOCOL ***
+                - **ARCHETYPE**: ${archetypeData.label}.
+                - **ATTIRE**: ${archetypeData.attire}. Clothing must look expensive, tailored, and perfectly fitted.
+                - **VIBE**: ${archetypeData.vibe}.
+                - **BACKGROUND**: ${backgroundData.prompt}.
+                
+                *** PHOTOGRAPHY STUDIO SETTINGS ***
+                - **Camera**: Sony A7R V with 85mm G Master Lens (Portrait Focal Length).
+                - **Aperture**: f/1.8 to f/2.8 for pleasing optical bokeh.
+                - **Lighting**: "Rembrandt" or "Butterfly" lighting pattern using large octabox softboxes. 
+                - **Details**: Add a subtle "Rim Light" (hair light) to separate the subject from the background. Ensure distinct "Catchlights" in the eyes to make them look alive.
+                
+                *** RETOUCHING ***
+                - **Skin**: High-end texture retention. Do NOT airbrush into plastic. Keep pores visible but clean.
+                - **Structure**: Light facial contouring.
+                `;
+                
+                // Force specific backend settings for consistency
+                finalEnvironment = backgroundData.label; 
+                finalMood = 'Professional';
+            }
+
             const config: PixaTogetherConfig = {
                 mode,
-                relationship,
-                mood,
-                environment,
-                pose,
-                timeline,
-                customDescription,
+                relationship: mode === 'professional' ? 'Professional Portrait' : relationship,
+                mood: finalMood,
+                environment: finalEnvironment,
+                pose: mode === 'professional' ? 'Confident Headshot, Shoulders angled 45 degrees, Face to camera' : pose,
+                timeline: mode === 'professional' ? 'Present Day' : timeline,
+                customDescription: finalCustomDesc,
                 referencePoseBase64: refPose?.base64.base64,
                 referencePoseMimeType: refPose?.base64.mimeType,
                 faceStrength,
-                clothingMode,
+                clothingMode: mode === 'professional' ? 'Professional Attire' : clothingMode,
                 locks,
                 autoFix
             };
@@ -229,7 +280,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         if (!auth.user || !resultImage) return; 
         setIsRefunding(true); 
         try { 
-            // Pass current config for context
             const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, faceStrength, clothingMode, locks, autoFix };
             const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined, config); 
             if (res.success) { 
@@ -241,9 +291,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     
     const handleNewSession = () => { setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); setLastCreationId(null); setCustomDescription(''); };
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)'); };
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    const handleDeductEditCredit = async () => { if(auth.user) { const deduct = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...deduct } : null); } };
     
-    // Updated Logic: Check for relationship in creative mode
     const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits && (mode === 'creative' ? !!relationship : true);
 
     return (
@@ -260,7 +309,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload people to begin.</p></div>
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
-                                {/* Visual Representation of inputs */}
                                 <div className="relative w-72 h-80 mx-auto">
                                     {personA && (
                                         <div 
@@ -286,45 +334,26 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 )}
                             </div>
                         )}
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
                         <div className="space-y-6 p-2 animate-fadeIn">
                             
-                            {/* 1. Mode Selection (Moved to Top) */}
+                            {/* 1. Mode Selection */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3 px-1">
                                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><EngineIcon className="w-4 h-4"/></div>
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
                                 </div>
                                 <div className={PixaTogetherStyles.engineGrid}>
-                                    <EngineModeCard 
-                                        title="Creative" 
-                                        desc="Themed Art" 
-                                        icon={<SparklesIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'creative'} 
-                                        onClick={() => setMode('creative')} 
-                                    />
-                                    <EngineModeCard 
-                                        title="Pose Match" 
-                                        desc="Copy Structure" 
-                                        icon={<CameraIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'reenact'} 
-                                        onClick={() => setMode('reenact')} 
-                                    />
-                                    <EngineModeCard 
-                                        title="Pro Headshot" 
-                                        desc="LinkedIn / Corp" 
-                                        icon={<UserIcon className="w-5 h-5"/>} 
-                                        selected={mode === 'professional'} 
-                                        onClick={() => setMode('professional')} 
-                                    />
+                                    <EngineModeCard title="Creative" desc="Themed Art" icon={<SparklesIcon className="w-5 h-5"/>} selected={mode === 'creative'} onClick={() => setMode('creative')} />
+                                    <EngineModeCard title="Pose Match" desc="Copy Structure" icon={<CameraIcon className="w-5 h-5"/>} selected={mode === 'reenact'} onClick={() => setMode('reenact')} />
+                                    <EngineModeCard title="Pro Headshot" desc="LinkedIn / Corp" icon={<UserIcon className="w-5 h-5"/>} selected={mode === 'professional'} onClick={() => setMode('professional')} />
                                 </div>
                             </div>
 
-                            {/* 2. Subjects (Moved Below Mode) */}
+                            {/* 2. Subjects */}
                             <PremiumCard className="relative overflow-visible">
                                 <div className="flex justify-between items-center mb-5">
                                     <div className="flex items-center gap-2">
@@ -332,44 +361,19 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
                                     </div>
                                     
-                                    {/* Subject Toggle for Professional Mode */}
-                                    {mode === 'professional' && (
+                                    {(mode === 'professional' || mode === 'creative') && (
                                         <div className="flex bg-gray-100 p-1 rounded-lg">
-                                            <button 
-                                                onClick={() => setIsSingleSubject(true)}
-                                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                            >
-                                                Single
-                                            </button>
-                                            <button 
-                                                onClick={() => setIsSingleSubject(false)}
-                                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                            >
-                                                Duo
-                                            </button>
+                                            <button onClick={() => setIsSingleSubject(true)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Single</button>
+                                            {mode !== 'professional' && <button onClick={() => setIsSingleSubject(false)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Duo</button>}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumUpload 
-                                        label={isSingleSubject ? "Subject" : "Person A"} 
-                                        uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} 
-                                        image={personA} 
-                                        onUpload={handleUpload(setPersonA)} 
-                                        onClear={() => setPersonA(null)} 
-                                        icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} 
-                                    />
+                                    <PremiumUpload label={isSingleSubject ? "Subject" : "Person A"} uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
                                     
                                     {!isSingleSubject && (
-                                        <PremiumUpload 
-                                            label="Person B" 
-                                            uploadText="Add Person B" 
-                                            image={personB} 
-                                            onUpload={handleUpload(setPersonB)} 
-                                            onClear={() => setPersonB(null)} 
-                                            icon={<UserIcon className="w-6 h-6 text-pink-300"/>} 
-                                        />
+                                        <PremiumUpload label="Person B" uploadText="Add Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
                                     )}
                                     
                                     {isSingleSubject && (
@@ -386,7 +390,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 <PremiumCard className="animate-fadeIn">
                                     <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
                                     
-                                    {/* Magic Overrides / Time Travel First */}
                                     <div className="mb-4 pb-4 border-b border-gray-100">
                                         <div className="flex items-center gap-2 mb-3">
                                             <SparklesIcon className="w-3 h-3 text-indigo-500" />
@@ -400,7 +403,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         </div>
                                     </div>
 
-                                    {/* Environment & Mood (Filtered by Timeline) */}
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
@@ -434,28 +436,78 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         image={refPose} 
                                         onUpload={handleUpload(setRefPose)} 
                                         onClear={() => setRefPose(null)} 
-                                        icon={
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-5 h-5 text-[#008efa]">
-                                                <path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20z"/>
-                                            </svg>
-                                        } 
+                                        icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-5 h-5 text-[#008efa]"><path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20z"/></svg>} 
                                         heightClass="h-32" 
                                     />
                                 </PremiumCard>
                             )}
 
                             {mode === 'professional' && (
-                                <div className={PixaTogetherStyles.proModeBanner}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="w-6 h-6 mb-2">
-                                        <g fill="none">
-                                            <rect width="256" height="256" fill="#fff" rx="60"/>
-                                            <rect width="256" height="256" fill="#0A66C2" rx="60"/>
-                                            <path fill="#fff" d="M184.715 217.685h29.27a4 4 0 0 0 4-3.999l.015-61.842c0-32.323-6.965-57.168-44.738-57.168c-14.359-.534-27.9 6.868-35.207 19.228a.32.32 0 0 1-.595-.161V101.66a4 4 0 0 0-4-4h-27.777a4 4 0 0 0-4 4v112.02a4 4 0 0 0 4 4h29.268a4 4 0 0 0 4-4v-55.373c0-15.657 2.97-30.82 22.381-30.82c19.135 0 19.383 17.916 19.383 31.834v54.364a4 4 0 0 0 4 4ZM38 59.627c0 11.865 9.767 21.627 21.632 21.627c11.862-.001 21.623-9.769 21.623-21.631C81.253 47.761 71.491 38 59.628 38C47.762 38 38 47.763 38 59.627Zm6.959 158.058h29.307a4 4 0 0 0 4-4V101.66a4 4 0 0 0-4-4H44.959a4 4 0 0 0-4 4v112.025a4 4 0 0 0 4 4Z"/>
-                                        </g>
-                                    </svg>
-                                    <span className="font-bold block mb-1 uppercase tracking-wide">LinkedIn Mode Active</span>
-                                    <p className="opacity-80">AI will automatically dress the subject in business attire and place them in a high-end studio or office setting. Facial features are locked for realism.</p>
-                                </div>
+                                <PremiumCard className="animate-fadeIn">
+                                    <div className="flex items-center gap-2 mb-4 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="w-5 h-5 flex-shrink-0">
+                                            <g fill="none">
+                                                <rect width="256" height="256" fill="#fff" rx="60"/>
+                                                <rect width="256" height="256" fill="#0A66C2" rx="60"/>
+                                                <path fill="#fff" d="M184.715 217.685h29.27a4 4 0 0 0 4-3.999l.015-61.842c0-32.323-6.965-57.168-44.738-57.168c-14.359-.534-27.9 6.868-35.207 19.228a.32.32 0 0 1-.595-.161V101.66a4 4 0 0 0-4-4h-27.777a4 4 0 0 0-4 4v112.02a4 4 0 0 0 4 4h29.268a4 4 0 0 0 4-4v-55.373c0-15.657 2.97-30.82 22.381-30.82c19.135 0 19.383 17.916 19.383 31.834v54.364a4 4 0 0 0 4 4ZM38 59.627c0 11.865 9.767 21.627 21.632 21.627c11.862-.001 21.623-9.769 21.623-21.631C81.253 47.761 71.491 38 59.628 38C47.762 38 38 47.763 38 59.627Zm6.959 158.058h29.307a4 4 0 0 0 4-4V101.66a4 4 0 0 0-4-4H44.959a4 4 0 0 0-4 4v112.025a4 4 0 0 0 4 4Z"/>
+                                            </g>
+                                        </svg>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-indigo-900">LinkedIn™ Mode Active</h4>
+                                            <p className="text-[10px] text-indigo-600 opacity-80">Hyper-realistic professional headshots.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* 1. Profession / Archetype */}
+                                    <div className="mb-6">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">Professional Archetype</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {PRO_ARCHETYPES.map(arch => (
+                                                <button
+                                                    key={arch.label}
+                                                    onClick={() => setProArchetype(arch.label)}
+                                                    className={`p-3 rounded-xl border text-left transition-all relative overflow-hidden group ${proArchetype === arch.label ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                                                >
+                                                    <p className="text-xs font-bold mb-1 relative z-10">{arch.label}</p>
+                                                    <p className={`text-[9px] leading-tight relative z-10 ${proArchetype === arch.label ? 'text-indigo-200' : 'text-gray-400'}`}>{arch.attire.split(',')[0]}</p>
+                                                    {proArchetype === arch.label && <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Background Selector */}
+                                    <div className="mb-4">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">Studio Environment</label>
+                                        <div className="space-y-2">
+                                            {PRO_BACKGROUNDS.map(bg => (
+                                                <button
+                                                    key={bg.label}
+                                                    onClick={() => setProBackground(bg.label)}
+                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${proBackground === bg.label ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-100' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${proBackground === bg.label ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <BuildingIcon className="w-4 h-4"/>
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className={`text-xs font-bold ${proBackground === bg.label ? 'text-gray-900' : 'text-gray-600'}`}>{bg.label}</p>
+                                                            <p className="text-[9px] text-gray-400">{bg.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                    {proBackground === bg.label && <div className="w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100 mt-4">
+                                        <InformationCircleIcon className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                        <p className="text-[10px] text-blue-700 leading-relaxed">
+                                            Pixa will strictly enforce <strong>Rembrandt lighting</strong>, <strong>85mm lens optics</strong>, and <strong>biometric skin texture</strong> retention for maximum realism.
+                                        </p>
+                                    </div>
+                                </PremiumCard>
                             )}
                         </div>
                     )
