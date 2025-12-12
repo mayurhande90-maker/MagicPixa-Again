@@ -88,17 +88,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     // Tracks the last time a view was the 'activeView'
     const lastActiveRef = useRef<Record<string, number>>({ 'home_dashboard': Date.now() });
 
+    // Sync activeView prop changes (e.g. from Home page navigation) to activeSessions
+    useEffect(() => {
+        setActiveSessions(prev => {
+            if (prev.has(activeView)) return prev;
+            const next = new Set(prev);
+            next.add(activeView);
+            lastActiveRef.current[activeView] = Date.now();
+            return next;
+        });
+        // Update timestamp for existing view
+        lastActiveRef.current[activeView] = Date.now();
+    }, [activeView]);
+
     // Intercept View Changes to Manage Sessions
     const handleViewChange = (newView: View) => {
         setActiveView(newView);
-        // Add to active sessions (if not already there)
-        setActiveSessions(prev => {
-            const next = new Set(prev);
-            next.add(newView);
-            return next;
-        });
-        // Update timestamp
-        lastActiveRef.current[newView] = Date.now();
+        // The useEffect above will handle adding it to activeSessions
     };
 
     // Garbage Collector: Remove inactive sessions to save memory
