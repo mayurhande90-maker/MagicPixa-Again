@@ -324,10 +324,29 @@ export const generateMagicSoul = async (
     // --- PART 3: MODE SPECIFIC INSTRUCTIONS ---
     if (inputs.mode === 'reenact') {
         mainPrompt += `
-        *** REENACTMENT MODE (STRICT) ***
-        - **TASK**: Recreate the scene from the "REFERENCE POSE" image exactly.
-        - **POSE**: Copy body positions, arm placements, and camera angle 1:1.
-        - **CASTING**: Replace the reference actors with Subject A ${optB ? 'and Subject B' : ''}, keeping their identities.
+        *** MODE: VIRTUAL HEAD REPLACEMENT (VFX COMPOSITOR) ***
+        
+        **MASTER CANVAS**: The "REFERENCE POSE TARGET" image.
+        **TEXTURE SOURCE**: "INPUT IMAGE 1" (Person A).
+        
+        **EXECUTION PROTOCOL (HARMONIZED STRUCTURE LOCK):**
+        1. **GEOMETRY LOCK**: You MUST retain 100% of the Reference Image's:
+           - Clothing folds and texture.
+           - Body pose and skeletal structure.
+           - Background details and lighting direction.
+           - Camera angle and lens distortion.
+           
+        2. **IDENTITY INJECTION**: 
+           - Replace the HEAD/FACE of the person in the Reference Image with the face of Person A.
+           - If Person B is provided, replace the second person in the Reference.
+           
+        3. **SKIN HARMONIZATION (CRITICAL)**:
+           - The User Face (Source) has a specific skin tone.
+           - **ACTION**: Re-tint the exposed skin of the Reference Body (neck, hands, arms) to match the User Face.
+           - Ensure the lighting on the face matches the Reference Scene's lighting direction.
+           - Blend the neck seam perfectly.
+           
+        **OUTPUT GOAL**: A seamless photorealistic composite where the user appears to be wearing the reference outfit in the reference scene. No "sticker face" effect.
         `;
     } else if (inputs.mode === 'professional') {
         mainPrompt += `
