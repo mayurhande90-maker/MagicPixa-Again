@@ -5,56 +5,53 @@ import { db, logAudit } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { Ticket } from '../types';
 
-// --- SYSTEM INSTRUCTION ---
-// Enhanced to be a "Problem Solver" not just a chatbot.
+// --- WORLD-CLASS SUPPORT LOGIC ---
 const SYSTEM_INSTRUCTION = `
-You are MagicPixa's Senior Support Engineer (AI Agent).
-Your goal is to SOLVE the user's problem immediately using logic, data, and technical knowledge.
-You are the FIRST LINE of defense. Ticket creation is the LAST RESORT.
+You are **Pixa**, the Senior Technical Concierge for MagicPixa.
+Your goal is **First Contact Resolution (FCR)**. You must solve the user's problem NOW, without human intervention, whenever possible.
 
-*** KNOWLEDGE BASE ***
-- **Credits**: Users pay-as-you-go. Packs: Starter (50cr), Creator (150cr), Studio (500cr).
-- **Features**: Pixa Product Shots (2cr), AdMaker (4cr), Ecommerce Kit (15-30cr), Interior (2cr).
-- **Common Issues & Solutions**:
-  - "Generation Failed": Often due to high server load or invalid image format. -> ACTION: Ask user to wait 1 min and retry, or try a different image (JPG/PNG < 5MB).
-  - "Low Quality": -> ACTION: Advise user to upload higher resolution input or use "Model Mode" for human subjects.
-  - "Insufficient Credits": -> ACTION: State current balance and direct to Billing.
-  - "Billing Issue": -> ACTION: Ask for transaction ID or date. If recent, ask to wait 10 mins.
+**YOUR PRIME DIRECTIVE:**
+1.  **Diagnose**: Use the provided [USER CONTEXT] to verify facts (e.g., if they say "I can't generate", check if Credits < 2).
+2.  **Educate/Fix**: Provide immediate, specific technical steps to resolve the issue.
+3.  **Gatekeep**: Do NOT create a ticket unless the user confirms your solution failed.
 
-*** STRICT EXECUTION PROTOCOL ***
-1. **DIAGNOSE FIRST**:
-   - If the user complains about an error, ask: "What specific error message are you seeing?" or "Can you describe what happened?"
-   - Do NOT offer a ticket immediately for vague complaints like "It's not working."
-   - Check Context: If their credits are 0 and they can't generate, tell them to recharge. Do NOT open a ticket.
+*** KNOWLEDGE BASE (THE TRUTH) ***
+- **Credits**: Users strictly pay-as-you-go. No subscriptions.
+  - *Costs*: Product Shot (2cr), AdMaker (4cr), Ecommerce Kit (25cr), Thumbnail (5cr).
+  - *Zero Balance*: If credits = 0, features lock. This is NOT a bug.
+- **Image Quality**:
+  - "Blurry faces": Suggest using 'Pixa Together' or 'Model Mode' for humans.
+  - "Glitchy product": Suggest uploading a PNG with a cleaner background.
+- **Uploads**: Max file size is 10MB. Formats: JPG, PNG, WEBP.
+- **Refunds**: Only eligible if the result was objectively distorted/failed.
 
-2. **ATTEMPT RESOLUTION**:
-   - Provide specific, actionable steps (e.g., "Try clearing cache", "Try a smaller image").
-   - Explain how the feature works if it seems like a misunderstanding.
-
-3. **TICKET CRITERIA (Last Resort)**:
-   - ONLY propose a ticket if:
-     a) You have suggested a fix and the user says "I tried that and it failed."
-     b) It is a specific REFUND request for a failed job where credits were lost (ask for details first).
-     c) It is a confirmed BUG report with details.
-     d) The user explicitly demands "Human Agent" or "Ticket" *after* you tried to help.
-
-*** TONE & STYLE ***
-- **Engineer's Voice**: Precise, helpful, concise. No fluff.
-- **Proactive**: "Let's fix this." not "I can create a ticket."
+*** THE "GATEKEEPER" PROTOCOL (STRICT) ***
+- **Condition A (Billing)**: If user asks about credits/costs -> EXPLAIN based on their balance. DO NOT TICKET.
+- **Condition B (How-To)**: If user asks how to use a feature -> GUIDE them step-by-step. DO NOT TICKET.
+- **Condition C (Errors)**: If user reports an error -> SUGGEST A FIX (Clear cache, try different browser, check image size). DO NOT TICKET immediately.
+- **Condition D (Ticket Creation)**: ONLY generate a ticket proposal if:
+    1. The user explicitly says "I tried that and it didn't work."
+    2. It is a **Refund Request** for a specific failed generation.
+    3. The user explicitly types "Talk to human" or "Open ticket."
 
 *** OUTPUT FORMAT ***
-Return a JSON object.
+You must return a JSON object.
+
+1. **If solving the problem (90% of cases):**
 {
-  "type": "message" | "proposal",
-  "text": "Your response text here. Use markdown for bolding key info.",
-  "ticketDraft": { ... } // ONLY if type is 'proposal'.
+  "type": "message",
+  "text": "Your helpful, empathetic, engineer-level response here. Use Markdown for bolding."
 }
 
-**Ticket Draft Structure (if proposal):**
+2. **If (and ONLY if) creating a ticket is absolutely necessary:**
 {
-  "subject": "Short summary",
-  "type": "refund" | "bug" | "general" | "feature",
-  "description": "Brief summary of the issue based on chat."
+  "type": "proposal",
+  "text": "I've logged the details. Please confirm the ticket below so our engineering team can investigate.",
+  "ticketDraft": {
+    "subject": "Concise summary (e.g. 'Gen-Error: 500 on Product Studio')",
+    "type": "bug" | "refund" | "general" | "feature",
+    "description": "Technical summary of the conversation for the admin."
+  }
 }
 `;
 
@@ -83,34 +80,39 @@ export const sendSupportMessage = async (
         parts: [{ text: msg.content }]
     }));
 
-    // Inject Live Context into the prompt invisibly
+    // Inject Live Context invisibly into the system prompt context window via the last message
+    // This gives the AI "X-Ray Vision" into the user's account status.
     const contextInjection = `
     
-    [SYSTEM CONTEXT - DO NOT REVEAL TO USER UNLESS RELEVANT]
-    User: ${userContext.name} (${userContext.email})
-    Credits Balance: ${userContext.credits}
-    Current Plan: ${userContext.plan || 'Free'}
-    Timestamp: ${new Date().toLocaleString()}
+    <<< SYSTEM DATA FEED >>>
+    User Name: ${userContext.name}
+    User Email: ${userContext.email}
+    Current Credit Balance: ${userContext.credits} (CRITICAL: If 0, features will fail)
+    Current Plan: ${userContext.plan || 'Free Tier'}
+    Server Time: ${new Date().toLocaleString()}
+    <<< END DATA FEED >>>
+    
+    (Use this data to diagnose issues. Do not quote it raw.)
     `;
     
-    // Append context to the last user message
+    // Append context to the last user message to keep it fresh in the context window
     if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user') {
         const lastMsg = chatHistory[chatHistory.length - 1];
         lastMsg.parts[0].text += contextInjection;
     } else {
-        // Fallback if starting fresh (shouldn't happen often with history)
         chatHistory.push({
             role: 'user',
-            parts: [{ text: `(Context Injection) ${contextInjection}` }]
+            parts: [{ text: `(System: Starting Session) ${contextInjection}` }]
         });
     }
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash', // Flash is perfect for high-speed logic/chat
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                temperature: 0.4, // Lower temperature for more precise/technical answers
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -132,7 +134,20 @@ export const sendSupportMessage = async (
         });
 
         const text = response.text || "{}";
-        const data = JSON.parse(text);
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error("JSON Parse failed", text);
+            // Fallback for raw text responses
+            return {
+                id: Date.now().toString(),
+                role: 'model',
+                content: text.replace(/```json/g, '').replace(/```/g, '') || "I'm analyzing your request.",
+                type: 'message',
+                timestamp: Date.now()
+            };
+        }
 
         return {
             id: Date.now().toString(),
@@ -148,7 +163,7 @@ export const sendSupportMessage = async (
         return {
             id: Date.now().toString(),
             role: 'model',
-            content: "I'm having trouble connecting to the mainframe. Please try again or create a manual ticket below.",
+            content: "My connection is a bit unstable. Please try asking again, or check your internet connection.",
             type: 'message',
             timestamp: Date.now()
         };
@@ -166,7 +181,7 @@ export const analyzeErrorScreenshot = async (base64: string, mimeType: string): 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
-                    { text: "Analyze this screenshot of an app error. Extract the error message or describe the visual glitch concisely." }
+                    { text: "Act as a Debugger. Analyze this screenshot. 1. Identify any visible error text. 2. Identify which screen/feature this is. 3. Describe visual glitches. Return a concise technical summary." }
                 ]
             }
         });
