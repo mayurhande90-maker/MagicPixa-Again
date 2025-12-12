@@ -342,17 +342,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     </div>
                 )}
 
-                <div className="flex items-end gap-2 sm:gap-3">
-                    {/* New Chat Button (Moved from Header) */}
-                    <button 
-                        onClick={handleNewChat}
-                        className="p-3.5 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm transition-all shrink-0 group"
-                        title="Start New Chat"
-                    >
-                        <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                    </button>
-
-                    <div className="flex-1 flex gap-2 sm:gap-3 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                <div className="flex flex-col gap-3">
+                    <div className="flex gap-2 sm:gap-3 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
                         <button 
                             onClick={() => fileInputRef.current?.click()}
                             className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
@@ -386,6 +377,18 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                             }`}
                         >
                             <PaperAirplaneIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* New Chat Button (Centered below input) */}
+                    <div className="flex justify-center">
+                        <button 
+                            onClick={handleNewChat}
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-indigo-600 transition-all text-[10px] font-bold uppercase tracking-wider border border-transparent hover:border-gray-300 transform active:scale-95"
+                            title="Start a fresh conversation"
+                        >
+                            <PlusIcon className="w-3.5 h-3.5" />
+                            New Chat
                         </button>
                     </div>
                 </div>
