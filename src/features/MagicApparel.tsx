@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon } from '../components/icons';
+import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
@@ -85,7 +85,19 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
                         <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${isControlsDisabled ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
-                            <div><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div><div className="grid grid-cols-2 gap-4"><CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" /><CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" /></div><div className="flex flex-col items-center mt-3 px-1 gap-1 text-center"><p className="text-[10px] text-gray-400 italic">Upload at least one garment to proceed.</p><p className="text-[10px] text-indigo-400 font-medium leading-tight">To transfer a full outfit, upload the same image to both slots.</p></div></div>
+                            <div><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div><div className="grid grid-cols-2 gap-4"><CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" /><CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" /></div>
+                            
+                            <div className="flex flex-col items-center gap-2 mt-4">
+                                <div className="px-4 py-2 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-500 font-medium shadow-sm transition-all hover:bg-gray-100">
+                                    Upload at least one garment to proceed.
+                                </div>
+                                <div className="px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-bold shadow-sm flex items-center gap-2 transition-all hover:bg-indigo-100 hover:shadow-md">
+                                    <InformationCircleIcon className="w-3 h-3" />
+                                    To transfer a full outfit, upload the same image to both slots.
+                                </div>
+                            </div>
+                            
+                            </div>
                             <div className="border-t border-gray-100 pt-6 space-y-4"><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>3</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label></div><SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In']} value={tuck} onChange={setTuck} /><SelectionGrid label="Sleeve" options={['Long', 'Rolled Up']} value={sleeve} onChange={setSleeve} /><SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={setFit} /></div>
                         </div>
                     )
