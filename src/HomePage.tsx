@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ScannerIcon, NotesIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 
@@ -102,22 +102,6 @@ const features = [
         description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
         color: "",
         disabled: false,
-    },
-    {
-        id: 'scanner',
-        icon: <ScannerIcon className="w-10 h-10 text-white" />,
-        title: "Magic Scanner",
-        description: "Turn photos of documents into high-quality, fully digital scanned copies with a single tap.",
-        color: "bg-sky-500",
-        disabled: true,
-    },
-    {
-        id: 'notes',
-        icon: <NotesIcon className="w-10 h-10 text-white" />,
-        title: "Magic Notes",
-        description: "Upload a textbook or long PDF and our AI will generate key points and notes to help you study smarter.",
-        color: "bg-purple-500",
-        disabled: true,
     }
 ];
 
@@ -149,12 +133,12 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
         if (!auth.isAuthenticated) {
             auth.openAuthModal();
         } else {
-            navigateTo('dashboard', view);
+            navigateTo('dashboard', 'dashboard' as View);
         }
     };
 
     const navItems: { view: View; label: string; icon: React.FC<{ className?: string }>; disabled?: boolean; }[] = [
-        { view: 'home_dashboard', label: 'Home', icon: HomeIcon },
+        { view: 'home_dashboard' as View, label: 'Home', icon: HomeIcon },
         { view: 'dashboard', label: 'Features', icon: DashboardIcon },
         { view: 'creations', label: 'Projects', icon: ProjectsIcon },
         { view: 'profile', label: 'Profile', icon: AvatarUserIcon },

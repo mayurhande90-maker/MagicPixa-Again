@@ -47,9 +47,7 @@ const FEATURE_NAME_MAP: Record<string, string> = {
     'Magic Realty': 'Pixa Realty Ads',
     'Realty Ads': 'Pixa Realty Ads',
     'Pixa Realty Ads': 'Pixa Realty Ads',
-    'Magic Eraser': 'Magic Eraser',
-    'Magic Scanner': 'Magic Scanner',
-    'Magic Notes': 'Magic Notes'
+    'Magic Eraser': 'Magic Eraser'
 };
 
 export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpdate }) => {
