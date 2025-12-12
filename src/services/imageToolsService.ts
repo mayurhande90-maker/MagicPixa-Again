@@ -353,8 +353,10 @@ export const generateMagicSoul = async (
 
     if (inputs.customDescription) {
         mainPrompt += `
-        *** USER CUSTOM VISION ***
+        *** USER CUSTOM VISION (PRIORITY OVERRIDE) ***
         " ${inputs.customDescription} "
+        - **CONFLICT RESOLUTION**: This Custom Vision text helps define the specific action or location. 
+        - **CRITICAL**: If this text contradicts the 'Setting' or 'Pose' selected above (e.g., User types 'Swimming' but Setting is 'Office'), you MUST prioritize this Custom Vision text and ignore the conflicting dropdown selection.
         - INTEGRATION: Seamlessly blend this user request with the Timeline rules above.
         `;
     }
