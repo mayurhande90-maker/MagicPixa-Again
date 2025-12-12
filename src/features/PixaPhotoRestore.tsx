@@ -81,9 +81,17 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                            {loading && (
+                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/40 backdrop-blur-sm animate-fadeIn">
+                                    <div className="w-64 h-2 bg-white/50 rounded-full overflow-hidden shadow-lg mt-6 border border-white/20">
+                                        <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 animate-[progress_2s_ease-in-out_infinite] rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                                    </div>
+                                    <p className="text-sm font-black text-indigo-900 tracking-widest uppercase animate-pulse mt-4 bg-white/80 px-4 py-2 rounded-full shadow-sm">{loadingText}</p>
+                                </div>
+                            )}
                             <img src={image.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Original" />
                             {!loading && (<><button onClick={() => fileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Image"><UploadIcon className="w-5 h-5"/></button>{image.warnings && image.warnings.length > 0 && (<div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm"><SmartWarning issues={image.warnings} /></div>)}</>)}
+                            <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
                         <div onClick={() => fileInputRef.current?.click()} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
@@ -92,17 +100,34 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                     )
                 }
                 rightContent={
-                    !image ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100"><ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/></div>
-                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                            <p className="text-sm text-gray-400">Upload a photo to unlock restoration tools.</p>
+                    <div className={`space-y-8 p-2 animate-fadeIn transition-all duration-300 ${!image ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+                        <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
+                            <div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Restoration Engine</h3>
+                                <p className="text-xs text-gray-400 font-medium">Select your preferred output style</p>
+                            </div>
                         </div>
-                    ) : isLowCredits ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Restoration requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>
-                    ) : (
-                        <div className="space-y-8 p-2 animate-fadeIn"><div className="flex items-center gap-3 pb-2 border-b border-gray-100"><div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div><div><h3 className="text-lg font-bold text-gray-800">Restoration Engine</h3><p className="text-xs text-gray-400 font-medium">Select your preferred output style</p></div></div><div className="grid grid-cols-1 gap-4"><ModeCard title="Colour & Restore" description="Repairs damage + AI Colorization. Best for black & white photos needing full revitalization." icon={<PaletteIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_color'} onClick={() => setRestoreMode('restore_color')} accentColor="text-purple-500" /><ModeCard title="Restore Only" description="Repairs damage while preserving original colors. Ideal for keeping the vintage aesthetic." icon={<MagicWandIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_only'} onClick={() => setRestoreMode('restore_only')} accentColor="text-blue-500" /></div></div>
-                    )
+                        {image && isLowCredits ? (
+                            <div className="h-64 flex flex-col items-center justify-center text-center p-6 bg-red-50/50 rounded-2xl border border-red-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
+                                <p className="text-gray-500 mb-6 max-w-xs text-sm">Restoration requires {cost} credits.</p>
+                                <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg pointer-events-auto">Recharge Now</button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                <ModeCard title="Colour & Restore" description="Repairs damage + AI Colorization. Best for black & white photos needing full revitalization." icon={<PaletteIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_color'} onClick={() => setRestoreMode('restore_color')} accentColor="text-purple-500" />
+                                <ModeCard title="Restore Only" description="Repairs damage while preserving original colors. Ideal for keeping the vintage aesthetic." icon={<MagicWandIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_only'} onClick={() => setRestoreMode('restore_only')} accentColor="text-blue-500" />
+                            </div>
+                        )}
+                        {!image && (
+                            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 font-medium bg-gray-50/80 py-3 rounded-xl border border-gray-100 border-dashed">
+                                <ArrowUpCircleIcon className="w-4 h-4" />
+                                <span>Upload an image to enable these controls</span>
+                            </div>
+                        )}
+                    </div>
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
