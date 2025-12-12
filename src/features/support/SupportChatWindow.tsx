@@ -243,14 +243,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
                 </div>
-                <button 
-                    onClick={handleNewChat}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg text-xs font-bold uppercase tracking-wide transform hover:-translate-y-0.5 active:translate-y-0"
-                    title="Start New Session"
-                >
-                    <PlusIcon className="w-3.5 h-3.5" />
-                    New Chat
-                </button>
             </div>
 
             {/* Main Chat Scroll Area */}
@@ -350,41 +342,52 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     </div>
                 )}
 
-                <div className="flex gap-3 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                <div className="flex items-end gap-2 sm:gap-3">
+                    {/* New Chat Button (Moved from Header) */}
                     <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
-                        title="Attach Screenshot"
+                        onClick={handleNewChat}
+                        className="p-3.5 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm transition-all shrink-0 group"
+                        title="Start New Chat"
                     >
-                        <UploadIcon className="w-5 h-5" />
+                        <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                     </button>
-                    
-                    <textarea 
-                        ref={inputFocusRef}
-                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-3 max-h-32"
-                        placeholder="Type your message..."
-                        rows={1}
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                    />
-                    
-                    <button 
-                        onClick={() => handleSendMessage()}
-                        disabled={!inputText.trim() || isTyping}
-                        className={`p-3 rounded-full transition-all shrink-0 shadow-md ${
-                            inputText.trim() 
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
-                            : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                        }`}
-                    >
-                        <PaperAirplaneIcon className="w-5 h-5" />
-                    </button>
+
+                    <div className="flex-1 flex gap-2 sm:gap-3 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
+                            title="Attach Screenshot"
+                        >
+                            <UploadIcon className="w-5 h-5" />
+                        </button>
+                        
+                        <textarea 
+                            ref={inputFocusRef}
+                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-3 max-h-32"
+                            placeholder="Type your message..."
+                            rows={1}
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                        />
+                        
+                        <button 
+                            onClick={() => handleSendMessage()}
+                            disabled={!inputText.trim() || isTyping}
+                            className={`p-3 rounded-full transition-all shrink-0 shadow-md ${
+                                inputText.trim() 
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
+                                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                            }`}
+                        >
+                            <PaperAirplaneIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
             </div>
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
