@@ -10,7 +10,6 @@ import {
     TrashIcon,
     ArrowDownIcon,
     LifebuoyIcon,
-    ArrowUpIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -26,10 +25,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
     
-    // Pagination State
-    const [historyLimit, setHistoryLimit] = useState(10);
-    const [isRestoringScroll, setIsRestoringScroll] = useState(false);
-    
     const [submittingTicketId, setSubmittingTicketId] = useState<string | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
 
@@ -39,29 +34,18 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputFocusRef = useRef<HTMLTextAreaElement>(null);
 
-    // Derived state for display
-    const displayedMessages = messages.slice(-historyLimit);
-    const hasMoreHistory = messages.length > historyLimit;
-
     useEffect(() => {
         if (auth.user) {
             loadChatHistory();
         }
     }, [auth.user]);
 
-    // Auto-scroll effect - Only if NOT loading older messages
+    // Auto-scroll effect - Always scroll to bottom when messages update
     useEffect(() => {
-        if (!loadingHistory && !isRestoringScroll) {
+        if (!loadingHistory) {
             scrollToBottom();
         }
-    }, [loadingHistory, messages]); // Dependencies adjusted to avoid scroll on pagination
-
-    // Reset restoring scroll flag after render
-    useEffect(() => {
-        if (isRestoringScroll) {
-            setIsRestoringScroll(false);
-        }
-    }, [displayedMessages]);
+    }, [loadingHistory, messages]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -78,34 +62,11 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         }
     };
 
-    const handleLoadMore = () => {
-        if (scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const previousScrollHeight = container.scrollHeight;
-            const previousScrollTop = container.scrollTop;
-
-            setIsRestoringScroll(true);
-            setHistoryLimit(prev => prev + 10);
-
-            // Use requestAnimationFrame to adjust scroll position after DOM update
-            requestAnimationFrame(() => {
-                if (container) {
-                    const newScrollHeight = container.scrollHeight;
-                    // Adjust scrollTop to maintain visual position
-                    container.scrollTop = newScrollHeight - previousScrollHeight + previousScrollTop;
-                }
-            });
-        } else {
-            setHistoryLimit(prev => prev + 10);
-        }
-    };
-
     const handleClearChat = async () => {
         if (!auth.user) return;
         if (confirm("Clear your entire chat history? This cannot be undone.")) {
             setMessages([]);
             setHasInteracted(false);
-            setHistoryLimit(10);
             await clearSupportChat(auth.user.uid);
             loadChatHistory(); // Reload to show welcome message
         }
@@ -151,8 +112,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
         if (!textToSend.trim() || !auth.user) return;
 
         setHasInteracted(true);
-        // Reset scroll lock when sending new message
-        setIsRestoringScroll(false);
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
@@ -244,7 +203,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             const base64 = await fileToBase64(file);
             
             setHasInteracted(true);
-            setIsRestoringScroll(false);
 
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
@@ -306,18 +264,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     </div>
                 ) : (
                     <>
-                        {hasMoreHistory && (
-                            <div className="flex justify-center mb-4">
-                                <button 
-                                    onClick={handleLoadMore}
-                                    className="text-xs font-bold text-indigo-500 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm"
-                                >
-                                    <ArrowUpIcon className="w-3 h-3" /> Load Previous Messages
-                                </button>
-                            </div>
-                        )}
-
-                        {displayedMessages.map((msg, index) => (
+                        {messages.map((msg, index) => (
                             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
                                 <div className={`flex items-end gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     
@@ -335,7 +282,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                                         }`}>
                                             {msg.role === 'user' 
                                                 ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                                : <FormattedMessage text={msg.content} isWelcome={index === 0 && !hasMoreHistory && msg.content.includes("### Good")} />
+                                                : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
                                             }
                                         </div>
 
@@ -359,7 +306,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                                 </div>
 
                                 {/* Quick Actions (Contextual - Only on last bot message if no interaction yet) */}
-                                {!hasInteracted && index === displayedMessages.length - 1 && msg.role === 'model' && (
+                                {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
                                     <div className="w-full mt-6 pl-0 sm:pl-14">
                                         <QuickActions onAction={handleQuickAction} className="justify-start" />
                                     </div>
