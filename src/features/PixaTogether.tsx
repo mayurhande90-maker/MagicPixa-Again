@@ -1,86 +1,48 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
+import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone, TextAreaField } from '../components/FeatureLayout';
+import { PixaTogetherIcon, UploadIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, BuildingIcon, InformationCircleIcon, CameraIcon, FilmIcon, LockIcon, EngineIcon, CheckIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
-import { processRefundRequest } from '../services/refundService';
-import { RefundModal } from '../components/RefundModal';
-import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
+import { RefundModal } from '../components/RefundModal';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
-// --- CONFIGURATION CONSTANTS ---
+// --- Sub Components ---
 
-const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
-    'Present Day': ['Outdoor Park', 'Beach', 'Luxury Rooftop', 'City Street', 'Cozy Home', 'Cafe', 'Deep Forest', 'Modern Studio', 'Snowy Mountain', 'Sunset Beach'],
-    'Future Sci-Fi': ['Neon City', 'Space Station', 'Cyberpunk Rooftop', 'Holo-Deck', 'Alien Planet', 'Starship Bridge', 'Crystal Forest', 'High-Tech Lab'],
-    '1990s Vintage': ['90s Mall', 'Retro Arcade', 'Grunge Garage', 'Neon Diner', 'Video Store', 'High School Hallway', 'Suburban Street', 'Vintage Bedroom'],
-    '1920s Noir': ['Jazz Club', 'Art Deco Hotel', 'Rainy Street', 'Speakeasy', 'Vintage Train', 'Gatsby Mansion', 'Smoky Bar', 'Classic Theater'],
-    'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
-};
-
-// --- INTERNAL ICONS ---
-const PaletteIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>;
-const PlusIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
-const HomeIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
-const ScaleIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>;
-
-// --- PRO MODE CONFIGURATIONS ---
-const PRO_ARCHETYPES = [
-    { id: 'executive', label: 'Corporate Executive', attire: 'Navy Power Suit, Crisp Shirt', vibe: 'Leadership', icon: <BuildingIcon className="w-4 h-4"/> },
-    { id: 'tech', label: 'Tech Founder', attire: 'Premium T-Shirt & Blazer', vibe: 'Visionary', icon: <SparklesIcon className="w-4 h-4"/> },
-    { id: 'creative', label: 'Creative Director', attire: 'Turtleneck & Designer Glasses', vibe: 'Sophisticated', icon: <PaletteIcon className="w-4 h-4"/> },
-    { id: 'medical', label: 'Medical Pro', attire: 'White Coat / Premium Scrubs', vibe: 'Expert Care', icon: <PlusIcon className="w-4 h-4"/> },
-    { id: 'realtor', label: 'Realtor / Sales', attire: 'Modern Business Formal', vibe: 'Friendly', icon: <HomeIcon className="w-4 h-4"/> },
-    { id: 'legal', label: 'Legal / Finance', attire: 'Charcoal Suit, Conservative', vibe: 'Serious', icon: <ScaleIcon className="w-4 h-4"/> }
-];
-
-const PRO_BACKGROUNDS = [
-    { id: 'studio', label: 'Studio Grey', desc: 'Neutral & Clean', prompt: 'Solid neutral grey studio backdrop with soft gradient' },
-    { id: 'office', label: 'Modern Office', desc: 'Glass & Light', prompt: 'Blurred modern open-plan office background, bokeh lights, glass architecture' },
-    { id: 'city', label: 'City Skyline', desc: 'High-Rise View', prompt: 'Blurred cityscape through a high-rise window, soft daylight' },
-    { id: 'library', label: 'Library', desc: 'Warm Academic', prompt: 'Blurred academic library or mahogany bookshelf background' },
-    { id: 'outdoor', label: 'Garden', desc: 'Natural Light', prompt: 'Soft focus manicured garden, natural sunlight' }
-];
-
-
-// --- PREMIUM UI COMPONENTS ---
-
-const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
-    <div className={`bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)] ${className}`}>
-        {title && (
-            <div className="flex items-center gap-2 mb-5">
-                {icon && <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">{icon}</div>}
-                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{title}</h3>
-            </div>
-        )}
-        {children}
-    </div>
-);
-
-const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
+const CompactUpload: React.FC<{ 
+    label: string; 
+    subLabel?: string;
+    image: { url: string } | null; 
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+    onClear: () => void; 
+    icon: React.ReactNode; 
+    heightClass?: string; 
+}> = ({ label, subLabel, image, onUpload, onClear, icon, heightClass = "h-32" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-        <div className="relative w-full group">
-            <div className="flex justify-between items-center mb-2 px-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
+        <div className="relative w-full group h-full">
+            <div className="flex justify-between items-baseline mb-2 ml-1">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}
             </div>
             {image ? (
-                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
-                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
-                    </div>
+                <div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-indigo-100 flex items-center justify-center overflow-hidden shadow-sm`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} />
+                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10">
+                        <XIcon className="w-3 h-3"/>
+                    </button>
                 </div>
             ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
-                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
-                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}>
+                    <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                        {icon}
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-500 uppercase tracking-wide text-center px-2">Upload {label}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -88,193 +50,145 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
     );
 };
 
-const PremiumSelector: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
-    <div className="mb-5">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block px-1">{label}</label>
-        <div className="flex flex-wrap gap-2">
-            {options.map(opt => {
-                const isSelected = value === opt;
-                return (
-                    <button 
-                        key={opt}
-                        onClick={() => onChange(opt)}
-                        className={`relative px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border ${
-                            isSelected 
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                    >
-                        {opt}
-                    </button>
-                )
-            })}
+const PremiumCard: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm animate-fadeIn">
+        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
+            {icon && <div className="text-indigo-500">{icon}</div>}
+            <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">{title}</h3>
         </div>
+        {children}
     </div>
 );
 
-const EngineModeCard: React.FC<{ 
-    title: string; 
-    desc: string; 
-    icon: React.ReactNode; 
-    selected: boolean; 
-    onClick: () => void; 
-}> = ({ title, desc, icon, selected, onClick }) => (
-    <div 
-        onClick={onClick} 
-        className={`${PixaTogetherStyles.engineCard} ${selected ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}
-    >
-        <div>
-            <h4 className={PixaTogetherStyles.engineTitle}>{title}</h4>
-            <p className={`${PixaTogetherStyles.engineDesc} ${selected ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>{desc}</p>
-        </div>
-        <div className={`${PixaTogetherStyles.engineIconBox} ${selected ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}>
-            {icon}
-        </div>
-    </div>
-);
-
-const PremiumInput: React.FC<any> = ({ label, ...props }) => (
-    <div className="mb-5">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">{label}</label>
-        <input className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder-gray-400" {...props} />
-    </div>
-);
+// Constants
+const PRO_BACKGROUNDS = [
+    { id: 'studio', label: 'Modern Studio' },
+    { id: 'outdoor', label: 'Outdoor Park' },
+    { id: 'luxury', label: 'Luxury Rooftop' },
+    { id: 'street', label: 'City Street' },
+    { id: 'home', label: 'Cozy Home' },
+    { id: 'cafe', label: 'Cafe' },
+    { id: 'forest', label: 'Deep Forest' },
+    { id: 'beach', label: 'Beach' }
+];
 
 export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [refPose, setRefPose] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null); // Used for relationship or reference pose in reenact
     
-    // Modes
+    // Config State
     const [mode, setMode] = useState<'creative' | 'reenact' | 'professional'>('creative');
-    const [relationship, setRelationship] = useState('');
-    
-    // Single Subject Toggle for Professional Mode
-    const [isSingleSubject, setIsSingleSubject] = useState(false);
-    
-    // Professional Mode Specifics
-    const [proArchetype, setProArchetype] = useState(PRO_ARCHETYPES[0].label);
-    const [proBackground, setProBackground] = useState(PRO_BACKGROUNDS[0].label);
-
-    // Creative Params
+    const [relationship, setRelationship] = useState('Friends');
     const [mood, setMood] = useState('Happy');
+    const [environment, setEnvironment] = useState('Outdoor Park'); // Default
+    const [pose, setPose] = useState('Standing side by side');
     const [timeline, setTimeline] = useState('Present Day');
-    const [environment, setEnvironment] = useState(TIMELINE_ENVIRONMENTS['Present Day'][0]);
-    
-    const [pose, setPose] = useState('Standing Together');
     const [customDescription, setCustomDescription] = useState('');
-
-    // Settings
-    const [faceStrength, setFaceStrength] = useState(0.8);
+    
+    // Professional/Reenact specifics
     const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Match Vibe');
-    const [locks, setLocks] = useState({ age: true, hair: true, accessories: false });
-    const [autoFix, setAutoFix] = useState(true);
-
+    const [locks, setLocks] = useState({ age: true, hair: false, accessories: false });
+    
+    // Result State
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    
+    // UI State
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const cost = appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 5;
+    const cost = appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 4;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const availableEnvironments = TIMELINE_ENVIRONMENTS[timeline] || TIMELINE_ENVIRONMENTS['Present Day'];
 
     useEffect(() => {
-        if (!availableEnvironments.includes(environment)) {
-            setEnvironment(availableEnvironments[0]);
+        let interval: any;
+        if (loading) {
+            const steps = ["Scanning biometrics...", "Analyzing relationship dynamics...", "Calculating lighting physics...", "Generating environment...", "Refining details..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 1500);
         }
-    }, [timeline, availableEnvironments, environment]);
+        return () => clearInterval(interval);
+    }, [loading]);
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
-    useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
-
-    useEffect(() => {
-        if (mode !== 'professional') {
-            setIsSingleSubject(false);
-        } else {
-            // Default professional mode to single subject
-            setIsSingleSubject(true);
+    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setter({ url: URL.createObjectURL(file), base64 });
         }
-    }, [mode]);
-
-    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
+        e.target.value = '';
+    };
 
     const handleGenerate = async () => {
-        if (!personA || (!isSingleSubject && !personB) || !auth.user) return;
+        if (!personA || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
-        setLoading(true); setResultImage(null); setLastCreationId(null);
         
+        setLoading(true);
+        setResultImage(null);
+        setLastCreationId(null);
+
+        const config: PixaTogetherConfig = {
+            mode,
+            relationship: mode === 'creative' ? relationship : 'N/A',
+            mood,
+            environment: environment,
+            pose: mode === 'creative' ? pose : 'N/A',
+            timeline,
+            customDescription,
+            faceStrength: 1.0, // Default max
+            clothingMode,
+            locks,
+            autoFix: true,
+            // For Reenact mode, Person B slot is used as Reference Pose
+            referencePoseBase64: (mode === 'reenact' && personB) ? personB.base64.base64 : undefined,
+            referencePoseMimeType: (mode === 'reenact' && personB) ? personB.base64.mimeType : undefined,
+        };
+
+        // For creative mode with 2 people, pass personB as second subject
+        const secondSubject = (mode === 'creative' && personB) ? personB : null;
+
         try {
-            // CONSTRUCT WORLD CLASS PROMPT IF PROFESSIONAL MODE
-            let finalCustomDesc = customDescription;
-            let finalEnvironment = environment;
-            let finalMood = mood;
-            
-            if (mode === 'professional') {
-                const archetypeData = PRO_ARCHETYPES.find(a => a.label === proArchetype) || PRO_ARCHETYPES[0];
-                const backgroundData = PRO_BACKGROUNDS.find(b => b.label === proBackground) || PRO_BACKGROUNDS[0];
-                
-                // We construct a heavy "Override" description that the backend service will respect
-                finalCustomDesc = `
-                *** WORLD CLASS HEADSHOT PROTOCOL ***
-                - **ARCHETYPE**: ${archetypeData.label}.
-                - **ATTIRE**: ${archetypeData.attire}. Clothing must look expensive, tailored, and perfectly fitted.
-                - **VIBE**: ${archetypeData.vibe}.
-                - **BACKGROUND**: ${backgroundData.prompt}.
-                
-                *** PHOTOGRAPHY STUDIO SETTINGS ***
-                - **Camera**: Sony A7R V with 85mm G Master Lens (Portrait Focal Length).
-                - **Aperture**: f/1.8 to f/2.8 for pleasing optical bokeh.
-                - **Lighting**: "Rembrandt" or "Butterfly" lighting pattern using large octabox softboxes. 
-                - **Details**: Add a subtle "Rim Light" (hair light) to separate the subject from the background. Ensure distinct "Catchlights" in the eyes to make them look alive.
-                
-                *** RETOUCHING ***
-                - **Skin**: High-end texture retention. Do NOT airbrush into plastic. Keep pores visible but clean.
-                - **Structure**: Light facial contouring.
-                `;
-                
-                // Force specific backend settings for consistency
-                finalEnvironment = backgroundData.label; 
-                finalMood = 'Professional';
-            }
-
-            const config: PixaTogetherConfig = {
-                mode,
-                relationship: mode === 'professional' ? 'Professional Portrait' : relationship,
-                mood: finalMood,
-                environment: finalEnvironment,
-                pose: mode === 'professional' ? 'Confident Headshot, Shoulders angled 45 degrees, Face to camera' : pose,
-                timeline: mode === 'professional' ? 'Present Day' : timeline,
-                customDescription: finalCustomDesc,
-                referencePoseBase64: refPose?.base64.base64,
-                referencePoseMimeType: refPose?.base64.mimeType,
-                faceStrength,
-                clothingMode: mode === 'professional' ? 'Professional Attire' : clothingMode,
-                locks,
-                autoFix
-            };
-
             const res = await generateMagicSoul(
-                personA.base64.base64, 
-                personA.base64.mimeType, 
-                isSingleSubject ? null : personB?.base64.base64, 
-                isSingleSubject ? null : personB?.base64.mimeType, 
+                personA.base64.base64,
+                personA.base64.mimeType,
+                secondSubject?.base64.base64,
+                secondSubject?.base64.mimeType,
                 config
             );
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResultImage(blobUrl);
+            
+            const dataUri = `data:image/png;base64,${res}`;
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together');
+            setLastCreationId(creationId);
+            
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) setMilestoneBonus(bonus);
+            }
+        } catch (e: any) {
+            console.error(e);
+            alert(`Generation failed: ${e.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleClaimBonus = async () => {
@@ -283,271 +197,212 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRefundRequest = async (reason: string) => { 
-        if (!auth.user || !resultImage) return; 
-        setIsRefunding(true); 
-        try { 
-            const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, faceStrength, clothingMode, locks, autoFix };
-            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined, config); 
-            if (res.success) { 
-                if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } 
-            } 
-            setShowRefundModal(false); 
-        } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } 
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined);
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null);
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
     };
-    
-    const handleNewSession = () => { setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); setLastCreationId(null); setCustomDescription(''); };
-    const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)'); };
-    const handleDeductEditCredit = async () => { if(auth.user) { const deduct = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...deduct } : null); } };
-    
-    const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits && (mode === 'creative' ? !!relationship : true);
+
+    const handleNewSession = () => {
+        setPersonA(null);
+        setPersonB(null);
+        setResultImage(null);
+        setCustomDescription('');
+    };
+
+    const handleEditorSave = (newUrl: string) => {
+        setResultImage(newUrl);
+        saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)');
+    };
+
+    const handleDeductEditCredit = async () => {
+        if(auth.user) {
+            const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
+    };
+
+    const canGenerate = !!personA && !isLowCredits;
 
     return (
         <>
             <FeatureLayout
-                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or professional headshots." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
-                onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
-                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Magic" }} scrollRef={scrollRef}
+                title="Pixa Together"
+                description="Combine people, swap faces, or generate professional portraits with perfect consistency."
+                icon={<PixaTogetherIcon className="w-14 h-14" />}
+                rawIcon={true}
+                creditCost={cost}
+                isGenerating={loading}
+                canGenerate={canGenerate}
+                onGenerate={handleGenerate}
+                resultImage={resultImage}
+                onResetResult={resultImage ? undefined : handleGenerate}
+                onNewSession={resultImage ? undefined : handleNewSession}
+                resultHeightClass="h-[850px]"
+                hideGenerateButton={isLowCredits}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Magic" }}
+                scrollRef={scrollRef}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 leftContent={
-                    <div className="relative h-full w-full flex flex-col items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
-                        
-                        {!personA && !personB ? (
-                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload people to begin.</p></div>
-                        ) : (
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                <div className="relative w-72 h-80 mx-auto">
-                                    {personA && (
-                                        <div 
-                                            className={PixaTogetherStyles.visualCardA} 
-                                            style={(!personB || isSingleSubject) ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
-                                        >
-                                            <img src={personA.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>{isSingleSubject ? 'Subject' : 'Person A'}</div>
-                                        </div>
-                                    )}
-                                    {personB && !isSingleSubject && (
-                                        <div className={PixaTogetherStyles.visualCardB}>
-                                            <img src={personB.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>Person B</div>
-                                        </div>
-                                    )}
+                    <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        {loading ? (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-purple-400 to-pink-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                {mode === 'reenact' && refPose && (
-                                    <div className={PixaTogetherStyles.refPoseOverlay}>
-                                        <img src={refPose.url} className="w-full h-full object-cover" />
-                                        <span className={PixaTogetherStyles.refPoseBadge}>Target Pose</span>
-                                    </div>
-                                )}
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                            </div>
+                        ) : (
+                            <div className="text-center opacity-50 select-none">
+                                <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <PixaTogetherIcon className="w-10 h-10 text-purple-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-300">Magic Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-1">Upload photos to begin.</p>
                             </div>
                         )}
+                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
-                    isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className="space-y-6 p-2 animate-fadeIn">
-                            
-                            {/* 1. Mode Selection */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3 px-1">
-                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><EngineIcon className="w-4 h-4"/></div>
-                                    <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
-                                </div>
-                                <div className={PixaTogetherStyles.engineGrid}>
-                                    <EngineModeCard title="Creative" desc="Themed Art" icon={<SparklesIcon className="w-5 h-5"/>} selected={mode === 'creative'} onClick={() => setMode('creative')} />
-                                    <EngineModeCard title="Pose Match" desc="Copy Structure" icon={<CameraIcon className="w-5 h-5"/>} selected={mode === 'reenact'} onClick={() => setMode('reenact')} />
-                                    <EngineModeCard title="Pro Headshot" desc="LinkedIn / Corp" icon={<UserIcon className="w-5 h-5"/>} selected={mode === 'professional'} onClick={() => setMode('professional')} />
-                                </div>
+                    isLowCredits ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
+                            <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
+                            <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge</button>
+                        </div>
+                    ) : (
+                        <div className="space-y-6 p-1 animate-fadeIn flex flex-col h-full relative">
+                            {/* Mode Selection */}
+                            <div className={PixaTogetherStyles.engineGrid}>
+                                <button onClick={() => { setMode('creative'); setPersonB(null); }} className={`${PixaTogetherStyles.engineCard} ${mode === 'creative' ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}>
+                                    <div className={`${PixaTogetherStyles.engineIconBox} ${mode === 'creative' ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}><SparklesIcon className="w-4 h-4"/></div>
+                                    <h3 className={PixaTogetherStyles.engineTitle}>Creative</h3>
+                                    <p className={`${PixaTogetherStyles.engineDesc} ${mode === 'creative' ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>Merge & Imagine</p>
+                                </button>
+                                <button onClick={() => { setMode('reenact'); setPersonB(null); }} className={`${PixaTogetherStyles.engineCard} ${mode === 'reenact' ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}>
+                                    <div className={`${PixaTogetherStyles.engineIconBox} ${mode === 'reenact' ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}><CameraIcon className="w-4 h-4"/></div>
+                                    <h3 className={PixaTogetherStyles.engineTitle}>Re-Enact</h3>
+                                    <p className={`${PixaTogetherStyles.engineDesc} ${mode === 'reenact' ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>Face Swap VFX</p>
+                                </button>
+                                <button onClick={() => { setMode('professional'); setPersonB(null); }} className={`${PixaTogetherStyles.engineCard} ${mode === 'professional' ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}>
+                                    <div className={`${PixaTogetherStyles.engineIconBox} ${mode === 'professional' ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}><UserIcon className="w-4 h-4"/></div>
+                                    <h3 className={PixaTogetherStyles.engineTitle}>Pro Headshot</h3>
+                                    <p className={`${PixaTogetherStyles.engineDesc} ${mode === 'professional' ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>LinkedIn Style</p>
+                                </button>
                             </div>
 
-                            {/* 2. Subjects */}
-                            <PremiumCard className="relative overflow-visible">
-                                <div className="flex justify-between items-center mb-5">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><UserIcon className="w-5 h-5"/></div>
-                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
-                                    </div>
-                                    
-                                    {(mode === 'professional' || mode === 'creative') && (
-                                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                                            <button onClick={() => setIsSingleSubject(true)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Single</button>
-                                            {mode !== 'professional' && <button onClick={() => setIsSingleSubject(false)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Duo</button>}
-                                        </div>
-                                    )}
-                                </div>
-
+                            {/* Uploads */}
+                            <PremiumCard title="1. Source Subjects" icon={<UserIcon className="w-5 h-5"/>}>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumUpload label={isSingleSubject ? "Subject" : "Person A"} uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
-                                    
-                                    {!isSingleSubject && (
-                                        <PremiumUpload label="Person B" uploadText="Add Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
+                                    <CompactUpload 
+                                        label="Person A (Main)" 
+                                        image={personA} 
+                                        onUpload={handleUpload(setPersonA)} 
+                                        onClear={() => setPersonA(null)} 
+                                        icon={<UserIcon className="w-6 h-6 text-indigo-400"/>} 
+                                    />
+                                    {mode === 'creative' && (
+                                        <CompactUpload 
+                                            label="Person B (Optional)" 
+                                            subLabel="For Couples/Groups"
+                                            image={personB} 
+                                            onUpload={handleUpload(setPersonB)} 
+                                            onClear={() => setPersonB(null)} 
+                                            icon={<UserIcon className="w-6 h-6 text-purple-400"/>} 
+                                        />
                                     )}
-                                    
-                                    {isSingleSubject && (
-                                        <div className="h-40 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center bg-gray-50/50 opacity-50 select-none">
-                                            <div className="p-3 bg-white rounded-full mb-2 shadow-sm"><CheckIcon className="w-5 h-5 text-gray-300"/></div>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Single Mode Active</span>
-                                        </div>
+                                    {mode === 'reenact' && (
+                                        <CompactUpload 
+                                            label="Reference Scene" 
+                                            subLabel="Target Body/Pose"
+                                            image={personB} 
+                                            onUpload={handleUpload(setPersonB)} 
+                                            onClear={() => setPersonB(null)} 
+                                            icon={<CameraIcon className="w-6 h-6 text-green-400"/>} 
+                                        />
                                     )}
                                 </div>
                             </PremiumCard>
 
-                            {/* 3. Conditional Controls */}
+                            {/* Controls */}
                             {mode === 'creative' && (
-                                <PremiumCard className="animate-fadeIn">
-                                    <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
-                                    
-                                    <div className="mb-4 pb-4 border-b border-gray-100">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <SparklesIcon className="w-3 h-3 text-indigo-500" />
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
+                                <div className="space-y-4">
+                                    <PremiumCard title="2. Set The Scene" icon={<BuildingIcon className="w-5 h-5"/>}>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {PRO_BACKGROUNDS.map(bg => (
+                                                <button
+                                                    key={bg.id}
+                                                    onClick={() => setEnvironment(bg.label)}
+                                                    className={`relative px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 border ${
+                                                        environment === bg.label 
+                                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' 
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    {bg.label}
+                                                </button>
+                                            ))}
                                         </div>
-                                        <div className="mb-4">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
-                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
-                                                {Object.keys(TIMELINE_ENVIRONMENTS).map(t => <option key={t}>{t}</option>)}
-                                            </select>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <SelectionGrid label="Mood" options={['Happy', 'Romantic', 'Cinematic', 'Vintage', 'Adventure']} value={mood} onChange={setMood} />
+                                            <SelectionGrid label="Time Era" options={['Present Day', '1990s Vintage', 'Future Sci-Fi', '1920s Noir', 'Medieval']} value={timeline} onChange={setTimeline} />
                                         </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
-                                            <select value={mood} onChange={(e) => setMood(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
-                                                {['Happy', 'Cinematic', 'Romantic', 'Vintage', 'Luxury', 'Adventure', 'Candid', 'Professional', 'Ethereal', 'Moody'].map(o => <option key={o}>{o}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Setting</label>
-                                            <select value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
-                                                {availableEnvironments.map(o => <option key={o}>{o}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-2">
-                                        <PremiumInput placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} label="Custom Vision" />
-                                    </div>
-                                </PremiumCard>
-                            )}
-
-                            {mode === 'reenact' && (
-                                <PremiumCard className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100" title="Pose Match">
-                                    <div className="flex items-start gap-3 mb-4">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm"><CameraIcon className="w-4 h-4 text-blue-500" /></div>
-                                        <div><h4 className="text-xs font-bold text-blue-900">Reference Shot</h4><p className="text-[10px] text-blue-600/80 mt-0.5">Upload a photo to copy the exact pose and composition.</p></div>
-                                    </div>
-                                    <PremiumUpload 
-                                        label="Reference Pose" 
-                                        uploadText="Upload Reference Pose" 
-                                        image={refPose} 
-                                        onUpload={handleUpload(setRefPose)} 
-                                        onClear={() => setRefPose(null)} 
-                                        icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-5 h-5 text-[#008efa]"><path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20z"/></svg>} 
-                                        heightClass="h-32" 
-                                    />
-                                </PremiumCard>
-                            )}
-
-                            {mode === 'professional' && (
-                                <div className="space-y-6 animate-fadeIn">
-                                    <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100">
-                                        <div className="bg-blue-600 text-white p-2 rounded-lg shadow-sm">
-                                            <UserIcon className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-black text-blue-900 uppercase tracking-wide">Professional Headshot</h4>
-                                            <p className="text-xs text-blue-700 opacity-80">AI will style you in business attire and perfect lighting.</p>
-                                        </div>
-                                    </div>
-
-                                    {/* 1. Profession / Archetype - Card Grid Selection */}
-                                    <PremiumCard title="1. Choose Your Persona" icon={<UserIcon className="w-5 h-5"/>}>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {PRO_ARCHETYPES.map(arch => {
-                                                const isSelected = proArchetype === arch.label;
-                                                return (
-                                                    <button
-                                                        key={arch.id}
-                                                        onClick={() => setProArchetype(arch.label)}
-                                                        className={`relative flex flex-col items-start p-3 rounded-xl border transition-all duration-200 group text-left ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-500/20' 
-                                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <div className="flex justify-between w-full mb-2">
-                                                            <div className={`p-2 rounded-lg transition-colors ${
-                                                                isSelected ? 'bg-indigo-200/50 text-indigo-700' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'
-                                                            }`}>
-                                                                {arch.icon}
-                                                            </div>
-                                                            {isSelected && (
-                                                                <div className="bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
-                                                                    <CheckIcon className="w-3 h-3" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        <p className={`text-xs font-bold mb-1 ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>
-                                                            {arch.label}
-                                                        </p>
-                                                        <p className={`text-[10px] leading-tight line-clamp-2 ${isSelected ? 'text-indigo-700' : 'text-gray-500'}`}>
-                                                            {arch.attire}
-                                                        </p>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </PremiumCard>
-
-                                    {/* 2. Background Selector - Bento Grid */}
-                                    <PremiumCard title="2. Choose Location" icon={<BuildingIcon className="w-5 h-5"/>}>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {PRO_BACKGROUNDS.map(bg => {
-                                                const isSelected = proBackground === bg.label;
-                                                return (
-                                                    <button
-                                                        key={bg.id}
-                                                        onClick={() => setProBackground(bg.label)}
-                                                        className={`relative p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between h-20 group ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' 
-                                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <div className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isSelected ? 'text-indigo-200' : 'text-gray-400'}`}>
-                                                            {bg.id.toUpperCase()}
-                                                        </div>
-                                                        <div className="flex items-end justify-between w-full">
-                                                            <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-gray-700'}`}>
-                                                                {bg.label}
-                                                            </span>
-                                                            {isSelected ? (
-                                                                <CheckIcon className="w-4 h-4 text-white" />
-                                                            ) : (
-                                                                <div className="w-4 h-4 rounded-full border-2 border-gray-200 group-hover:border-gray-400"></div>
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                        
-                                        <div className="mt-6 flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                            <InformationCircleIcon className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                                            <p className="text-[10px] text-gray-500 leading-relaxed">
-                                                Pixa uses <strong>Rembrandt lighting</strong> physics to blend the subject naturally. Face details are preserved while clothing and background are generated.
-                                            </p>
+                                        <div className="mt-4">
+                                            <InputField label="Custom Prompt (Optional override)" placeholder="e.g. Riding horses on a beach" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} />
                                         </div>
                                     </PremiumCard>
                                 </div>
                             )}
+
+                            {mode === 'professional' && (
+                                <PremiumCard title="2. Professional Settings" icon={<UserIcon className="w-5 h-5"/>}>
+                                    <SelectionGrid label="Attire" options={['Professional Attire', 'Keep Original']} value={clothingMode} onChange={(v: any) => setClothingMode(v)} />
+                                    <SelectionGrid label="Environment" options={['Modern Studio', 'Blurred Office', 'City Skyline']} value={environment} onChange={setEnvironment} />
+                                </PremiumCard>
+                            )}
+
+                            {mode === 'reenact' && (
+                                <PremiumCard title="2. Re-Enactment Settings" icon={<FilmIcon className="w-5 h-5"/>}>
+                                    <div className="p-3 bg-blue-50 text-blue-700 rounded-xl text-xs leading-relaxed border border-blue-100 mb-4">
+                                        <InformationCircleIcon className="w-4 h-4 inline mr-1 -mt-0.5"/>
+                                        <strong>VFX Mode:</strong> The face from "Person A" will be blended onto the body/scene of the "Reference Scene".
+                                    </div>
+                                    <SelectionGrid label="Era Match" options={['Present Day', '1990s Vintage', 'Future Sci-Fi', 'Medieval']} value={timeline} onChange={setTimeline} />
+                                </PremiumCard>
+                            )}
+
+                            <PremiumCard title="3. Identity Locks" icon={<LockIcon className="w-5 h-5"/>}>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setLocks({...locks, age: !locks.age})} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${locks.age ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-500 border-gray-200'}`}>
+                                        Lock Age {locks.age && <CheckIcon className="w-3 h-3 inline ml-1"/>}
+                                    </button>
+                                    <button onClick={() => setLocks({...locks, hair: !locks.hair})} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${locks.hair ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-500 border-gray-200'}`}>
+                                        Lock Hair {locks.hair && <CheckIcon className="w-3 h-3 inline ml-1"/>}
+                                    </button>
+                                </div>
+                            </PremiumCard>
                         </div>
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonA)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Pixa Together" />}
