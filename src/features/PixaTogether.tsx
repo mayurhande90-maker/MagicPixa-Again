@@ -147,7 +147,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing facial biometrics...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     // When switching modes, ensure state is clean
@@ -362,7 +362,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {/* 3. Conditional Controls */}
                             {mode === 'creative' && (
                                 <PremiumCard className="animate-fadeIn">
-                                    <PremiumSelector label="Relationship" options={['Couple', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
+                                    <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
@@ -378,14 +378,14 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         </div>
                                     </div>
                                     
-                                    <div className="pt-4 border-t border-gray-50">
+                                    <div className="pt-4 border-t border-gray-100">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <SparklesIcon className="w-3 h-3 text-amber-500" />
-                                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Magic Overrides</span>
+                                            <SparklesIcon className="w-3 h-3 text-indigo-500" />
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
                                         </div>
                                         <div className="mb-4">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
-                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full p-2.5 bg-amber-50/50 border border-amber-100 rounded-xl text-xs font-bold text-amber-900 outline-none hover:bg-amber-50 transition-colors cursor-pointer">
+                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
                                                 <option>Present Day</option>
                                                 <option>Future Sci-Fi</option>
                                                 <option>1990s Vintage</option>
