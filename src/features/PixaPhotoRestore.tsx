@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaRestoreIcon, UploadIcon, XIcon, CreditCoinIcon, MagicWandIcon, PaletteIcon, CheckIcon, InformationCircleIcon, ShieldCheckIcon } from '../components/icons';
+import { PixaRestoreIcon, UploadIcon, XIcon, CreditCoinIcon, MagicWandIcon, PaletteIcon, CheckIcon, InformationCircleIcon, ShieldCheckIcon, ArrowUpCircleIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { colourizeImage } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -92,7 +92,15 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                     )
                 }
                 rightContent={
-                    isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Restoration requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
+                    !image ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
+                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100"><ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/></div>
+                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
+                            <p className="text-sm text-gray-400">Upload a photo to unlock restoration tools.</p>
+                        </div>
+                    ) : isLowCredits ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Restoration requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>
+                    ) : (
                         <div className="space-y-8 p-2 animate-fadeIn"><div className="flex items-center gap-3 pb-2 border-b border-gray-100"><div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div><div><h3 className="text-lg font-bold text-gray-800">Restoration Engine</h3><p className="text-xs text-gray-400 font-medium">Select your preferred output style</p></div></div><div className="grid grid-cols-1 gap-4"><ModeCard title="Colour & Restore" description="Repairs damage + AI Colorization. Best for black & white photos needing full revitalization." icon={<PaletteIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_color'} onClick={() => setRestoreMode('restore_color')} accentColor="text-purple-500" /><ModeCard title="Restore Only" description="Repairs damage while preserving original colors. Ideal for keeping the vintage aesthetic." icon={<MagicWandIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_only'} onClick={() => setRestoreMode('restore_only')} accentColor="text-blue-500" /></div></div>
                     )
                 }
