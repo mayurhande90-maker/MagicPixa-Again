@@ -87,13 +87,17 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${isControlsDisabled ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
                             <div><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div><div className="grid grid-cols-2 gap-4"><CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" /><CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" /></div>
                             
-                            <div className="flex flex-col items-center gap-2 mt-4">
-                                <div className="px-4 py-2 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-500 font-medium shadow-sm transition-all hover:bg-gray-100">
-                                    Upload at least one garment to proceed.
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex items-center justify-center text-center h-full transition-all hover:bg-gray-100 shadow-sm">
+                                    <p className="text-[10px] font-bold text-gray-500 leading-tight">
+                                        Upload at least one garment to proceed.
+                                    </p>
                                 </div>
-                                <div className="px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-bold shadow-sm flex items-center gap-2 transition-all hover:bg-indigo-100 hover:shadow-md">
-                                    <InformationCircleIcon className="w-3 h-3" />
-                                    To transfer a full outfit, upload the same image to both slots.
+                                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex items-center justify-center text-center h-full gap-2 transition-all hover:bg-gray-100 shadow-sm">
+                                    <InformationCircleIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                    <p className="text-[10px] font-medium text-gray-500 leading-tight">
+                                        To transfer a full outfit, upload the same image to both slots.
+                                    </p>
                                 </div>
                             </div>
                             
