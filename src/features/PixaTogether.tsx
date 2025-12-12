@@ -461,39 +461,40 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         </div>
                                     </div>
 
-                                    {/* 1. Profession / Archetype - Clean Card Selection */}
+                                    {/* 1. Profession / Archetype - Card Grid Selection */}
                                     <PremiumCard title="1. Choose Your Persona" icon={<UserIcon className="w-5 h-5"/>}>
-                                        <div className="flex flex-col gap-2">
+                                        <div className="grid grid-cols-2 gap-3">
                                             {PRO_ARCHETYPES.map(arch => {
                                                 const isSelected = proArchetype === arch.label;
                                                 return (
                                                     <button
                                                         key={arch.id}
                                                         onClick={() => setProArchetype(arch.label)}
-                                                        className={`flex items-center p-3 rounded-xl border transition-all duration-200 group text-left ${
+                                                        className={`relative flex flex-col items-start p-3 rounded-xl border transition-all duration-200 group text-left ${
                                                             isSelected 
-                                                            ? 'bg-indigo-50 border-indigo-500 shadow-sm ring-1 ring-indigo-500/20' 
+                                                            ? 'bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-500/20' 
                                                             : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
                                                         }`}
                                                     >
-                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 shrink-0 transition-colors ${
-                                                            isSelected ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-                                                        }`}>
-                                                            {arch.icon}
+                                                        <div className="flex justify-between w-full mb-2">
+                                                            <div className={`p-2 rounded-lg transition-colors ${
+                                                                isSelected ? 'bg-indigo-200/50 text-indigo-700' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'
+                                                            }`}>
+                                                                {arch.icon}
+                                                            </div>
+                                                            {isSelected && (
+                                                                <div className="bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                                                                    <CheckIcon className="w-3 h-3" />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="flex-1 min-w-0 mr-4">
-                                                            <p className={`text-sm font-bold ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>
-                                                                {arch.label}
-                                                            </p>
-                                                            <p className={`text-xs truncate ${isSelected ? 'text-indigo-700' : 'text-gray-500'}`}>
-                                                                {arch.attire}
-                                                            </p>
-                                                        </div>
-                                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                                            isSelected ? 'border-indigo-600' : 'border-gray-300 group-hover:border-gray-400'
-                                                        }`}>
-                                                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
-                                                        </div>
+                                                        
+                                                        <p className={`text-xs font-bold mb-1 ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                                            {arch.label}
+                                                        </p>
+                                                        <p className={`text-[10px] leading-tight line-clamp-2 ${isSelected ? 'text-indigo-700' : 'text-gray-500'}`}>
+                                                            {arch.attire}
+                                                        </p>
                                                     </button>
                                                 );
                                             })}
