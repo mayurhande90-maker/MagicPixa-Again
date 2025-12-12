@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IconProps, BaseIcon } from './types';
 
@@ -20,8 +21,40 @@ export const FlagIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" />} />
 );
 
-export const GiftIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M3 11.25h18M3 11.25l2.25-6h13.5l2.25 6m-18 0h18m-9-3v12m-6-9h12" />} />
+export const GiftIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g fill="none">
+            <path fill="url(#fluentColorGift240)" d="M20 12.5v6.25a3.25 3.25 0 0 1-3.066 3.245L16.75 22h-9.5a3.25 3.25 0 0 1-3.245-3.066L4 18.75V12.5z"/>
+            <path fill="url(#fluentColorGift244)" d="M19.75 7c.69 0 1.25.56 1.25 1.25v3.5a1.25 1.25 0 0 1-1 1.225H4c-.57-.116-1-.62-1-1.225v-3.5C3 7.56 3.56 7 4.25 7z"/>
+            <path fill="url(#fluentColorGift241)" fillRule="evenodd" d="M11.25 22V12h1.5v10z" clipRule="evenodd"/>
+            <path fill="url(#fluentColorGift242)" fillRule="evenodd" d="M11.25 13V8h1.5v5z" clipRule="evenodd"/>
+            <path fill="url(#fluentColorGift243)" fillRule="evenodd" d="M9.5 8.5A3.25 3.25 0 1 1 12 3.173A3.25 3.25 0 1 1 14.5 8.5zM7.75 5.25a1.75 1.75 0 1 1 3.5 0V7H9.5a1.75 1.75 0 0 1-1.75-1.75m5 1.75h1.75a1.75 1.75 0 1 0-1.75-1.75z" clipRule="evenodd"/>
+            <defs>
+                <linearGradient id="fluentColorGift240" x1="10.98" x2="10.98" y1="25.733" y2="8.8" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#BB45EA"/>
+                    <stop offset=".348" stopColor="#8B57ED"/>
+                    <stop offset="1" stopColor="#5B2AB5"/>
+                </linearGradient>
+                <linearGradient id="fluentColorGift241" x1="12" x2="12" y1="6.375" y2="20.261" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FB5937"/>
+                    <stop offset="1" stopColor="#FFCD0F"/>
+                </linearGradient>
+                <linearGradient id="fluentColorGift242" x1="12" x2="12" y1="-13.429" y2="21.571" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FB5937"/>
+                    <stop offset="1" stopColor="#FFCD0F"/>
+                </linearGradient>
+                <linearGradient id="fluentColorGift243" x1="15.194" x2="11.905" y1="8.498" y2="-4.901" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FF6F47"/>
+                    <stop offset="1" stopColor="#FFCD0F"/>
+                </linearGradient>
+                <radialGradient id="fluentColorGift244" cx="0" cy="0" r="1" gradientTransform="matrix(23.183 0 0 9.33595 12 4.76)" gradientUnits="userSpaceOnUse">
+                    <stop offset=".196" stopColor="#5B2AB5"/>
+                    <stop offset=".763" stopColor="#8B57ED"/>
+                    <stop offset="1" stopColor="#BB45EA"/>
+                </radialGradient>
+            </defs>
+        </g>
+    </svg>
 );
 
 // --- GAMIFICATION BADGES ---
@@ -62,7 +95,7 @@ export const CreditCoinIcon: React.FC<IconProps> = ({ className }) => (
             <path fill="#505572" d="M24 18a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zM24 34a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1z"/>
             <path fill="#231f20" d="M24 1a23 23 0 1 0 23 23A23.026 23.026 0 0 0 24 1zm0 44a21 21 0 1 1 21-21 21.024 21.024 0 0 1-21 21z"/>
             <path fill="#231f20" d="M24 5a19 19 0 1 0 19 19A19.022 19.022 0 0 0 24 5zm0 36a17 17 0 1 1 17-17 17.019 17.019 0 0 1-17 17z"/>
-            <path fill="#231f20" d="M27 16h-2v-1a1 1 0 0 0-2 0v1h-2a3.003 3.003 0 0 0-3 3v3a3.003 3.003 0 0 0 3 3h6a1.001 1.001 0 0 1 1 1v3a1.001 1.001 0 0 1-1 1h-6a1.001 1.001 0 0 1-1-1v-1a1 1 0 0 0-2 0v1a3.003 3.003 0 0 0 3 3h2v1a1 1 0 0 0 2 0v-1h2a3.003 3.003 0 0 0 3-3v-3a3.003 3.003 0 0 0-3-3h-6a1.001 1.001 0 0 1-1-1v-3a1.001 1.001 0 0 1 1-1h6a1.001 1.001 0 0 1 1 1v1a1 1 0 0 0 2 0v-1a3.003 3.003 0 0 0-3-3z"/>
+            <path fill="#231f20" d="M27 16h-2v-1a1 1 0 0 0-2 0v1h-2a3.003 3.003 0 0 0-3 3v3a3.003 3.003 0 0 0 3 3h6a1.001 1.001 0 0 1 1 1v3a1.001 1.001 0 0 1-1 1h-6a1.001 1.001 0 0 1-1-1v-1a1 1 0 0 0-2 0v1a3.003 3.003 0 0 0 3 3h2v1a1 1 0 0 0 2 0v-1h2a3.003 3.003 0 0 0 3-3v-3a3.003 3.003 0 0 0-3-3h-6a1.001 1.001 0 0 1-1-1v-3a1.001 1.001 0 0 1 1 1h6a1.001 1.001 0 0 1 1 1v1a1 1 0 0 0 2 0v-1a3.003 3.003 0 0 0-3-3z"/>
         </g>
     </svg>
 );
