@@ -9,6 +9,23 @@ interface AdminConfigProps {
     onConfigUpdate: (config: AppConfig) => void;
 }
 
+// List of all active features in the app to ensure they appear in config
+const KNOWN_FEATURES = [
+    'Pixa Product Shots',
+    'Pixa Headshot Pro',
+    'Pixa Ecommerce Kit',
+    'Pixa AdMaker',
+    'Pixa Thumbnail Pro',
+    'Pixa Realty Ads',
+    'Pixa Together',
+    'Pixa Photo Restore',
+    'Pixa Caption Pro',
+    'Pixa Interior Design',
+    'Pixa TryOn',
+    'Pixa Mockups',
+    'Magic Eraser'
+];
+
 // Mapping Legacy/Internal DB Keys to Client-Facing Names
 const FEATURE_NAME_MAP: Record<string, string> = {
     'Magic Photo Studio': 'Pixa Product Shots',
@@ -64,10 +81,29 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
         if (appConfig) {
             setLocalConfig(prev => {
                 if (hasChanges) return prev;
-                if (!prev || JSON.stringify(prev) !== JSON.stringify(appConfig)) {
-                    return JSON.parse(JSON.stringify(appConfig));
-                }
-                return prev;
+                
+                // Deep copy the config from DB
+                const next = JSON.parse(JSON.stringify(appConfig));
+
+                // 1. Ensure Feature Costs exist
+                if (!next.featureCosts) next.featureCosts = {};
+                
+                // 2. Auto-populate KNOWN_FEATURES if missing
+                KNOWN_FEATURES.forEach(feature => {
+                    if (next.featureCosts[feature] === undefined) {
+                        next.featureCosts[feature] = 3; // Default cost
+                    }
+                });
+
+                // 3. Ensure Feature Toggles exist
+                if (!next.featureToggles) next.featureToggles = {};
+                KNOWN_FEATURES.forEach(feature => {
+                    if (next.featureToggles[feature] === undefined) {
+                        next.featureToggles[feature] = true; // Default enabled
+                    }
+                });
+
+                return next;
             });
         }
     }, [appConfig, hasChanges]);
