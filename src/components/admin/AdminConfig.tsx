@@ -9,47 +9,27 @@ interface AdminConfigProps {
     onConfigUpdate: (config: AppConfig) => void;
 }
 
-// Mapping Legacy/Internal DB Keys to Client-Facing Names
-const FEATURE_NAME_MAP: Record<string, string> = {
-    'Magic Photo Studio': 'Pixa Product Shots',
-    'Product Shot': 'Pixa Product Shots',
-    'Model Shot': 'Pixa Model Shots',
-    'Brand Stylist AI': 'Pixa AdMaker',
-    'Magic Ads': 'Pixa AdMaker',
-    'Pixa AdMaker': 'Pixa AdMaker',
-    'Brand Kit AI': 'Pixa Ecommerce Kit',
-    'Merchant Studio': 'Pixa Ecommerce Kit',
-    'Ecommerce Kit': 'Pixa Ecommerce Kit',
+// STRICT LIST OF CURRENT FEATURES
+// Legacy keys not in this list will be flagged in the UI for deletion
+const CURRENT_FEATURES: Record<string, string> = {
+    'Pixa Product Shots': 'Pixa Product Shots',
+    'Pixa Model Shots': 'Pixa Model Shots',
     'Pixa Ecommerce Kit': 'Pixa Ecommerce Kit',
-    // New specific keys for Ecommerce Kit
+    'Pixa AdMaker': 'Pixa AdMaker',
+    'Pixa Thumbnail Pro': 'Pixa Thumbnail Pro',
+    'Pixa Realty Ads': 'Pixa Realty Ads',
+    'Pixa Together': 'Pixa Together',
+    'Pixa Photo Restore': 'Pixa Photo Restore',
+    'Pixa Caption Pro': 'Pixa Caption Pro',
+    'Pixa Interior Design': 'Pixa Interior Design',
+    'Pixa TryOn': 'Pixa TryOn',
+    'Pixa Mockups': 'Pixa Mockups',
+    'Pixa Headshot Pro': 'Pixa Headshot Pro',
+    'Magic Eraser': 'Magic Eraser',
+    // Variations
     'Pixa Ecommerce Kit (5 Assets)': 'Pixa Ecommerce Kit (5 Assets)',
     'Pixa Ecommerce Kit (7 Assets)': 'Pixa Ecommerce Kit (7 Assets)',
     'Pixa Ecommerce Kit (10 Assets)': 'Pixa Ecommerce Kit (10 Assets)',
-    
-    'Magic Soul': 'Pixa Together',
-    'Together': 'Pixa Together',
-    'Pixa Together': 'Pixa Together',
-    'Magic Photo Colour': 'Pixa Photo Restore',
-    'Pixa Photo Restore': 'Pixa Photo Restore',
-    'CaptionAI': 'Pixa Caption Pro',
-    'Pixa Caption Pro': 'Pixa Caption Pro',
-    'Magic Interior': 'Pixa Interior Design',
-    'Interior': 'Pixa Interior Design',
-    'Pixa Interior Design': 'Pixa Interior Design',
-    'Magic Apparel': 'Pixa TryOn',
-    'Apparel': 'Pixa TryOn',
-    'Pixa TryOn': 'Pixa TryOn',
-    'Magic Mockup': 'Pixa Mockups',
-    'Mockup': 'Pixa Mockups',
-    'Pixa Mockups': 'Pixa Mockups',
-    'Thumbnail Studio': 'Pixa Thumbnail Pro',
-    'Pixa Thumbnail Pro': 'Pixa Thumbnail Pro',
-    'Magic Realty': 'Pixa Realty Ads',
-    'Realty Ads': 'Pixa Realty Ads',
-    'Pixa Realty Ads': 'Pixa Realty Ads',
-    'Magic Eraser': 'Magic Eraser',
-    'Pixa Headshot Pro': 'Pixa Headshot Pro',
-    'Headshot': 'Pixa Headshot Pro'
 };
 
 export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpdate }) => {
@@ -112,8 +92,6 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
     const removePack = (index: number) => { if (!localConfig) return; if (confirm("Delete this package?")) { setLocalConfig(prev => { if (!prev) return null; const next = JSON.parse(JSON.stringify(prev)); next.creditPacks.splice(index, 1); return next; }); setHasChanges(true); } };
     const saveConfig = async () => { if (!localConfig) return; try { await updateAppConfig(localConfig); onConfigUpdate(localConfig); setHasChanges(false); alert("Configuration updated successfully."); } catch (e) { console.error("Config save error", e); alert("Failed to save config. Check permissions."); } };
 
-    const getDisplayName = (key: string) => FEATURE_NAME_MAP[key] || key;
-
     return (
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
             <div className="flex justify-between items-center mb-6"><div><h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2><p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p></div>{hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">Save Changes</button>}</div>
@@ -121,28 +99,32 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><CreditCardIcon className="w-4 h-4"/> Credit Pricing</h3>
                     <div className="space-y-3">
-                        {Object.entries(localConfig?.featureCosts || {}).map(([feature, cost]) => (
-                            <div key={feature} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm group">
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => removeCostKey(feature)} className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100" title="Delete this feature cost"><TrashIcon className="w-4 h-4"/></button>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-gray-700">{getDisplayName(feature)}</span>
-                                        {getDisplayName(feature) !== feature && <span className="text-[10px] text-gray-400 font-mono">{feature}</span>}
+                        {Object.entries(localConfig?.featureCosts || {}).map(([feature, cost]) => {
+                            const isCurrent = CURRENT_FEATURES[feature];
+                            return (
+                                <div key={feature} className={`flex justify-between items-center p-3 rounded-xl border shadow-sm group ${isCurrent ? 'bg-white border-gray-200' : 'bg-red-50 border-red-100'}`}>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => removeCostKey(feature)} className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100" title="Delete this feature cost"><TrashIcon className="w-4 h-4"/></button>
+                                        <div className="flex flex-col">
+                                            <span className={`text-sm font-bold ${isCurrent ? 'text-gray-700' : 'text-red-700'}`}>
+                                                {feature} {!isCurrent && '(Legacy/Unused)'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="number" value={cost ?? 0} min="0" onChange={(e) => handleConfigChange('featureCosts', feature, parseInt(e.target.value) || 0)} className="w-16 p-2 text-right border border-gray-200 rounded-lg font-mono font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                                        <span className="text-xs font-bold text-gray-400">CR</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <input type="number" value={cost ?? 0} min="0" onChange={(e) => handleConfigChange('featureCosts', feature, parseInt(e.target.value) || 0)} className="w-16 p-2 text-right border border-gray-200 rounded-lg font-mono font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                                    <span className="text-xs font-bold text-gray-400">CR</span>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     
                     {/* Add New Cost Key Form */}
                     <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
                         <input 
                             type="text" 
-                            placeholder="Feature Name (e.g. Pixa Ecommerce Kit (7 Assets))" 
+                            placeholder="Feature Name (e.g. Pixa Product Shots)" 
                             value={newFeatureKey} 
                             onChange={e => setNewFeatureKey(e.target.value)} 
                             className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-indigo-500"
@@ -160,17 +142,21 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><ShieldCheckIcon className="w-4 h-4"/> Feature Toggles</h3>
                     <div className="space-y-3">
-                        {Object.entries(localConfig?.featureToggles || {}).map(([key, enabled]) => (
-                            <div key={key} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-700">{getDisplayName(key)}</span>
-                                    {getDisplayName(key) !== key && <span className="text-[10px] text-gray-400 font-mono">{key}</span>}
+                        {Object.entries(localConfig?.featureToggles || {}).map(([key, enabled]) => {
+                            const isCurrent = CURRENT_FEATURES[key];
+                            return (
+                                <div key={key} className={`flex justify-between items-center p-3 rounded-xl border shadow-sm ${isCurrent ? 'bg-white border-gray-200' : 'bg-red-50 border-red-100'}`}>
+                                    <div className="flex flex-col">
+                                        <span className={`text-sm font-bold ${isCurrent ? 'text-gray-700' : 'text-red-700'}`}>
+                                            {key} {!isCurrent && '(Legacy)'}
+                                        </span>
+                                    </div>
+                                    <button onClick={() => handleConfigChange('featureToggles', key, !enabled)} className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-transform duration-300 ${enabled ? 'left-7' : 'left-1'}`}></div>
+                                    </button>
                                 </div>
-                                <button onClick={() => handleConfigChange('featureToggles', key, !enabled)} className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-transform duration-300 ${enabled ? 'left-7' : 'left-1'}`}></div>
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
