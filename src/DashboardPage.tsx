@@ -43,7 +43,6 @@ const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(mod
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
 const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
-const MagicHeadshot = lazy(() => import('./features/MagicHeadshot').then(module => ({ default: module.MagicHeadshot })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -167,8 +166,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <MagicRealty auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'soul':
                  return <PixaTogether auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
-            case 'headshot':
-                 return <MagicHeadshot auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'colour':
                  return <PixaPhotoRestore auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'interior':
