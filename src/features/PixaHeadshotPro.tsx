@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
-import { PixaHeadshotIcon, UploadIcon, XIcon, CreditCoinIcon, CheckIcon, UserIcon, BuildingIcon, SparklesIcon, PaletteIcon, ScaleIcon, HomeIcon, PlusIcon, UsersIcon } from '../components/icons';
+import { PixaHeadshotIcon, UploadIcon, XIcon, CreditCoinIcon, CheckIcon, UserIcon, BuildingIcon, SparklesIcon, PaletteIcon, ScaleIcon, HomeIcon, PlusIcon, UsersIcon, PencilIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -65,6 +65,8 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
     const [background, setBackground] = useState(BACKGROUNDS[0].id);
+    const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
+    
     const [customDesc, setCustomDesc] = useState('');
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -103,6 +105,15 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (mode === 'duo' && !partnerImage) { alert("Please upload a partner photo for Duo mode."); return; }
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
+        let finalBackground = background;
+        if (background === 'Custom') {
+            if (!customBackgroundPrompt.trim()) {
+                alert("Please enter a description for your custom location.");
+                return;
+            }
+            finalBackground = customBackgroundPrompt;
+        }
+        
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
@@ -110,7 +121,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 image.base64.base64, 
                 image.base64.mimeType, 
                 archetype, 
-                background, 
+                finalBackground, 
                 customDesc,
                 mode === 'duo' ? partnerImage?.base64.base64 : undefined,
                 mode === 'duo' ? partnerImage?.base64.mimeType : undefined
@@ -250,11 +261,29 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 {bg.label}
                                             </button>
                                         ))}
+                                        <button 
+                                            onClick={() => setBackground('Custom')}
+                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${background === 'Custom' ? 'bg-purple-600 text-white border-transparent shadow-md transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                                        >
+                                            <PencilIcon className="w-3 h-3" /> Custom
+                                        </button>
                                     </div>
+                                    
+                                    {background === 'Custom' && (
+                                        <div className="mt-4 animate-fadeIn">
+                                            <InputField 
+                                                label="Describe Custom Location" 
+                                                placeholder="e.g. A futuristic spaceship bridge, neon lights, bokeh" 
+                                                value={customBackgroundPrompt} 
+                                                onChange={(e: any) => setCustomBackgroundPrompt(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 4. Custom Prompt */}
-                                <InputField label="Custom Details (Optional)" placeholder="e.g. wearing red tie, smiling broadly" value={customDesc} onChange={(e: any) => setCustomDesc(e.target.value)} />
+                                <InputField label="Additional Details (Optional)" placeholder="e.g. wearing red tie, smiling broadly" value={customDesc} onChange={(e: any) => setCustomDesc(e.target.value)} />
                             </div>
                         </div>
                     )

@@ -81,7 +81,7 @@ export const generateProfessionalHeadshot = async (
         // 4. Construct Prompt
         let prompt = `
         *** WORLD CLASS HEADSHOT PROTOCOL ***
-        You are an Elite Portrait Photographer & Retoucher.
+        You are an Elite Portrait Photographer & Retoucher using Gemini 3 Pro Vision.
         
         **SUBJECT A (Main User)**:
         - VISUAL SOURCE: Input Image 1.
@@ -115,12 +115,15 @@ export const generateProfessionalHeadshot = async (
         - **Archetype**: ${archetype}. (Apply appropriate professional attire to both subjects if duo).
         - **Vibe**: Professional, Confident, Approachable.
         
-        **ENVIRONMENT**:
-        - **Background**: ${background}. (Ensure soft bokeh/blur).
+        **ENVIRONMENTAL CONTEXT**:
+        - **Description**: "${background}".
+        - **AI EXECUTION INSTRUCTION**: Deeply analyze the environmental description provided above. Use high-level imagination to construct a scene that perfectly matches the mood, lighting, and context described. If it is a generic setting (e.g. 'Office'), make it high-end and detailed. If it is creative (e.g. 'Mars'), make it cinematic and realistic.
+        - **Physics**: Ensure the lighting on the subject's face reflects the colors and intensity of this background (Ambient Occlusion & Global Illumination).
+        - **Depth**: Apply a professional f/1.8 to f/2.8 bokeh blur to the background to keep focus on the subject.
         
         **PHOTOGRAPHY SPECS**:
         - **Camera**: Sony A7R V with 85mm G Master Lens.
-        - **Lighting**: "Rembrandt" or "Butterfly" studio lighting. Softboxes. No harsh shadows. Add a subtle "Rim Light" (hair light).
+        - **Lighting**: "Rembrandt" or "Butterfly" studio lighting mixed with environment light. Add a subtle "Rim Light" (hair light) based on the background color.
         - **Eyes**: Ensure distinct "Catchlights" in the eyes to make them look alive.
         - **Retouching**: High-end skin texture retention. Do NOT airbrush into plastic. Keep pores visible but clean.
         
