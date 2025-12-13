@@ -205,7 +205,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className="space-y-6 p-2 animate-fadeIn">
+                        <div className={`space-y-6 p-2 animate-fadeIn transition-all duration-300 ${loading ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
                             
                             {/* 1. Subjects & Mode */}
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-visible">
