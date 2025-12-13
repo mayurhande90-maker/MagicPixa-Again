@@ -163,33 +163,60 @@ export const PixaRestoreIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
+// REVERTED: Pixa Thumbnail Pro (Red Video Frame)
 export const ThumbnailIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <rect x="2" y="4" width="20" height="16" rx="2" strokeWidth="2" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9l5 3-5 3V9z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="4" width="20" height="16" rx="4" fill="#FF0000"/>
+        <path d="M10 9L15 12L10 15V9Z" fill="white"/>
     </svg>
 );
 
-export const BuildingIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />} />
+// REVERTED: Pixa Realty Ads (Colorful Building)
+export const BuildingIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <path fill="#40C4FF" d="M22 6h20v36H22z"/>
+        <path fill="#E1F5FE" d="M6 18h16v24H6z"/>
+        <path fill="#B3E5FC" d="M26 12h4v4h-4zm8 0h4v4h-4zm-8 8h4v4h-4zm8 0h4v4h-4zm-8 8h4v4h-4zm8 0h4v4h-4z"/>
+        <path fill="#0288D1" d="M10 24h3v4h-3zm5 0h3v4h-3zm-5 6h3v4h-3zm5 0h3v4h-3z"/>
+        <path fill="#455A64" d="M13 36h2v6h-2z"/>
+        <path fill="#0277BD" d="M2 42h44v4H2z"/>
+    </svg>
 );
 
+// REVERTED: Pixa Caption Pro (Blue Gradient Bubbles)
 export const PixaCaptionIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-        <circle cx="17" cy="7" r="1" fill="currentColor" className="text-blue-500" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="url(#captionGradient)"/>
+        <path d="M7 9H17" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M7 13H14" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <defs>
+            <linearGradient id="captionGradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#0078D4"/>
+                <stop offset="1" stopColor="#00BCF2"/>
+            </linearGradient>
+        </defs>
     </svg>
 );
 
+// REVERTED: Pixa Interior Design (Warm House Gradient)
 export const PixaInteriorIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3L2 12H5V20H19V12H22L12 3Z" fill="url(#interiorGradient)"/>
+        <path d="M9 20V14H15V20" fill="#795548"/>
+        <defs>
+            <linearGradient id="interiorGradient" x1="12" y1="3" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#FF9800"/>
+                <stop offset="1" stopColor="#FF5722"/>
+            </linearGradient>
+        </defs>
     </svg>
 );
 
+// REVERTED: Pixa Mockups (3D Purple Box)
 export const PixaMockupIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5l4.5-2.5m-9 0l4.5 2.5" className="text-blue-500" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#B388FF"/>
+        <path d="M2 17L12 22V12L2 7V17Z" fill="#7C4DFF"/>
+        <path d="M22 17L12 22V12L22 7V17Z" fill="#651FFF"/>
     </svg>
 );
