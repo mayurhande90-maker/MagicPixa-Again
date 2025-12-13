@@ -33,7 +33,8 @@ import {
     PixaCaptionIcon,
     PixaInteriorIcon,
     PixaTryOnIcon,
-    PixaMockupIcon
+    PixaMockupIcon,
+    PixaHeadshotIcon
 } from '../components/icons';
 import { DashboardStyles } from '../styles/Dashboard.styles';
 
@@ -199,7 +200,9 @@ export const DashboardHome: React.FC<{
             'Magic Apparel': 'apparel',
             'Pixa TryOn': 'apparel',
             'Magic Mockup': 'mockup',
-            'Pixa Mockups': 'mockup'
+            'Pixa Mockups': 'mockup',
+            'Pixa Headshot Pro': 'headshot',
+            'Headshot': 'headshot'
         };
         if (map[featureName]) return map[featureName];
         const key = Object.keys(map).find(k => featureName.includes(k));
@@ -210,6 +213,7 @@ export const DashboardHome: React.FC<{
 
     const tools = [
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
+        { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: '' },
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
         { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: '' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 

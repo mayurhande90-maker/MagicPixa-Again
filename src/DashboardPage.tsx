@@ -43,6 +43,7 @@ const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(mod
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
 const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
+const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro').then(module => ({ default: module.PixaHeadshotPro })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -176,6 +177,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <MagicMockup auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'caption':
                  return <CaptionAI auth={auth} appConfig={appConfig} />;
+            case 'headshot':
+                 return <PixaHeadshotPro auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'daily_mission':
                  return <DailyMissionStudio auth={auth} navigateTo={navigateTo} />;
             case 'support_center':

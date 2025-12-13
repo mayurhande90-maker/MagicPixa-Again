@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 
@@ -20,6 +20,14 @@ const features = [
         icon: <PixaProductIcon className="w-16 h-16" />,
         title: "Pixa Product Shots",
         description: "Transform simple photos into professional, studio-quality product shots in one click.",
+        color: "",
+        disabled: false,
+    },
+    {
+        id: 'headshot',
+        icon: <PixaHeadshotIcon className="w-16 h-16" />,
+        title: "Pixa Headshot Pro",
+        description: "Create studio-quality professional headshots from selfies for LinkedIn and resumes.",
         color: "",
         disabled: false,
     },
