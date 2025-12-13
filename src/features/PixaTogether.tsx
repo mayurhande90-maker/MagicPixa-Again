@@ -23,31 +23,6 @@ const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
     'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
 };
 
-// --- INTERNAL ICONS ---
-const PaletteIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>;
-const PlusIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
-const HomeIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
-const ScaleIcon = (props: any) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>;
-
-// --- PRO MODE CONFIGURATIONS ---
-const PRO_ARCHETYPES = [
-    { id: 'executive', label: 'Corporate Executive', attire: 'Navy Power Suit, Crisp Shirt', vibe: 'Leadership', icon: <BuildingIcon className="w-4 h-4"/> },
-    { id: 'tech', label: 'Tech Founder', attire: 'Premium T-Shirt & Blazer', vibe: 'Visionary', icon: <SparklesIcon className="w-4 h-4"/> },
-    { id: 'creative', label: 'Creative Director', attire: 'Turtleneck & Designer Glasses', vibe: 'Sophisticated', icon: <PaletteIcon className="w-4 h-4"/> },
-    { id: 'medical', label: 'Medical Pro', attire: 'White Coat / Premium Scrubs', vibe: 'Expert Care', icon: <PlusIcon className="w-4 h-4"/> },
-    { id: 'realtor', label: 'Realtor / Sales', attire: 'Modern Business Formal', vibe: 'Friendly', icon: <HomeIcon className="w-4 h-4"/> },
-    { id: 'legal', label: 'Legal / Finance', attire: 'Charcoal Suit, Conservative', vibe: 'Serious', icon: <ScaleIcon className="w-4 h-4"/> }
-];
-
-const PRO_BACKGROUNDS = [
-    { id: 'studio', label: 'Studio Grey', desc: 'Neutral & Clean', prompt: 'Solid neutral grey studio backdrop with soft gradient' },
-    { id: 'office', label: 'Modern Office', desc: 'Glass & Light', prompt: 'Blurred modern open-plan office background, bokeh lights, glass architecture' },
-    { id: 'city', label: 'City Skyline', desc: 'High-Rise View', prompt: 'Blurred cityscape through a high-rise window, soft daylight' },
-    { id: 'library', label: 'Library', desc: 'Warm Academic', prompt: 'Blurred academic library or mahogany bookshelf background' },
-    { id: 'outdoor', label: 'Garden', desc: 'Natural Light', prompt: 'Soft focus manicured garden, natural sunlight' }
-];
-
-
 // --- PREMIUM UI COMPONENTS ---
 
 const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
@@ -146,16 +121,12 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [refPose, setRefPose] = useState<{ url: string; base64: Base64File } | null>(null);
     
     // Modes
-    const [mode, setMode] = useState<'creative' | 'reenact' | 'professional'>('creative');
+    const [mode, setMode] = useState<'creative' | 'reenact'>('creative');
     const [relationship, setRelationship] = useState('');
     
-    // Single Subject Toggle for Professional Mode
+    // Single Subject Toggle
     const [isSingleSubject, setIsSingleSubject] = useState(false);
     
-    // Professional Mode Specifics
-    const [proArchetype, setProArchetype] = useState(PRO_ARCHETYPES[0].label);
-    const [proBackground, setProBackground] = useState(PRO_BACKGROUNDS[0].label);
-
     // Creative Params
     const [mood, setMood] = useState('Happy');
     const [timeline, setTimeline] = useState('Present Day');
@@ -197,15 +168,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => { let interval: any; if (loading) { const steps = ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    useEffect(() => {
-        if (mode !== 'professional') {
-            setIsSingleSubject(false);
-        } else {
-            // Default professional mode to single subject
-            setIsSingleSubject(true);
-        }
-    }, [mode]);
-
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
 
     const handleGenerate = async () => {
@@ -214,51 +176,18 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            // CONSTRUCT WORLD CLASS PROMPT IF PROFESSIONAL MODE
-            let finalCustomDesc = customDescription;
-            let finalEnvironment = environment;
-            let finalMood = mood;
-            
-            if (mode === 'professional') {
-                const archetypeData = PRO_ARCHETYPES.find(a => a.label === proArchetype) || PRO_ARCHETYPES[0];
-                const backgroundData = PRO_BACKGROUNDS.find(b => b.label === proBackground) || PRO_BACKGROUNDS[0];
-                
-                // We construct a heavy "Override" description that the backend service will respect
-                finalCustomDesc = `
-                *** WORLD CLASS HEADSHOT PROTOCOL ***
-                - **ARCHETYPE**: ${archetypeData.label}.
-                - **ATTIRE**: ${archetypeData.attire}. Clothing must look expensive, tailored, and perfectly fitted.
-                - **VIBE**: ${archetypeData.vibe}.
-                - **BACKGROUND**: ${backgroundData.prompt}.
-                
-                *** PHOTOGRAPHY STUDIO SETTINGS ***
-                - **Camera**: Sony A7R V with 85mm G Master Lens (Portrait Focal Length).
-                - **Aperture**: f/1.8 to f/2.8 for pleasing optical bokeh.
-                - **Lighting**: "Rembrandt" or "Butterfly" lighting pattern using large octabox softboxes. 
-                - **Details**: Add a subtle "Rim Light" (hair light) to separate the subject from the background. Ensure distinct "Catchlights" in the eyes to make them look alive.
-                
-                *** RETOUCHING ***
-                - **Skin**: High-end texture retention. Do NOT airbrush into plastic. Keep pores visible but clean.
-                - **Structure**: Light facial contouring.
-                `;
-                
-                // Force specific backend settings for consistency
-                finalEnvironment = backgroundData.label; 
-                finalMood = 'Professional';
-            }
-
             const config: PixaTogetherConfig = {
-                mode,
-                relationship: mode === 'professional' ? 'Professional Portrait' : relationship,
-                mood: finalMood,
-                environment: finalEnvironment,
-                pose: mode === 'professional' ? 'Confident Headshot, Shoulders angled 45 degrees, Face to camera' : pose,
-                timeline: mode === 'professional' ? 'Present Day' : timeline,
-                customDescription: finalCustomDesc,
+                mode, // Now typed as 'creative' | 'reenact' | 'professional' in backend but we only pass 'creative' | 'reenact'
+                relationship: relationship,
+                mood: mood,
+                environment: environment,
+                pose: pose,
+                timeline: timeline,
+                customDescription: customDescription,
                 referencePoseBase64: refPose?.base64.base64,
                 referencePoseMimeType: refPose?.base64.mimeType,
                 faceStrength,
-                clothingMode: mode === 'professional' ? 'Professional Attire' : clothingMode,
+                clothingMode: clothingMode,
                 locks,
                 autoFix
             };
@@ -305,7 +234,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     return (
         <>
             <FeatureLayout
-                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or professional headshots." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or creative portraits." icon={<PixaTogetherIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Magic" }} scrollRef={scrollRef}
                 leftContent={
@@ -356,7 +285,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 <div className={PixaTogetherStyles.engineGrid}>
                                     <EngineModeCard title="Creative" desc="Themed Art" icon={<SparklesIcon className="w-5 h-5"/>} selected={mode === 'creative'} onClick={() => setMode('creative')} />
                                     <EngineModeCard title="Pose Match" desc="Copy Structure" icon={<CameraIcon className="w-5 h-5"/>} selected={mode === 'reenact'} onClick={() => setMode('reenact')} />
-                                    <EngineModeCard title="Pro Headshot" desc="LinkedIn / Corp" icon={<UserIcon className="w-5 h-5"/>} selected={mode === 'professional'} onClick={() => setMode('professional')} />
                                 </div>
                             </div>
 
@@ -368,10 +296,10 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
                                     </div>
                                     
-                                    {(mode === 'professional' || mode === 'creative') && (
+                                    {(mode === 'creative') && (
                                         <div className="flex bg-gray-100 p-1 rounded-lg">
                                             <button onClick={() => setIsSingleSubject(true)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Single</button>
-                                            {mode !== 'professional' && <button onClick={() => setIsSingleSubject(false)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Duo</button>}
+                                            <button onClick={() => setIsSingleSubject(false)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Duo</button>
                                         </div>
                                     )}
                                 </div>
@@ -447,101 +375,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         heightClass="h-32" 
                                     />
                                 </PremiumCard>
-                            )}
-
-                            {mode === 'professional' && (
-                                <div className="space-y-6 animate-fadeIn">
-                                    <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100">
-                                        <div className="bg-blue-600 text-white p-2 rounded-lg shadow-sm">
-                                            <UserIcon className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-black text-blue-900 uppercase tracking-wide">Professional Headshot</h4>
-                                            <p className="text-xs text-blue-700 opacity-80">AI will style you in business attire and perfect lighting.</p>
-                                        </div>
-                                    </div>
-
-                                    {/* 1. Profession / Archetype - Card Grid Selection */}
-                                    <PremiumCard title="1. Choose Your Persona" icon={<UserIcon className="w-5 h-5"/>}>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {PRO_ARCHETYPES.map(arch => {
-                                                const isSelected = proArchetype === arch.label;
-                                                return (
-                                                    <button
-                                                        key={arch.id}
-                                                        onClick={() => setProArchetype(arch.label)}
-                                                        className={`relative flex flex-col items-start p-3 rounded-xl border transition-all duration-200 group text-left ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-500/20' 
-                                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <div className="flex justify-between w-full mb-2">
-                                                            <div className={`p-2 rounded-lg transition-colors ${
-                                                                isSelected ? 'bg-indigo-200/50 text-indigo-700' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'
-                                                            }`}>
-                                                                {arch.icon}
-                                                            </div>
-                                                            {isSelected && (
-                                                                <div className="bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
-                                                                    <CheckIcon className="w-3 h-3" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        <p className={`text-xs font-bold mb-1 ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>
-                                                            {arch.label}
-                                                        </p>
-                                                        <p className={`text-[10px] leading-tight line-clamp-2 ${isSelected ? 'text-indigo-700' : 'text-gray-500'}`}>
-                                                            {arch.attire}
-                                                        </p>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </PremiumCard>
-
-                                    {/* 2. Background Selector - Bento Grid */}
-                                    <PremiumCard title="2. Choose Location" icon={<BuildingIcon className="w-5 h-5"/>}>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {PRO_BACKGROUNDS.map(bg => {
-                                                const isSelected = proBackground === bg.label;
-                                                return (
-                                                    <button
-                                                        key={bg.id}
-                                                        onClick={() => setProBackground(bg.label)}
-                                                        className={`relative p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between h-20 group ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' 
-                                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <div className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isSelected ? 'text-indigo-200' : 'text-gray-400'}`}>
-                                                            {bg.id.toUpperCase()}
-                                                        </div>
-                                                        <div className="flex items-end justify-between w-full">
-                                                            <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-gray-700'}`}>
-                                                                {bg.label}
-                                                            </span>
-                                                            {isSelected ? (
-                                                                <CheckIcon className="w-4 h-4 text-white" />
-                                                            ) : (
-                                                                <div className="w-4 h-4 rounded-full border-2 border-gray-200 group-hover:border-gray-400"></div>
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                        
-                                        <div className="mt-6 flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                            <InformationCircleIcon className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                                            <p className="text-[10px] text-gray-500 leading-relaxed">
-                                                Pixa uses <strong>Rembrandt lighting</strong> physics to blend the subject naturally. Face details are preserved while clothing and background are generated.
-                                            </p>
-                                        </div>
-                                    </PremiumCard>
-                                </div>
                             )}
                         </div>
                     )
