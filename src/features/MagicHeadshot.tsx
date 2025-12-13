@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaHeadshotIcon, UploadIcon, XIcon, UserIcon, CheckIcon, BuildingIcon, SparklesIcon, HomeIcon, PaletteIcon, PlusIcon, CreditCoinIcon } from '../components/icons';
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
+import { PixaHeadshotIcon, UploadIcon, XIcon, UserIcon, CheckIcon, BuildingIcon, SparklesIcon, HomeIcon, PaletteIcon, PlusIcon, CreditCoinIcon, ArrowRightIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -11,6 +11,7 @@ import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
 import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
+import { HeadshotStyles } from '../styles/features/MagicHeadshot.styles';
 
 // --- CONFIGURATION CONSTANTS ---
 
