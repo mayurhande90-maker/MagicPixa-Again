@@ -338,7 +338,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     // 4. Asset Upload (Immediate Save + Feedback)
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
-        if (!auth.user) return;
+        if (!auth.user) {
+            console.error("User not authenticated during upload.");
+            return;
+        }
+        
+        console.log(`Starting upload for user: ${auth.user.uid}, asset: ${key}`);
         setUploadingState(prev => ({ ...prev, [key]: true }));
         
         try {
@@ -346,6 +351,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
+            console.log("Upload successful:", url);
             
             let newKitState: BrandKit | null = null;
             
