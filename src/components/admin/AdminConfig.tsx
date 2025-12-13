@@ -35,6 +35,7 @@ const CURRENT_FEATURES: Record<string, string> = {
 export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpdate }) => {
     const [localConfig, setLocalConfig] = useState<AppConfig | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
+    const [showLegacy, setShowLegacy] = useState(false);
     
     // State for adding new feature cost
     const [newFeatureKey, setNewFeatureKey] = useState('');
@@ -94,13 +95,32 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
 
     return (
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm animate-fadeIn">
-            <div className="flex justify-between items-center mb-6"><div><h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2><p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p></div>{hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">Save Changes</button>}</div>
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800">Feature Pricing & Availability</h2>
+                    <p className="text-sm text-gray-500">Set credit costs and toggle features on/off.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 select-none">
+                        <input 
+                            type="checkbox" 
+                            checked={showLegacy} 
+                            onChange={(e) => setShowLegacy(e.target.checked)}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                        />
+                        Show Legacy Features
+                    </label>
+                    {hasChanges && <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse shadow-lg shadow-green-200 hover:scale-105 transition-transform">Save Changes</button>}
+                </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><CreditCardIcon className="w-4 h-4"/> Credit Pricing</h3>
                     <div className="space-y-3">
                         {Object.entries(localConfig?.featureCosts || {}).map(([feature, cost]) => {
                             const isCurrent = CURRENT_FEATURES[feature];
+                            if (!isCurrent && !showLegacy) return null;
+
                             return (
                                 <div key={feature} className={`flex justify-between items-center p-3 rounded-xl border shadow-sm group ${isCurrent ? 'bg-white border-gray-200' : 'bg-red-50 border-red-100'}`}>
                                     <div className="flex items-center gap-2">
@@ -144,6 +164,8 @@ export const AdminConfig: React.FC<AdminConfigProps> = ({ appConfig, onConfigUpd
                     <div className="space-y-3">
                         {Object.entries(localConfig?.featureToggles || {}).map(([key, enabled]) => {
                             const isCurrent = CURRENT_FEATURES[key];
+                            if (!isCurrent && !showLegacy) return null;
+
                             return (
                                 <div key={key} className={`flex justify-between items-center p-3 rounded-xl border shadow-sm ${isCurrent ? 'bg-white border-gray-200' : 'bg-red-50 border-red-100'}`}>
                                     <div className="flex flex-col">
