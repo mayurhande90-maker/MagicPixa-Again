@@ -29,6 +29,7 @@ const FEATURE_NAME_MAP: Record<string, string> = {
     'Magic Soul': 'Pixa Together',
     'Together': 'Pixa Together',
     'Pixa Together': 'Pixa Together',
+    'Pixa Headshot Pro': 'Pixa Headshot Pro',
     'Magic Photo Colour': 'Pixa Photo Restore',
     'Pixa Photo Restore': 'Pixa Photo Restore',
     'CaptionAI': 'Pixa Caption Pro',
