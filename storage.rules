@@ -3,8 +3,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Explicitly allow Brand Kit assets (Priority Match)
-    match /users/{userId}/brandKit/{fileName} {
+    // Explicitly allow Brand Kit assets (Recursive Match)
+    match /users/{userId}/brandKit/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 

@@ -524,8 +524,19 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
     const response = await fetch(dataUri);
     const blob = await response.blob();
     
-    const ref = storage.ref().child(`users/${uid}/brandKit/${type}_${Date.now()}`);
-    await ref.put(blob);
+    // Extract extension from MIME type, default to png if unknown
+    const ext = blob.type.split('/')[1] || 'png';
+    const filename = `${type}_${Date.now()}.${ext}`;
+    const path = `users/${uid}/brandKit/${filename}`;
+    
+    const ref = storage.ref().child(path);
+    await ref.put(blob, {
+        contentType: blob.type,
+        customMetadata: {
+            uploadedBy: uid,
+            assetType: type
+        }
+    });
     return await ref.getDownloadURL();
 };
 
