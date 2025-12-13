@@ -33,8 +33,7 @@ import {
     PixaCaptionIcon,
     PixaInteriorIcon,
     PixaTryOnIcon,
-    PixaMockupIcon,
-    PixaHeadshotIcon
+    PixaMockupIcon
 } from '../components/icons';
 import { DashboardStyles } from '../styles/Dashboard.styles';
 
@@ -191,7 +190,6 @@ export const DashboardHome: React.FC<{
             'Pixa Realty Ads': 'magic_realty',
             'Magic Soul': 'soul',
             'Pixa Together': 'soul',
-            'Pixa Headshot Pro': 'headshot',
             'Magic Photo Colour': 'colour',
             'Pixa Photo Restore': 'colour',
             'CaptionAI': 'caption',
@@ -212,7 +210,6 @@ export const DashboardHome: React.FC<{
 
     const tools = [
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
-        { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: '' },
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
         { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: '' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 

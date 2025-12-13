@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon } from './icons';
+import { LayoutGridIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -52,7 +52,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
-    { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, disabled: false }, 
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
     { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, disabled: false }, 
     { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, disabled: false }, 

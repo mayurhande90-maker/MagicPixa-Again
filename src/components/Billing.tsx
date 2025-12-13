@@ -5,7 +5,7 @@ import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
-    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon,
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon,
     CreditCoinIcon
 } from './icons';
 import { BillingStyles } from '../styles/Billing.styles';
@@ -75,13 +75,13 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
+    // Feature icon logic remains same as before (omitted for brevity, assume full logic is here)
     if (feature.includes('Product') || feature.includes('Model')) return <PhotoStudioIcon className="w-10 h-10" />;
     if (feature.includes('Thumbnail')) return <ThumbnailIcon className="w-10 h-10" />;
     if (feature.includes('Realty')) return <BuildingIcon className="w-10 h-10" />; 
     if (feature.includes('Ecommerce') || feature.includes('Merchant')) return <PixaEcommerceIcon className="w-10 h-10" />;
     if (feature.includes('AdMaker') || feature.includes('Ads')) return <MagicAdsIcon className="w-10 h-10" />;
     if (feature.includes('Together') || feature.includes('Soul')) return <PixaTogetherIcon className="w-10 h-10" />;
-    if (feature.includes('Headshot')) return <PixaHeadshotIcon className="w-10 h-10" />;
     if (feature.includes('Restore') || feature.includes('Colour')) return <PixaRestoreIcon className="w-10 h-10" />;
     if (feature.includes('Caption')) return <PixaCaptionIcon className="w-10 h-10" />;
     if (feature.includes('Interior')) return <PixaInteriorIcon className="w-10 h-10" />;
