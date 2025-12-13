@@ -52,89 +52,12 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
 };
 
 const PRO_ARCHETYPES = [
-    { 
-        id: 'executive', 
-        label: 'Corporate Executive', 
-        attire: 'Navy Power Suit, Crisp Shirt', 
-        vibe: 'Leadership', 
-        icon: (
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="6" width="18" height="14" rx="2" className="fill-blue-600" />
-                <path d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" className="stroke-blue-800" strokeWidth="2" />
-                <path d="M12 11V13" className="stroke-white/50" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-        )
-    },
-    { 
-        id: 'tech', 
-        label: 'Tech Founder', 
-        attire: 'Premium T-Shirt & Blazer', 
-        vibe: 'Visionary', 
-        icon: (
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="4" width="20" height="13" rx="2" className="fill-purple-500" />
-                <path d="M7 21H17" className="stroke-purple-600" strokeWidth="2" strokeLinecap="round" />
-                <path d="M12 17V21" className="stroke-purple-600" strokeWidth="2" />
-                <circle cx="12" cy="10" r="2" className="fill-purple-200" />
-            </svg>
-        )
-    },
-    { 
-        id: 'creative', 
-        label: 'Creative Director', 
-        attire: 'Turtleneck & Designer Glasses', 
-        vibe: 'Sophisticated', 
-        icon: (
-             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" className="fill-pink-500"/>
-                <circle cx="7.5" cy="8" r="1.5" className="fill-yellow-300"/>
-                <circle cx="12" cy="6.5" r="1.5" className="fill-blue-300"/>
-                <circle cx="16.5" cy="8" r="1.5" className="fill-green-300"/>
-                <path d="M12 22C12 17 16 17 16 12" className="stroke-white/20" strokeWidth="2"/>
-            </svg>
-        )
-    },
-    { 
-        id: 'medical', 
-        label: 'Medical Pro', 
-        attire: 'White Coat / Premium Scrubs', 
-        vibe: 'Expert Care', 
-        icon: (
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" className="fill-emerald-500"/>
-                <path d="M8 12H16" className="stroke-white" strokeWidth="3" strokeLinecap="round"/>
-                <path d="M12 8V16" className="stroke-white" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-        )
-    },
-    { 
-        id: 'realtor', 
-        label: 'Realtor / Sales', 
-        attire: 'Modern Business Formal', 
-        vibe: 'Friendly', 
-        icon: (
-             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 9.5L12 2L21 9.5V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V9.5Z" className="fill-orange-500"/>
-                <rect x="9" y="14" width="6" height="8" className="fill-orange-700"/>
-                <path d="M9 14H15" className="stroke-orange-300" strokeWidth="1"/>
-            </svg>
-        )
-    },
-    { 
-        id: 'legal', 
-        label: 'Legal / Finance', 
-        attire: 'Charcoal Suit, Conservative', 
-        vibe: 'Serious', 
-        icon: (
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3V21" className="stroke-slate-600" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M4 7H20" className="stroke-slate-600" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M4 7L2 12H6L4 7Z" className="fill-slate-400"/>
-                <path d="M20 7L18 12H22L20 7Z" className="fill-slate-400"/>
-                <circle cx="12" cy="4" r="1.5" className="fill-slate-700"/>
-            </svg>
-        )
-    }
+    { id: 'executive', label: 'Corporate Executive', attire: 'Navy Power Suit, Crisp Shirt', vibe: 'Leadership', icon: <BuildingIcon className="w-4 h-4"/> },
+    { id: 'tech', label: 'Tech Founder', attire: 'Premium T-Shirt & Blazer', vibe: 'Visionary', icon: <SparklesIcon className="w-4 h-4"/> },
+    { id: 'creative', label: 'Creative Director', attire: 'Turtleneck & Designer Glasses', vibe: 'Sophisticated', icon: <PaletteIcon className="w-4 h-4"/> },
+    { id: 'medical', label: 'Medical Pro', attire: 'White Coat / Premium Scrubs', vibe: 'Expert Care', icon: <PlusIcon className="w-4 h-4"/> },
+    { id: 'realtor', label: 'Realtor / Sales', attire: 'Modern Business Formal', vibe: 'Friendly', icon: <HomeIcon className="w-4 h-4"/> },
+    { id: 'legal', label: 'Legal / Finance', attire: 'Charcoal Suit, Conservative', vibe: 'Serious', icon: <ScaleIcon className="w-4 h-4"/> }
 ];
 
 const PRO_BACKGROUNDS = [
