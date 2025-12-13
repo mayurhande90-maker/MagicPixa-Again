@@ -142,7 +142,10 @@ export const generateProfessionalHeadshot = async (
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { aspectRatio: '1:1', imageSize: '1K' }
+            },
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
