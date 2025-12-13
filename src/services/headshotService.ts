@@ -18,8 +18,8 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 };
 
 // Analysis Prompt for Identity
-const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Task: Deep Biometric Analysis.
+const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
+    const prompt = `Task: Deep Biometric Analysis of ${label}.
     
     Analyze the "Minute Details" of the face to preserve identity in a generated image.
     Identify and describe:
@@ -54,32 +54,69 @@ export const generateProfessionalHeadshot = async (
     mimeType: string,
     archetype: string,
     background: string,
-    customDescription?: string
+    customDescription?: string,
+    partnerBase64?: string,
+    partnerMimeType?: string
 ): Promise<string> => {
     const ai = getAiClient();
     try {
-        // 1. Optimize Image
+        // 1. Optimize Images
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
+        
+        let partnerData = null;
+        let partnerMime = null;
+        let biometricsPartner = "";
 
-        // 2. Analyze Identity
-        const biometrics = await analyzeFaceBiometrics(ai, optData, optMime);
+        // 2. Analyze Identity (Primary)
+        const biometricsA = await analyzeFaceBiometrics(ai, optData, optMime, "Person A");
 
-        // 3. Construct Prompt
-        const prompt = `
+        // 3. Handle Partner (Duo Mode)
+        if (partnerBase64 && partnerMimeType) {
+            const optPartner = await optimizeImage(partnerBase64, partnerMimeType);
+            partnerData = optPartner.data;
+            partnerMime = optPartner.mimeType;
+            biometricsPartner = await analyzeFaceBiometrics(ai, partnerData, partnerMime, "Person B");
+        }
+
+        // 4. Construct Prompt
+        let prompt = `
         *** WORLD CLASS HEADSHOT PROTOCOL ***
         You are an Elite Portrait Photographer & Retoucher.
         
-        **SUBJECT IDENTITY (STRICT LOCK)**:
-        - VISUAL SOURCE: Input Image.
-        - BIOMETRICS: ${biometrics}
-        - **CONSTRAINT**: Maintain facial identity, bone structure, and expression exactly. Do not morph the face.
+        **SUBJECT A (Main User)**:
+        - VISUAL SOURCE: Input Image 1.
+        - BIOMETRICS: ${biometricsA}
+        `;
+
+        if (partnerData) {
+            prompt += `
+            **SUBJECT B (Partner)**:
+            - VISUAL SOURCE: Input Image 2.
+            - BIOMETRICS: ${biometricsPartner}
+            
+            **COMPOSITION (DUO MODE)**:
+            - Professional Duo Portrait. Subjects standing close, shoulders touching or slightly overlapping.
+            - Connection: Professional Partners, Co-founders, or Couple (based on vibe).
+            - Depth of Field: Adjusted to f/4 or f/5.6 to ensure BOTH faces are sharp and in focus.
+            - Framing: Mid-shot to capture both subjects comfortably.
+            `;
+        } else {
+             prompt += `
+            **COMPOSITION (SOLO MODE)**:
+            - Single Subject Portrait. Centered or Rule of Thirds.
+            - Focus: Razor sharp on eyes (f/1.8 depth of field drop-off).
+            `;
+        }
+
+        prompt += `
+        **CONSTRAINT**: Maintain facial identity, bone structure, and expression exactly for ALL subjects. Do not morph faces.
         
         **STYLE & ATTIRE**:
-        - **Archetype**: ${archetype}. (Use appropriate professional attire, e.g., Suit for Executive, Smart Casual for Tech).
+        - **Archetype**: ${archetype}. (Apply appropriate professional attire to both subjects if duo).
         - **Vibe**: Professional, Confident, Approachable.
         
         **ENVIRONMENT**:
-        - **Background**: ${background}. (Ensure soft bokeh/blur depth of field f/1.8).
+        - **Background**: ${background}. (Ensure soft bokeh/blur).
         
         **PHOTOGRAPHY SPECS**:
         - **Camera**: Sony A7R V with 85mm G Master Lens.
@@ -92,14 +129,19 @@ export const generateProfessionalHeadshot = async (
         OUTPUT: A single high-resolution photorealistic headshot.
         `;
 
+        const parts: any[] = [
+            { inlineData: { data: optData, mimeType: optMime } }
+        ];
+
+        if (partnerData && partnerMime) {
+             parts.push({ inlineData: { data: partnerData, mimeType: partnerMime } });
+        }
+
+        parts.push({ text: prompt });
+
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data: optData, mimeType: optMime } },
-                    { text: prompt },
-                ],
-            },
+            contents: { parts },
             config: { responseModalities: [Modality.IMAGE] },
         });
 
