@@ -93,6 +93,7 @@ export const generateBrandIdentity = async (
     
     TASK:
     Analyze the available information (or infer it based on the domain/description) to generate a "Brand DNA Kit".
+    Use Google Search to find the actual brand colors, style, and details if the URL is provided.
     
     1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
     2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
@@ -100,7 +101,10 @@ export const generateBrandIdentity = async (
     4. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
     5. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
     
-    OUTPUT JSON:
+    OUTPUT FORMAT:
+    Return strictly a valid JSON object wrapped in a markdown code block.
+    Example:
+    \`\`\`json
     {
         "companyName": "Inferred Name",
         "toneOfVoice": "...",
@@ -108,7 +112,8 @@ export const generateBrandIdentity = async (
         "negativePrompts": "...",
         "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
         "fonts": { "heading": "Modern Sans", "body": "Clean Sans" }
-    }`;
+    }
+    \`\`\``;
 
     try {
         const response = await ai.models.generateContent({
@@ -116,35 +121,22 @@ export const generateBrandIdentity = async (
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }], // Use Search to find real brand colors if URL is real
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        companyName: { type: Type.STRING },
-                        toneOfVoice: { type: Type.STRING },
-                        targetAudience: { type: Type.STRING },
-                        negativePrompts: { type: Type.STRING },
-                        colors: {
-                            type: Type.OBJECT,
-                            properties: {
-                                primary: { type: Type.STRING },
-                                secondary: { type: Type.STRING },
-                                accent: { type: Type.STRING }
-                            }
-                        },
-                        fonts: {
-                            type: Type.OBJECT,
-                            properties: {
-                                heading: { type: Type.STRING },
-                                body: { type: Type.STRING }
-                            }
-                        }
-                    }
-                }
+                // Note: responseMimeType: "application/json" cannot be used with tools.
+                // We rely on the system prompt to enforce JSON output.
             }
         });
 
-        const text = response.text || "{}";
+        let text = response.text || "{}";
+        
+        // Extract JSON from markdown if present
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+            text = jsonMatch[1];
+        }
+        
+        // Clean up any remaining markdown or whitespace
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
         return JSON.parse(text);
     } catch (e) {
         console.error("Auto-Brand Generation Failed:", e);
