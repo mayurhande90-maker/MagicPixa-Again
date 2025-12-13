@@ -151,7 +151,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
                 leftContent={
-                    <div className="relative h-full w-full flex flex-col items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                    <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
@@ -168,7 +168,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 {mode === 'individual' && image ? (
                                     <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
                                 ) : (
-                                    <div className="relative w-72 h-80 mx-auto">
+                                    <div className="relative w-72 h-80 mx-auto transform scale-125 origin-center">
                                         {image && (
                                             <div 
                                                 className={PixaTogetherStyles.visualCardA} 
