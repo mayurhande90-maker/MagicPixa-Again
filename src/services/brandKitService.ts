@@ -40,7 +40,7 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
         Return ONLY a JSON object: { "primary": "#RRGGBB", "secondary": "#RRGGBB", "accent": "#RRGGBB" }`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash', // Optimized for speed
             contents: {
                 parts: [
                     { inlineData: { data, mimeType: optimizedMime } },
@@ -112,7 +112,7 @@ export const generateBrandIdentity = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash', // Optimized for speed
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }], // Use Search to find real brand colors if URL is real
