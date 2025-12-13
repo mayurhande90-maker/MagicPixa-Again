@@ -152,31 +152,43 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                        {loading && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/40 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-2 bg-white/50 rounded-full overflow-hidden shadow-lg mt-6 border border-white/20">
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 animate-[progress_2s_ease-in-out_infinite] rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                                </div>
+                                <p className="text-sm font-black text-indigo-900 tracking-widest uppercase animate-pulse mt-4 bg-white/80 px-4 py-2 rounded-full shadow-sm">{loadingText}</p>
+                            </div>
+                        )}
                         
                         {!image && !partnerImage ? (
                             <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaHeadshotIcon className="w-10 h-10 text-indigo-500" /></div><h3 className="text-xl font-bold text-gray-300">Headshot Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload photos to begin.</p></div>
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
-                                <div className="relative w-72 h-80 mx-auto">
-                                    {image && (
-                                        <div 
-                                            className={PixaTogetherStyles.visualCardA} 
-                                            style={(!partnerImage || mode === 'individual') ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
-                                        >
-                                            <img src={image.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>{mode === 'individual' ? 'Subject' : 'Person A'}</div>
-                                        </div>
-                                    )}
-                                    {partnerImage && mode === 'duo' && (
-                                        <div className={PixaTogetherStyles.visualCardB}>
-                                            <img src={partnerImage.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>Person B</div>
-                                        </div>
-                                    )}
-                                </div>
+                                {mode === 'individual' && image ? (
+                                    <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
+                                ) : (
+                                    <div className="relative w-72 h-80 mx-auto">
+                                        {image && (
+                                            <div 
+                                                className={PixaTogetherStyles.visualCardA} 
+                                                style={(!partnerImage) ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
+                                            >
+                                                <img src={image.url} className="w-full h-full object-cover" />
+                                                <div className={PixaTogetherStyles.visualLabel}>Person A</div>
+                                            </div>
+                                        )}
+                                        {partnerImage && mode === 'duo' && (
+                                            <div className={PixaTogetherStyles.visualCardB}>
+                                                <img src={partnerImage.url} className="w-full h-full object-cover" />
+                                                <div className={PixaTogetherStyles.visualLabel}>Person B</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
+                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
