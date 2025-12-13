@@ -480,9 +480,43 @@ export const claimReferralCode = async (uid: string, code: string) => {
 };
 
 // ... Brand Kit ...
+// NEW: Multiple Brands Support
+export const getUserBrands = async (uid: string) => {
+    if (!db) return [];
+    const snapshot = await db.collection('users').doc(uid).collection('brands').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BrandKit));
+};
+
+export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
+    if (!db) return;
+    const collectionRef = db.collection('users').doc(uid).collection('brands');
+    
+    if (brand.id) {
+        await collectionRef.doc(brand.id).set(brand, { merge: true });
+        return brand.id;
+    } else {
+        const docRef = await collectionRef.add(brand);
+        return docRef.id;
+    }
+};
+
+export const deleteBrandFromCollection = async (uid: string, brandId: string) => {
+    if (!db) return;
+    await db.collection('users').doc(uid).collection('brands').doc(brandId).delete();
+};
+
+// Updated: Saves as 'active' brand on the user profile AND to the collection for persistence
 export const saveUserBrandKit = async (uid: string, brandKit: BrandKit) => {
     if (!db) return;
-    await db.collection('users').doc(uid).update({ brandKit });
+    
+    // 1. Save to subcollection (source of truth for list)
+    const brandId = await saveBrandToCollection(uid, brandKit);
+    
+    // 2. Set as Active on Profile (for backward compatibility and active state)
+    const activeKit = { ...brandKit, id: brandId }; // Ensure ID is sync'd
+    await db.collection('users').doc(uid).update({ brandKit: activeKit });
+    
+    return activeKit;
 };
 
 export const uploadBrandAsset = async (uid: string, dataUri: string, type: string) => {

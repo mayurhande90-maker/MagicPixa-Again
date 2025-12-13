@@ -19,9 +19,13 @@ export type Page = 'home' | 'dashboard' | 'about';
 export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center' | 'headshot';
 
 export interface BrandKit {
+    id?: string; // Unique ID for the brand profile
+    name?: string; // Display name for the brand profile (e.g. "Nike Summer")
     companyName: string;
     website: string;
     toneOfVoice: string;
+    targetAudience?: string; // New: Who are we talking to?
+    negativePrompts?: string; // New: What to avoid?
     colors: {
         primary: string;
         secondary: string;

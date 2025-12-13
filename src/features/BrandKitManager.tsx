@@ -3,13 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon
+    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, 
+    PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
+    SparklesIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
-import { uploadBrandAsset, saveUserBrandKit } from '../firebase';
+import { uploadBrandAsset, saveUserBrandKit, getUserBrands, deleteBrandFromCollection } from '../firebase';
+import { generateBrandIdentity } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 
-// Elegant Color Input Component with onBlur support
+// Elegant Color Input Component
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
@@ -109,11 +112,57 @@ const AssetUploader: React.FC<{
     );
 };
 
+// Modal for Auto-Generator
+const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string, desc: string) => void; isGenerating: boolean }> = ({ onClose, onGenerate, isGenerating }) => {
+    const [url, setUrl] = useState('');
+    const [desc, setDesc] = useState('');
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+            <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"><XIcon className="w-5 h-5"/></button>
+                
+                <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/30">
+                        <MagicWandIcon className="w-8 h-8 text-white animate-pulse" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">Auto-Generate Brand</h2>
+                    <p className="text-sm text-gray-500 mt-2">Enter your details and let AI build your kit instantly.</p>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Website / Social URL</label>
+                        <input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none" placeholder="e.g. www.nike.com" value={url} onChange={e => setUrl(e.target.value)} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Brand Description</label>
+                        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none resize-none h-24" placeholder="e.g. A premium athletic wear brand for runners." value={desc} onChange={e => setDesc(e.target.value)} />
+                    </div>
+                    
+                    <button 
+                        onClick={() => onGenerate(url, desc)} 
+                        disabled={isGenerating || !url}
+                        className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <><SparklesIcon className="w-5 h-5"/> Generate Magic Kit</>}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+    // Brand State
+    const [brands, setBrands] = useState<BrandKit[]>([]);
+    const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
     const [kit, setKit] = useState<BrandKit>({
         companyName: '',
         website: '',
         toneOfVoice: 'Professional',
+        targetAudience: '',
+        negativePrompts: '',
         colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
         fonts: { heading: 'Modern Sans', body: 'Clean Sans' },
         logos: { primary: null, secondary: null, mark: null }
@@ -123,21 +172,128 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [showMagicModal, setShowMagicModal] = useState(false);
+    const [isMagicGen, setIsMagicGen] = useState(false);
+    const [showBrandMenu, setShowBrandMenu] = useState(false);
 
-    // Load initial data
+    // Initial Load
     useEffect(() => {
-        if (auth.user?.brandKit) {
-            setKit(auth.user.brandKit);
+        if (auth.user) {
+            loadBrands();
         }
     }, [auth.user]);
+
+    const loadBrands = async () => {
+        if (!auth.user) return;
+        try {
+            const userBrands = await getUserBrands(auth.user.uid);
+            
+            // Backwards compatibility: If no brands collection but user.brandKit exists
+            if (userBrands.length === 0 && auth.user.brandKit) {
+                const defaultKit = { ...auth.user.brandKit, name: 'Default Brand', id: 'default' };
+                // We'll save it properly to collection on next save
+                setBrands([defaultKit]);
+                setKit(defaultKit);
+                setActiveBrandId('default');
+            } else if (userBrands.length > 0) {
+                setBrands(userBrands);
+                // Default to first one or the one marked active in user profile?
+                // Ideally user profile stores `activeBrandId`. For now, default to first.
+                // Or check if user.brandKit.id matches one.
+                const currentId = auth.user.brandKit?.id;
+                const active = userBrands.find(b => b.id === currentId) || userBrands[0];
+                setKit(active);
+                setActiveBrandId(active.id || null);
+            } else {
+                // Completely new user
+                const newBrand = createEmptyBrand('My Brand');
+                setBrands([newBrand]);
+                setKit(newBrand);
+                setActiveBrandId('new');
+            }
+        } catch (e) {
+            console.error("Failed to load brands", e);
+        }
+    };
+
+    const createEmptyBrand = (name: string): BrandKit => ({
+        name,
+        companyName: '',
+        website: '',
+        toneOfVoice: 'Professional',
+        targetAudience: '',
+        negativePrompts: '',
+        colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
+        fonts: { heading: 'Modern Sans', body: 'Clean Sans' },
+        logos: { primary: null, secondary: null, mark: null }
+    });
+
+    const handleSwitchBrand = (brand: BrandKit) => {
+        // Auto-save current before switching? Maybe too aggressive.
+        // Just switch state.
+        setKit(brand);
+        setActiveBrandId(brand.id || null);
+        setShowBrandMenu(false);
+    };
+
+    const handleAddBrand = () => {
+        const newBrand = createEmptyBrand(`Brand ${brands.length + 1}`);
+        setBrands(prev => [...prev, newBrand]);
+        setKit(newBrand);
+        setActiveBrandId(null); // No ID yet implies unsaved new doc
+        setShowBrandMenu(false);
+    };
+
+    const handleDeleteBrand = async (brandId: string) => {
+        if (!auth.user || !brandId) return;
+        if (!confirm("Delete this brand profile?")) return;
+        
+        try {
+            await deleteBrandFromCollection(auth.user.uid, brandId);
+            const remaining = brands.filter(b => b.id !== brandId);
+            setBrands(remaining);
+            if (remaining.length > 0) {
+                handleSwitchBrand(remaining[0]);
+            } else {
+                handleAddBrand(); // Ensure at least one exists
+            }
+            setToast({ msg: "Brand deleted.", type: "success" });
+        } catch(e) {
+            console.error(e);
+            setToast({ msg: "Delete failed.", type: "error" });
+        }
+    };
 
     // Perform the actual save to Firebase and update global context
     const performSave = async (updatedKit: BrandKit) => {
         if (!auth.user) return;
         setIsSaving(true);
         try {
-            await saveUserBrandKit(auth.user.uid, updatedKit);
-            auth.setUser(prev => prev ? { ...prev, brandKit: updatedKit } : null);
+            // If it's a new brand without ID, saveUserBrandKit will create one and return it with ID
+            const savedKit = await saveUserBrandKit(auth.user.uid, updatedKit);
+            
+            // Update local lists
+            setKit(savedKit as BrandKit); // Has ID now
+            setActiveBrandId(savedKit?.id || null);
+            
+            setBrands(prev => {
+                const idx = prev.findIndex(b => b.id === savedKit?.id);
+                if (idx >= 0) {
+                    const newArr = [...prev];
+                    newArr[idx] = savedKit as BrandKit;
+                    return newArr;
+                } else {
+                    // Was a new brand, replace the "temp" one at end or add
+                    // Simple approach: append if ID not found, but we might have duplicates if we aren't careful.
+                    // Better: If we were editing a brand with NO ID, assume it's the one we just saved.
+                    // Actually, handleAddBrand pushes to `brands`. Let's find the one currently matching UI state (dangerous) or just reload list?
+                    // Reloading list is safest but slow.
+                    // Let's just update the matching object in array if found, else add.
+                    return [...prev.filter(b => b.id && b.id !== savedKit?.id), savedKit as BrandKit];
+                }
+            });
+
+            auth.setUser(prev => prev ? { ...prev, brandKit: savedKit as BrandKit } : null);
             setLastSaved(new Date());
         } catch (e) {
             console.error("Auto-save failed", e);
@@ -191,7 +347,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
-            // CRITICAL FIX: Use functional update to ensure we don't overwrite if other state changed
             let newKitState: BrandKit | null = null;
             
             setKit(prev => {
@@ -200,13 +355,9 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 return updated;
             });
 
-            // Save the state we just calculated
             if (newKitState) await performSave(newKitState);
-            
             setToast({ msg: "Asset uploaded & saved!", type: "success" });
 
-            // Removed Auto-Color Extraction based on user feedback.
-            // Colors are now strictly manual.
         } catch (e: any) {
             console.error("Upload failed", e);
             let errorMsg = "Failed to upload asset.";
@@ -219,32 +370,90 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
+    const handleMagicGenerate = async (url: string, desc: string) => {
+        setIsMagicGen(true);
+        try {
+            const generated = await generateBrandIdentity(url, desc);
+            // Merge generated data into current kit
+            const newKit = { ...kit, ...generated };
+            setKit(newKit);
+            await performSave(newKit);
+            setToast({ msg: "Brand identity generated!", type: "success" });
+            setShowMagicModal(false);
+        } catch (e) {
+            console.error(e);
+            setToast({ msg: "Generation failed.", type: "error" });
+        } finally {
+            setIsMagicGen(false);
+        }
+    };
+
     return (
         <div className="p-6 lg:p-10 max-w-[1400px] mx-auto pb-32 animate-fadeIn">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4 border-b border-gray-100 pb-6">
                 <div>
-                    <h1 className="text-4xl font-bold text-[#1A1A1E] flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200">
                             <BrandKitIcon className="w-8 h-8" />
                         </div>
-                        Brand Vault
-                    </h1>
-                    <p className="text-gray-500 mt-2 text-lg max-w-2xl">
-                        Define your visual identity once. MagicPixa will apply it to every generation automatically.
-                    </p>
+                        
+                        {/* Brand Switcher */}
+                        <div className="relative">
+                            <button 
+                                onClick={() => setShowBrandMenu(!showBrandMenu)}
+                                className="flex items-center gap-2 text-2xl font-bold text-[#1A1A1E] hover:text-indigo-600 transition-colors"
+                            >
+                                {kit.name || kit.companyName || "Untitled Brand"}
+                                <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                            </button>
+                            
+                            {showBrandMenu && (
+                                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fadeIn">
+                                    <div className="p-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Brand</div>
+                                    <div className="max-h-64 overflow-y-auto">
+                                        {brands.map((b, i) => (
+                                            <div key={i} className="group flex items-center justify-between hover:bg-indigo-50 p-3 transition-colors cursor-pointer">
+                                                <button onClick={() => handleSwitchBrand(b)} className="flex-1 text-left text-sm font-bold text-gray-700 group-hover:text-indigo-700 truncate">
+                                                    {b.name || b.companyName || "Untitled"}
+                                                </button>
+                                                {b.id && brands.length > 1 && (
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteBrand(b.id!); }} className="p-1 text-gray-400 hover:text-red-500">
+                                                        <TrashIcon className="w-4 h-4"/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button 
+                                        onClick={handleAddBrand}
+                                        className="w-full p-3 flex items-center gap-2 text-sm font-bold text-indigo-600 hover:bg-gray-50 border-t border-gray-100 transition-colors"
+                                    >
+                                        <PlusIcon className="w-4 h-4"/> Create New Brand
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                        <p className="text-gray-500 text-sm">Manage your visual identity.</p>
+                        <button onClick={() => setShowMagicModal(true)} className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-purple-100 transition-colors">
+                            <MagicWandIcon className="w-3 h-3"/> Auto-Fill with AI
+                        </button>
+                    </div>
                 </div>
+                
                 <div className="flex items-center gap-3">
                     {/* ENHANCED SAVE INDICATOR */}
                     {isSaving ? (
                         <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full border border-indigo-100 shadow-sm transition-all animate-pulse">
                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-xs font-bold uppercase tracking-wider">Saving changes...</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">Saving...</span>
                         </div>
                     ) : lastSaved ? (
                         <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-100 shadow-sm transition-all">
                             <CheckIcon className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-wider">All changes saved</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">Synced</span>
                         </div>
                     ) : null}
                 </div>
@@ -253,7 +462,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
-                {/* We grouped all inputs here for better vertical alignment */}
                 <div className="xl:col-span-2 space-y-8">
                     
                     {/* 1. Identity Assets Card */}
@@ -264,7 +472,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </div>
                             <div>
                                 <h2 className="font-bold text-gray-800 text-lg">Identity Assets</h2>
-                                <p className="text-xs text-gray-500">Upload high-res PNGs for best results.</p>
+                                <p className="text-xs text-gray-500">Upload high-res PNGs.</p>
                             </div>
                         </div>
                         
@@ -393,30 +601,44 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                     </div>
 
-                    {/* 3. Brand Context (Moved to Left Column for Alignment) */}
+                    {/* 3. Brand Strategy (Expanded) */}
                     <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                         <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
                             <div className="p-2 bg-green-100 text-green-600 rounded-lg">
                                 <CaptionIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-gray-800 text-lg">Brand Voice</h2>
-                                <p className="text-xs text-gray-500">How you speak to customers.</p>
+                                <h2 className="font-bold text-gray-800 text-lg">Brand Strategy</h2>
+                                <p className="text-xs text-gray-500">Defining your voice and audience.</p>
                             </div>
                         </div>
 
                         <div className="p-6 space-y-5">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Company Name</label>
-                                <input 
-                                    type="text" 
-                                    value={kit.companyName}
-                                    onChange={(e) => handleTextChange('companyName', e.target.value)}
-                                    onBlur={handleSave}
-                                    placeholder="e.g. Skyline Realty"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Profile Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={kit.name || ''}
+                                        onChange={(e) => handleTextChange('name', e.target.value)}
+                                        onBlur={handleSave}
+                                        placeholder="e.g. Summer Campaign"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Company Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={kit.companyName}
+                                        onChange={(e) => handleTextChange('companyName', e.target.value)}
+                                        onBlur={handleSave}
+                                        placeholder="e.g. Skyline Realty"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                    />
+                                </div>
                             </div>
+                            
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Website</label>
                                 <input 
@@ -425,23 +647,49 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     onChange={(e) => handleTextChange('website', e.target.value)}
                                     onBlur={handleSave}
                                     placeholder="e.g. www.skyline.com"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
                                 />
                             </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Tone of Voice</label>
+                                    <select 
+                                        value={kit.toneOfVoice}
+                                        onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all cursor-pointer"
+                                    >
+                                        <option>Professional</option>
+                                        <option>Luxury</option>
+                                        <option>Playful</option>
+                                        <option>Urgent / Sales</option>
+                                        <option>Friendly / Casual</option>
+                                        <option>Technical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Target Audience</label>
+                                    <input 
+                                        type="text" 
+                                        value={kit.targetAudience || ''}
+                                        onChange={(e) => handleTextChange('targetAudience', e.target.value)}
+                                        onBlur={handleSave}
+                                        placeholder="e.g. Tech-savvy millennials"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Tone of Voice</label>
-                                <select 
-                                    value={kit.toneOfVoice}
-                                    onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all cursor-pointer"
-                                >
-                                    <option>Professional</option>
-                                    <option>Luxury</option>
-                                    <option>Playful</option>
-                                    <option>Urgent / Sales</option>
-                                    <option>Friendly / Casual</option>
-                                    <option>Technical</option>
-                                </select>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Negative Prompts (What to Avoid)</label>
+                                <input 
+                                    type="text" 
+                                    value={kit.negativePrompts || ''}
+                                    onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
+                                    onBlur={handleSave}
+                                    placeholder="e.g. No cartoons, no neon colors, no clutter"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                />
                             </div>
                         </div>
                     </div>
@@ -503,6 +751,9 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     }}>
                                         Building the future of {kit.website || "your brand"}.
                                     </p>
+                                    {kit.targetAudience && (
+                                        <p className="text-[10px] bg-white/10 inline-block px-2 py-1 rounded">Target: {kit.targetAudience}</p>
+                                    )}
                                 </div>
 
                                 {/* Color Palette Swatches */}
@@ -524,6 +775,14 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
                 </div>
             </div>
+
+            {showMagicModal && (
+                <MagicSetupModal 
+                    onClose={() => setShowMagicModal(false)} 
+                    onGenerate={handleMagicGenerate}
+                    isGenerating={isMagicGen}
+                />
+            )}
 
             {toast && (
                 <ToastNotification 

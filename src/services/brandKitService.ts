@@ -1,6 +1,8 @@
+
 import { Type, Modality } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
+import { BrandKit } from "../types";
 
 // Helper: Resize to 1280px (HD) for Gemini 3 Pro
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -70,6 +72,91 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
     } catch (e) {
         console.error("Color extraction failed:", e);
         return { primary: '#000000', secondary: '#ffffff', accent: '#007bff' };
+    }
+};
+
+/**
+ * GENERATE FULL BRAND IDENTITY (AUTO-PILOT)
+ * Uses Google Search to infer brand details from a URL or Description.
+ */
+export const generateBrandIdentity = async (
+    url: string, 
+    description: string
+): Promise<Partial<BrandKit>> => {
+    const ai = getAiClient();
+    
+    const prompt = `You are a Brand Identity Expert AI.
+    
+    USER INPUT:
+    - URL: ${url}
+    - Description: ${description}
+    
+    TASK:
+    Analyze the available information (or infer it based on the domain/description) to generate a "Brand DNA Kit".
+    
+    1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
+    2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
+    3. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
+    4. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
+    5. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
+    
+    OUTPUT JSON:
+    {
+        "companyName": "Inferred Name",
+        "toneOfVoice": "...",
+        "targetAudience": "...",
+        "negativePrompts": "...",
+        "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
+        "fonts": { "heading": "Modern Sans", "body": "Clean Sans" }
+    }`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: { parts: [{ text: prompt }] },
+            config: {
+                tools: [{ googleSearch: {} }], // Use Search to find real brand colors if URL is real
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        companyName: { type: Type.STRING },
+                        toneOfVoice: { type: Type.STRING },
+                        targetAudience: { type: Type.STRING },
+                        negativePrompts: { type: Type.STRING },
+                        colors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                primary: { type: Type.STRING },
+                                secondary: { type: Type.STRING },
+                                accent: { type: Type.STRING }
+                            }
+                        },
+                        fonts: {
+                            type: Type.OBJECT,
+                            properties: {
+                                heading: { type: Type.STRING },
+                                body: { type: Type.STRING }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const text = response.text || "{}";
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Auto-Brand Generation Failed:", e);
+        // Fallback
+        return {
+            companyName: "New Brand",
+            toneOfVoice: "Professional",
+            targetAudience: "General",
+            negativePrompts: "Low quality, blur, distortion",
+            colors: { primary: "#000000", secondary: "#FFFFFF", accent: "#3B82F6" },
+            fonts: { heading: "Modern Sans", body: "Clean Sans" }
+        };
     }
 };
 
