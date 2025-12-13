@@ -64,7 +64,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
-    const [background, setBackground] = useState(BACKGROUNDS[0].id);
+    const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
     const [customDesc, setCustomDesc] = useState('');
@@ -103,6 +103,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         if (mode === 'duo' && !partnerImage) { alert("Please upload a partner photo for Duo mode."); return; }
+        if (!background) { alert("Please select a location."); return; }
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
         let finalBackground = background;
@@ -153,7 +154,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Headshot Pro (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
-    const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !isLowCredits;
+    const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !!background && !isLowCredits;
 
     return (
         <>
@@ -272,8 +273,8 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     {background === 'Custom' && (
                                         <div className="mt-4 animate-fadeIn">
                                             <InputField 
-                                                label="Describe Custom Location" 
-                                                placeholder="e.g. A futuristic spaceship bridge, neon lights, bokeh" 
+                                                label="Describe Your Perfect Backdrop" 
+                                                placeholder="e.g. A luxury penthouse balcony at sunset, soft bokeh city lights, cinematic lighting" 
                                                 value={customBackgroundPrompt} 
                                                 onChange={(e: any) => setCustomBackgroundPrompt(e.target.value)}
                                                 autoFocus
