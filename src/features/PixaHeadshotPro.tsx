@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
-import { PixaHeadshotIcon, UploadIcon, XIcon, CreditCoinIcon, CheckIcon, UserIcon, BuildingIcon, SparklesIcon, PaletteIcon, ScaleIcon, HomeIcon, PlusIcon, UsersIcon, PencilIcon } from '../components/icons';
+import { PixaHeadshotIcon, UploadIcon, XIcon, CreditCoinIcon, CheckIcon, UserIcon, BuildingIcon, SparklesIcon, PaletteIcon, ScaleIcon, HomeIcon, PlusIcon, UsersIcon, PencilIcon, CorporateExecutiveIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -15,7 +15,7 @@ import { HeadshotStyles } from '../styles/features/PixaHeadshotPro.styles';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate Executive', icon: <BuildingIcon className="w-5 h-5"/>, desc: 'Suit & Tie / Formal' },
+    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-5 h-5"/>, desc: 'Suit & Tie / Formal' },
     { id: 'Tech', label: 'Tech Founder', icon: <SparklesIcon className="w-5 h-5"/>, desc: 'Smart Casual / Blazer' },
     { id: 'Creative', label: 'Creative Director', icon: <PaletteIcon className="w-5 h-5"/>, desc: 'Stylish & Modern' },
     { id: 'Medical', label: 'Medical Pro', icon: <PlusIcon className="w-5 h-5"/>, desc: 'White Coat / Scrubs' },
