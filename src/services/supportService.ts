@@ -5,6 +5,23 @@ import { db, logAudit } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { Ticket } from '../types';
 
+// Fallback pricing if appConfig is not loaded or missing keys
+const DEFAULT_COSTS: Record<string, number> = {
+    'Pixa Product Shots': 2,
+    'Pixa Headshot Pro': 4,
+    'Pixa Ecommerce Kit': 25,
+    'Pixa AdMaker': 4,
+    'Pixa Thumbnail Pro': 5,
+    'Pixa Realty Ads': 4,
+    'Pixa Together': 5,
+    'Pixa Photo Restore': 2,
+    'Pixa Caption Pro': 1,
+    'Pixa Interior Design': 2,
+    'Pixa TryOn': 4,
+    'Pixa Mockups': 2,
+    'Help & Support (Chat)': 0
+};
+
 // --- WORLD-CLASS SUPPORT LOGIC ---
 const SYSTEM_INSTRUCTION = `
 You are **Pixa**, the Senior Technical Concierge and Lead Product Expert for **MagicPixa**.
@@ -12,7 +29,7 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
 
 **YOUR PRIME DIRECTIVE:**
 1.  **Diagnose**: Use [USER CONTEXT] (Credits, Name) to verify facts.
-2.  **Pricing Authority**: Use the [LIVE PRICING TABLE] provided in the context for accurate credit costs. Do NOT guess costs.
+2.  **Pricing Authority**: **CRITICAL**: Use the [LIVE PRICING TABLE] provided in the context for accurate credit costs. Do NOT guess costs. Do NOT use training data for costs. If a feature isn't in the table, say you can't check the live price.
 3.  **Educate/Guide**: If the user asks "How do I...", provide a numbered, step-by-step guide based on the [DOCUMENTATION] below. Be specific about button names and locations.
 4.  **Gatekeep Tickets**: Do NOT create a ticket for general questions, "how-to" requests, or simple billing questions. ONLY create a ticket if there is a technical bug, a refund request for a failed generation, or if the user explicitly demands a human after you've tried to help.
 
@@ -155,9 +172,12 @@ export const sendSupportMessage = async (
         parts: [{ text: msg.content }]
     }));
 
+    // Merge passed costs with defaults to ensure coverage if live config is partial/missing
+    const mergedCosts = { ...DEFAULT_COSTS, ...featureCosts };
+
     // Format Pricing Table for AI Context
-    const pricingTable = Object.entries(featureCosts)
-        .map(([feature, cost]) => `- ${feature}: ${cost} Credits`)
+    const pricingTable = Object.entries(mergedCosts)
+        .map(([feature, cost]) => `- **${feature}**: ${cost} Credits`)
         .join('\n');
 
     // Inject Live Context invisibly into the system prompt context window via the last message
@@ -171,8 +191,8 @@ export const sendSupportMessage = async (
     Current Plan: ${userContext.plan || 'Free Tier'}
     Server Time: ${new Date().toLocaleString()}
     
-    <<< LIVE PRICING TABLE (AUTHORITATIVE) >>>
-    ${pricingTable || "No specific pricing data available. Assume defaults."}
+    <<< LIVE PRICING TABLE (AUTHORITATIVE - USE THESE COSTS) >>>
+    ${pricingTable}
     <<< END DATA FEED >>>
     
     (Use this data to diagnose issues. Do not quote it raw.)
@@ -195,7 +215,7 @@ export const sendSupportMessage = async (
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
-                temperature: 0.4, // Lower temperature for more precise/technical answers
+                temperature: 0.2, // Lower temperature for strict adherence to facts/pricing
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
