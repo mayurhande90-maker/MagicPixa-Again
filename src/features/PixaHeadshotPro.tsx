@@ -2,7 +2,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
-import { PixaHeadshotIcon, UploadIcon, XIcon, CreditCoinIcon, CheckIcon, UserIcon, BuildingIcon, SparklesIcon, PaletteIcon, ScaleIcon, HomeIcon, PlusIcon, UsersIcon, PencilIcon, CorporateExecutiveIcon } from '../components/icons';
+import { 
+    PixaHeadshotIcon, 
+    UploadIcon, 
+    XIcon, 
+    CreditCoinIcon, 
+    CheckIcon, 
+    UserIcon, 
+    BuildingIcon, 
+    SparklesIcon, 
+    PaletteIcon, 
+    ScaleIcon, 
+    HomeIcon, 
+    PlusIcon, 
+    UsersIcon, 
+    PencilIcon, 
+    CorporateExecutiveIcon 
+} from '../components/icons/headshotIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
