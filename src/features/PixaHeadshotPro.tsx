@@ -20,7 +20,8 @@ import {
 import { 
     PixaHeadshotIcon,
     CorporateExecutiveIcon,
-    TechFounderIcon
+    TechFounderIcon,
+    CreativeDirectorIcon
 } from '../components/icons/headshotIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
@@ -36,7 +37,7 @@ import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 const ARCHETYPES = [
     { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Suit & Tie / Formal' },
     { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'Smart Casual / Blazer' },
-    { id: 'Creative', label: 'Creative Director', icon: <PaletteIcon className="w-12 h-12"/>, desc: 'Stylish & Modern' },
+    { id: 'Creative', label: 'Creative Director', icon: <CreativeDirectorIcon className="w-12 h-12"/>, desc: 'Stylish & Modern' },
     { id: 'Medical', label: 'Medical Pro', icon: <PlusIcon className="w-12 h-12"/>, desc: 'White Coat / Scrubs' },
     { id: 'Legal', label: 'Legal / Finance', icon: <ScaleIcon className="w-12 h-12"/>, desc: 'Conservative Formal' },
     { id: 'Realtor', label: 'Realtor / Sales', icon: <HomeIcon className="w-12 h-12"/>, desc: 'Friendly Professional' }
