@@ -26,6 +26,7 @@ export interface RealtyInputs {
         projectName: string;
         configuration: string; // e.g., "3 BHK"
         contact: string;
+        location: string; // Added location
     };
 }
 
@@ -35,6 +36,7 @@ interface CreativeStrategy {
     colorPalette: string;
     layoutPlan: string;
     typographicHierarchy: string;
+    rewrittenFeatures: string[]; // AI-rewritten selling points
 }
 
 /**
@@ -58,8 +60,9 @@ const performTrendResearch = async (
     *** INPUT DATA ***
     - **Property Image**: (Attached) - Perform a Visual Audit (Lighting, Space, Key Features).
     - **Project Name**: "${inputs.texts.projectName}"
+    - **Location**: "${inputs.texts.location}"
     - **Configuration**: "${inputs.texts.configuration}"
-    - **Selling Points**: ${inputs.sellingPoints.join(', ')}
+    - **Raw Selling Points**: ${inputs.sellingPoints.join(', ')}
     - **Target Audience**: ${audienceMap[inputs.targetAudience]}
     
     *** TASK 1: VISUAL AUDIT ***
@@ -70,7 +73,13 @@ const performTrendResearch = async (
     - What headlines are trending? (e.g., "Live Above" vs "Best Deal").
     - What color palettes signify this market segment now?
     
-    *** TASK 3: CREATIVE STRATEGY ***
+    *** TASK 3: COPYWRITING REFINEMENT (CRITICAL) ***
+    Rewrite the user's "Raw Selling Points" into 3 highly professional, punchy feature bullets suitable for a luxury flyer.
+    - Example: "Near Metro" -> "Seamless Connectivity".
+    - Example: "Sea View" -> "Panoramic Ocean Vistas".
+    - Example: "Big Rooms" -> "Expansive Living Spaces".
+    
+    *** TASK 4: CREATIVE STRATEGY ***
     Based on the Audit + Trends, generate a "Design Blueprint":
     1. **Headline**: Write a killer, 2-5 word hook. Do NOT use generic "For Sale". Make it emotional or urgent based on audience.
     2. **Visual Style**: Define the relighting mood (e.g., "Golden Hour glow", "Moody Blue Hour", "Bright Airy Daylight").
@@ -82,7 +91,8 @@ const performTrendResearch = async (
         "visualStyle": "Detailed instructions for lighting and mood...",
         "colorPalette": "Hex codes or color names (e.g. Navy & Gold)",
         "layoutPlan": "Instructions on text placement relative to the image...",
-        "typographicHierarchy": "Instructions on font weights..."
+        "typographicHierarchy": "Instructions on font weights...",
+        "rewrittenFeatures": ["Refined Feature 1", "Refined Feature 2", "Refined Feature 3"]
     }`;
 
     try {
@@ -104,9 +114,10 @@ const performTrendResearch = async (
                         visualStyle: { type: Type.STRING },
                         colorPalette: { type: Type.STRING },
                         layoutPlan: { type: Type.STRING },
-                        typographicHierarchy: { type: Type.STRING }
+                        typographicHierarchy: { type: Type.STRING },
+                        rewrittenFeatures: { type: Type.ARRAY, items: { type: Type.STRING } }
                     },
-                    required: ["headline", "visualStyle", "layoutPlan"]
+                    required: ["headline", "visualStyle", "layoutPlan", "rewrittenFeatures"]
                 }
             }
         }));
@@ -126,7 +137,8 @@ const performTrendResearch = async (
             visualStyle: "Professional Golden Hour photography, warm and inviting.",
             colorPalette: "Modern Neutral & Gold",
             layoutPlan: "Text in negative space, clear footer.",
-            typographicHierarchy: "Bold Headline, clean sans-serif body."
+            typographicHierarchy: "Bold Headline, clean sans-serif body.",
+            rewrittenFeatures: inputs.sellingPoints // Fallback to original
         };
     }
 };
@@ -163,24 +175,25 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     - **Mood/Lighting**: ${strategy.visualStyle}
     - **Colors**: ${strategy.colorPalette}
     
-    *** DESIGN EXECUTION RULES (The 3% Rule) ***
-    1. **Relight the Image**: Apply the requested "Mood". Enhance contrast, boost dynamic range. Make it look like a magazine cover.
-    2. **Smart Layout**: Analyze the image's "Negative Space" (sky, floor, or plain wall). Place the text THERE. Do not cover key architectural details.
-    3. **Typography**: Render the text directly onto the image with professional kerning and tracking.
-       - **H1 (Headline)**: Big, Bold, Elegant.
-       - **H2 (Project Name)**: "${inputs.texts.projectName}".
-       - **Details**: "${inputs.texts.configuration}".
-       - **Tags**: Show 2-3 key selling points: "${inputs.sellingPoints.slice(0, 3).join(' • ')}".
-    4. **Footer**: Create a clean, high-contrast strip (or floating element) at the bottom for the contact info:
-       - "${inputs.texts.contact}"
-    5. **Logo**: Place the provided logo in a corner (Top Right or Top Left) with sufficient padding.
+    *** DESIGN EXECUTION RULES (High-End Magazine Standard) ***
+    1. **Base Enhancement**: Apply a "Luxury Architectural" color grade to the property photo. Boost dynamic range, warm up highlights, and sharpen details. It must look expensive.
+    2. **Composition**: Apply the **Golden Ratio**. The image should be the hero.
+    3. **Text Integration**:
+       - Use a **Glassmorphism** effect (blurred translucent background) or a clean **Gradient Overlay** behind text areas to ensure 100% readability. Do NOT place text directly on busy backgrounds.
+       - **Headline**: Elegant Serif or Modern Bold Sans-Serif. Large and commanding.
+       - **Sub-Header**: "${inputs.texts.projectName} | ${inputs.texts.location}". Use a vertical separator.
+       - **Features**: Display the rewritten features: "${strategy.rewrittenFeatures.slice(0, 3).join('  •  ')}". Use a clean, spaced-out layout (e.g. horizontal pill row or vertical stack with icons).
+    4. **Footer Info**: Create a minimalist, high-contrast strip at the very bottom.
+       - Left: "${inputs.texts.configuration}" (Bold).
+       - Right: "${inputs.texts.contact}".
+    5. **Logo**: Place the logo in the top-right or top-left corner with generous padding. Ensure it contrasts well against the sky/ceiling.
     
     *** TARGET AUDIENCE: ${inputs.targetAudience.toUpperCase()} ***
-    - IF Luxury: Minimalist, serif fonts, lots of breathing room.
-    - IF Investor: Bold numbers, high contrast, urgent look.
-    - IF Family: Warm tones, friendly rounded sans-serif fonts.
+    - IF Luxury: Minimalist text, lots of negative space, elegant serif fonts.
+    - IF Investor: Highlight the numbers/config boldy.
+    - IF Family: Warm colors, friendly rounded fonts.
     
-    OUTPUT: A single, high-resolution, fully designed advertisement image.`;
+    OUTPUT: A single, high-resolution, fully designed advertisement image ready for print or social media.`;
 
     parts.push({ text: designPrompt });
 

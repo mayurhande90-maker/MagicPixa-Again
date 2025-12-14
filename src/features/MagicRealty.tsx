@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, BrandKitIcon, HomeIcon, PhoneIcon, LightbulbIcon, MagicWandIcon, TrashIcon, UserIcon } from '../components/icons';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, BrandKitIcon, HomeIcon, PhoneIcon, LightbulbIcon, MagicWandIcon, TrashIcon, UserIcon, MapPinIcon } from '../components/icons';
 import { fileToBase64, Base64File, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateRealtyAd } from '../services/realtyService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
@@ -83,7 +83,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     // Text Data
-    const [texts, setTexts] = useState({ projectName: '', configuration: '', contact: '' });
+    const [texts, setTexts] = useState({ projectName: '', configuration: '', contact: '', location: '' });
     const [sellingPoints, setSellingPoints] = useState<string[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     
@@ -123,9 +123,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const steps = [
                 "Analyzing Property Features...", 
                 "Researching Market Trends...", 
-                "Drafting Copy & Layout...", 
-                "Applying Visual Strategy...", 
-                "Rendering Final Ad..."
+                "Rewriting Copy for Impact...", 
+                "Designing Layout & Composition...", 
+                "Polishing Final Ad..."
             ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
@@ -199,7 +199,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleNewSession = () => { 
         setPropertyImage(null); 
         setResultImage(null); 
-        setTexts({ projectName: '', configuration: '', contact: '' }); 
+        setTexts({ projectName: '', configuration: '', contact: '', location: '' }); 
         setSellingPoints([]);
     };
 
@@ -214,7 +214,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         <>
             <FeatureLayout 
                 title="Pixa Realty Ads" 
-                description="Turn property photos into high-converting ads. The AI analyzes your image, researches market trends, and designs the perfect flyer." 
+                description="Turn property photos into high-converting ads. The AI analyzes your image, rewrites your copy, and designs a professional flyer." 
                 icon={<BuildingIcon className="w-14 h-14"/>} 
                 rawIcon={true} 
                 creditCost={cost} 
@@ -301,15 +301,20 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className={RealtyStyles.inputGroup}>
                                     <InputField placeholder="Project Name (e.g. Skyline Towers)" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
                                     
-                                    <div className={RealtyStyles.inputRow}>
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div className="relative">
                                             <div className="absolute left-3 top-3.5 text-gray-400"><HomeIcon className="w-4 h-4"/></div>
                                             <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Config (e.g. 3 BHK)" value={texts.configuration} onChange={(e) => setTexts({...texts, configuration: e.target.value})} />
                                         </div>
                                         <div className="relative">
-                                            <div className="absolute left-3 top-3.5 text-gray-400"><PhoneIcon className="w-4 h-4"/></div>
-                                            <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Contact Info" value={texts.contact} onChange={(e) => setTexts({...texts, contact: e.target.value})} />
+                                            <div className="absolute left-3 top-3.5 text-gray-400"><MapPinIcon className="w-4 h-4"/></div>
+                                            <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Location" value={texts.location} onChange={(e) => setTexts({...texts, location: e.target.value})} />
                                         </div>
+                                    </div>
+                                    
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-3.5 text-gray-400"><PhoneIcon className="w-4 h-4"/></div>
+                                        <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Contact Info" value={texts.contact} onChange={(e) => setTexts({...texts, contact: e.target.value})} />
                                     </div>
 
                                     {/* Tag Input for Selling Points */}
@@ -336,6 +341,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <PlusCircleIcon className="w-5 h-5" />
                                             </button>
                                         </div>
+                                        <p className="text-[9px] text-gray-400 mt-1 italic ml-1">AI will rewrite these points for professional impact.</p>
                                     </div>
                                 </div>
                             </div>
