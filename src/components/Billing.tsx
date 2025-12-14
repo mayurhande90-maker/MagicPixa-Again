@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, getCreditHistory } from '../firebase';
 import { 
-    SparklesIcon, CheckIcon, InformationCircleIcon, TicketIcon, XIcon, PlusCircleIcon, 
+    SparklesIcon, CheckIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
     PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon,
     CreditCoinIcon, PixaHeadshotIcon
@@ -49,7 +49,6 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
 
 export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveView }) => {
   const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
-  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -66,8 +65,6 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const creditPacks = appConfig?.creditPacks && appConfig.creditPacks.length > 0 
     ? appConfig.creditPacks 
     : defaultCreditPacks;
-
-  const creditCosts = appConfig?.featureCosts ? Object.entries(appConfig.featureCosts).map(([feature, cost]) => ({ feature, cost: `${cost} Credits` })) : [];
 
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
@@ -304,9 +301,6 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-[#1A1A1E]">Transaction History</h3>
-                <button onClick={() => setIsInfoModalOpen(true)} className="text-gray-400 hover:text-[#4D7CFF] transition-colors p-2 hover:bg-gray-100 rounded-full">
-                    <InformationCircleIcon className="w-6 h-6"/>
-                </button>
             </div>
             <div className={BillingStyles.historyContainer}>
                 {isLoadingHistory ? (
@@ -369,43 +363,6 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         </div>
       </div>
       
-      {isInfoModalOpen && (
-          <div 
-            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm"
-            onClick={() => setIsInfoModalOpen(false)}
-          >
-              <div 
-                className="relative bg-white w-full max-w-md m-4 p-8 rounded-3xl shadow-2xl border border-gray-100"
-                onClick={e => e.stopPropagation()}
-              >
-                  <button 
-                    onClick={() => setIsInfoModalOpen(false)} 
-                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-all"
-                    aria-label="Close"
-                  >
-                      <XIcon className="w-5 h-5"/>
-                  </button>
-                  <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">Credit Costs</h3>
-                  <p className="text-sm text-gray-500 mb-6">
-                      Cost per generation for each AI tool.
-                  </p>
-                  <div className="space-y-3">
-                      {creditCosts.map(item => (
-                          <div key={item.feature} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-sm border border-gray-100">
-                              <span className="text-gray-600 font-medium">{item.feature}</span>
-                              <span className="font-bold text-[#1A1A1E] bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">{item.cost}</span>
-                          </div>
-                      ))}
-                  </div>
-                  <button 
-                    onClick={() => setIsInfoModalOpen(false)}
-                    className="w-full mt-8 bg-[#1A1A1E] text-white font-bold py-3 rounded-xl hover:bg-black transition-colors"
-                  >
-                      Understood
-                  </button>
-              </div>
-          </div>
-      )}
       {showConfirmation && confirmedPurchase && (
         <PaymentConfirmationModal
             creditsAdded={confirmedPurchase.totalCredits}
