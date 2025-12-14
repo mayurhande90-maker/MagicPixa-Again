@@ -34,12 +34,12 @@ import { HeadshotStyles } from '../styles/features/PixaHeadshotPro.styles';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-5 h-5"/>, desc: 'Suit & Tie / Formal' },
-    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-5 h-5"/>, desc: 'Smart Casual / Blazer' },
-    { id: 'Creative', label: 'Creative Director', icon: <PaletteIcon className="w-5 h-5"/>, desc: 'Stylish & Modern' },
-    { id: 'Medical', label: 'Medical Pro', icon: <PlusIcon className="w-5 h-5"/>, desc: 'White Coat / Scrubs' },
-    { id: 'Legal', label: 'Legal / Finance', icon: <ScaleIcon className="w-5 h-5"/>, desc: 'Conservative Formal' },
-    { id: 'Realtor', label: 'Realtor / Sales', icon: <HomeIcon className="w-5 h-5"/>, desc: 'Friendly Professional' }
+    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Suit & Tie / Formal' },
+    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'Smart Casual / Blazer' },
+    { id: 'Creative', label: 'Creative Director', icon: <PaletteIcon className="w-12 h-12"/>, desc: 'Stylish & Modern' },
+    { id: 'Medical', label: 'Medical Pro', icon: <PlusIcon className="w-12 h-12"/>, desc: 'White Coat / Scrubs' },
+    { id: 'Legal', label: 'Legal / Finance', icon: <ScaleIcon className="w-12 h-12"/>, desc: 'Conservative Formal' },
+    { id: 'Realtor', label: 'Realtor / Sales', icon: <HomeIcon className="w-12 h-12"/>, desc: 'Friendly Professional' }
 ];
 
 const BACKGROUNDS = [
