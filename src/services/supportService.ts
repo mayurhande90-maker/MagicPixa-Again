@@ -7,18 +7,22 @@ import { Ticket } from '../types';
 
 // Fallback pricing if appConfig is not loaded or missing keys
 const DEFAULT_COSTS: Record<string, number> = {
-    'Pixa Product Shots': 2,
-    'Pixa Headshot Pro': 4,
+    'Pixa Product Shots': 10,
+    'Pixa Headshot Pro': 5,
     'Pixa Ecommerce Kit': 25,
-    'Pixa AdMaker': 4,
-    'Pixa Thumbnail Pro': 5,
-    'Pixa Realty Ads': 4,
-    'Pixa Together': 5,
-    'Pixa Photo Restore': 2,
-    'Pixa Caption Pro': 1,
-    'Pixa Interior Design': 2,
-    'Pixa TryOn': 4,
-    'Pixa Mockups': 2,
+    'Pixa Ecommerce Kit (5 Assets)': 25,
+    'Pixa Ecommerce Kit (7 Assets)': 35,
+    'Pixa Ecommerce Kit (10 Assets)': 50,
+    'Pixa AdMaker': 10,
+    'Pixa Thumbnail Pro': 8,
+    'Pixa Realty Ads': 10,
+    'Pixa Together': 8,
+    'Pixa Photo Restore': 5,
+    'Pixa Caption Pro': 2,
+    'Pixa Interior Design': 8,
+    'Pixa TryOn': 8,
+    'Pixa Mockups': 8,
+    'Magic Eraser': 2,
     'Help & Support (Chat)': 0
 };
 

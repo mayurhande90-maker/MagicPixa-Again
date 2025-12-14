@@ -60,7 +60,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    const cost = appConfig?.featureCosts['Pixa Realty Ads'] || appConfig?.featureCosts['Magic Realty'] || 4;
+    const cost = appConfig?.featureCosts['Pixa Realty Ads'] || appConfig?.featureCosts['Magic Realty'] || 10;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -110,7 +110,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Realty Ad", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setModelImage(null); setPropertyImage(null); setReferenceImage(null); if (brandStrategy === 'custom') setLogoImage(null); setModelChoice('upload'); setPropertyChoice('upload'); setTexts({ projectName: '', unitType: '', marketingContext: '', location: '', price: '', rera: '', contact: '' }); setAmenities([]); setShowAmenities(false); setShowContact(false); setResultImage(null); setDetectedFields(null); setLastCreationId(null); };
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Realty Ads (Edited)'); };
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const isModelReady = modelChoice === 'skip' || (modelChoice === 'upload' && !!modelImage) || (modelChoice === 'generate' && !!modelType);
     const isRefReady = designMode === 'auto' || (designMode === 'reference' && !!referenceImage);
     const canGenerate = isRefReady && !!texts.projectName && (propertyChoice === 'generate' || !!propertyImage) && !!modelChoice && isModelReady && !isLowCredits;

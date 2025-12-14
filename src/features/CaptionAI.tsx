@@ -24,7 +24,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const scrollRef = useRef<HTMLDivElement>(null);
     const resultsRef = useRef<HTMLDivElement>(null);
 
-    const cost = appConfig?.featureCosts['Pixa Caption Pro'] || appConfig?.featureCosts['CaptionAI'] || 1;
+    const cost = appConfig?.featureCosts['Pixa Caption Pro'] || appConfig?.featureCosts['CaptionAI'] || 2;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < cost;
     const captionTypes = ['SEO Friendly', 'Long Caption', 'Short Caption'];
