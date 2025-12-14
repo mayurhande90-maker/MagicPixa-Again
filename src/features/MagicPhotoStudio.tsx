@@ -255,13 +255,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 )
             }
             rightContent={
-                !image ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                        <div className="bg-white p-4 rounded-full mb-4 border border-gray-100"><ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/></div>
-                        <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                        <p className="text-sm text-gray-400">Upload a photo to unlock AI tools.</p>
-                    </div>
-                ) : isLowCredits ? (
+                isLowCredits ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                         <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                         <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
@@ -269,7 +263,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button>
                     </div>
                 ) : (
-                    <div className="space-y-4 animate-fadeIn p-1 h-full flex flex-col">
+                    <div className={`space-y-4 animate-fadeIn p-1 h-full flex flex-col ${!image ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
