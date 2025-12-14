@@ -182,7 +182,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'daily_mission':
                  return <DailyMissionStudio auth={auth} navigateTo={navigateTo} />;
             case 'support_center':
-                 return <SupportCenter auth={auth} />;
+                 return <SupportCenter auth={auth} appConfig={appConfig} />;
             case 'billing':
                 if (auth.user) {
                     return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={handleViewChange} />;

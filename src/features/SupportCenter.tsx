@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuthProps, Ticket } from '../types';
+import { AuthProps, Ticket, AppConfig } from '../types';
 import { getUserTickets } from '../services/supportService';
 import { 
     LifebuoyIcon, 
@@ -10,7 +10,7 @@ import {
 import { SupportChatWindow } from './support/SupportChatWindow';
 import { SupportTicketSidebar } from './support/SupportTicketSidebar';
 
-export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | null }> = ({ auth, appConfig }) => {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -83,7 +83,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 <div className="absolute inset-0 p-0 sm:p-4 lg:p-6 overflow-hidden flex justify-center">
                     <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 h-full">
                         {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
-                        <SupportChatWindow auth={auth} onTicketCreated={handleTicketCreated} />
+                        <SupportChatWindow auth={auth} appConfig={appConfig || null} onTicketCreated={handleTicketCreated} />
 
                         {/* RIGHT: TICKET HISTORY (Takes 1 column) */}
                         <SupportTicketSidebar tickets={tickets} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { AuthProps, Ticket } from '../../types';
+import { AuthProps, Ticket, AppConfig } from '../../types';
 import { sendSupportMessage, createTicket, ChatMessage, analyzeErrorScreenshot } from '../../services/supportService';
 import { fileToBase64 } from '../../utils/imageUtils';
 import { saveSupportMessage, getSupportHistory, clearSupportChat } from '../../firebase';
@@ -16,10 +16,11 @@ import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, Qui
 
 interface SupportChatWindowProps {
     auth: AuthProps;
+    appConfig: AppConfig | null;
     onTicketCreated: (ticket: Ticket) => void;
 }
 
-export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTicketCreated }) => {
+export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appConfig, onTicketCreated }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -147,7 +148,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
                     email: auth.user.email, 
                     credits: auth.user.credits,
                     plan: auth.user.plan
-                }
+                },
+                appConfig?.featureCosts || {} // PASS DYNAMIC PRICING HERE
             );
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user.uid, response).catch(e => console.warn("Bot msg save failed", e));
@@ -233,7 +235,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, onTi
             // Immediately send analysis prompt
             const response = await sendSupportMessage(
                 [...messages, userMsg, { role: 'user', content: `I uploaded an error screenshot. Analysis: ${analysis}`, id: 'sys', timestamp: Date.now() }],
-                { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan }
+                { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan },
+                appConfig?.featureCosts || {}
             );
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
