@@ -15,12 +15,12 @@ import {
     HomeIcon, 
     PlusIcon, 
     UsersIcon, 
-    PencilIcon, 
-    CorporateExecutiveIcon,
-    BaseIcon
+    PencilIcon
 } from '../components/icons';
 import { 
-    PixaHeadshotIcon
+    PixaHeadshotIcon,
+    CorporateExecutiveIcon,
+    TechFounderIcon
 } from '../components/icons/headshotIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
@@ -32,10 +32,6 @@ import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { HeadshotStyles } from '../styles/features/PixaHeadshotPro.styles';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
-
-const TechFounderIcon: React.FC<{ className?: string }> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />} />
-);
 
 const ARCHETYPES = [
     { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-5 h-5"/>, desc: 'Suit & Tie / Formal' },
