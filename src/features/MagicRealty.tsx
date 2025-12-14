@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, TextAreaField } from '../components/FeatureLayout';
-import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, UserIcon, LightbulbIcon, MagicWandIcon, CheckIcon, PlusCircleIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, BrandKitIcon, HomeIcon, MapPinIcon, CurrencyDollarIcon, DocumentTextIcon, PhoneIcon } from '../components/icons';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { BuildingIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, BrandKitIcon, HomeIcon, PhoneIcon, LightbulbIcon, MagicWandIcon, TrashIcon, UserIcon } from '../components/icons';
 import { fileToBase64, Base64File, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils';
-import { generateRealtyAd, analyzeRealtyReference, ReferenceAnalysis } from '../services/realtyService';
+import { generateRealtyAd } from '../services/realtyService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -49,49 +49,48 @@ const CompactUpload: React.FC<{
     );
 };
 
-const ModeCard: React.FC<{ 
+const TargetCard: React.FC<{ 
     title: string; 
-    desc: string; 
     icon: React.ReactNode; 
     selected: boolean; 
     onClick: () => void; 
-}> = ({ title, desc, icon, selected, onClick }) => (
+    color: string;
+}> = ({ title, icon, selected, onClick, color }) => (
     <button 
         onClick={onClick} 
-        className={`${RealtyStyles.strategyCard} ${selected ? RealtyStyles.strategyCardSelected : RealtyStyles.strategyCardInactive}`}
+        className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 h-24 ${
+            selected 
+            ? `bg-white border-${color}-500 shadow-md ring-2 ring-${color}-500/20` 
+            : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+        }`}
     >
-        <div className={`${RealtyStyles.strategyIconBox} ${selected ? RealtyStyles.strategyIconSelected : RealtyStyles.strategyIconInactive}`}>
+        <div className={`mb-2 p-2 rounded-full ${selected ? `bg-${color}-100 text-${color}-600` : 'bg-white text-gray-400'}`}>
             {icon}
         </div>
-        <div>
-            <h4 className={RealtyStyles.strategyTitle}>{title}</h4>
-            <p className={`${RealtyStyles.strategyDesc} ${selected ? RealtyStyles.strategyDescSelected : RealtyStyles.strategyDescInactive}`}>
-                {desc}
-            </p>
-        </div>
-        {selected && <div className="absolute top-2 right-2"><div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div></div>}
+        <span className={`text-[10px] font-bold uppercase tracking-wide ${selected ? 'text-gray-900' : 'text-gray-500'}`}>
+            {title}
+        </span>
+        {selected && <div className={`absolute top-2 right-2 w-2 h-2 rounded-full bg-${color}-500 animate-pulse`}></div>}
     </button>
 );
 
 export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     // Strategies
-    const [brandStrategy, setBrandStrategy] = useState<'brand_kit' | 'custom'>('custom');
-    const [designMode, setDesignMode] = useState<'reference' | 'auto'>('reference');
+    const [targetAudience, setTargetAudience] = useState<'luxury' | 'investor' | 'family'>('luxury');
     
     // Assets
     const [propertyImage, setPropertyImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     // Text Data
-    const [texts, setTexts] = useState({ projectName: '', unitType: '', marketingContext: '', price: '', location: '', rera: '', contact: '' });
-    const [amenities, setAmenities] = useState<string[]>(['', '', '']);
+    const [texts, setTexts] = useState({ projectName: '', configuration: '', contact: '' });
+    const [sellingPoints, setSellingPoints] = useState<string[]>([]);
+    const [currentTag, setCurrentTag] = useState('');
     
     // UI State
-    const [showAdvanced, setShowAdvanced] = useState(false);
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("Initializing...");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
@@ -107,7 +106,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Initial Brand Kit Load
     useEffect(() => { 
         if (auth.user?.brandKit) { 
-            setBrandStrategy('brand_kit');
             const kit = auth.user.brandKit;
             setTexts(prev => ({ ...prev, contact: kit.website || prev.contact }));
             if (kit.logos.primary && !logoImage) { 
@@ -115,10 +113,29 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     setLogoImage({ url: kit.logos.primary!, base64 });
                 }).catch(e => console.warn("Logo load error", e));
             }
-        } else { 
-            setBrandStrategy('custom'); 
-        } 
+        }
     }, [auth.user]);
+
+    // Loading Animation Loop
+    useEffect(() => { 
+        let interval: any; 
+        if (loading) { 
+            const steps = [
+                "Analyzing Property Features...", 
+                "Researching Market Trends...", 
+                "Drafting Copy & Layout...", 
+                "Applying Visual Strategy...", 
+                "Rendering Final Ad..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2000); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading]);
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
@@ -131,31 +148,30 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         e.target.value = ''; 
     };
 
-    const updateAmenity = (index: number, val: string) => {
-        const newArr = [...amenities];
-        newArr[index] = val;
-        setAmenities(newArr);
+    const addTag = () => {
+        if (currentTag.trim() && sellingPoints.length < 5) {
+            setSellingPoints([...sellingPoints, currentTag.trim()]);
+            setCurrentTag('');
+        }
+    };
+
+    const removeTag = (index: number) => {
+        setSellingPoints(sellingPoints.filter((_, i) => i !== index));
     };
 
     const handleGenerate = async () => {
-        const refReady = designMode === 'auto' || !!referenceImage; 
-        if (!refReady || !auth.user || !texts.projectName || !propertyImage) return; 
+        if (!auth.user || !texts.projectName || !propertyImage) return; 
         if (isLowCredits) { alert("Insufficient credits."); return; } 
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            const validAmenities = amenities.filter(a => a.trim() !== '');
-            
             const assetUrl = await generateRealtyAd({ 
-                mode: 'lifestyle_fusion', // Defaulting to fusion for simplicity in UI
-                modelImage: modelImage?.base64, 
                 propertyImage: propertyImage.base64, 
-                referenceImage: designMode === 'reference' && referenceImage ? referenceImage.base64 : undefined, 
                 logoImage: logoImage?.base64, 
-                amenities: validAmenities, 
-                texts: texts, 
-                brandIdentity: (brandStrategy === 'brand_kit' && auth.user.brandKit) ? { colors: auth.user.brandKit.colors, fonts: auth.user.brandKit.fonts } : undefined 
+                targetAudience,
+                sellingPoints, 
+                texts: texts
             });
             
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); 
@@ -182,10 +198,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleNewSession = () => { 
         setPropertyImage(null); 
-        setReferenceImage(null); 
         setResultImage(null); 
-        setTexts({ projectName: '', unitType: '', marketingContext: '', location: '', price: '', rera: '', contact: '' }); 
-        setAmenities(['', '', '']);
+        setTexts({ projectName: '', configuration: '', contact: '' }); 
+        setSellingPoints([]);
     };
 
     const handleClaimBonus = async () => { if (auth.user && milestoneBonus) { const u = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
@@ -193,14 +208,13 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Realty Ads (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
 
-    const isRefReady = designMode === 'auto' || (designMode === 'reference' && !!referenceImage);
-    const canGenerate = isRefReady && !!texts.projectName && !!propertyImage && !isLowCredits;
+    const canGenerate = !!texts.projectName && !!propertyImage && !isLowCredits;
 
     return (
         <>
             <FeatureLayout 
                 title="Pixa Realty Ads" 
-                description="Create luxury Real Estate ads with Lifestyle Fusion and Golden Hour enhancement." 
+                description="Turn property photos into high-converting ads. The AI analyzes your image, researches market trends, and designs the perfect flyer." 
                 icon={<BuildingIcon className="w-14 h-14"/>} 
                 rawIcon={true} 
                 creditCost={cost} 
@@ -213,7 +227,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[950px]" 
                 hideGenerateButton={isLowCredits} 
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: designMode === 'auto' ? "Pixa Auto-Design" : "Generate Ad" }} 
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: loading ? loadingText : "Generate Smart Ad" }} 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -222,7 +236,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-indigo-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{designMode === 'auto' ? "Researching Trends..." : "Designing Layout..."}</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse bg-black/40 px-4 py-2 rounded-full">{loadingText}</p>
                             </div>
                         ) : (
                             <div className="text-center opacity-50 select-none">
@@ -230,7 +244,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <BuildingIcon className="w-12 h-12 text-indigo-400" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Realty Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-2">Upload property photo to preview.</p>
+                                <p className="text-sm text-gray-300 mt-2">Upload property photo to start.</p>
                             </div>
                         )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
@@ -247,151 +261,119 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     ) : (
                         <div className={RealtyStyles.container}>
                             
-                            {/* STEP 1: STRATEGY */}
+                            {/* STEP 1: ASSETS */}
                             <div>
                                 <div className={RealtyStyles.sectionHeader}>
                                     <span className={RealtyStyles.stepBadge}>1</span>
-                                    <label className={RealtyStyles.sectionTitle}>Design Strategy</label>
-                                </div>
-                                <div className={RealtyStyles.strategyGrid}>
-                                    <ModeCard 
-                                        title="Clone Style" 
-                                        desc="Copy layout from reference" 
-                                        icon={<UploadTrayIcon className="w-5 h-5"/>} 
-                                        selected={designMode === 'reference'} 
-                                        onClick={() => setDesignMode('reference')} 
-                                    />
-                                    <ModeCard 
-                                        title="Auto Design" 
-                                        desc="AI Market Trends" 
-                                        icon={<SparklesIcon className="w-5 h-5"/>} 
-                                        selected={designMode === 'auto'} 
-                                        onClick={() => setDesignMode('auto')} 
-                                    />
-                                </div>
-                            </div>
-
-                            {/* STEP 2: ASSETS */}
-                            <div>
-                                <div className={RealtyStyles.sectionHeader}>
-                                    <span className={RealtyStyles.stepBadge}>2</span>
-                                    <label className={RealtyStyles.sectionTitle}>Visual Assets</label>
+                                    <label className={RealtyStyles.sectionTitle}>The Facts (Assets)</label>
                                 </div>
                                 
-                                <div className={RealtyStyles.heroUploadContainer}>
+                                <div className="grid grid-cols-2 gap-3">
                                     <CompactUpload 
                                         label="Property Photo (Hero)" 
                                         image={propertyImage} 
                                         onUpload={handleUpload(setPropertyImage)} 
                                         onClear={() => setPropertyImage(null)} 
                                         icon={<HomeIcon className="w-8 h-8 text-indigo-400"/>} 
-                                        heightClass="h-48"
+                                        heightClass="h-32"
                                         fullWidth={true}
                                     />
-                                </div>
-
-                                <div className={RealtyStyles.assetGrid}>
-                                    {designMode === 'reference' && (
-                                        <CompactUpload 
-                                            label="Style Reference" 
-                                            image={referenceImage} 
-                                            onUpload={handleUpload(setReferenceImage)} 
-                                            onClear={() => setReferenceImage(null)} 
-                                            icon={<LightbulbIcon className="w-5 h-5 text-yellow-400"/>} 
-                                        />
-                                    )}
                                     <CompactUpload 
                                         label="Brand Logo" 
                                         image={logoImage} 
                                         onUpload={handleUpload(setLogoImage)} 
                                         onClear={() => setLogoImage(null)} 
                                         icon={<BrandKitIcon className="w-5 h-5 text-gray-400"/>} 
-                                        optional={brandStrategy === 'brand_kit'} 
-                                    />
-                                    <CompactUpload 
-                                        label="Realtor / Model" 
-                                        image={modelImage} 
-                                        onUpload={handleUpload(setModelImage)} 
-                                        onClear={() => setModelImage(null)} 
-                                        icon={<UserIcon className="w-5 h-5 text-pink-400"/>} 
-                                        optional={true} 
+                                        optional={true}
+                                        fullWidth={true} 
+                                        heightClass="h-20"
                                     />
                                 </div>
                             </div>
 
-                            {/* STEP 3: CONTENT */}
-                            <div>
+                            {/* STEP 2: DATA SHEET */}
+                            <div className="mt-6">
                                 <div className={RealtyStyles.sectionHeader}>
-                                    <span className={RealtyStyles.stepBadge}>3</span>
-                                    <label className={RealtyStyles.sectionTitle}>Ad Content</label>
+                                    <span className={RealtyStyles.stepBadge}>2</span>
+                                    <label className={RealtyStyles.sectionTitle}>Data Sheet</label>
                                 </div>
 
                                 <div className={RealtyStyles.inputGroup}>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Key Details</label>
-                                        <InputField placeholder="Project Name (e.g. Skyline Towers)" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
-                                        <div className={RealtyStyles.inputRow}>
-                                            <div className="relative">
-                                                <div className="absolute left-3 top-3.5 text-gray-400"><HomeIcon className="w-4 h-4"/></div>
-                                                <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Unit (e.g. 3 BHK)" value={texts.unitType} onChange={(e) => setTexts({...texts, unitType: e.target.value})} />
-                                            </div>
-                                            <div className="relative">
-                                                <div className="absolute left-3 top-3.5 text-gray-400"><CurrencyDollarIcon className="w-4 h-4"/></div>
-                                                <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Price (e.g. ₹2.5 Cr)" value={texts.price} onChange={(e) => setTexts({...texts, price: e.target.value})} />
-                                            </div>
+                                    <InputField placeholder="Project Name (e.g. Skyline Towers)" value={texts.projectName} onChange={(e: any) => setTexts({...texts, projectName: e.target.value})} />
+                                    
+                                    <div className={RealtyStyles.inputRow}>
+                                        <div className="relative">
+                                            <div className="absolute left-3 top-3.5 text-gray-400"><HomeIcon className="w-4 h-4"/></div>
+                                            <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Config (e.g. 3 BHK)" value={texts.configuration} onChange={(e) => setTexts({...texts, configuration: e.target.value})} />
+                                        </div>
+                                        <div className="relative">
+                                            <div className="absolute left-3 top-3.5 text-gray-400"><PhoneIcon className="w-4 h-4"/></div>
+                                            <input className="w-full pl-9 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Contact Info" value={texts.contact} onChange={(e) => setTexts({...texts, contact: e.target.value})} />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Marketing Hook</label>
-                                        <TextAreaField placeholder="Context (e.g. Luxury living in downtown, sea facing)" value={texts.marketingContext} onChange={(e: any) => setTexts({...texts, marketingContext: e.target.value})} rows={2} />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Amenities</label>
-                                        <div className={RealtyStyles.amenitiesContainer}>
-                                            {amenities.map((amenity, idx) => (
-                                                <div key={idx} className={RealtyStyles.amenityItem}>
-                                                    <span className="text-gray-300 mr-2 text-[10px] font-mono">{idx + 1}.</span>
-                                                    <input 
-                                                        type="text" 
-                                                        value={amenity} 
-                                                        onChange={(e) => updateAmenity(idx, e.target.value)} 
-                                                        className={RealtyStyles.amenityInput} 
-                                                        placeholder="e.g. Gym / Pool" 
-                                                    />
-                                                    {amenity && <CheckIcon className="w-3 h-3 text-green-500"/>}
-                                                </div>
+                                    {/* Tag Input for Selling Points */}
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Key Selling Points (Max 5)</label>
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {sellingPoints.map((tag, idx) => (
+                                                <span key={idx} className="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-lg flex items-center gap-1 font-medium border border-indigo-100">
+                                                    {tag}
+                                                    <button onClick={() => removeTag(idx)} className="hover:text-red-500"><XIcon className="w-3 h-3"/></button>
+                                                </span>
                                             ))}
                                         </div>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={currentTag} 
+                                                onChange={(e) => setCurrentTag(e.target.value)} 
+                                                onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                                                placeholder="e.g. Sea View, Near Metro" 
+                                                className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                                            />
+                                            <button onClick={addTag} className="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-200 transition-colors">
+                                                <PlusCircleIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                {/* Advanced / Footer Toggle */}
-                                <div className={RealtyStyles.expandableSection}>
-                                    <button onClick={() => setShowAdvanced(!showAdvanced)} className={RealtyStyles.toggleHeader}>
-                                        <span className={RealtyStyles.toggleLabel}>Footer & Contact Info</span>
-                                        {showAdvanced ? <ChevronUpIcon className="w-4 h-4 text-indigo-500"/> : <ChevronDownIcon className="w-4 h-4 text-gray-400"/>}
-                                    </button>
-                                    
-                                    {showAdvanced && (
-                                        <div className="grid grid-cols-1 gap-3 mt-2 animate-fadeIn bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                                            <div className="relative">
-                                                <div className="absolute left-3 top-3 text-gray-400"><MapPinIcon className="w-4 h-4"/></div>
-                                                <input className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-lg text-xs" placeholder="Location" value={texts.location} onChange={(e) => setTexts({...texts, location: e.target.value})} />
-                                            </div>
-                                            <div className="relative">
-                                                <div className="absolute left-3 top-3 text-gray-400"><DocumentTextIcon className="w-4 h-4"/></div>
-                                                <input className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-lg text-xs" placeholder="RERA ID" value={texts.rera} onChange={(e) => setTexts({...texts, rera: e.target.value})} />
-                                            </div>
-                                            <div className="relative">
-                                                <div className="absolute left-3 top-3 text-gray-400"><PhoneIcon className="w-4 h-4"/></div>
-                                                <input className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-lg text-xs" placeholder="Contact Info" value={texts.contact} onChange={(e) => setTexts({...texts, contact: e.target.value})} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
+
+                            {/* STEP 3: TARGET AUDIENCE */}
+                            <div className="mt-6">
+                                <div className={RealtyStyles.sectionHeader}>
+                                    <span className={RealtyStyles.stepBadge}>3</span>
+                                    <label className={RealtyStyles.sectionTitle}>Campaign Goal</label>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <TargetCard 
+                                        title="Luxury" 
+                                        icon={<SparklesIcon className="w-5 h-5"/>} 
+                                        selected={targetAudience === 'luxury'} 
+                                        onClick={() => setTargetAudience('luxury')} 
+                                        color="purple" 
+                                    />
+                                    <TargetCard 
+                                        title="Investor" 
+                                        icon={<CreditCoinIcon className="w-5 h-5"/>} 
+                                        selected={targetAudience === 'investor'} 
+                                        onClick={() => setTargetAudience('investor')} 
+                                        color="green" 
+                                    />
+                                    <TargetCard 
+                                        title="Family" 
+                                        icon={<UserIcon className="w-5 h-5"/>} 
+                                        selected={targetAudience === 'family'} 
+                                        onClick={() => setTargetAudience('family')} 
+                                        color="blue" 
+                                    />
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-2 ml-1 italic">
+                                    AI will auto-select the best headline, colors, and layout for this audience.
+                                </p>
+                            </div>
+
                         </div>
                     )
                 }
