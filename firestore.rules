@@ -3,75 +3,75 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // User Profiles: Private
+    // Helper: Check if user is admin
+    function isAdmin() {
+      return request.auth.token.email == 'mayurhande90@gmail.com';
+    }
+
+    // --- USERS ---
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Read: Public (for referrals/social), or restricted to own/admin if prefer stricter privacy.
+      // Current app requires reading other users for referrals.
+      allow read: if request.auth != null;
       
+      allow create: if request.auth.uid == userId;
+      
+      // Update: Own profile OR Admin OR Referral Logic
+      allow update: if request.auth.uid == userId || isAdmin() || 
+                   (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy']));
+      
+      allow delete: if isAdmin();
+
       // Subcollections
       match /creations/{creationId} {
-        // Allow owner to read/write.
-        // Allow Admin (hardcoded email for simplicity) to READ for feedback review.
-        allow read: if request.auth != null && (
-          request.auth.uid == userId || 
-          request.auth.token.email == 'mayurhande90@gmail.com'
-        );
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId || isAdmin();
       }
       match /transactions/{txId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        // In this architecture, client creates tx records for credit deduction
-        allow create: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth.uid == userId || isAdmin();
+        // Allow creation for credit deductions (own) or referral bonuses (others)
+        allow create: if request.auth.uid == userId || isAdmin() || (request.auth != null && request.resource.data.feature == 'Referral Bonus (Referrer)');
       }
       match /support_chat/{msgId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId || isAdmin();
       }
-      // NEW: Allow access to brands subcollection
       match /brands/{brandId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId || isAdmin();
       }
     }
 
-    // Support Tickets: Allow Create, Read Own OR Admin
-    match /support_tickets/{ticketId} {
-      allow create: if request.auth != null;
-      // Allow user to read/write their own tickets OR the specific admin email
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.userEmail == request.auth.token.email ||
-        request.auth.token.email == 'mayurhande90@gmail.com'
-      );
-      allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        request.auth.token.email == 'mayurhande90@gmail.com'
-      );
-    }
-    
-    // App Config: Read Only for Users (Admin writes)
+    // --- CONFIG ---
     match /config/{docId} {
       allow read: if true;
-      allow write: if false; // Only Admin SDK or specific admin email if needed
+      allow write: if isAdmin();
     }
-    
-    // Purchases: Create and Read Own
+
+    // --- PURCHASES ---
     match /purchases/{purchaseId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
-    
-    // Feedbacks: Public Create (Auth), Read (Auth - needed for Admin panel client-side)
+
+    // --- SUPPORT TICKETS ---
+    match /support_tickets/{ticketId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // --- FEEDBACK ---
     match /feedbacks/{feedbackId} {
       allow create: if request.auth != null;
-      allow read: if request.auth != null; 
+      allow read: if isAdmin();
     }
-    
-    // Error Logging: Public Write (Authenticated or Anon)
+
+    // --- LOGS ---
     match /api_errors/{logId} {
       allow create: if true;
+      allow read: if isAdmin();
     }
-    
-    // Audit Logs: Admin Only (Implicitly blocked for client, Admin SDK bypasses rules)
     match /audit_logs/{logId} {
-      allow read, write: if false; 
+      allow read: if isAdmin();
+      allow write: if false; // Admin SDK only
     }
   }
 }

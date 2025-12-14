@@ -30,15 +30,20 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
 
 **2. CREATIVE FEATURES (STEP-BY-STEP GUIDES)**
 
+*   **Pixa Headshot Pro (NEW)**:
+    *   *Goal*: Create studio-quality professional headshots from casual selfies.
+    *   *Steps*: 1. Upload Selfies (Solo or Duo). 2. Select Persona (Executive, Tech, Creative). 3. Select Background (Office, Studio, Skyline). 4. Generate.
+    *   *Cost*: ~4 Credits.
+
 *   **Pixa Product Shots (Studio)**:
     *   *Goal*: Professional product photography.
     *   *Steps*: 1. Upload Product Photo. 2. Select Mode (Product vs Model). 3. Choose "AI Blueprint" or Custom Settings (Category, Vibe). 4. Click Generate.
-    *   *Cost*: ~2 Credits.
+    *   *Cost*: ~2-3 Credits (Model mode costs slightly more).
 
 *   **Pixa Ecommerce Kit (Merchant Studio)**:
     *   *Goal*: Full asset pack (Hero, Side, Detail, Lifestyle) in one click.
     *   *Steps*: 1. Select Mode (Apparel vs Product). 2. Choose Pack Size (5, 7, or 10 assets). 3. Upload Main Image (and optional Back/Model). 4. Click Generate.
-    *   *Cost*: 25+ Credits (High value batch generation).
+    *   *Cost*: 25 Credits (Standard), 35 (Extended), 50 (Ultimate).
 
 *   **Pixa AdMaker (Brand Stylist)**:
     *   *Goal*: High-conversion ad creatives with text overlay.
@@ -61,7 +66,6 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
     *   *Modes*:
         *   *Creative*: Duo in a scene (Beach, Park).
         *   *Reenact*: Copy a specific pose from a reference photo.
-        *   *Professional*: Single subject headshot (LinkedIn style).
     *   *Steps*: 1. Upload Person A (and B if duo). 2. Select Vibe/Timeline. 3. Click Generate.
     *   *Cost*: ~5 Credits.
 
@@ -91,7 +95,7 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
     *   *Cost*: ~2 Credits.
 
 **3. TROUBLESHOOTING & QUALITY**
-*   **Blurry Faces**: Use 'Pixa Together' or 'Model Mode'. Basic 'Product Shot' is optimized for objects, not faces.
+*   **Blurry Faces**: Use 'Pixa Together' or 'Headshot Pro' for face-centric tasks. Basic 'Product Shot' is optimized for objects.
 *   **Glitchy Output**: Ensure the input image is high-res and the subject is clearly visible.
 *   **Upload Failed**: Max file size 10MB. Formats: JPG, PNG, WEBP.
 
