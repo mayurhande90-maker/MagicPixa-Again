@@ -37,7 +37,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const cost = appConfig?.featureCosts['Pixa Mockups'] || appConfig?.featureCosts['Magic Mockup'] || 8;
     const userCredits = auth.user?.credits || 0;
-    const isLowCredits = userCredits < cost;
+    const isLowCredits = designImage && userCredits < cost;
 
     const objectOptions = ['T-Shirt', 'Hoodie', 'iPhone 15', 'MacBook', 'Coffee Mug', 'Water Bottle', 'Tote Bag', 'Notebook', 'Business Card', 'Packaging Box', 'Neon Sign', 'Wall Sign', 'Other / Custom'];
     const materialOptions = ['Standard Ink', 'Embroidery', 'Gold Foil', 'Silver Foil', 'Deboss', 'Emboss', 'Laser Etch', 'Smart Object'];
@@ -99,16 +99,10 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     )
                 }
                 rightContent={
-                    !designImage ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50 select-none">
-                            <div className="bg-white p-4 rounded-full mb-4 border border-gray-100"><ArrowUpCircleIcon className="w-8 h-8 text-gray-400"/></div>
-                            <h3 className="font-bold text-gray-600 mb-2">Controls Locked</h3>
-                            <p className="text-sm text-gray-400">Upload a design to configure mockup.</p>
-                        </div>
-                    ) : isLowCredits ? (
+                    isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>
                     ) : (
-                        <div className="space-y-8 p-1 animate-fadeIn">
+                        <div className={`space-y-8 p-1 animate-fadeIn transition-all duration-300 ${!designImage ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                             <div><div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Item</label></div><div className="flex flex-wrap gap-2">{objectOptions.map(opt => (<button key={opt} onClick={() => { setTargetObject(opt); if(opt !== 'Other / Custom') autoScroll(); }} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform active:scale-95 ${targetObject === opt ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'}`}>{opt}</button>))}</div>{targetObject === 'Other / Custom' && (<div className="mt-3 animate-fadeIn"><InputField placeholder="Describe object (e.g. Vintage Hat)" value={customObject} onChange={(e: any) => setCustomObject(e.target.value)} /></div>)}</div>
                             <SelectionGrid label="2. Material Physics" options={materialOptions} value={material} onChange={(val) => { setMaterial(val); autoScroll(); }} />
                             <SelectionGrid label="3. Scene Vibe" options={vibeOptions} value={sceneVibe} onChange={setSceneVibe} />
