@@ -258,23 +258,37 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             <div className="flex-none px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/40 backdrop-blur-md z-20 h-14">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold opacity-70">
                     <LifebuoyIcon className="w-4 h-4" />
-                    <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
+                    <span className="text-xs uppercase tracking-wider hidden sm:inline">Live Support Chat</span>
+                    <span className="text-xs uppercase tracking-wider sm:hidden">Support</span>
                 </div>
-                {/* Toggle Sidebar Button for < 2XL screens */}
-                <button 
-                    onClick={onToggleSidebar} 
-                    className="2xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
-                >
-                    <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:inline">History</span>
-                    <TicketIcon className="w-5 h-5" />
-                </button>
+                
+                <div className="flex items-center gap-2">
+                    {/* Moved New Chat Button Here for Space Efficiency */}
+                    <button 
+                        onClick={handleNewChat}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-white text-gray-500 hover:text-indigo-600 transition-all text-[10px] font-bold uppercase tracking-wider border border-transparent hover:border-gray-200"
+                        title="Start a fresh conversation"
+                    >
+                        <PlusIcon className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">New Chat</span>
+                    </button>
+
+                    {/* Toggle Sidebar Button for < 2XL screens */}
+                    <button 
+                        onClick={onToggleSidebar} 
+                        className="2xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:inline">History</span>
+                        <TicketIcon className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* Main Chat Scroll Area - Added flex flex-col to parent */}
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 md:px-8 pt-4 pb-4 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
+                className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 md:px-8 pt-4 pb-2 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
             >
                 {loadingHistory ? (
                     <div className="flex-1 flex flex-col items-center justify-center h-full">
@@ -348,8 +362,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     </div>
                 )}
                 
-                {/* Spacer to prevent content being hidden by input */}
-                <div className="h-4"></div>
+                {/* Minimal Spacer */}
+                <div className="h-1"></div>
 
                 <div ref={messagesEndRef} />
             </div>
@@ -364,64 +378,50 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 </button>
             )}
 
-            {/* Input Area - Fixed at Bottom */}
-            <div className="flex-none p-2 sm:p-4 md:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
+            {/* Input Area - Fixed at Bottom (COMPACT MODE) */}
+            <div className="flex-none p-2 sm:p-3 bg-white/90 backdrop-blur-xl border-t border-gray-200 relative z-20">
                 
                 {hasInteracted && !loadingHistory && !isTyping && (
-                    <div className="mb-2 sm:mb-3 overflow-x-auto pb-2 no-scrollbar">
+                    <div className="mb-2 overflow-x-auto pb-1 no-scrollbar">
                         <QuickActions onAction={handleQuickAction} className="flex-nowrap" />
                     </div>
                 )}
 
-                <div className="flex flex-col gap-2 sm:gap-3">
-                    <div className="flex gap-2 items-end bg-white border border-gray-200 p-1.5 sm:p-2 rounded-2xl sm:rounded-[1.5rem] shadow-lg shadow-gray-200/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="p-2 sm:p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
-                            title="Attach Screenshot"
-                        >
-                            <UploadIcon className="w-5 h-5" />
-                        </button>
-                        
-                        <textarea 
-                            ref={inputFocusRef}
-                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-2.5 sm:py-3 max-h-20 sm:max-h-32"
-                            placeholder="Type your message..."
-                            rows={1}
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendMessage();
-                                }
-                            }}
-                        />
-                        
-                        <button 
-                            onClick={() => handleSendMessage()}
-                            disabled={!inputText.trim() || isTyping}
-                            className={`p-2 sm:p-3 rounded-full transition-all shrink-0 shadow-md ${
-                                inputText.trim() 
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
-                                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                            }`}
-                        >
-                            <PaperAirplaneIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    {/* New Chat Button (Centered below input) */}
-                    <div className="flex justify-center">
-                        <button 
-                            onClick={handleNewChat}
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-indigo-600 transition-all text-[10px] font-bold uppercase tracking-wider border border-transparent hover:border-gray-300 transform active:scale-95"
-                            title="Start a fresh conversation"
-                        >
-                            <PlusIcon className="w-3.5 h-3.5" />
-                            New Chat
-                        </button>
-                    </div>
+                <div className="flex gap-2 items-end bg-white border border-gray-200 p-1.5 rounded-2xl sm:rounded-[1.5rem] shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
+                        title="Attach Screenshot"
+                    >
+                        <UploadIcon className="w-5 h-5" />
+                    </button>
+                    
+                    <textarea 
+                        ref={inputFocusRef}
+                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-2.5 max-h-20"
+                        placeholder="Type your message..."
+                        rows={1}
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                    />
+                    
+                    <button 
+                        onClick={() => handleSendMessage()}
+                        disabled={!inputText.trim() || isTyping}
+                        className={`p-2 rounded-full transition-all shrink-0 shadow-sm ${
+                            inputText.trim() 
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
+                            : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
+                    >
+                        <PaperAirplaneIcon className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
