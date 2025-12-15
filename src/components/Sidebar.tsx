@@ -54,9 +54,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
     { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, disabled: false },
-    { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, disabled: false }, 
-    { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, disabled: false }, 
+    // Merged AdMaker & Realty
     { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, disabled: false },
+    { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, disabled: false }, 
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, disabled: false },
     { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, disabled: false },
     { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, disabled: false },

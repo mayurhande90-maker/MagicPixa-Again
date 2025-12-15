@@ -43,7 +43,7 @@ const features = [
         id: 'brand_stylist',
         icon: <MagicAdsIcon className="w-16 h-16" />,
         title: "Pixa AdMaker",
-        description: "Generate high-converting ad creatives instantly by replicating or reimagining successful designs.",
+        description: "Generate high-converting ad creatives instantly for any industry (Product, Realty, Food, SaaS).",
         color: "",
         disabled: false,
     },
@@ -53,14 +53,6 @@ const features = [
         title: "Pixa Thumbnail Pro",
         description: "Create click-worthy YouTube thumbnails in seconds. No design skills needed.",
         color: "",
-        disabled: false,
-    },
-    {
-        id: 'magic_realty',
-        icon: <BuildingIcon className="w-16 h-16" />, // Increased size
-        title: "Pixa Realty Ads", 
-        description: "Create luxury real estate flyers with AI-enhanced photos, lifestyle fusion, and auto-layout.",
-        color: "", // Removed background color
         disabled: false,
     },
     {

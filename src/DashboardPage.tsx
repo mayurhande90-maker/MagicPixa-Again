@@ -37,8 +37,7 @@ const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ de
 const DailyMissionStudio = lazy(() => import('./features/DailyMissionStudio').then(module => ({ default: module.DailyMissionStudio })));
 const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio').then(module => ({ default: module.ThumbnailStudio })));
 const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(module => ({ default: module.MerchantStudio })));
-const BrandStylistAI = lazy(() => import('./features/BrandStylistAI').then(module => ({ default: module.BrandStylistAI })));
-const MagicRealty = lazy(() => import('./features/MagicRealty').then(module => ({ default: module.MagicRealty })));
+const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.PixaAdMaker }))); // Updated Import
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
@@ -162,9 +161,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'thumbnail_studio':
                  return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'brand_stylist':
-                 return <BrandStylistAI auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
-            case 'magic_realty':
-                 return <MagicRealty auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                 return <PixaAdMaker auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'soul':
                  return <PixaTogether auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'colour':
