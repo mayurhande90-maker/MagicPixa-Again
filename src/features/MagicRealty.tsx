@@ -119,8 +119,12 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             } else {
                 setLogoImage(null);
             }
+        } else {
+            // Brand Kit Deactivated (Toggled OFF)
+            // Clear logo to reflect manual mode
+            setLogoImage(null);
         }
-    }, [auth.user?.brandKit?.id]); // Re-runs when active brand switches (ID check)
+    }, [auth.user?.brandKit?.id]); // Re-runs when active brand switches or becomes undefined
 
     // Loading Animation Loop
     useEffect(() => { 

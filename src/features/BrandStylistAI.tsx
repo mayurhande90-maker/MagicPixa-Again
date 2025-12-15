@@ -75,7 +75,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     // BRAND KIT INTEGRATION: AUTO-FILL
-    // Updated Logic: Runs whenever the active Brand ID changes to support switching
+    // Updated Logic: Runs whenever the active Brand ID changes or is removed
     useEffect(() => {
         if (auth.user?.brandKit) {
             const kit = auth.user.brandKit;
@@ -93,8 +93,12 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 // Clear logo if new brand has none, to reflect the switch
                 setLogoImage(null);
             }
+        } else {
+            // Brand Kit deactivated (Toggled OFF)
+            // Clear the logo to reflect manual mode
+            setLogoImage(null);
         }
-    }, [auth.user?.brandKit?.id]); // Dependent specifically on ID change
+    }, [auth.user?.brandKit?.id]); // Dependent specifically on ID change or undefined
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
