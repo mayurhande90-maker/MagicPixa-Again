@@ -157,6 +157,7 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
+    const [isLoadingBrands, setIsLoadingBrands] = useState(true);
     
     // Active Kit State (Detail View)
     const [kit, setKit] = useState<BrandKit>({
@@ -186,6 +187,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const loadBrands = async () => {
         if (!auth.user) return;
+        setIsLoadingBrands(true);
         try {
             const userBrands = await getUserBrands(auth.user.uid);
             
@@ -197,6 +199,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             }
         } catch (e) {
             console.error("Failed to load brands", e);
+        } finally {
+            setIsLoadingBrands(false);
         }
     };
 
@@ -366,50 +370,70 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
                     <span className={BrandKitManagerStyles.addCardText}>Create New Brand</span>
                 </button>
-
-                {/* BRAND CARDS */}
-                {brands.map((brand, idx) => (
-                    <div 
-                        key={brand.id || idx} 
-                        onClick={() => handleSelectBrand(brand)}
-                        className={BrandKitManagerStyles.brandCard}
-                    >
-                        {/* Header / Logo Preview */}
-                        <div className={BrandKitManagerStyles.brandCardHeader}>
-                            {brand.logos.primary ? (
-                                <img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />
-                            ) : (
-                                <span className={BrandKitManagerStyles.brandCardFallback}>
-                                    {(brand.name || brand.companyName || '?').substring(0, 2)}
-                                </span>
-                            )}
-                            
-                            {brand.id && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id!); }}
-                                    className={BrandKitManagerStyles.deleteBtn}
-                                >
-                                    <TrashIcon className="w-4 h-4" />
-                                </button>
-                            )}
+                
+                {isLoadingBrands ? (
+                    // Skeleton Loaders
+                    [1, 2, 3].map(i => (
+                        <div key={i} className="h-64 bg-white rounded-3xl animate-pulse border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+                             <div className="h-32 bg-gray-100"></div>
+                             <div className="p-5 flex-1 flex flex-col justify-between">
+                                 <div>
+                                    <div className="h-5 w-3/4 bg-gray-100 rounded mb-2"></div>
+                                    <div className="h-3 w-1/2 bg-gray-100 rounded"></div>
+                                 </div>
+                                 <div className="flex gap-2 mt-4">
+                                     <div className="w-6 h-6 rounded-full bg-gray-100"></div>
+                                     <div className="w-6 h-6 rounded-full bg-gray-100"></div>
+                                     <div className="w-6 h-6 rounded-full bg-gray-100"></div>
+                                 </div>
+                             </div>
                         </div>
-
-                        {/* Body */}
-                        <div className={BrandKitManagerStyles.brandCardBody}>
-                            <div>
-                                <h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3>
-                                <p className={BrandKitManagerStyles.brandCardMeta}>{brand.toneOfVoice || 'Professional'} • {brand.website ? 'Web Linked' : 'No URL'}</p>
+                    ))
+                ) : (
+                    // BRAND CARDS
+                    brands.map((brand, idx) => (
+                        <div 
+                            key={brand.id || idx} 
+                            onClick={() => handleSelectBrand(brand)}
+                            className={BrandKitManagerStyles.brandCard}
+                        >
+                            {/* Header / Logo Preview */}
+                            <div className={BrandKitManagerStyles.brandCardHeader}>
+                                {brand.logos.primary ? (
+                                    <img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />
+                                ) : (
+                                    <span className={BrandKitManagerStyles.brandCardFallback}>
+                                        {(brand.name || brand.companyName || '?').substring(0, 2)}
+                                    </span>
+                                )}
+                                
+                                {brand.id && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id!); }}
+                                        className={BrandKitManagerStyles.deleteBtn}
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
-                            
-                            {/* Color Preview Swatches */}
-                            <div className={BrandKitManagerStyles.brandCardPalette}>
-                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div>
-                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div>
-                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.accent }}></div>
+
+                            {/* Body */}
+                            <div className={BrandKitManagerStyles.brandCardBody}>
+                                <div>
+                                    <h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3>
+                                    <p className={BrandKitManagerStyles.brandCardMeta}>{brand.toneOfVoice || 'Professional'} • {brand.website ? 'Web Linked' : 'No URL'}</p>
+                                </div>
+                                
+                                {/* Color Preview Swatches */}
+                                <div className={BrandKitManagerStyles.brandCardPalette}>
+                                    <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div>
+                                    <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div>
+                                    <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.accent }}></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
