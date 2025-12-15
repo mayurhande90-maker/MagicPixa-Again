@@ -33,13 +33,14 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
     };
 
     return (
-        <div className="h-full w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        // CHANGED: h-screen forces exact viewport height, preventing body scroll
+        <div className="h-screen w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
             
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
-            {/* Premium Header - Fixed height, no shrinking */}
-            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-3 px-4 lg:py-4 lg:px-8 z-30 shadow-sm flex-none h-16 lg:h-20">
+            {/* Premium Header - Rigid height */}
+            <div className="flex-none bg-white/80 backdrop-blur-xl border-b border-gray-200 py-3 px-4 lg:py-4 lg:px-8 z-30 shadow-sm h-16 lg:h-20">
                 <div className="max-w-7xl mx-auto h-full flex justify-between items-center">
                     <div className="flex items-center gap-3 lg:gap-4">
                         <div className="p-2 lg:p-2.5 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
@@ -70,13 +71,18 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                 </div>
             </div>
 
-            {/* Main Content Area - Flex Column for Robust Layout */}
-            <div className="flex-1 w-full min-h-0 overflow-hidden relative z-10 flex flex-col">
-                <div className="flex-1 w-full max-w-7xl mx-auto p-0 sm:p-4 lg:p-6">
-                    {/* Updated Grid: 2xl instead of lg/xl to force focus mode on all laptops */}
+            {/* Main Content Area - Absolute positioning to lock scroll area */}
+            <div className="flex-1 w-full relative z-10 overflow-hidden">
+                {/* 
+                   CHANGED: absolute inset-0 forces this container to take exactly the remaining space 
+                   calculated by flex-1 parent, ensuring the children know exactly how tall they can be.
+                   Padding reduced for small screens.
+                */}
+                <div className="absolute inset-0 w-full max-w-7xl mx-auto p-2 sm:p-4 lg:p-6">
+                    {/* Grid is now explicitly h-full of the absolute container */}
                     <div className="h-full w-full grid grid-cols-1 2xl:grid-cols-3 gap-0 sm:gap-6 relative">
                         
-                        {/* LEFT: CHAT INTERFACE (Takes 2 columns, or full width on smaller screens) */}
+                        {/* LEFT: CHAT INTERFACE */}
                         <SupportChatWindow 
                             auth={auth} 
                             appConfig={appConfig || null} 
@@ -84,7 +90,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                         />
 
-                        {/* RIGHT: TICKET HISTORY (Takes 1 column on 2XL, drawer otherwise) */}
+                        {/* RIGHT: TICKET HISTORY */}
                         <SupportTicketSidebar 
                             tickets={tickets} 
                             isOpen={sidebarOpen} 

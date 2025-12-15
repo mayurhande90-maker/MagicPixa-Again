@@ -248,24 +248,24 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
     };
 
     return (
-        <div className="2xl:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
+        <div className="2xl:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-xl sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
             
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
 
             {/* HEADER BAR (Dedicated non-scrolling area) */}
-            <div className="flex-none px-4 py-3 sm:px-6 sm:py-4 border-b border-white/20 flex justify-between items-center bg-white/40 backdrop-blur-md z-20">
+            <div className="flex-none px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/40 backdrop-blur-md z-20 h-14">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold opacity-70">
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
                 </div>
-                {/* Toggle Sidebar Button for < 2XL screens (Almost all laptops) */}
+                {/* Toggle Sidebar Button for < 2XL screens */}
                 <button 
                     onClick={onToggleSidebar} 
                     className="2xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
                 >
-                    <span className="text-[10px] font-bold uppercase tracking-wide">History</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:inline">History</span>
                     <TicketIcon className="w-5 h-5" />
                 </button>
             </div>
@@ -274,7 +274,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-4 pb-4 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
+                className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 md:px-8 pt-4 pb-4 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
             >
                 {loadingHistory ? (
                     <div className="flex-1 flex flex-col items-center justify-center h-full">
@@ -348,7 +348,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     </div>
                 )}
                 
-                {/* Extra padding to prevent latest message from being hidden by input bar on small screens */}
+                {/* Spacer to prevent content being hidden by input */}
                 <div className="h-4"></div>
 
                 <div ref={messagesEndRef} />
@@ -358,17 +358,17 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             {showScrollBtn && (
                 <button 
                     onClick={scrollToBottom}
-                    className="absolute bottom-24 right-4 sm:right-8 z-40 bg-white shadow-lg border border-gray-100 p-2 sm:p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
+                    className="absolute bottom-20 right-4 sm:right-8 z-40 bg-white shadow-lg border border-gray-100 p-2 sm:p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
                 >
                     <ArrowDownIcon className="w-5 h-5" />
                 </button>
             )}
 
             {/* Input Area - Fixed at Bottom */}
-            <div className="flex-none p-3 sm:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
+            <div className="flex-none p-2 sm:p-4 md:p-6 bg-white/80 backdrop-blur-xl border-t border-white/50 relative z-20">
                 
                 {hasInteracted && !loadingHistory && !isTyping && (
-                    <div className="mb-2 sm:mb-4 overflow-x-auto pb-2 no-scrollbar">
+                    <div className="mb-2 sm:mb-3 overflow-x-auto pb-2 no-scrollbar">
                         <QuickActions onAction={handleQuickAction} className="flex-nowrap" />
                     </div>
                 )}
@@ -385,7 +385,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         
                         <textarea 
                             ref={inputFocusRef}
-                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-2.5 sm:py-3 max-h-24 sm:max-h-32"
+                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 placeholder-gray-400 resize-none py-2.5 sm:py-3 max-h-20 sm:max-h-32"
                             placeholder="Type your message..."
                             rows={1}
                             value={inputText}
