@@ -80,7 +80,7 @@ const AssetUploader: React.FC<{
                 {isLoading || isProcessing ? (
                     <div className="flex flex-col items-center gap-2">
                         <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
-                        <span className="text-xs text-indigo-500 font-medium">{isProcessing ? 'AI Processing...' : 'Uploading...'}</span>
+                        <span className="text-xs text-indigo-500 font-medium">{isProcessing ? 'Processing...' : 'Uploading...'}</span>
                     </div>
                 ) : currentUrl ? (
                     <>
@@ -306,7 +306,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const handleUpload = async (key: 'primary', file: File) => {
         if (!auth.user) return;
         
-        // 1. Process Logo Smartly (Background Removal)
+        // 1. Process Logo Smartly (Client-Side Only now)
         setProcessingState(prev => ({ ...prev, [key]: true }));
         try {
             const base64Data = await fileToBase64(file);

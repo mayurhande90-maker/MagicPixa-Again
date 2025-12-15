@@ -142,53 +142,26 @@ export const generateBrandIdentity = async (
 
 /**
  * Process Logo Asset:
- * 1. Takes an input image (JPEG/PNG).
- * 2. Uses Gemini to isolate the logo on a pure white background (cleaning up noise).
- * 3. Uses client-side logic to remove the white background, resulting in a transparent PNG.
+ * LOGIC UPDATE: We strictly DO NOT regenerate the logo using AI, as this alters the brand identity.
+ * 1. If PNG: Return exactly as is.
+ * 2. If JPEG (Background): Use client-side pixel manipulation to make white pixels transparent.
  */
 export const processLogoAsset = async (base64: string, mimeType: string): Promise<string> => {
-    const ai = getAiClient();
     try {
-        // 1. Optimize input
-        const { data, mimeType: optMime } = await optimizeImage(base64, mimeType);
-
-        // 2. AI Refinement: Clean and Isolate on White
-        const prompt = `Task: Logo Isolation.
-        
-        Input: An image containing a logo.
-        Action: 
-        1. Extract the main logo symbol/logotype. 
-        2. Place it on a PURE WHITE background (Hex #FFFFFF).
-        3. Ensure high contrast, sharp edges, and remove any background noise, shadows, or artifacts.
-        4. If the logo is white, make it black so it is visible on white (we will invert later if needed, but black on white is standard for masking).
-        
-        Output: The cleaner logo image on a solid white background.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data, mimeType: optMime } },
-                    { text: prompt },
-                ]
-            },
-            config: { responseModalities: [Modality.IMAGE] }
-        });
-
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-        if (!imagePart?.inlineData?.data) {
-            // Fallback: Just try to make original transparent
-            console.warn("AI Logo processing failed, using original for transparency.");
-            return `data:image/png;base64,${await makeTransparent(base64)}`;
+        // If it's a JPEG, assume it needs background removal (white -> transparent)
+        if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+            console.log("Processing JPEG logo: Removing white background client-side.");
+            const transparentBase64 = await makeTransparent(base64);
+            return `data:image/png;base64,${transparentBase64}`;
         }
 
-        // 3. Client-Side Transparency (Remove White)
-        const processedBase64 = await makeTransparent(imagePart.inlineData.data);
-        return `data:image/png;base64,${processedBase64}`;
+        // For PNG, WEBP, etc., preserve EXACTLY what the user uploaded.
+        // Do not resize unless absolutely necessary (fileToBase64 already handles max dimension safety).
+        return `data:${mimeType};base64,${base64}`;
 
     } catch (e) {
         console.error("Logo processing error", e);
-        // Fallback to simple client-side transparency on original
-        return `data:image/png;base64,${await makeTransparent(base64)}`;
+        // Fallback: Return original
+        return `data:${mimeType};base64,${base64}`;
     }
 };
