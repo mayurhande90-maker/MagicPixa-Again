@@ -5,7 +5,7 @@ import {
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
-    SparklesIcon, CheckIcon
+    SparklesIcon, CheckIcon, ArrowLeftIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, getUserBrands, deleteBrandFromCollection } from '../firebase';
@@ -154,8 +154,10 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 // --- MAIN COMPONENT ---
 
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+    const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
-    const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
+    
+    // Active Kit State (Detail View)
     const [kit, setKit] = useState<BrandKit>({
         companyName: '',
         website: '',
@@ -173,7 +175,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
-    const [showBrandMenu, setShowBrandMenu] = useState(false);
 
     useEffect(() => {
         if (auth.user) {
@@ -186,22 +187,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const userBrands = await getUserBrands(auth.user.uid);
             
-            if (userBrands.length === 0 && auth.user.brandKit) {
-                const defaultKit = { ...auth.user.brandKit, name: 'Default Brand', id: 'default' };
-                setBrands([defaultKit]);
-                setKit(defaultKit);
-                setActiveBrandId('default');
-            } else if (userBrands.length > 0) {
-                setBrands(userBrands);
-                const currentId = auth.user.brandKit?.id;
-                const active = userBrands.find(b => b.id === currentId) || userBrands[0];
-                setKit(active);
-                setActiveBrandId(active.id || null);
+            if (userBrands.length === 0) {
+                // Keep empty state, user will click "Add"
+                setBrands([]);
             } else {
-                const newBrand = createEmptyBrand('My Brand');
-                setBrands([newBrand]);
-                setKit(newBrand);
-                setActiveBrandId('new');
+                setBrands(userBrands);
             }
         } catch (e) {
             console.error("Failed to load brands", e);
@@ -220,33 +210,26 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         logos: { primary: null, secondary: null, mark: null }
     });
 
-    const handleSwitchBrand = (brand: BrandKit) => {
-        setKit(brand);
-        setActiveBrandId(brand.id || null);
-        setShowBrandMenu(false);
+    const handleAddNewBrand = () => {
+        const newBrand = createEmptyBrand('New Brand');
+        setKit(newBrand);
+        setViewMode('detail');
+        setLastSaved(null);
     };
 
-    const handleAddBrand = () => {
-        const newBrand = createEmptyBrand(`Brand ${brands.length + 1}`);
-        setBrands(prev => [...prev, newBrand]);
-        setKit(newBrand);
-        setActiveBrandId(null);
-        setShowBrandMenu(false);
+    const handleSelectBrand = (brand: BrandKit) => {
+        setKit(brand);
+        setViewMode('detail');
+        setLastSaved(null);
     };
 
     const handleDeleteBrand = async (brandId: string) => {
         if (!auth.user || !brandId) return;
-        if (!confirm("Delete this brand profile?")) return;
+        if (!confirm("Are you sure you want to delete this brand?")) return;
         
         try {
             await deleteBrandFromCollection(auth.user.uid, brandId);
-            const remaining = brands.filter(b => b.id !== brandId);
-            setBrands(remaining);
-            if (remaining.length > 0) {
-                handleSwitchBrand(remaining[0]);
-            } else {
-                handleAddBrand();
-            }
+            setBrands(prev => prev.filter(b => b.id !== brandId));
             setToast({ msg: "Brand deleted.", type: "success" });
         } catch(e) {
             console.error(e);
@@ -260,9 +243,10 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const savedKit = await saveUserBrandKit(auth.user.uid, updatedKit);
             
+            // Update local Detail State
             setKit(savedKit as BrandKit);
-            setActiveBrandId(savedKit?.id || null);
             
+            // Update List State
             setBrands(prev => {
                 const idx = prev.findIndex(b => b.id === savedKit?.id);
                 if (idx >= 0) {
@@ -270,19 +254,28 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     newArr[idx] = savedKit as BrandKit;
                     return newArr;
                 } else {
-                    return [...prev.filter(b => b.id && b.id !== savedKit?.id), savedKit as BrandKit];
+                    return [...prev, savedKit as BrandKit];
                 }
             });
 
             auth.setUser(prev => prev ? { ...prev, brandKit: savedKit as BrandKit } : null);
             setLastSaved(new Date());
+            setToast({ msg: "Brand saved successfully.", type: "success" });
         } catch (e) {
-            console.error("Auto-save failed", e);
-            setToast({ msg: "Failed to save changes. Please try again.", type: "error" });
+            console.error("Save failed", e);
+            setToast({ msg: "Failed to save changes.", type: "error" });
         } finally {
             setIsSaving(false);
         }
     };
+
+    const handleBackToList = () => {
+        setViewMode('list');
+        // Refresh list to ensure latest data is shown
+        loadBrands();
+    };
+
+    // --- FORM HANDLERS ---
 
     const handleTextChange = (field: keyof BrandKit, value: string) => {
         setKit(prev => ({ ...prev, [field]: value }));
@@ -297,19 +290,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     const handleSelectChange = (field: keyof BrandKit, value: string) => {
-        setKit(prev => {
-            const updated = { ...prev, [field]: value };
-            performSave(updated);
-            return updated;
-        });
+        setKit(prev => ({ ...prev, [field]: value }));
     };
 
     const updateDeepImmediate = (section: keyof BrandKit, key: string, value: any) => {
-        setKit(prev => {
-            const updated = { ...prev, [section]: { ...(prev[section] as any), [key]: value } };
-            performSave(updated);
-            return updated;
-        });
+        setKit(prev => ({ ...prev, [section]: { ...(prev[section] as any), [key]: value } }));
     };
 
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
@@ -322,15 +307,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
             
-            let newKitState: BrandKit | null = null;
-            setKit(prev => {
-                const updated = { ...prev, logos: { ...prev.logos, [key]: url } };
-                newKitState = updated;
-                return updated;
-            });
-
-            if (newKitState) await performSave(newKitState);
-            setToast({ msg: "Asset uploaded & saved!", type: "success" });
+            setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
+            setToast({ msg: "Asset uploaded. Don't forget to save.", type: "success" });
 
         } catch (e: any) {
             console.error("Upload failed", e);
@@ -346,8 +324,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             const generated = await generateBrandIdentity(url, desc);
             const newKit = { ...kit, ...generated };
             setKit(newKit);
-            await performSave(newKit);
-            setToast({ msg: "Brand identity generated!", type: "success" });
+            setToast({ msg: "Brand identity generated! Review and save.", type: "success" });
             setShowMagicModal(false);
         } catch (e) {
             console.error(e);
@@ -357,75 +334,114 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    return (
+    // --- RENDER LIST VIEW ---
+    const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
-            {/* Header Section */}
-            <div className={BrandKitManagerStyles.headerContainer}>
-                <div>
-                    <div className={BrandKitManagerStyles.headerTitleWrapper}>
-                        <div className={BrandKitManagerStyles.headerIconBox}>
-                            <BrandKitIcon className="w-8 h-8" />
-                        </div>
-                        
-                        {/* Brand Switcher */}
-                        <div className="relative">
-                            <button 
-                                onClick={() => setShowBrandMenu(!showBrandMenu)}
-                                className={BrandKitManagerStyles.headerTitle}
-                            >
-                                {kit.name || kit.companyName || "Untitled Brand"}
-                                <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-                            </button>
+            <div className="mb-10">
+                <h1 className={BrandKitManagerStyles.sectionTitle}>My Brands</h1>
+                <p className={BrandKitManagerStyles.sectionSubtitle}>Manage your brand profiles and visual identities.</p>
+            </div>
+
+            <div className={BrandKitManagerStyles.brandGrid}>
+                {/* ADD NEW CARD */}
+                <button 
+                    onClick={handleAddNewBrand}
+                    className={BrandKitManagerStyles.addCard}
+                >
+                    <div className={BrandKitManagerStyles.addCardIcon}>
+                        <PlusIcon className="w-8 h-8" />
+                    </div>
+                    <span className={BrandKitManagerStyles.addCardText}>Create New Brand</span>
+                </button>
+
+                {/* BRAND CARDS */}
+                {brands.map((brand, idx) => (
+                    <div 
+                        key={brand.id || idx} 
+                        onClick={() => handleSelectBrand(brand)}
+                        className={BrandKitManagerStyles.brandCard}
+                    >
+                        {/* Header / Logo Preview */}
+                        <div className={BrandKitManagerStyles.brandCardHeader}>
+                            {brand.logos.primary ? (
+                                <img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />
+                            ) : (
+                                <span className={BrandKitManagerStyles.brandCardFallback}>
+                                    {(brand.name || brand.companyName || '?').substring(0, 2)}
+                                </span>
+                            )}
                             
-                            {showBrandMenu && (
-                                <div className={BrandKitManagerStyles.menuDropdown}>
-                                    <div className={BrandKitManagerStyles.menuHeader}>Select Brand</div>
-                                    <div className="max-h-64 overflow-y-auto">
-                                        {brands.map((b, i) => (
-                                            <div key={i} className={BrandKitManagerStyles.menuItem}>
-                                                <button onClick={() => handleSwitchBrand(b)} className={BrandKitManagerStyles.menuItemText}>
-                                                    {b.name || b.companyName || "Untitled"}
-                                                </button>
-                                                {b.id && brands.length > 1 && (
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteBrand(b.id!); }} className="p-1 text-gray-400 hover:text-red-500">
-                                                        <TrashIcon className="w-4 h-4"/>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <button onClick={handleAddBrand} className={BrandKitManagerStyles.menuAddBtn}>
-                                        <PlusIcon className="w-4 h-4"/> Create New Brand
-                                    </button>
-                                </div>
+                            {brand.id && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id!); }}
+                                    className={BrandKitManagerStyles.deleteBtn}
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
                             )}
                         </div>
+
+                        {/* Body */}
+                        <div className={BrandKitManagerStyles.brandCardBody}>
+                            <div>
+                                <h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3>
+                                <p className={BrandKitManagerStyles.brandCardMeta}>{brand.toneOfVoice || 'Professional'} • {brand.website ? 'Web Linked' : 'No URL'}</p>
+                            </div>
+                            
+                            {/* Color Preview Swatches */}
+                            <div className={BrandKitManagerStyles.brandCardPalette}>
+                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div>
+                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div>
+                                <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.accent }}></div>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-4 items-center">
-                        <p className={BrandKitManagerStyles.headerSubtitle}>Manage your visual identity.</p>
-                        <button onClick={() => setShowMagicModal(true)} className={BrandKitManagerStyles.autoFillBtn}>
-                            <MagicWandIcon className="w-3 h-3"/> Auto-Fill with AI
-                        </button>
-                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // --- RENDER DETAIL VIEW ---
+    const renderBrandDetail = () => (
+        <div className={BrandKitManagerStyles.container}>
+            {/* STICKY HEADER */}
+            <div className={BrandKitManagerStyles.detailHeader}>
+                <div className="flex flex-col gap-1 w-full md:w-auto">
+                    <button onClick={handleBackToList} className={BrandKitManagerStyles.backBtn}>
+                        <ArrowLeftIcon className="w-3 h-3" /> Back to Brands
+                    </button>
+                    <input 
+                        type="text" 
+                        value={kit.name || ''}
+                        onChange={(e) => handleTextChange('name', e.target.value)}
+                        placeholder="Brand Name"
+                        className={BrandKitManagerStyles.brandNameInput}
+                    />
                 </div>
-                
-                <div className="flex items-center gap-3">
+
+                <div className={BrandKitManagerStyles.actionGroup}>
                     {isSaving ? (
-                        <div className={BrandKitManagerStyles.saveIndicator}>
-                            <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-xs font-bold uppercase tracking-wider">Saving...</span>
+                        <div className={BrandKitManagerStyles.savingBadge}>
+                            <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
                         </div>
                     ) : lastSaved ? (
-                        <div className={BrandKitManagerStyles.syncedIndicator}>
-                            <CheckIcon className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Synced</span>
+                        <div className={BrandKitManagerStyles.savedBadge}>
+                            <CheckIcon className="w-4 h-4" /> Saved
                         </div>
                     ) : null}
+
+                    <button onClick={() => setShowMagicModal(true)} className={BrandKitManagerStyles.magicBtn}>
+                        <MagicWandIcon className="w-4 h-4 text-white"/> Auto-Fill with AI
+                    </button>
+                    
+                    <button onClick={handleSave} disabled={isSaving} className={BrandKitManagerStyles.saveBtn}>
+                        Save Changes
+                    </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
                 <div className="xl:col-span-2 space-y-8">
                     
@@ -447,13 +463,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 subLabel="Dark / Colored"
                                 currentUrl={kit.logos.primary} 
                                 onUpload={(f) => handleUpload('primary', f)} 
-                                onRemove={() => {
-                                    setKit(prev => {
-                                        const updated = { ...prev, logos: { ...prev.logos, primary: null } };
-                                        performSave(updated);
-                                        return updated;
-                                    });
-                                }}
+                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))}
                                 isLoading={uploadingState['primary']}
                             />
                             <AssetUploader 
@@ -461,13 +471,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 subLabel="Light / White"
                                 currentUrl={kit.logos.secondary} 
                                 onUpload={(f) => handleUpload('secondary', f)} 
-                                onRemove={() => {
-                                    setKit(prev => {
-                                        const updated = { ...prev, logos: { ...prev.logos, secondary: null } };
-                                        performSave(updated);
-                                        return updated;
-                                    });
-                                }}
+                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, secondary: null } }))}
                                 isLoading={uploadingState['secondary']}
                             />
                             <AssetUploader 
@@ -475,13 +479,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 subLabel="Icon / Favicon"
                                 currentUrl={kit.logos.mark} 
                                 onUpload={(f) => handleUpload('mark', f)} 
-                                onRemove={() => {
-                                    setKit(prev => {
-                                        const updated = { ...prev, logos: { ...prev.logos, mark: null } };
-                                        performSave(updated);
-                                        return updated;
-                                    });
-                                }}
+                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, mark: null } }))}
                                 isLoading={uploadingState['mark']}
                             />
                         </div>
@@ -510,19 +508,19 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         label="Primary (Brand Color)" 
                                         value={kit.colors.primary} 
                                         onChange={(v) => updateDeepLocal('colors', 'primary', v)}
-                                        onBlur={handleSave}
+                                        onBlur={() => {}}
                                     />
                                     <ColorInput 
                                         label="Secondary (Backgrounds)" 
                                         value={kit.colors.secondary} 
                                         onChange={(v) => updateDeepLocal('colors', 'secondary', v)} 
-                                        onBlur={handleSave}
+                                        onBlur={() => {}}
                                     />
                                     <ColorInput 
                                         label="Accent (CTAs / Highlights)" 
                                         value={kit.colors.accent} 
                                         onChange={(v) => updateDeepLocal('colors', 'accent', v)} 
-                                        onBlur={handleSave}
+                                        onBlur={() => {}}
                                     />
                                 </div>
                             </div>
@@ -579,39 +577,25 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Profile Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={kit.name || ''}
-                                        onChange={(e) => handleTextChange('name', e.target.value)}
-                                        onBlur={handleSave}
-                                        placeholder="e.g. Summer Campaign"
-                                        className={BrandKitManagerStyles.inputField}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Company Name</label>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Company Legal Name</label>
                                     <input 
                                         type="text" 
                                         value={kit.companyName}
                                         onChange={(e) => handleTextChange('companyName', e.target.value)}
-                                        onBlur={handleSave}
-                                        placeholder="e.g. Skyline Realty"
+                                        placeholder="e.g. Skyline Realty LLC"
                                         className={BrandKitManagerStyles.inputField}
                                     />
                                 </div>
-                            </div>
-                            
-                            <div>
-                                <label className={BrandKitManagerStyles.inputLabel}>Website</label>
-                                <input 
-                                    type="text" 
-                                    value={kit.website}
-                                    onChange={(e) => handleTextChange('website', e.target.value)}
-                                    onBlur={handleSave}
-                                    placeholder="e.g. www.skyline.com"
-                                    className={BrandKitManagerStyles.inputField}
-                                />
+                                <div>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Website</label>
+                                    <input 
+                                        type="text" 
+                                        value={kit.website}
+                                        onChange={(e) => handleTextChange('website', e.target.value)}
+                                        placeholder="e.g. www.skyline.com"
+                                        className={BrandKitManagerStyles.inputField}
+                                    />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -636,7 +620,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         type="text" 
                                         value={kit.targetAudience || ''}
                                         onChange={(e) => handleTextChange('targetAudience', e.target.value)}
-                                        onBlur={handleSave}
                                         placeholder="e.g. Tech-savvy millennials"
                                         className={BrandKitManagerStyles.inputField}
                                     />
@@ -649,7 +632,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     type="text" 
                                     value={kit.negativePrompts || ''}
                                     onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
-                                    onBlur={handleSave}
                                     placeholder="e.g. No cartoons, no neon colors, no clutter"
                                     className={BrandKitManagerStyles.inputField}
                                 />
@@ -661,7 +643,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 {/* RIGHT COLUMN: PREVIEW (Sticky) */}
                 <div className="space-y-8">
                     {/* LIVE PREVIEW CARD */}
-                    <div className="sticky top-8">
+                    <div className="sticky top-28">
                         <div className="flex items-center gap-2 mb-4">
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Preview</h3>
@@ -732,9 +714,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-center text-xs text-gray-400 mt-6 leading-relaxed">
-                            These settings will be automatically applied<br/>when you generate new content.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -746,7 +725,13 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     isGenerating={isMagicGen}
                 />
             )}
+        </div>
+    );
 
+    return (
+        <>
+            {viewMode === 'list' ? renderBrandList() : renderBrandDetail()}
+            
             {toast && (
                 <ToastNotification 
                     message={toast.msg} 
@@ -754,6 +739,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     onClose={() => setToast(null)} 
                 />
             )}
-        </div>
+        </>
     );
 };
