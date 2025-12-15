@@ -148,7 +148,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 { 
                     name: auth.user.name, 
                     email: auth.user.email, 
-                    credits: auth.user.credits,
+                    credits: auth.user.credits, 
                     plan: auth.user.plan
                 },
                 appConfig?.featureCosts || {} // PASS DYNAMIC PRICING HERE
@@ -248,7 +248,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
     };
 
     return (
-        <div className="xl:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
+        <div className="2xl:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
             
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
@@ -260,10 +260,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
                 </div>
-                {/* Toggle Sidebar Button for < XL screens */}
+                {/* Toggle Sidebar Button for < 2XL screens (Almost all laptops) */}
                 <button 
                     onClick={onToggleSidebar} 
-                    className="xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
+                    className="2xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
                 >
                     <span className="text-[10px] font-bold uppercase tracking-wide">History</span>
                     <TicketIcon className="w-5 h-5" />
@@ -347,6 +347,9 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         </div>
                     </div>
                 )}
+                
+                {/* Extra padding to prevent latest message from being hidden by input bar on small screens */}
+                <div className="h-4"></div>
 
                 <div ref={messagesEndRef} />
             </div>

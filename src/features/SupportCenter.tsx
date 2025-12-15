@@ -73,8 +73,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
             {/* Main Content Area - Flex Column for Robust Layout */}
             <div className="flex-1 w-full min-h-0 overflow-hidden relative z-10 flex flex-col">
                 <div className="flex-1 w-full max-w-7xl mx-auto p-0 sm:p-4 lg:p-6">
-                    {/* Updated Grid: xl instead of lg for 3 columns */}
-                    <div className="h-full w-full grid grid-cols-1 xl:grid-cols-3 gap-0 sm:gap-6 relative">
+                    {/* Updated Grid: 2xl instead of lg/xl to force focus mode on all laptops */}
+                    <div className="h-full w-full grid grid-cols-1 2xl:grid-cols-3 gap-0 sm:gap-6 relative">
                         
                         {/* LEFT: CHAT INTERFACE (Takes 2 columns, or full width on smaller screens) */}
                         <SupportChatWindow 
@@ -84,7 +84,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                         />
 
-                        {/* RIGHT: TICKET HISTORY (Takes 1 column on XL, drawer otherwise) */}
+                        {/* RIGHT: TICKET HISTORY (Takes 1 column on 2XL, drawer otherwise) */}
                         <SupportTicketSidebar 
                             tickets={tickets} 
                             isOpen={sidebarOpen} 
