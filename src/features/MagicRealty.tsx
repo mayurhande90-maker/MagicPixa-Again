@@ -108,19 +108,19 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (auth.user?.brandKit) { 
             const kit = auth.user.brandKit;
             
-            // Auto-fill contact info if not set by user manually
-            if (!texts.contact) {
-                setTexts(prev => ({ ...prev, contact: kit.website || kit.companyName || prev.contact }));
-            }
+            // Auto-fill contact info if not set by user manually or overwrite if switching
+            setTexts(prev => ({ ...prev, contact: kit.website || kit.companyName || prev.contact }));
             
             // Auto-load logo if available
-            if (kit.logos.primary && !logoImage) { 
+            if (kit.logos.primary) { 
                 urlToBase64(kit.logos.primary).then(base64 => {
                     setLogoImage({ url: kit.logos.primary!, base64 });
                 }).catch(e => console.warn("Logo load error", e));
+            } else {
+                setLogoImage(null);
             }
         }
-    }, [auth.user?.brandKit]); // Re-runs when active brand switches
+    }, [auth.user?.brandKit?.id]); // Re-runs when active brand switches (ID check)
 
     // Loading Animation Loop
     useEffect(() => { 
@@ -269,7 +269,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             
                             {/* BRAND KIT ACTIVE PILL */}
                             {auth.user?.brandKit && (
-                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
                                         {auth.user.brandKit.logos.primary ? <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
                                     </div>

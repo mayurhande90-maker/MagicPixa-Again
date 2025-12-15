@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon, ReplicaIcon, ReimagineIcon } from '../components/icons';
+import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon, ReplicaIcon, ReimagineIcon, CreditCardIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
@@ -75,22 +75,26 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     // BRAND KIT INTEGRATION: AUTO-FILL
+    // Updated Logic: Runs whenever the active Brand ID changes to support switching
     useEffect(() => {
         if (auth.user?.brandKit) {
             const kit = auth.user.brandKit;
             
-            // Only fill empty fields to prevent overwriting user input
-            if (!website) setWebsite(kit.website);
-            if (!productName && kit.companyName) setProductName(kit.companyName);
+            // Always overwrite these fields when switching brands (user intent)
+            setWebsite(kit.website || '');
+            if (kit.companyName) setProductName(kit.companyName);
             
-            // Auto-load Logo if available and not already set
-            if (kit.logos.primary && !logoImage) {
+            // Auto-load Logo if available
+            if (kit.logos.primary) {
                 urlToBase64(kit.logos.primary).then(base64 => {
                     setLogoImage({ url: kit.logos.primary!, base64 });
                 }).catch(e => console.warn("Auto-logo load failed", e));
+            } else {
+                // Clear logo if new brand has none, to reflect the switch
+                setLogoImage(null);
             }
         }
-    }, [auth.user?.brandKit]); // Re-run when brand kit changes (switcher in header)
+    }, [auth.user?.brandKit?.id]); // Dependent specifically on ID change
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
@@ -175,7 +179,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     isLowCredits ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
                             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-inner animate-bounce-slight">
-                                <CreditCoinIcon className="w-10 h-10 text-red-500" />
+                                <CreditCardIcon className="w-10 h-10 text-red-500" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <p className="text-gray-500 mb-6 max-w-xs text-sm leading-relaxed">
@@ -190,7 +194,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             
                              {/* BRAND KIT ACTIVE PILL (Visual Indicator) */}
                              {auth.user?.brandKit && (
-                                <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
+                                <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
                                         {auth.user.brandKit.logos.primary ? <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
                                     </div>
