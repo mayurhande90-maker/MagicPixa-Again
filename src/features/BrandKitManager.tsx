@@ -9,7 +9,7 @@ import {
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, getUserBrands, deleteBrandFromCollection } from '../firebase';
-import { generateBrandIdentity } from '../services/brandKitService';
+import { generateBrandIdentity, processLogoAsset } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
@@ -51,7 +51,8 @@ const AssetUploader: React.FC<{
     onUpload: (file: File) => void;
     onRemove: () => void;
     isLoading: boolean;
-}> = ({ label, subLabel, currentUrl, onUpload, onRemove, isLoading }) => {
+    isProcessing?: boolean;
+}> = ({ label, subLabel, currentUrl, onUpload, onRemove, isLoading, isProcessing }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,15 +72,15 @@ const AssetUploader: React.FC<{
             </div>
             
             <div 
-                onClick={() => !currentUrl && inputRef.current?.click()}
+                onClick={() => !currentUrl && !isLoading && !isProcessing && inputRef.current?.click()}
                 className={`${BrandKitManagerStyles.uploaderBox} ${
                     currentUrl ? BrandKitManagerStyles.uploaderBoxFilled : BrandKitManagerStyles.uploaderBoxEmpty
                 }`}
             >
-                {isLoading ? (
+                {isLoading || isProcessing ? (
                     <div className="flex flex-col items-center gap-2">
                         <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
-                        <span className="text-xs text-indigo-500 font-medium">Uploading...</span>
+                        <span className="text-xs text-indigo-500 font-medium">{isProcessing ? 'AI Processing...' : 'Uploading...'}</span>
                     </div>
                 ) : currentUrl ? (
                     <>
@@ -102,7 +103,7 @@ const AssetUploader: React.FC<{
                             <UploadIcon className="w-5 h-5" />
                         </div>
                         <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600">Click to Upload</p>
-                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG (Max 5MB)</p>
+                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG (Auto-Clean)</p>
                     </div>
                 )}
             </div>
@@ -171,6 +172,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const [isSaving, setIsSaving] = useState(false);
     const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
+    const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [showMagicModal, setShowMagicModal] = useState(false);
@@ -297,23 +299,34 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setKit(prev => ({ ...prev, [section]: { ...(prev[section] as any), [key]: value } }));
     };
 
-    const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
+    const handleUpload = async (key: 'primary', file: File) => {
         if (!auth.user) return;
         
-        setUploadingState(prev => ({ ...prev, [key]: true }));
+        // 1. Process Logo Smartly (Background Removal)
+        setProcessingState(prev => ({ ...prev, [key]: true }));
         try {
             const base64Data = await fileToBase64(file);
-            const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+            let processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
-            const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
+            // Process to remove background if it's the main logo
+            if (key === 'primary') {
+                processedUri = await processLogoAsset(base64Data.base64, base64Data.mimeType);
+            }
+            
+            setProcessingState(prev => ({ ...prev, [key]: false }));
+            setUploadingState(prev => ({ ...prev, [key]: true }));
+
+            // 2. Upload to Storage
+            const url = await uploadBrandAsset(auth.user.uid, processedUri, key);
             
             setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
-            setToast({ msg: "Asset uploaded. Don't forget to save.", type: "success" });
+            setToast({ msg: "Asset processed & uploaded.", type: "success" });
 
         } catch (e: any) {
             console.error("Upload failed", e);
             setToast({ msg: "Failed to upload asset.", type: "error" });
         } finally {
+            setProcessingState(prev => ({ ...prev, [key]: false }));
             setUploadingState(prev => ({ ...prev, [key]: false }));
         }
     };
@@ -445,7 +458,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
                 <div className="xl:col-span-2 space-y-8">
                     
-                    {/* 1. Identity Assets Card */}
+                    {/* 1. Identity Assets Card (Simplified) */}
                     <div className={BrandKitManagerStyles.card}>
                         <div className={BrandKitManagerStyles.cardHeader}>
                             <div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}>
@@ -453,34 +466,20 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </div>
                             <div>
                                 <h2 className={BrandKitManagerStyles.cardTitle}>Identity Assets</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>Upload high-res PNGs.</p>
+                                <p className={BrandKitManagerStyles.cardDesc}>We'll auto-remove backgrounds for you.</p>
                             </div>
                         </div>
                         
-                        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-6 ${BrandKitManagerStyles.cardContent}`}>
+                        <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}>
+                            {/* Only Main Logo Required */}
                             <AssetUploader 
-                                label="Primary Logo" 
-                                subLabel="Dark / Colored"
+                                label="Main Logo" 
+                                subLabel="Auto-Processed"
                                 currentUrl={kit.logos.primary} 
                                 onUpload={(f) => handleUpload('primary', f)} 
                                 onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))}
                                 isLoading={uploadingState['primary']}
-                            />
-                            <AssetUploader 
-                                label="Secondary Logo" 
-                                subLabel="Light / White"
-                                currentUrl={kit.logos.secondary} 
-                                onUpload={(f) => handleUpload('secondary', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, secondary: null } }))}
-                                isLoading={uploadingState['secondary']}
-                            />
-                            <AssetUploader 
-                                label="Brand Mark" 
-                                subLabel="Icon / Favicon"
-                                currentUrl={kit.logos.mark} 
-                                onUpload={(f) => handleUpload('mark', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, mark: null } }))}
-                                isLoading={uploadingState['mark']}
+                                isProcessing={processingState['primary']}
                             />
                         </div>
                     </div>
@@ -665,7 +664,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                                 <img src={kit.logos.primary} className="w-full h-full object-contain" alt="Primary Logo" />
                                             ) : (
                                                 <div className="text-gray-200 text-center">
-                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Primary</span>
+                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Logo</span>
                                                 </div>
                                             )}
                                         </div>
@@ -673,11 +672,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         {/* Dark Theme Context */}
                                         <div className={`bg-[#121212] border border-white/10 ${BrandKitManagerStyles.previewLogoBox}`}>
                                             <span className="absolute top-2 left-3 text-[9px] font-bold text-gray-600 uppercase tracking-wider">On Dark</span>
-                                            {kit.logos.secondary ? (
-                                                <img src={kit.logos.secondary} className="w-full h-full object-contain" alt="Secondary Logo" />
+                                            {kit.logos.primary ? (
+                                                <img src={kit.logos.primary} className="w-full h-full object-contain brightness-0 invert" alt="Logo White" />
                                             ) : (
                                                 <div className="text-gray-800 text-center">
-                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Secondary</span>
+                                                    <span className="text-[9px] font-bold uppercase block mt-1">No Logo</span>
                                                 </div>
                                             )}
                                         </div>

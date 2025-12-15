@@ -67,7 +67,7 @@ export const BrandKitManagerStyles = {
   uploaderHeader: "flex justify-between items-end mb-2",
   uploaderLabel: "text-xs font-bold text-gray-700 block",
   uploaderSubLabel: "text-[10px] text-gray-400 font-medium",
-  uploaderBox: "group relative flex-1 min-h-[140px] rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden",
+  uploaderBox: "group relative flex-1 min-h-[180px] rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden",
   uploaderBoxEmpty: "border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/30 cursor-pointer",
   uploaderBoxFilled: "border-gray-200 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-white",
   

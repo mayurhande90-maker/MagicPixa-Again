@@ -1,7 +1,7 @@
 
-import { Type } from "@google/genai";
+import { Type, Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 // Helper: Resize to 1280px (HD)
@@ -84,14 +84,15 @@ export const generateBrandIdentity = async (
     - Description: ${description}
     
     TASK:
-    Analyze the available information (or infer it based on the domain/description) to generate a "Brand DNA Kit".
-    Use Google Search to find the actual brand colors, style, and details if the URL is provided.
+    Analyze the available information to generate a complete "Brand DNA Kit".
+    Use Google Search to find the actual brand colors, style, website, and details if the URL is provided.
     
     1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
     2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
     3. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
     4. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
     5. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
+    6. **Website**: Extract or infer the main website URL.
     
     OUTPUT FORMAT:
     Return strictly a valid JSON object wrapped in a markdown code block.
@@ -99,6 +100,7 @@ export const generateBrandIdentity = async (
     \`\`\`json
     {
         "companyName": "Inferred Name",
+        "website": "https://...",
         "toneOfVoice": "...",
         "targetAudience": "...",
         "negativePrompts": "...",
@@ -128,11 +130,65 @@ export const generateBrandIdentity = async (
         console.error("Auto-Brand Generation Failed:", e);
         return {
             companyName: "New Brand",
+            website: url,
             toneOfVoice: "Professional",
             targetAudience: "General",
             negativePrompts: "Low quality, blur, distortion",
             colors: { primary: "#000000", secondary: "#FFFFFF", accent: "#3B82F6" },
             fonts: { heading: "Modern Sans", body: "Clean Sans" }
         };
+    }
+};
+
+/**
+ * Process Logo Asset:
+ * 1. Takes an input image (JPEG/PNG).
+ * 2. Uses Gemini to isolate the logo on a pure white background (cleaning up noise).
+ * 3. Uses client-side logic to remove the white background, resulting in a transparent PNG.
+ */
+export const processLogoAsset = async (base64: string, mimeType: string): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        // 1. Optimize input
+        const { data, mimeType: optMime } = await optimizeImage(base64, mimeType);
+
+        // 2. AI Refinement: Clean and Isolate on White
+        const prompt = `Task: Logo Isolation.
+        
+        Input: An image containing a logo.
+        Action: 
+        1. Extract the main logo symbol/logotype. 
+        2. Place it on a PURE WHITE background (Hex #FFFFFF).
+        3. Ensure high contrast, sharp edges, and remove any background noise, shadows, or artifacts.
+        4. If the logo is white, make it black so it is visible on white (we will invert later if needed, but black on white is standard for masking).
+        
+        Output: The cleaner logo image on a solid white background.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data, mimeType: optMime } },
+                    { text: prompt },
+                ]
+            },
+            config: { responseModalities: [Modality.IMAGE] }
+        });
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (!imagePart?.inlineData?.data) {
+            // Fallback: Just try to make original transparent
+            console.warn("AI Logo processing failed, using original for transparency.");
+            return `data:image/png;base64,${await makeTransparent(base64)}`;
+        }
+
+        // 3. Client-Side Transparency (Remove White)
+        const processedBase64 = await makeTransparent(imagePart.inlineData.data);
+        return `data:image/png;base64,${processedBase64}`;
+
+    } catch (e) {
+        console.error("Logo processing error", e);
+        // Fallback to simple client-side transparency on original
+        return `data:image/png;base64,${await makeTransparent(base64)}`;
     }
 };

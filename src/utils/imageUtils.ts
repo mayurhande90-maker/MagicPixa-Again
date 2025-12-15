@@ -193,3 +193,47 @@ export const downloadImage = async (url: string, filename: string) => {
         window.open(url, '_blank');
     }
 };
+
+/**
+ * Smart Background Remover (Client-Side).
+ * Turns white pixels transparent. Useful for processing logo JPEGs.
+ */
+export const makeTransparent = (base64Data: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                resolve(base64Data);
+                return;
+            }
+            
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Iterate over all pixels
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // If pixel is near white (Threshold 240)
+                if (r > 240 && g > 240 && b > 240) {
+                    data[i + 3] = 0; // Set alpha to 0
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            // Return base64 string without data header
+            resolve(canvas.toDataURL('image/png').split(',')[1]);
+        };
+        img.onerror = () => resolve(base64Data);
+        img.src = `data:image/png;base64,${base64Data}`;
+    });
+};
