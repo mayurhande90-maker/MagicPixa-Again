@@ -122,9 +122,7 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                     </>
                 ) : (
                     <>
-                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                            <BrandKitIcon className="w-3 h-3 text-gray-500" />
-                        </div>
+                        <BrandKitIcon className="w-5 h-5 text-gray-500" />
                         <span className="text-xs font-medium text-gray-500">Select Brand</span>
                     </>
                 )}
