@@ -53,7 +53,7 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                     
                     {/* Header Actions */}
                     <div className="flex items-center gap-3">
-                        {/* Status Pills - Hidden on Mobile */}
+                        {/* Status Pills */}
                         <div className="hidden md:flex items-center gap-2 bg-white px-1.5 py-1.5 rounded-full border border-gray-200 shadow-sm">
                             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">
                                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -66,14 +66,6 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                                 </div>
                             )}
                         </div>
-
-                        {/* Mobile Sidebar Toggle */}
-                        <button 
-                            onClick={() => setSidebarOpen(!sidebarOpen)} 
-                            className="lg:hidden p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-transparent hover:border-indigo-100"
-                        >
-                            <TicketIcon className="w-6 h-6" />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -81,12 +73,23 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
             {/* Main Content Area - Flex Column for Robust Layout */}
             <div className="flex-1 w-full min-h-0 overflow-hidden relative z-10 flex flex-col">
                 <div className="flex-1 w-full max-w-7xl mx-auto p-0 sm:p-4 lg:p-6">
-                    <div className="h-full w-full grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6">
-                        {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
-                        <SupportChatWindow auth={auth} appConfig={appConfig || null} onTicketCreated={handleTicketCreated} />
+                    {/* Updated Grid: xl instead of lg for 3 columns */}
+                    <div className="h-full w-full grid grid-cols-1 xl:grid-cols-3 gap-0 sm:gap-6 relative">
+                        
+                        {/* LEFT: CHAT INTERFACE (Takes 2 columns, or full width on smaller screens) */}
+                        <SupportChatWindow 
+                            auth={auth} 
+                            appConfig={appConfig || null} 
+                            onTicketCreated={handleTicketCreated} 
+                            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                        />
 
-                        {/* RIGHT: TICKET HISTORY (Takes 1 column) */}
-                        <SupportTicketSidebar tickets={tickets} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+                        {/* RIGHT: TICKET HISTORY (Takes 1 column on XL, drawer otherwise) */}
+                        <SupportTicketSidebar 
+                            tickets={tickets} 
+                            isOpen={sidebarOpen} 
+                            setIsOpen={setSidebarOpen} 
+                        />
                     </div>
                 </div>
             </div>

@@ -20,21 +20,21 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
 
     return (
         <>
-            {/* Mobile Backdrop */}
+            {/* Mobile/Tablet Backdrop - Now hidden on XL (1280px) and up */}
             <div 
-                className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+                className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-30 xl:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
                 onClick={() => setIsOpen(false)}
             />
 
             <div className={`
                 fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 z-40 
-                lg:static lg:w-full lg:h-full lg:shadow-none lg:bg-transparent lg:transform-none lg:z-auto
-                ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                xl:static xl:w-full xl:h-full xl:shadow-none xl:bg-transparent xl:transform-none xl:z-auto
+                ${isOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'}
             `}>
                 <div className="bg-white/80 backdrop-blur-2xl rounded-none lg:rounded-[2rem] border-l lg:border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative w-full">
                     
-                    {/* Mobile Close Button */}
-                    <button onClick={() => setIsOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full z-50">
+                    {/* Mobile Close Button - visible on small screens */}
+                    <button onClick={() => setIsOpen(false)} className="xl:hidden absolute top-4 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full z-50">
                         <XIcon className="w-5 h-5" />
                     </button>
 

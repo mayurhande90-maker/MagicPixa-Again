@@ -11,6 +11,7 @@ import {
     ArrowDownIcon,
     LifebuoyIcon,
     PlusIcon,
+    TicketIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -18,9 +19,10 @@ interface SupportChatWindowProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onTicketCreated: (ticket: Ticket) => void;
+    onToggleSidebar: () => void;
 }
 
-export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appConfig, onTicketCreated }) => {
+export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appConfig, onTicketCreated, onToggleSidebar }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -246,7 +248,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
     };
 
     return (
-        <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
+        <div className="xl:col-span-2 flex flex-col h-full min-h-0 bg-white/70 backdrop-blur-2xl rounded-none sm:rounded-[2rem] shadow-xl border-x-0 border-y-0 sm:border border-white/50 relative overflow-hidden group w-full">
             
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
@@ -258,6 +260,14 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider">Live Support Chat</span>
                 </div>
+                {/* Toggle Sidebar Button for < XL screens */}
+                <button 
+                    onClick={onToggleSidebar} 
+                    className="xl:hidden p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <span className="text-[10px] font-bold uppercase tracking-wide">History</span>
+                    <TicketIcon className="w-5 h-5" />
+                </button>
             </div>
 
             {/* Main Chat Scroll Area - Added flex flex-col to parent */}
