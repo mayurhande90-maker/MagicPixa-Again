@@ -310,6 +310,15 @@ export const PhoneIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />} />
 );
 
-export const CorporateExecutiveIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.67.38m-4.5-8.393c-3.215-.43-6.621-.43-9.836 0m9.836 0c1.163.155 2.153.82 2.742 1.764m-12.578 0c1.675-2.657 5.184-4.237 8.356-3.763m-8.356 3.763c.59-.944 1.58-1.609 2.742-1.764m2.742 1.764v2.5a2.25 2.25 0 002.25 2.25h.75a2.25 2.25 0 002.25-2.25v-2.5m-9 0c.335.632.793 1.182 1.341 1.621m0 0a2.18 2.18 0 001.659.754" />} />
+// Renamed from ProductStudioIcon
+export const BrandKitIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <path fill="#424242" d="M27 7h-6c-1.7 0-3 1.3-3 3v3h2v-3c0-.6.4-1 1-1h6c.6 0 1 .4 1 1v3h2v-3c0-1.7-1.3-3-3-3z"/>
+        <path fill="#E65100" d="M40 43H8c-2.2 0-4-1.8-4-4V15c0-2.2 1.8-4 4-4h32c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4z"/>
+        <path fill="#FF6E40" d="M40 28H8c-2.2 0-4-1.8-4-4v-9c0-2.2 1.8-4 4-4h32c2.2 0 4 1.8 4 4v9c0 2.2-1.8 4-4 4z"/>
+        <path fill="#FFF3E0" d="M26 26h-4c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v2c0 .6-.4 1-1 1z"/>
+    </svg>
 );
+
+// Kept for backward compatibility if needed, but now aliased
+export const ProductStudioIcon = BrandKitIcon;
