@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, BrandKit } from '../types';
-import { getUserBrands, activateBrand } from '../firebase';
-import { BrandKitIcon, CheckIcon, PlusIcon, ChevronDownIcon } from './icons';
+import { getUserBrands, activateBrand, deactivateBrand } from '../firebase';
+import { BrandKitIcon, CheckIcon, PlusIcon, ChevronDownIcon, XIcon } from './icons';
 
 interface BrandSwitcherProps {
     user: User;
@@ -65,6 +65,29 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
         }
     };
 
+    const handleDeactivate = async () => {
+        if (!activeBrand) {
+            setIsOpen(false);
+            return;
+        }
+        setSwitchingId('disable');
+        try {
+            await deactivateBrand(user.uid);
+        } catch (e) {
+            console.error("Failed to disable brand", e);
+        } finally {
+            setSwitchingId(null);
+            setIsOpen(false);
+        }
+    };
+
+    // Helper to get display name
+    const getBrandName = (brand: BrandKit) => {
+        if (brand.companyName) return brand.companyName;
+        if (brand.name && brand.name !== 'New Brand') return brand.name;
+        return 'Untitled Brand';
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button 
@@ -82,12 +105,12 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                                 <img src={activeBrand.logos.primary} alt="Brand" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-[8px] font-bold text-gray-400">
-                                    {(activeBrand.name || activeBrand.companyName || 'B').substring(0, 2).toUpperCase()}
+                                    {getBrandName(activeBrand).substring(0, 2).toUpperCase()}
                                 </span>
                             )}
                         </div>
                         <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate">
-                            {activeBrand.name || activeBrand.companyName || 'Untitled Brand'}
+                            {getBrandName(activeBrand)}
                         </span>
                     </>
                 ) : (
@@ -108,6 +131,33 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Switch Brand Context</p>
                         
                         <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+                            
+                            {/* Disable Option */}
+                            <button 
+                                onClick={handleDeactivate}
+                                disabled={switchingId === 'disable'}
+                                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
+                                    !activeBrand 
+                                    ? 'bg-gray-100 text-gray-900 cursor-default' 
+                                    : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
+                                }`}
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                                    <XIcon className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 text-left min-w-0">
+                                    <p className="text-xs font-bold">None / Disable</p>
+                                    {!activeBrand && <p className="text-[9px] text-gray-400 font-medium">Currently Default</p>}
+                                </div>
+                                {switchingId === 'disable' ? (
+                                     <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                ) : !activeBrand && (
+                                     <CheckIcon className="w-4 h-4 text-gray-500" />
+                                )}
+                            </button>
+                            
+                            <div className="h-px bg-gray-100 my-1"></div>
+
                             {brands.length > 0 ? brands.map(brand => {
                                 const isActive = activeBrand?.id === brand.id;
                                 const isSwitching = switchingId === brand.id;
@@ -128,13 +178,13 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                                                 <img src={brand.logos.primary} className="w-full h-full object-cover" alt="" />
                                             ) : (
                                                 <span className="text-[9px] font-bold text-gray-400">
-                                                    {(brand.name || brand.companyName || 'B').substring(0, 1)}
+                                                    {getBrandName(brand).substring(0, 1)}
                                                 </span>
                                             )}
                                         </div>
                                         
                                         <div className="flex-1 text-left min-w-0">
-                                            <p className="text-xs font-bold truncate">{brand.name || brand.companyName}</p>
+                                            <p className="text-xs font-bold truncate">{getBrandName(brand)}</p>
                                             {isActive && <p className="text-[9px] text-indigo-500 font-medium">Active</p>}
                                         </div>
                                         

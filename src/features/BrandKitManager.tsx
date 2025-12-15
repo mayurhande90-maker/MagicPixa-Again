@@ -1,4 +1,5 @@
 
+// ... existing imports ...
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
@@ -13,8 +14,7 @@ import { generateBrandIdentity, processLogoAsset } from '../services/brandKitSer
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
-// --- SUB-COMPONENTS (ISOLATED) ---
-
+// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal) ...
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
@@ -152,9 +152,8 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
     );
 };
 
-// --- MAIN COMPONENT ---
-
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+    // ... keep existing state and useEffects ...
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [isLoadingBrands, setIsLoadingBrands] = useState(true);
@@ -246,8 +245,15 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const performSave = async (updatedKit: BrandKit) => {
         if (!auth.user) return;
         setIsSaving(true);
+        
+        // Auto-update profile name if default 'New Brand' but Company Name exists
+        let finalKit = { ...updatedKit };
+        if (finalKit.name === 'New Brand' && finalKit.companyName) {
+            finalKit.name = finalKit.companyName;
+        }
+
         try {
-            const savedKit = await saveUserBrandKit(auth.user.uid, updatedKit);
+            const savedKit = await saveUserBrandKit(auth.user.uid, finalKit);
             
             // Update local Detail State
             setKit(savedKit as BrandKit);
@@ -340,6 +346,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const generated = await generateBrandIdentity(url, desc);
             const newKit = { ...kit, ...generated };
+            
+            // Also update the profile name if we inferred a company name
+            if (generated.companyName && newKit.name === 'New Brand') {
+                newKit.name = generated.companyName;
+            }
+            
             setKit(newKit);
             setToast({ msg: "Brand identity generated! Review and save.", type: "success" });
             setShowMagicModal(false);
@@ -351,6 +363,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
+    // ... (rest of the render functions remain the same) ...
     // --- RENDER LIST VIEW ---
     const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
