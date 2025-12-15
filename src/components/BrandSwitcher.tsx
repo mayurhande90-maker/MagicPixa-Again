@@ -54,8 +54,6 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
         setSwitchingId(brand.id);
         try {
             await activateBrand(user.uid, brand.id);
-            // We rely on the Auth Listener in App.tsx to update the 'user' prop automatically
-            // which will re-render this component with the new active brand
         } catch (e) {
             console.error("Failed to switch brand", e);
             alert("Failed to switch brand.");
@@ -66,10 +64,7 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
     };
 
     const handleDeactivate = async () => {
-        if (!activeBrand) {
-            setIsOpen(false);
-            return;
-        }
+        if (!activeBrand) return;
         setSwitchingId('disable');
         try {
             await deactivateBrand(user.uid);
@@ -77,7 +72,21 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
             console.error("Failed to disable brand", e);
         } finally {
             setSwitchingId(null);
-            setIsOpen(false);
+            // Don't close immediately so they see the toggle state change
+        }
+    };
+
+    const handleToggle = async () => {
+        if (activeBrand) {
+            await handleDeactivate();
+        } else {
+            // Activate the first available brand or redirect if none
+            if (brands.length > 0) {
+                await handleSwitch(brands[0]);
+            } else {
+                setIsOpen(false);
+                onNavigate('brand_manager');
+            }
         }
     };
 
@@ -94,20 +103,24 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border transition-all duration-200 ${
                     activeBrand 
-                    ? 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-sm' 
+                    ? 'bg-white border-green-200 shadow-sm ring-1 ring-green-100' 
                     : 'bg-gray-50 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-100'
                 }`}
             >
                 {activeBrand ? (
                     <>
-                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center shrink-0">
-                            {activeBrand.logos.primary ? (
-                                <img src={activeBrand.logos.primary} alt="Brand" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-[8px] font-bold text-gray-400">
-                                    {getBrandName(activeBrand).substring(0, 2).toUpperCase()}
-                                </span>
-                            )}
+                        <div className="relative w-6 h-6 rounded-full">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center">
+                                {activeBrand.logos.primary ? (
+                                    <img src={activeBrand.logos.primary} alt="Brand" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-[8px] font-bold text-gray-400">
+                                        {getBrandName(activeBrand).substring(0, 2).toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                            {/* Active Indicator Dot */}
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                         </div>
                         <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate">
                             {getBrandName(activeBrand)}
@@ -127,37 +140,28 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
             {/* Dropdown */}
             {isOpen && (
                 <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn origin-top-right">
-                    <div className="p-3 border-b border-gray-50">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Switch Brand Context</p>
+                    
+                    {/* Master Toggle */}
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                        <div>
+                            <p className="text-xs font-bold text-gray-800">Brand Integration</p>
+                            <p className="text-[9px] text-gray-500">{activeBrand ? 'On' : 'Off'}</p>
+                        </div>
+                        <button 
+                            onClick={handleToggle}
+                            disabled={switchingId !== null}
+                            className={`w-10 h-6 rounded-full relative transition-colors duration-200 ${activeBrand ? 'bg-green-500' : 'bg-gray-300'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${activeBrand ? 'left-5' : 'left-1'}`}>
+                                {switchingId && <div className="absolute inset-0 rounded-full border-2 border-gray-200 border-t-transparent animate-spin"></div>}
+                            </div>
+                        </button>
+                    </div>
+
+                    <div className="p-2">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 mt-2">Saved Brands</p>
                         
                         <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
-                            
-                            {/* Disable Option */}
-                            <button 
-                                onClick={handleDeactivate}
-                                disabled={switchingId === 'disable'}
-                                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
-                                    !activeBrand 
-                                    ? 'bg-gray-100 text-gray-900 cursor-default' 
-                                    : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
-                                }`}
-                            >
-                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                                    <XIcon className="w-4 h-4" />
-                                </div>
-                                <div className="flex-1 text-left min-w-0">
-                                    <p className="text-xs font-bold">None / Disable</p>
-                                    {!activeBrand && <p className="text-[9px] text-gray-400 font-medium">Currently Default</p>}
-                                </div>
-                                {switchingId === 'disable' ? (
-                                     <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                                ) : !activeBrand && (
-                                     <CheckIcon className="w-4 h-4 text-gray-500" />
-                                )}
-                            </button>
-                            
-                            <div className="h-px bg-gray-100 my-1"></div>
-
                             {brands.length > 0 ? brands.map(brand => {
                                 const isActive = activeBrand?.id === brand.id;
                                 const isSwitching = switchingId === brand.id;
@@ -169,7 +173,7 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                                         disabled={isSwitching}
                                         className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
                                             isActive 
-                                            ? 'bg-indigo-50 text-indigo-900' 
+                                            ? 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-100' 
                                             : 'hover:bg-gray-50 text-gray-700'
                                         }`}
                                     >
@@ -191,12 +195,14 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                                         {isSwitching ? (
                                             <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                         ) : isActive && (
-                                            <CheckIcon className="w-4 h-4 text-indigo-600" />
+                                            <div className="w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
+                                                <CheckIcon className="w-2.5 h-2.5 text-white" />
+                                            </div>
                                         )}
                                     </button>
                                 );
                             }) : (
-                                <p className="text-xs text-gray-400 text-center py-2">No saved brands found.</p>
+                                <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200 mb-2">No saved brands found.</p>
                             )}
                         </div>
                     </div>
@@ -206,9 +212,9 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                             setIsOpen(false);
                             onNavigate('brand_manager');
                         }}
-                        className="w-full p-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors"
+                        className="w-full p-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors border-t border-gray-100"
                     >
-                        <PlusIcon className="w-3 h-3" /> Create / Manage Brands
+                        <PlusIcon className="w-3 h-3" /> Create New Brand
                     </button>
                 </div>
             )}
