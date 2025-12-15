@@ -9,12 +9,12 @@ import {
     SparklesIcon, CheckIcon, ArrowLeftIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
-import { uploadBrandAsset, saveUserBrandKit, getUserBrands, deleteBrandFromCollection } from '../firebase';
+import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
 import { generateBrandIdentity, processLogoAsset } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
-// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal) ...
+// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal as is) ...
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
@@ -153,7 +153,7 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 };
 
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
-    // ... keep existing state and useEffects ...
+    // ... keep existing state ...
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [isLoadingBrands, setIsLoadingBrands] = useState(true);
@@ -178,30 +178,17 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
 
+    // Replaced manual fetch with Subscription
     useEffect(() => {
         if (auth.user) {
-            loadBrands();
+            setIsLoadingBrands(true);
+            const unsubscribe = subscribeToUserBrands(auth.user.uid, (list) => {
+                setBrands(list);
+                setIsLoadingBrands(false);
+            });
+            return () => unsubscribe();
         }
     }, [auth.user]);
-
-    const loadBrands = async () => {
-        if (!auth.user) return;
-        setIsLoadingBrands(true);
-        try {
-            const userBrands = await getUserBrands(auth.user.uid);
-            
-            if (userBrands.length === 0) {
-                // Keep empty state, user will click "Add"
-                setBrands([]);
-            } else {
-                setBrands(userBrands);
-            }
-        } catch (e) {
-            console.error("Failed to load brands", e);
-        } finally {
-            setIsLoadingBrands(false);
-        }
-    };
 
     const createEmptyBrand = (name: string): BrandKit => ({
         name,
@@ -234,7 +221,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         
         try {
             await deleteBrandFromCollection(auth.user.uid, brandId);
-            setBrands(prev => prev.filter(b => b.id !== brandId));
+            // No need to manually update state, subscription handles it
             setToast({ msg: "Brand deleted.", type: "success" });
         } catch(e) {
             console.error(e);
@@ -258,18 +245,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             // Update local Detail State
             setKit(savedKit as BrandKit);
             
-            // Update List State
-            setBrands(prev => {
-                const idx = prev.findIndex(b => b.id === savedKit?.id);
-                if (idx >= 0) {
-                    const newArr = [...prev];
-                    newArr[idx] = savedKit as BrandKit;
-                    return newArr;
-                } else {
-                    return [...prev, savedKit as BrandKit];
-                }
-            });
-
+            // No need to manually update List State, subscription handles it
             auth.setUser(prev => prev ? { ...prev, brandKit: savedKit as BrandKit } : null);
             setLastSaved(new Date());
             setToast({ msg: "Brand saved successfully.", type: "success" });
@@ -283,8 +259,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const handleBackToList = () => {
         setViewMode('list');
-        // Refresh list to ensure latest data is shown
-        loadBrands();
     };
 
     // --- FORM HANDLERS ---

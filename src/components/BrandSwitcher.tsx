@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, BrandKit } from '../types';
-import { getUserBrands, activateBrand, deactivateBrand } from '../firebase';
+import { activateBrand, deactivateBrand, subscribeToUserBrands } from '../firebase';
 import { BrandKitIcon, CheckIcon, PlusIcon, ChevronDownIcon, XIcon } from './icons';
 
 interface BrandSwitcherProps {
@@ -19,11 +19,14 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
     // Fallback to "No Brand" state if undefined
     const activeBrand = user.brandKit;
 
+    // Use Subscription to keep brands updated and loaded in background
     useEffect(() => {
-        if (isOpen) {
-            loadBrands();
-        }
-    }, [isOpen]);
+        if (!user.uid) return;
+        const unsubscribe = subscribeToUserBrands(user.uid, (list) => {
+            setBrands(list);
+        });
+        return () => unsubscribe();
+    }, [user.uid]);
 
     // Close on click outside
     useEffect(() => {
@@ -35,15 +38,6 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const loadBrands = async () => {
-        try {
-            const list = await getUserBrands(user.uid);
-            setBrands(list);
-        } catch (e) {
-            console.error("Failed to load brands", e);
-        }
-    };
 
     const handleSwitch = async (brand: BrandKit) => {
         if (!brand.id || brand.id === activeBrand?.id) {

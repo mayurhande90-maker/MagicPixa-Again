@@ -487,6 +487,20 @@ export const getUserBrands = async (uid: string) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BrandKit));
 };
 
+export const subscribeToUserBrands = (uid: string, callback: (brands: BrandKit[]) => void) => {
+    if (!db) {
+        callback([]);
+        return () => {};
+    }
+    return db.collection('users').doc(uid).collection('brands')
+        .onSnapshot((snapshot) => {
+            const brands = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BrandKit));
+            callback(brands);
+        }, (error) => {
+            console.error("Error subscribing to brands:", error);
+        });
+};
+
 export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     if (!db) return;
     const collectionRef = db.collection('users').doc(uid).collection('brands');
