@@ -3,26 +3,28 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
-    CaptionIcon, UserIcon, CheckIcon, BrandKitIcon, 
+    CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
-    SparklesIcon
+    SparklesIcon, CheckIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, getUserBrands, deleteBrandFromCollection } from '../firebase';
 import { generateBrandIdentity } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
+import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
-// Elegant Color Input Component
+// --- SUB-COMPONENTS (ISOLATED) ---
+
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
     onChange: (val: string) => void;
     onBlur: () => void;
 }> = ({ label, value, onChange, onBlur }) => (
-    <div className="group">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block group-hover:text-gray-600 transition-colors">{label}</label>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm group-hover:border-blue-300 group-hover:shadow-md transition-all">
-            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0">
+    <div className={BrandKitManagerStyles.colorInputWrapper}>
+        <label className={BrandKitManagerStyles.colorLabel}>{label}</label>
+        <div className={BrandKitManagerStyles.colorBox}>
+            <div className={BrandKitManagerStyles.colorPreview}>
                 <input 
                     type="color" 
                     value={value} 
@@ -36,13 +38,12 @@ const ColorInput: React.FC<{
                 value={value} 
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={onBlur}
-                className="text-sm font-mono font-medium text-gray-700 bg-transparent border-none focus:ring-0 w-full uppercase outline-none"
+                className={BrandKitManagerStyles.colorField}
             />
         </div>
     </div>
 );
 
-// Premium Asset Uploader
 const AssetUploader: React.FC<{
     label: string;
     subLabel?: string;
@@ -61,20 +62,18 @@ const AssetUploader: React.FC<{
     };
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex justify-between items-end mb-2">
+        <div className={BrandKitManagerStyles.uploaderContainer}>
+            <div className={BrandKitManagerStyles.uploaderHeader}>
                 <div>
-                    <label className="text-xs font-bold text-gray-700 block">{label}</label>
-                    {subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}
+                    <label className={BrandKitManagerStyles.uploaderLabel}>{label}</label>
+                    {subLabel && <span className={BrandKitManagerStyles.uploaderSubLabel}>{subLabel}</span>}
                 </div>
             </div>
             
             <div 
                 onClick={() => !currentUrl && inputRef.current?.click()}
-                className={`group relative flex-1 min-h-[140px] rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden ${
-                    currentUrl 
-                    ? 'border-gray-200 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")] bg-white' 
-                    : 'border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/30 cursor-pointer'
+                className={`${BrandKitManagerStyles.uploaderBox} ${
+                    currentUrl ? BrandKitManagerStyles.uploaderBoxFilled : BrandKitManagerStyles.uploaderBoxEmpty
                 }`}
             >
                 {isLoading ? (
@@ -112,7 +111,6 @@ const AssetUploader: React.FC<{
     );
 };
 
-// Modal for Auto-Generator
 const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string, desc: string) => void; isGenerating: boolean }> = ({ onClose, onGenerate, isGenerating }) => {
     const [url, setUrl] = useState('');
     const [desc, setDesc] = useState('');
@@ -132,12 +130,12 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Website / Social URL</label>
-                        <input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none" placeholder="e.g. www.nike.com" value={url} onChange={e => setUrl(e.target.value)} />
+                        <label className={BrandKitManagerStyles.inputLabel}>Website / Social URL</label>
+                        <input className={BrandKitManagerStyles.inputField} placeholder="e.g. www.nike.com" value={url} onChange={e => setUrl(e.target.value)} />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Brand Description</label>
-                        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-500 outline-none resize-none h-24" placeholder="e.g. A premium athletic wear brand for runners." value={desc} onChange={e => setDesc(e.target.value)} />
+                        <label className={BrandKitManagerStyles.inputLabel}>Brand Description</label>
+                        <textarea className={`${BrandKitManagerStyles.inputField} h-24 resize-none`} placeholder="e.g. A premium athletic wear brand for runners." value={desc} onChange={e => setDesc(e.target.value)} />
                     </div>
                     
                     <button 
@@ -153,8 +151,9 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
     );
 };
 
+// --- MAIN COMPONENT ---
+
 export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
-    // Brand State
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
     const [kit, setKit] = useState<BrandKit>({
@@ -176,7 +175,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [isMagicGen, setIsMagicGen] = useState(false);
     const [showBrandMenu, setShowBrandMenu] = useState(false);
 
-    // Initial Load
     useEffect(() => {
         if (auth.user) {
             loadBrands();
@@ -188,24 +186,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         try {
             const userBrands = await getUserBrands(auth.user.uid);
             
-            // Backwards compatibility: If no brands collection but user.brandKit exists
             if (userBrands.length === 0 && auth.user.brandKit) {
                 const defaultKit = { ...auth.user.brandKit, name: 'Default Brand', id: 'default' };
-                // We'll save it properly to collection on next save
                 setBrands([defaultKit]);
                 setKit(defaultKit);
                 setActiveBrandId('default');
             } else if (userBrands.length > 0) {
                 setBrands(userBrands);
-                // Default to first one or the one marked active in user profile?
-                // Ideally user profile stores `activeBrandId`. For now, default to first.
-                // Or check if user.brandKit.id matches one.
                 const currentId = auth.user.brandKit?.id;
                 const active = userBrands.find(b => b.id === currentId) || userBrands[0];
                 setKit(active);
                 setActiveBrandId(active.id || null);
             } else {
-                // Completely new user
                 const newBrand = createEmptyBrand('My Brand');
                 setBrands([newBrand]);
                 setKit(newBrand);
@@ -229,8 +221,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     });
 
     const handleSwitchBrand = (brand: BrandKit) => {
-        // Auto-save current before switching? Maybe too aggressive.
-        // Just switch state.
         setKit(brand);
         setActiveBrandId(brand.id || null);
         setShowBrandMenu(false);
@@ -240,7 +230,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         const newBrand = createEmptyBrand(`Brand ${brands.length + 1}`);
         setBrands(prev => [...prev, newBrand]);
         setKit(newBrand);
-        setActiveBrandId(null); // No ID yet implies unsaved new doc
+        setActiveBrandId(null);
         setShowBrandMenu(false);
     };
 
@@ -255,7 +245,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             if (remaining.length > 0) {
                 handleSwitchBrand(remaining[0]);
             } else {
-                handleAddBrand(); // Ensure at least one exists
+                handleAddBrand();
             }
             setToast({ msg: "Brand deleted.", type: "success" });
         } catch(e) {
@@ -264,16 +254,13 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    // Perform the actual save to Firebase and update global context
     const performSave = async (updatedKit: BrandKit) => {
         if (!auth.user) return;
         setIsSaving(true);
         try {
-            // If it's a new brand without ID, saveUserBrandKit will create one and return it with ID
             const savedKit = await saveUserBrandKit(auth.user.uid, updatedKit);
             
-            // Update local lists
-            setKit(savedKit as BrandKit); // Has ID now
+            setKit(savedKit as BrandKit);
             setActiveBrandId(savedKit?.id || null);
             
             setBrands(prev => {
@@ -283,12 +270,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     newArr[idx] = savedKit as BrandKit;
                     return newArr;
                 } else {
-                    // Was a new brand, replace the "temp" one at end or add
-                    // Simple approach: append if ID not found, but we might have duplicates if we aren't careful.
-                    // Better: If we were editing a brand with NO ID, assume it's the one we just saved.
-                    // Actually, handleAddBrand pushes to `brands`. Let's find the one currently matching UI state (dangerous) or just reload list?
-                    // Reloading list is safest but slow.
-                    // Let's just update the matching object in array if found, else add.
                     return [...prev.filter(b => b.id && b.id !== savedKit?.id), savedKit as BrandKit];
                 }
             });
@@ -303,9 +284,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         }
     };
 
-    // --- HANDLERS ---
-
-    // 1. Text/Color Fields (Local Update Only)
     const handleTextChange = (field: keyof BrandKit, value: string) => {
         setKit(prev => ({ ...prev, [field]: value }));
     };
@@ -314,12 +292,10 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setKit(prev => ({ ...prev, [section]: { ...(prev[section] as any), [key]: value } }));
     };
 
-    // 2. Commit Changes (Save on Blur)
     const handleSave = () => {
         performSave(kit);
     };
 
-    // 3. Select Fields (Immediate Save)
     const handleSelectChange = (field: keyof BrandKit, value: string) => {
         setKit(prev => {
             const updated = { ...prev, [field]: value };
@@ -336,25 +312,17 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         });
     };
 
-    // 4. Asset Upload (Immediate Save + Feedback)
     const handleUpload = async (key: 'primary' | 'secondary' | 'mark', file: File) => {
-        if (!auth.user) {
-            console.error("User not authenticated during upload.");
-            return;
-        }
+        if (!auth.user) return;
         
-        console.log(`Starting upload for user: ${auth.user.uid}, asset: ${key}`);
         setUploadingState(prev => ({ ...prev, [key]: true }));
-        
         try {
             const base64Data = await fileToBase64(file);
             const dataUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
             const url = await uploadBrandAsset(auth.user.uid, dataUri, key);
-            console.log("Upload successful:", url);
             
             let newKitState: BrandKit | null = null;
-            
             setKit(prev => {
                 const updated = { ...prev, logos: { ...prev.logos, [key]: url } };
                 newKitState = updated;
@@ -366,11 +334,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
         } catch (e: any) {
             console.error("Upload failed", e);
-            let errorMsg = "Failed to upload asset.";
-            if (e.message.includes('permission') || e.code === 'storage/unauthorized') {
-                errorMsg = "Permission Denied. Check Storage Rules.";
-            }
-            setToast({ msg: errorMsg, type: "error" });
+            setToast({ msg: "Failed to upload asset.", type: "error" });
         } finally {
             setUploadingState(prev => ({ ...prev, [key]: false }));
         }
@@ -380,7 +344,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setIsMagicGen(true);
         try {
             const generated = await generateBrandIdentity(url, desc);
-            // Merge generated data into current kit
             const newKit = { ...kit, ...generated };
             setKit(newKit);
             await performSave(newKit);
@@ -395,12 +358,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     return (
-        <div className="p-6 lg:p-10 max-w-[1400px] mx-auto pb-32 animate-fadeIn">
+        <div className={BrandKitManagerStyles.container}>
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4 border-b border-gray-100 pb-6">
+            <div className={BrandKitManagerStyles.headerContainer}>
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200">
+                    <div className={BrandKitManagerStyles.headerTitleWrapper}>
+                        <div className={BrandKitManagerStyles.headerIconBox}>
                             <BrandKitIcon className="w-8 h-8" />
                         </div>
                         
@@ -408,19 +371,19 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <div className="relative">
                             <button 
                                 onClick={() => setShowBrandMenu(!showBrandMenu)}
-                                className="flex items-center gap-2 text-2xl font-bold text-[#1A1A1E] hover:text-indigo-600 transition-colors"
+                                className={BrandKitManagerStyles.headerTitle}
                             >
                                 {kit.name || kit.companyName || "Untitled Brand"}
                                 <ChevronDownIcon className="w-5 h-5 text-gray-400" />
                             </button>
                             
                             {showBrandMenu && (
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fadeIn">
-                                    <div className="p-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Brand</div>
+                                <div className={BrandKitManagerStyles.menuDropdown}>
+                                    <div className={BrandKitManagerStyles.menuHeader}>Select Brand</div>
                                     <div className="max-h-64 overflow-y-auto">
                                         {brands.map((b, i) => (
-                                            <div key={i} className="group flex items-center justify-between hover:bg-indigo-50 p-3 transition-colors cursor-pointer">
-                                                <button onClick={() => handleSwitchBrand(b)} className="flex-1 text-left text-sm font-bold text-gray-700 group-hover:text-indigo-700 truncate">
+                                            <div key={i} className={BrandKitManagerStyles.menuItem}>
+                                                <button onClick={() => handleSwitchBrand(b)} className={BrandKitManagerStyles.menuItemText}>
                                                     {b.name || b.companyName || "Untitled"}
                                                 </button>
                                                 {b.id && brands.length > 1 && (
@@ -431,10 +394,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             </div>
                                         ))}
                                     </div>
-                                    <button 
-                                        onClick={handleAddBrand}
-                                        className="w-full p-3 flex items-center gap-2 text-sm font-bold text-indigo-600 hover:bg-gray-50 border-t border-gray-100 transition-colors"
-                                    >
+                                    <button onClick={handleAddBrand} className={BrandKitManagerStyles.menuAddBtn}>
                                         <PlusIcon className="w-4 h-4"/> Create New Brand
                                     </button>
                                 </div>
@@ -442,22 +402,21 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                     </div>
                     <div className="flex gap-4 items-center">
-                        <p className="text-gray-500 text-sm">Manage your visual identity.</p>
-                        <button onClick={() => setShowMagicModal(true)} className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-purple-100 transition-colors">
+                        <p className={BrandKitManagerStyles.headerSubtitle}>Manage your visual identity.</p>
+                        <button onClick={() => setShowMagicModal(true)} className={BrandKitManagerStyles.autoFillBtn}>
                             <MagicWandIcon className="w-3 h-3"/> Auto-Fill with AI
                         </button>
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                    {/* ENHANCED SAVE INDICATOR */}
                     {isSaving ? (
-                        <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full border border-indigo-100 shadow-sm transition-all animate-pulse">
+                        <div className={BrandKitManagerStyles.saveIndicator}>
                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-xs font-bold uppercase tracking-wider">Saving...</span>
                         </div>
                     ) : lastSaved ? (
-                        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-100 shadow-sm transition-all">
+                        <div className={BrandKitManagerStyles.syncedIndicator}>
                             <CheckIcon className="w-4 h-4" />
                             <span className="text-xs font-bold uppercase tracking-wider">Synced</span>
                         </div>
@@ -471,18 +430,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 <div className="xl:col-span-2 space-y-8">
                     
                     {/* 1. Identity Assets Card */}
-                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-8 py-5 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                    <div className={BrandKitManagerStyles.card}>
+                        <div className={BrandKitManagerStyles.cardHeader}>
+                            <div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}>
                                 <ShieldCheckIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-gray-800 text-lg">Identity Assets</h2>
-                                <p className="text-xs text-gray-500">Upload high-res PNGs.</p>
+                                <h2 className={BrandKitManagerStyles.cardTitle}>Identity Assets</h2>
+                                <p className={BrandKitManagerStyles.cardDesc}>Upload high-res PNGs.</p>
                             </div>
                         </div>
                         
-                        <div className="p-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-6 ${BrandKitManagerStyles.cardContent}`}>
                             <AssetUploader 
                                 label="Primary Logo" 
                                 subLabel="Dark / Colored"
@@ -529,20 +488,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
 
                     {/* 2. Visual DNA Card (Colors & Fonts) */}
-                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                    <PaletteIcon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h2 className="font-bold text-gray-800 text-lg">Visual DNA</h2>
-                                    <p className="text-xs text-gray-500">Colors and typography.</p>
-                                </div>
+                    <div className={BrandKitManagerStyles.card}>
+                        <div className={BrandKitManagerStyles.cardHeader}>
+                            <div className={`bg-purple-100 text-purple-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                <PaletteIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className={BrandKitManagerStyles.cardTitle}>Visual DNA</h2>
+                                <p className={BrandKitManagerStyles.cardDesc}>Colors and typography.</p>
                             </div>
                         </div>
 
-                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className={`grid grid-cols-1 md:grid-cols-2 gap-10 ${BrandKitManagerStyles.cardContent}`}>
                             {/* Colors */}
                             <div>
                                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
@@ -577,11 +534,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </h3>
                                 <div className="space-y-5">
                                     <div>
-                                        <label className="text-xs text-gray-500 font-medium block mb-2">Heading Style</label>
+                                        <label className={BrandKitManagerStyles.inputLabel}>Heading Style</label>
                                         <select 
                                             value={kit.fonts.heading}
                                             onChange={(e) => updateDeepImmediate('fonts', 'heading', e.target.value)}
-                                            className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                                            className={BrandKitManagerStyles.selectField}
                                         >
                                             <option>Modern Sans (Clean)</option>
                                             <option>Classic Serif (Luxury)</option>
@@ -591,11 +548,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 font-medium block mb-2">Body Text Style</label>
+                                        <label className={BrandKitManagerStyles.inputLabel}>Body Text Style</label>
                                         <select 
                                             value={kit.fonts.body}
                                             onChange={(e) => updateDeepImmediate('fonts', 'body', e.target.value)}
-                                            className="w-full text-sm border-gray-200 rounded-xl p-3 bg-gray-50 hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                                            className={BrandKitManagerStyles.selectField}
                                         >
                                             <option>Clean Sans (Readable)</option>
                                             <option>Readable Serif (Traditional)</option>
@@ -608,62 +565,62 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
 
                     {/* 3. Brand Strategy (Expanded) */}
-                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
-                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                    <div className={BrandKitManagerStyles.card}>
+                        <div className={BrandKitManagerStyles.cardHeader}>
+                            <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>
                                 <CaptionIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-gray-800 text-lg">Brand Strategy</h2>
-                                <p className="text-xs text-gray-500">Defining your voice and audience.</p>
+                                <h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2>
+                                <p className={BrandKitManagerStyles.cardDesc}>Defining your voice and audience.</p>
                             </div>
                         </div>
 
-                        <div className="p-6 space-y-5">
+                        <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Profile Name</label>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Profile Name</label>
                                     <input 
                                         type="text" 
                                         value={kit.name || ''}
                                         onChange={(e) => handleTextChange('name', e.target.value)}
                                         onBlur={handleSave}
                                         placeholder="e.g. Summer Campaign"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                        className={BrandKitManagerStyles.inputField}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Company Name</label>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Company Name</label>
                                     <input 
                                         type="text" 
                                         value={kit.companyName}
                                         onChange={(e) => handleTextChange('companyName', e.target.value)}
                                         onBlur={handleSave}
                                         placeholder="e.g. Skyline Realty"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                        className={BrandKitManagerStyles.inputField}
                                     />
                                 </div>
                             </div>
                             
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Website</label>
+                                <label className={BrandKitManagerStyles.inputLabel}>Website</label>
                                 <input 
                                     type="text" 
                                     value={kit.website}
                                     onChange={(e) => handleTextChange('website', e.target.value)}
                                     onBlur={handleSave}
                                     placeholder="e.g. www.skyline.com"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                    className={BrandKitManagerStyles.inputField}
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Tone of Voice</label>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label>
                                     <select 
                                         value={kit.toneOfVoice}
                                         onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all cursor-pointer"
+                                        className={BrandKitManagerStyles.selectField}
                                     >
                                         <option>Professional</option>
                                         <option>Luxury</option>
@@ -674,27 +631,27 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Target Audience</label>
+                                    <label className={BrandKitManagerStyles.inputLabel}>Target Audience</label>
                                     <input 
                                         type="text" 
                                         value={kit.targetAudience || ''}
                                         onChange={(e) => handleTextChange('targetAudience', e.target.value)}
                                         onBlur={handleSave}
                                         placeholder="e.g. Tech-savvy millennials"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                        className={BrandKitManagerStyles.inputField}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Negative Prompts (What to Avoid)</label>
+                                <label className={BrandKitManagerStyles.inputLabel}>Negative Prompts (What to Avoid)</label>
                                 <input 
                                     type="text" 
                                     value={kit.negativePrompts || ''}
                                     onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
                                     onBlur={handleSave}
                                     placeholder="e.g. No cartoons, no neon colors, no clutter"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-green-500 outline-none transition-all"
+                                    className={BrandKitManagerStyles.inputField}
                                 />
                             </div>
                         </div>
@@ -709,18 +666,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Preview</h3>
                         </div>
-                        <div className="bg-gradient-to-br from-[#1A1A1E] to-[#2C2C2E] p-1 rounded-3xl shadow-2xl">
-                            <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[20px] border border-white/10 text-white">
-                                <div className="flex justify-between items-center mb-6">
+                        <div className={BrandKitManagerStyles.previewCard}>
+                            <div className={BrandKitManagerStyles.previewInner}>
+                                <div className={BrandKitManagerStyles.previewHeader}>
                                     <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Brand Card</h3>
-                                    <div className="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">{kit.toneOfVoice}</div>
+                                    <div className={BrandKitManagerStyles.previewTag}>{kit.toneOfVoice}</div>
                                 </div>
 
                                 {/* Logo Area */}
                                 <div className="mb-8 pb-6 border-b border-white/10">
                                     <div className="grid grid-cols-2 gap-4">
-                                        {/* Light Theme Context (for Dark Logo) */}
-                                        <div className="aspect-square rounded-xl bg-white flex items-center justify-center p-6 relative">
+                                        {/* Light Theme Context */}
+                                        <div className={`bg-white ${BrandKitManagerStyles.previewLogoBox}`}>
                                             <span className="absolute top-2 left-3 text-[9px] font-bold text-gray-300 uppercase tracking-wider">On Light</span>
                                             {kit.logos.primary ? (
                                                 <img src={kit.logos.primary} className="w-full h-full object-contain" alt="Primary Logo" />
@@ -731,8 +688,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                             )}
                                         </div>
 
-                                        {/* Dark Theme Context (for Light Logo) */}
-                                        <div className="aspect-square rounded-xl bg-[#121212] border border-white/10 flex items-center justify-center p-6 relative">
+                                        {/* Dark Theme Context */}
+                                        <div className={`bg-[#121212] border border-white/10 ${BrandKitManagerStyles.previewLogoBox}`}>
                                             <span className="absolute top-2 left-3 text-[9px] font-bold text-gray-600 uppercase tracking-wider">On Dark</span>
                                             {kit.logos.secondary ? (
                                                 <img src={kit.logos.secondary} className="w-full h-full object-contain" alt="Secondary Logo" />
@@ -758,7 +715,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                         Building the future of {kit.website || "your brand"}.
                                     </p>
                                     {kit.targetAudience && (
-                                        <p className="text-[10px] bg-white/10 inline-block px-2 py-1 rounded">Target: {kit.targetAudience}</p>
+                                        <p className={BrandKitManagerStyles.previewTag}>Target: {kit.targetAudience}</p>
                                     )}
                                 </div>
 
