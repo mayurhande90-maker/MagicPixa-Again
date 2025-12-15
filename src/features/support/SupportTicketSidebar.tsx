@@ -31,7 +31,7 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
                 lg:static lg:w-full lg:h-full lg:shadow-none lg:bg-transparent lg:transform-none lg:z-auto
                 ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
             `}>
-                <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative w-full">
+                <div className="bg-white/80 backdrop-blur-2xl rounded-none lg:rounded-[2rem] border-l lg:border border-white/60 h-full shadow-xl shadow-gray-200/50 overflow-hidden flex flex-col relative w-full">
                     
                     {/* Mobile Close Button */}
                     <button onClick={() => setIsOpen(false)} className="lg:hidden absolute top-4 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full z-50">

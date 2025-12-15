@@ -39,15 +39,15 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
             {/* Premium Header - Fixed height, no shrinking */}
-            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-4 px-6 lg:px-8 z-30 shadow-sm flex-none h-20">
+            <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 py-3 px-4 lg:py-4 lg:px-8 z-30 shadow-sm flex-none h-16 lg:h-20">
                 <div className="max-w-7xl mx-auto h-full flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
-                            <LifebuoyIcon className="w-5 h-5" />
+                    <div className="flex items-center gap-3 lg:gap-4">
+                        <div className="p-2 lg:p-2.5 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
+                            <LifebuoyIcon className="w-4 h-4 lg:w-5 lg:h-5" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">Support Center</h1>
-                            <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">AI Concierge & Help Desk</p>
+                            <h1 className="text-lg lg:text-xl font-black text-gray-900 tracking-tight leading-none">Support Center</h1>
+                            <p className="text-[10px] lg:text-xs font-bold text-gray-400 mt-0.5 lg:mt-1 uppercase tracking-wider">AI Concierge & Help Desk</p>
                         </div>
                     </div>
                     
@@ -70,18 +70,18 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                         {/* Mobile Sidebar Toggle */}
                         <button 
                             onClick={() => setSidebarOpen(!sidebarOpen)} 
-                            className="lg:hidden p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-transparent hover:border-indigo-100"
+                            className="lg:hidden p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-transparent hover:border-indigo-100"
                         >
-                            <TicketIcon className="w-5 h-5" />
+                            <TicketIcon className="w-6 h-6" />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Area - Absolute Positioning Strategy for Robustness */}
-            <div className="flex-1 w-full relative overflow-hidden z-10">
-                <div className="absolute inset-0 p-0 sm:p-4 lg:p-6 overflow-hidden flex justify-center">
-                    <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 h-full">
+            {/* Main Content Area - Flex Column for Robust Layout */}
+            <div className="flex-1 w-full min-h-0 overflow-hidden relative z-10 flex flex-col">
+                <div className="flex-1 w-full max-w-7xl mx-auto p-0 sm:p-4 lg:p-6">
+                    <div className="h-full w-full grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6">
                         {/* LEFT: CHAT INTERFACE (Takes 2 columns) */}
                         <SupportChatWindow auth={auth} appConfig={appConfig || null} onTicketCreated={handleTicketCreated} />
 
