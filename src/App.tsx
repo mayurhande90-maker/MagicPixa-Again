@@ -26,16 +26,19 @@ import { ShieldCheckIcon } from './components/icons';
 // --- Inline Components for Admin Features ---
 
 const ImpersonationBanner: React.FC<{ originalUser: User; targetUser: User; onExit: () => void }> = ({ originalUser, targetUser, onExit }) => (
-    <div className="bg-orange-500 text-white px-4 py-2 flex justify-between items-center z-[100] relative">
-        <div className="flex items-center gap-2">
-            <ShieldCheckIcon className="w-5 h-5" />
-            <span className="font-bold text-sm">
-                Admin Mode: Viewing as {targetUser.name} ({targetUser.email})
-            </span>
+    <div className="fixed top-0 left-0 right-0 bg-orange-600 text-white px-6 py-3 flex justify-between items-center z-[100] shadow-lg animate-slideDown">
+        <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-1.5 rounded-full">
+                <ShieldCheckIcon className="w-5 h-5" />
+            </div>
+            <div>
+                <p className="font-bold text-sm leading-none">Admin Mode Active</p>
+                <p className="text-xs text-orange-100 mt-0.5">Viewing as <span className="font-bold underline">{targetUser.name}</span> ({targetUser.email})</p>
+            </div>
         </div>
         <button 
             onClick={onExit}
-            className="bg-white text-orange-600 px-3 py-1 rounded text-xs font-bold hover:bg-gray-100"
+            className="bg-white text-orange-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-50 transition-colors shadow-sm"
         >
             Exit View
         </button>
@@ -236,7 +239,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-slate-900">
+    <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
       {impersonatedUser && user && (
           <ImpersonationBanner 
             originalUser={user} 
@@ -321,4 +324,3 @@ function App() {
 }
 
 export default App;
-// Restore point updated

@@ -106,6 +106,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             avatar: initials, 
             credits: 10,
             totalCreditsAcquired: 10,
+            lifetimeGenerations: 0, // Explicit initialization
             plan: 'Free',
             signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
             lastActive: firebase.firestore.FieldValue.serverTimestamp() as any,
@@ -127,20 +128,23 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     } catch (e) { console.error("Error updating lastActive:", e); }
     
     const userData = doc.data() as User;
+    const updates: any = {};
+
+    // DATA BACKFILL / NORMALIZATION
+    // Ensures old users don't see "NaN" or missing stats
+    if (userData.lifetimeGenerations === undefined) updates.lifetimeGenerations = 0;
+    if (userData.totalCreditsAcquired === undefined) updates.totalCreditsAcquired = userData.credits || 0;
+    if (!userData.plan) updates.plan = 'Free';
+    if (!userData.avatar) updates.avatar = initials;
     
+    // Promote Super Admin if needed
     if (isSuperAdmin && userData.isAdmin !== true) {
-        try {
-            await userRef.set({ isAdmin: true }, { merge: true });
-            return { ...userData, isAdmin: true };
-        } catch (e) {
-            console.error("Failed to promote Super Admin (DB permission issue?)", e);
-            return { ...userData, isAdmin: true };
-        }
+        updates.isAdmin = true;
     }
-    
-    if (!userData.avatar) {
-        await userRef.update({ avatar: initials });
-        return { ...userData, avatar: initials };
+
+    if (Object.keys(updates).length > 0) {
+        await userRef.update(updates);
+        return { ...userData, ...updates };
     }
 
     return userData;
@@ -317,6 +321,7 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        // Return updated object with assumed increment
         return { ...userData, credits: newCredits, lifetimeGenerations: (userData.lifetimeGenerations || 0) + 1 };
     });
 };
