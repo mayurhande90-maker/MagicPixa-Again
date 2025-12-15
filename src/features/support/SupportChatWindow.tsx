@@ -369,7 +369,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             )}
 
             {/* Input Area - Fixed at Bottom (COMPACT MODE) */}
-            <div className="flex-none p-2 sm:p-3 bg-white/90 backdrop-blur-xl border-t border-gray-200 relative z-20">
+            <div className="flex-none px-2 sm:px-3 pt-2 pb-1 bg-white/95 backdrop-blur-xl border-t border-gray-200 relative z-20">
                 
                 {hasInteracted && !loadingHistory && !isTyping && (
                     <div className="mb-2 overflow-x-auto pb-1 no-scrollbar">
@@ -377,7 +377,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     </div>
                 )}
                 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
                     <div className="flex gap-2 items-end bg-white border border-gray-200 p-1.5 rounded-2xl sm:rounded-[1.5rem] shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
                         <button 
                             onClick={() => fileInputRef.current?.click()}
@@ -415,14 +415,14 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         </button>
                     </div>
 
-                    {/* New Chat Button (Restored) */}
-                    <div className="flex justify-center">
+                    {/* New Chat Button (Ultra Compact) */}
+                    <div className="flex justify-center pb-1">
                         <button 
                             onClick={handleNewChat}
-                            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-all text-[10px] font-bold uppercase tracking-wider border border-transparent hover:border-gray-200 transform active:scale-95"
+                            className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-all text-[9px] font-bold uppercase tracking-wider border border-transparent hover:border-gray-200 transform active:scale-95"
                             title="Start a fresh conversation"
                         >
-                            <PlusIcon className="w-3 h-3" />
+                            <PlusIcon className="w-2.5 h-2.5" />
                             New Chat
                         </button>
                     </div>
