@@ -500,6 +500,22 @@ export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     }
 };
 
+// Swaps the active profile on the User document with the data from the chosen brand
+export const activateBrand = async (uid: string, brandId: string) => {
+    if (!db) return;
+    
+    // 1. Fetch the target brand
+    const brandSnap = await db.collection('users').doc(uid).collection('brands').doc(brandId).get();
+    if (!brandSnap.exists) throw new Error("Brand not found");
+    
+    const brandData = { id: brandSnap.id, ...brandSnap.data() } as BrandKit;
+    
+    // 2. Set as Active on Profile
+    await db.collection('users').doc(uid).update({ brandKit: brandData });
+    
+    return brandData;
+};
+
 export const deleteBrandFromCollection = async (uid: string, brandId: string) => {
     if (!db) return;
     await db.collection('users').doc(uid).collection('brands').doc(brandId).delete();

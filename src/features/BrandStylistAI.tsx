@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { LightbulbIcon, UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, MagicWandIcon, CopyIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, ArrowRightIcon, ReplicaIcon, ReimagineIcon } from '../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateStyledBrandAsset } from '../services/brandStylistService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -74,6 +74,24 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
+    // BRAND KIT INTEGRATION: AUTO-FILL
+    useEffect(() => {
+        if (auth.user?.brandKit) {
+            const kit = auth.user.brandKit;
+            
+            // Only fill empty fields to prevent overwriting user input
+            if (!website) setWebsite(kit.website);
+            if (!productName && kit.companyName) setProductName(kit.companyName);
+            
+            // Auto-load Logo if available and not already set
+            if (kit.logos.primary && !logoImage) {
+                urlToBase64(kit.logos.primary).then(base64 => {
+                    setLogoImage({ url: kit.logos.primary!, base64 });
+                }).catch(e => console.warn("Auto-logo load failed", e));
+            }
+        }
+    }, [auth.user?.brandKit]); // Re-run when brand kit changes (switcher in header)
+
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
     };
@@ -89,6 +107,9 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
+            // Pass Brand Color if available from Brand Kit
+            const brandColor = auth.user?.brandKit?.colors.primary;
+
             const assetUrl = await generateStyledBrandAsset(
                 productImage.base64.base64,
                 productImage.base64.mimeType,
@@ -104,8 +125,8 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 genMode,
                 language,
                 'physical',
-                undefined,
-                'Modern Sans'
+                brandColor, // Use brand color
+                auth.user?.brandKit?.fonts.heading || 'Modern Sans' // Use brand font
             );
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
             const finalImageUrl = `data:image/png;base64,${assetUrl}`; const creationId = await saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker'); setLastCreationId(creationId);
@@ -167,6 +188,19 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     ) : (
                         <div className={`space-y-8 p-2 animate-fadeIn flex flex-col h-full relative ${loading ? 'opacity-50 pointer-events-none cursor-not-allowed grayscale-[0.5]' : ''}`}>
                             
+                             {/* BRAND KIT ACTIVE PILL (Visual Indicator) */}
+                             {auth.user?.brandKit && (
+                                <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
+                                        {auth.user.brandKit.logos.primary ? <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
+                                        <p className="text-xs font-bold text-indigo-900">{auth.user.brandKit.name || auth.user.brandKit.companyName}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Row 1: Assets */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">

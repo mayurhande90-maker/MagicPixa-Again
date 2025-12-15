@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
+import { BrandSwitcher } from './BrandSwitcher';
 import { SparklesIcon, MagicPixaLogo, AudioWaveIcon, MenuIcon, XIcon, ArrowLeftIcon, CreditCoinIcon } from './icons';
 import { getBadgeInfo } from '../utils/badgeUtils';
 
@@ -28,6 +29,14 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
   }
 
   const badge = auth.user ? getBadgeInfo(auth.user.lifetimeGenerations) : null;
+
+  const handleNavigateToBrandManager = (view: 'brand_manager') => {
+      if (auth.setActiveView) {
+          auth.setActiveView(view);
+      } else {
+          navigateTo('dashboard', view);
+      }
+  };
 
   const MobileNavMenu: React.FC = () => (
     <div className="fixed inset-0 bg-white z-[100] p-4 flex flex-col">
@@ -113,6 +122,10 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                             <CreditCoinIcon className="w-4 h-4" />
                             <span>{auth.user.credits} Credits</span>
                         </div>
+                        
+                        {/* Brand Switcher - Added here */}
+                        <div className="h-6 w-px bg-gray-200"></div>
+                        <BrandSwitcher user={auth.user} onNavigate={handleNavigateToBrandManager as any} />
                         
                         <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
                   </div>

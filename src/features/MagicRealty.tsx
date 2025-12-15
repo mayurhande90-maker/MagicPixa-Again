@@ -103,18 +103,24 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Initial Brand Kit Load
+    // Initial Brand Kit Load & Sync on Change
     useEffect(() => { 
         if (auth.user?.brandKit) { 
             const kit = auth.user.brandKit;
-            setTexts(prev => ({ ...prev, contact: kit.website || prev.contact }));
+            
+            // Auto-fill contact info if not set by user manually
+            if (!texts.contact) {
+                setTexts(prev => ({ ...prev, contact: kit.website || kit.companyName || prev.contact }));
+            }
+            
+            // Auto-load logo if available
             if (kit.logos.primary && !logoImage) { 
                 urlToBase64(kit.logos.primary).then(base64 => {
                     setLogoImage({ url: kit.logos.primary!, base64 });
                 }).catch(e => console.warn("Logo load error", e));
             }
         }
-    }, [auth.user]);
+    }, [auth.user?.brandKit]); // Re-runs when active brand switches
 
     // Loading Animation Loop
     useEffect(() => { 
@@ -261,6 +267,19 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     ) : (
                         <div className={RealtyStyles.container}>
                             
+                            {/* BRAND KIT ACTIVE PILL */}
+                            {auth.user?.brandKit && (
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
+                                        {auth.user.brandKit.logos.primary ? <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
+                                        <p className="text-xs font-bold text-indigo-900">{auth.user.brandKit.name || auth.user.brandKit.companyName}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* STEP 1: ASSETS */}
                             <div>
                                 <div className={RealtyStyles.sectionHeader}>
