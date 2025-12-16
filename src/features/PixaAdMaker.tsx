@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, UtensilsIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
@@ -90,7 +90,7 @@ const CompactUpload: React.FC<{
 
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     // 1. SELECTION STATE
-    const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | null>(null);
+    const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services' | null>(null);
 
     // 2. COMMON ASSETS
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -107,14 +107,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [productName, setProductName] = useState('');
     const [offer, setOffer] = useState('');
     const [desc, setDesc] = useState('');
+    
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('');
     const [config, setConfig] = useState('');
     const [features, setFeatures] = useState<string[]>([]);
     const [currentFeature, setCurrentFeature] = useState('');
+    
     const [dishName, setDishName] = useState('');
     const [restaurant, setRestaurant] = useState('');
+    
     const [headline, setHeadline] = useState('');
+    const [subheadline, setSubheadline] = useState('');
     const [cta, setCta] = useState('');
 
     // 4. UI STATE
@@ -148,8 +152,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }
             if (kit.website) setCta(`Visit ${kit.website}`);
             if (kit.toneOfVoice) setTone(kit.toneOfVoice);
+        } else {
+            // FIX: Brand Kit Deactivated (Toggled OFF)
+            // Clear logo to reflect manual mode if no brand kit is present
+            setLogoImage(null);
+            // Optional: clear other auto-fills if needed, but logo is the main visual one
         }
-    }, [auth.user?.brandKit?.id]);
+    }, [auth.user?.brandKit]); // Removing .id check to catch nullification properly
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
@@ -206,7 +215,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 productName, offer, description: desc,
                 project, location, config, features,
                 dishName, restaurant,
-                headline, cta
+                headline, cta, subheadline
             };
 
             const assetUrl = await generateAdCreative(inputs);
@@ -239,7 +248,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setProductName(''); setOffer(''); setDesc('');
         setProject(''); setLocation(''); setConfig(''); setFeatures([]);
         setDishName(''); setRestaurant('');
-        setHeadline(''); setCta('');
+        setHeadline(''); setCta(''); setSubheadline('');
         setLastCreationId(null);
     };
 
@@ -251,9 +260,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Validation Logic
     const isValid = !!mainImage && !isLowCredits && (
         (industry === 'ecommerce' && !!productName) ||
+        (industry === 'fmcg' && !!productName) ||
+        (industry === 'fashion' && !!productName) ||
         (industry === 'realty' && !!project) ||
         (industry === 'food' && !!dishName) ||
-        (industry === 'saas' && !!headline)
+        ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
 
     return (
@@ -308,6 +319,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         styles={{ card: AdMakerStyles.cardEcommerce, orb: AdMakerStyles.orbEcommerce, icon: AdMakerStyles.iconEcommerce }}
                                     />
                                     <IndustryCard 
+                                        title="FMCG / CPG" desc="Packaged Goods" 
+                                        icon={<CubeIcon className={`w-8 h-8 text-green-600`}/>} 
+                                        onClick={() => setIndustry('fmcg')}
+                                        styles={{ card: "bg-gradient-to-br from-[#E8F5E9] via-[#F1F8E9] to-[#DCEDC8]", orb: "bg-gradient-to-tr from-green-300 to-lime-200 -top-20 -right-20", icon: "text-green-600" }}
+                                    />
+                                    <IndustryCard 
+                                        title="Fashion" desc="Lifestyle & Apparel" 
+                                        icon={<ApparelIcon className={`w-8 h-8 text-pink-500`}/>} 
+                                        onClick={() => setIndustry('fashion')}
+                                        styles={{ card: "bg-gradient-to-br from-[#FCE4EC] via-[#F8BBD0] to-[#F48FB1]", orb: "bg-gradient-to-tr from-pink-300 to-rose-200 -top-20 -right-20", icon: "text-pink-500" }}
+                                    />
+                                    <IndustryCard 
                                         title="Real Estate" desc="Property flyers" 
                                         icon={<BuildingIcon className={`w-8 h-8 ${AdMakerStyles.iconRealty}`}/>} 
                                         onClick={() => setIndustry('realty')}
@@ -320,10 +343,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         styles={{ card: AdMakerStyles.cardFood, orb: AdMakerStyles.orbFood, icon: AdMakerStyles.iconFood }}
                                     />
                                     <IndustryCard 
-                                        title="SaaS / Tech" desc="B2B, App Launch" 
+                                        title="SaaS / Tech" desc="B2B, Software" 
                                         icon={<SaaSRequestIcon className={`w-8 h-8 ${AdMakerStyles.iconSaaS}`}/>} 
                                         onClick={() => setIndustry('saas')}
                                         styles={{ card: AdMakerStyles.cardSaaS, orb: AdMakerStyles.orbSaaS, icon: AdMakerStyles.iconSaaS }}
+                                    />
+                                    <IndustryCard 
+                                        title="Education" desc="Courses, Schools" 
+                                        icon={<LightbulbIcon className={`w-8 h-8 text-amber-600`}/>} 
+                                        onClick={() => setIndustry('education')}
+                                        styles={{ card: "bg-gradient-to-br from-[#FFF3E0] via-[#FFE0B2] to-[#FFCC80]", orb: "bg-gradient-to-tr from-amber-300 to-orange-200 -top-20 -right-20", icon: "text-amber-600" }}
+                                    />
+                                    <IndustryCard 
+                                        title="Services" desc="Consulting, Agency" 
+                                        icon={<BuildingIcon className={`w-8 h-8 text-indigo-600`}/>} 
+                                        onClick={() => setIndustry('services')}
+                                        styles={{ card: "bg-gradient-to-br from-[#EDE7F6] via-[#D1C4E9] to-[#B39DDB]", orb: "bg-gradient-to-tr from-indigo-300 to-purple-200 -top-20 -right-20", icon: "text-indigo-600" }}
                                     />
                                 </div>
                             ) : (
@@ -335,7 +370,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     
                                     <div className="flex items-center justify-between mb-2">
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
-                                            {industry === 'ecommerce' ? 'E-commerce Mode' : industry === 'realty' ? 'Real Estate Mode' : industry === 'food' ? 'Food & Dining Mode' : 'SaaS Mode'}
+                                            {industry.toUpperCase()} Mode
                                         </span>
                                     </div>
 
@@ -408,13 +443,21 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         
-                                        {industry === 'ecommerce' && (
+                                        {(industry === 'ecommerce' || industry === 'fmcg') && (
                                             <div className="space-y-4">
                                                 <div className={AdMakerStyles.grid2}>
                                                     <InputField placeholder="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
                                                     <InputField placeholder="Offer / Discount" value={offer} onChange={(e: any) => setOffer(e.target.value)} />
                                                 </div>
                                                 <InputField label="Short Description / Vibe" placeholder="e.g. Organic, Summer Sale, Minimalist" value={desc} onChange={(e: any) => setDesc(e.target.value)} />
+                                            </div>
+                                        )}
+
+                                        {industry === 'fashion' && (
+                                            <div className="space-y-4">
+                                                <InputField placeholder="Brand / Product" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
+                                                <InputField placeholder="Collection / Offer" value={offer} onChange={(e: any) => setOffer(e.target.value)} />
+                                                <SelectionGrid label="Vibe" options={['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage']} value={tone} onChange={setTone} />
                                             </div>
                                         )}
 
@@ -444,12 +487,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         )}
 
-                                        {industry === 'saas' && (
+                                        {(industry === 'saas' || industry === 'education' || industry === 'services') && (
                                             <div className="space-y-4">
                                                 <InputField placeholder="Main Headline" value={headline} onChange={(e: any) => setHeadline(e.target.value)} />
+                                                <InputField placeholder="Sub-headline / Value Prop" value={subheadline} onChange={(e: any) => setSubheadline(e.target.value)} />
                                                 <div className={AdMakerStyles.grid2}>
                                                     <InputField placeholder="Call to Action" value={cta} onChange={(e: any) => setCta(e.target.value)} />
-                                                    <SelectionGrid label="Style" options={['Modern', 'Dark', 'Clean']} value={tone} onChange={setTone} />
+                                                    <SelectionGrid label="Style" options={['Modern', 'Trustworthy', 'Creative', 'Clean']} value={tone} onChange={setTone} />
                                                 </div>
                                             </div>
                                         )}
