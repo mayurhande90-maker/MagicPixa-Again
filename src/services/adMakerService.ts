@@ -111,13 +111,28 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
 
     // 3. SMART MAPPING
     const smartMappingLogic = `
+    *** INTELLIGENT CONTENT ENGINE (COPYWRITING) ***
+    - **Analyze, Don't Copy**: You are a Creative Director. The "CONTEXT" sections below are raw data points. **DO NOT copy-paste the user's text blindly.**
+    - **Synthesize Value**: Analyze the product details to understand the core benefit. Generate your own high-impact, punchy headlines and micro-copy that is better than the input.
+      - Example Input: "Sale 50%" -> Output Headline: "Half Price. Full Style."
+      - Example Input: "Fast car" -> Output Headline: "Unleash Speed."
+    - **Language**: English, unless the input is clearly in another language.
+    
+    *** STRICT LOGO PROTOCOL (NO HALLUCINATIONS) ***
+    - **Sacred Asset**: The provided "BRAND LOGO" image is immutable. You must include it in the final image.
+    - **No Alterations**: Do NOT warp, redraw, or "creatively interpret" the logo shape or text. Use it EXACTLY as provided.
+    - **Smart Contrast**: 
+      - Analyze the background where you place the logo.
+      - **IF Dark Background**: Render the logo in **WHITE/LIGHT**.
+      - **IF Light Background**: Render the logo in **BLACK/DARK**.
+      - Ensure 100% legibility and separation from the background.
+
     *** DESIGN PROTOCOL: WORLD CLASS & CLUTTER-FREE ***
     - **Clutter-Free**: Use ample whitespace. Focus on ONE core message.
     - **Authenticity**: Avoid looking cheap or overly "salesy". Use elegant layouts.
-    - **Brand Integration**: Incorporate the logo naturally.
     - **Hierarchy**: 
       1. HERO IMAGE (Visual Story)
-      2. HEADLINE (Short, < 6 words)
+      2. GENERATED HEADLINE (Short, < 6 words)
       3. CTA (Button/Pill)
     `;
 
@@ -151,7 +166,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     if (inputs.industry === 'realty') {
         return `You are a Luxury Real Estate Designer.
         TASK: Create a Premium Property Ad (${ratio}).
-        DATA: 
+        CONTEXT: 
         - Project: "${inputs.project}"
         - Loc: "${inputs.location}"
         - Config: "${inputs.config}"
@@ -167,7 +182,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     if (inputs.industry === 'food') {
         return `You are a Gourmet Food Ad Designer.
         TASK: Create a Mouth-Watering Ad (${ratio}).
-        DATA: 
+        CONTEXT: 
         - Dish: "${inputs.dishName}"
         - Brand: "${inputs.restaurant}"
         VIBE: ${inputs.tone}.
@@ -182,7 +197,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     if (inputs.industry === 'fmcg') {
         return `You are a CPG Ad Designer.
         TASK: Create a High-Impact Product Ad (${ratio}).
-        DATA: 
+        CONTEXT: 
         - Product: "${inputs.productName}"
         - Offer: "${inputs.offer}"
         - Desc: "${inputs.description}"
@@ -197,7 +212,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     if (inputs.industry === 'fashion') {
         return `You are a High-Fashion Ad Designer.
         TASK: Create a Stylish Ad (${ratio}).
-        DATA: 
+        CONTEXT: 
         - Brand: "${inputs.productName}"
         - Offer: "${inputs.offer}"
         
@@ -211,7 +226,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     if (inputs.industry === 'saas') {
         return `You are a Tech/SaaS Ad Designer.
         TASK: Create a B2B Ad Creative (${ratio}).
-        DATA: 
+        CONTEXT: 
         - Headline: "${inputs.headline}"
         - CTA: "${inputs.cta}"
         
@@ -224,7 +239,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     // Default
     return `You are a Direct Response Ad Designer.
     TASK: Create a High-CTR Ad (${ratio}).
-    DATA: 
+    CONTEXT: 
     - Product: "${inputs.productName}"
     - Offer: "${inputs.offer}"
     - Desc: "${inputs.description}"
