@@ -53,6 +53,24 @@ const FocusCard: React.FC<{ title: string; desc: string; selected: boolean; onCl
     </button>
 );
 
+// --- COMPONENT: RATIO CARD ---
+const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void }> = ({ label, ratio, sub, selected, onClick }) => (
+    <button 
+        onClick={onClick} 
+        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all w-full ${
+            selected 
+            ? 'bg-blue-50 border-blue-500 shadow-sm' 
+            : 'bg-white border-gray-100 hover:border-gray-200'
+        }`}
+    >
+        <div className={`border-2 rounded flex items-center justify-center bg-gray-50 ${ratio === '9:16' ? 'w-4 h-7' : ratio === '4:5' ? 'w-5 h-6' : 'w-6 h-6'} ${selected ? 'border-blue-400 bg-blue-100' : 'border-gray-300'}`}></div>
+        <div className="text-left">
+            <p className={`text-[10px] font-bold uppercase tracking-wider ${selected ? 'text-blue-700' : 'text-gray-600'}`}>{label}</p>
+            <p className="text-[9px] text-gray-400">{sub}</p>
+        </div>
+    </button>
+);
+
 // --- COMPONENT: COMPACT UPLOAD ---
 const CompactUpload: React.FC<{ 
     label: string; 
@@ -63,7 +81,7 @@ const CompactUpload: React.FC<{
     heightClass?: string; 
     optional?: boolean;
     uploadText?: string;
-    isScanning?: boolean; // New prop for scan animation
+    isScanning?: boolean;
 }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional, uploadText, isScanning }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
@@ -110,6 +128,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // 1. SELECTION STATE
     const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services' | null>(null);
     const [visualFocus, setVisualFocus] = useState<'product' | 'lifestyle' | 'conceptual'>('product');
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
 
     // 2. COMMON ASSETS
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -172,30 +191,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             if (kit.website) setCta(`Visit ${kit.website}`);
             if (kit.toneOfVoice) setTone(kit.toneOfVoice);
         } else {
-            // FIX: Brand Kit Deactivated (Toggled OFF)
-            // Clear logo to reflect manual mode if no brand kit is present
             setLogoImage(null);
-            // Optional: clear other auto-fills if needed, but logo is the main visual one
         }
-    }, [auth.user?.brandKit]); // Removing .id check to catch nullification properly
+    }, [auth.user?.brandKit]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
     };
 
-    // Special handler for Reference Upload to trigger Scan Effect
+    // Special handler for Reference Upload
     const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setReferenceImage({ url: URL.createObjectURL(file), base64 });
-            setSelectedBlueprint(null); // Clear blueprint if ref uploaded
+            setSelectedBlueprint(null); 
             
-            // Trigger Scan Effect
             setIsRefScanning(true);
             setRefAnalysisDone(false);
             
-            // Simulate Scan Delay (In real implementation, call analyzeReferenceStructure here)
             setTimeout(() => {
                 setIsRefScanning(false);
                 setRefAnalysisDone(true);
@@ -221,17 +235,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
-        setLoadingText("Pixa Intelligence is constructing the ad...");
+        setLoadingText("Constructing intelligent layout...");
 
         try {
             const inputs: AdMakerInputs = {
                 industry,
-                visualFocus, // Passed here
+                visualFocus,
+                aspectRatio,
                 mainImage: mainImage.base64,
                 logoImage: logoImage?.base64,
                 tone,
-                blueprintId: selectedBlueprint || undefined, // Pass blueprint ID if selected
-                // Map fields based on industry
+                blueprintId: selectedBlueprint || undefined,
                 productName, offer, description: desc,
                 project, location, config, features,
                 dishName, restaurant,
@@ -265,6 +279,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setSelectedBlueprint(null);
         setRefAnalysisDone(false);
         setVisualFocus('product');
+        setAspectRatio('1:1');
         // Clear forms
         setProductName(''); setOffer(''); setDesc('');
         setProject(''); setLocation(''); setConfig(''); setFeatures([]);
@@ -287,12 +302,19 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         (industry === 'food' && !!dishName) ||
         ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
+    
+    // Result Height Class depends on ratio
+    const getResultHeight = () => {
+        if (aspectRatio === '9:16') return "h-[950px]";
+        if (aspectRatio === '4:5') return "h-[850px]";
+        return "h-[750px]";
+    };
 
     return (
         <>
             <FeatureLayout
                 title="Pixa AdMaker" 
-                description="Intelligent ad creation. AI scans your reference to copy the structure, or use a Blueprint to start from scratch." 
+                description="Intelligent ad creation. Supports Instagram Reels, Stories, and Feeds with safe-zone logic." 
                 icon={<MagicAdsIcon className="w-14 h-14" />} 
                 rawIcon={true} 
                 creditCost={cost} 
@@ -304,7 +326,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onResetResult={undefined}
                 onNewSession={undefined}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} 
-                resultHeightClass="h-[900px]" 
+                resultHeightClass={getResultHeight()}
                 hideGenerateButton={isLowCredits}
                 generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Smart Ad" }} 
                 scrollRef={scrollRef}
@@ -464,28 +486,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         
-                                        {/* NEW VISUAL FOCUS SELECTOR */}
+                                        {/* AD FORMAT SELECTOR */}
                                         <div className="mb-4">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Campaign Focus</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} />
+                                                <RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} />
+                                                <RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} />
+                                            </div>
+                                        </div>
+
+                                        {/* VISUAL FOCUS SELECTOR */}
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label>
                                             <div className="flex gap-2">
-                                                <FocusCard 
-                                                    title="Product" 
-                                                    desc="Studio Focus"
-                                                    selected={visualFocus === 'product'} 
-                                                    onClick={() => setVisualFocus('product')} 
-                                                />
-                                                <FocusCard 
-                                                    title="Lifestyle" 
-                                                    desc="In-Context"
-                                                    selected={visualFocus === 'lifestyle'} 
-                                                    onClick={() => setVisualFocus('lifestyle')} 
-                                                />
-                                                <FocusCard 
-                                                    title="Concept" 
-                                                    desc="Creative Art"
-                                                    selected={visualFocus === 'conceptual'} 
-                                                    onClick={() => setVisualFocus('conceptual')} 
-                                                />
+                                                <FocusCard title="Product" desc="Studio Focus" selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} />
+                                                <FocusCard title="Lifestyle" desc="In-Context" selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} />
+                                                <FocusCard title="Concept" desc="Creative Art" selected={visualFocus === 'conceptual'} onClick={() => setVisualFocus('conceptual')} />
                                             </div>
                                         </div>
 

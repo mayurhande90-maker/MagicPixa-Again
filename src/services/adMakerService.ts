@@ -28,7 +28,8 @@ export const STYLE_BLUEPRINTS = [
 
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
-    visualFocus?: 'product' | 'lifestyle' | 'conceptual'; // New Visual Strategy
+    visualFocus?: 'product' | 'lifestyle' | 'conceptual'; 
+    aspectRatio?: '1:1' | '4:5' | '9:16';
     // Common
     mainImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
@@ -54,51 +55,71 @@ export interface AdMakerInputs {
 }
 
 const getSystemPrompt = (inputs: AdMakerInputs) => {
-    // 1. SMART MAPPING / SEMANTIC SLOTTING LOGIC
-    const smartMappingLogic = `
-    *** SMART LAYOUT ENGINE: SEMANTIC SLOTTING ***
-    You are an expert Advertising Designer. Your task is to generate a **finished marketing asset**, NOT just a background.
+    const ratio = inputs.aspectRatio || '1:1';
     
-    **CRITICAL: TEXT RENDERING PROTOCOL**
-    - You MUST render the text provided in the "DATA" sections below directly onto the image.
-    - **Typography**: Text must be legible, high-contrast, and professionally typeset.
-    - **Hierarchy**: 
-      1. HEADLINE/OFFER (Largest, Boldest)
-      2. SUBHEAD/PRODUCT NAME (Medium)
-      3. CTA/DETAILS (Smallest, often in a pill/button shape)
-    - **Composition**: Do not cover the main subject (The Product/Person). Place text in negative space.
-    
-    **RULE: USER DATA AUTHORITY**
-    - The User's Input overrides ANY text found in the Reference Image or Blueprint.
-    `;
+    // 1. SAFE ZONES & FORMAT LOGIC
+    let layoutRules = "";
+    if (ratio === '9:16') {
+        layoutRules = `
+        *** TECHNICAL SPEC: INSTAGRAM STORIES/REELS (9:16) ***
+        - **Safe Zones**: CRITICAL. Leave top 14% and bottom 20% completely CLEAR of text and logos to avoid UI overlap.
+        - **Center Focus**: Place the core message and visual in the middle 60% of the screen.
+        - **Mobile-First**: Typography must be large, legible, and scannable in < 2 seconds.
+        `;
+    } else if (ratio === '4:5') {
+        layoutRules = `
+        *** TECHNICAL SPEC: INSTAGRAM FEED (4:5) ***
+        - **Vertical Feed**: Maximize screen real estate.
+        - **Composition**: Center-weighted. Ensure nothing important is at the very edges.
+        `;
+    } else {
+        layoutRules = `
+        *** TECHNICAL SPEC: SQUARE FEED (1:1) ***
+        - **Standard Feed**: Balanced grid composition.
+        - **Rule of Thirds**: Place key elements on intersection points.
+        `;
+    }
 
-    // 2. VISUAL FOCUS STRATEGY (User Logic)
+    // 2. VISUAL FOCUS STRATEGY
     let visualStrategy = "";
     const focus = inputs.visualFocus || 'product';
 
     if (focus === 'product') {
         visualStrategy = `
         *** STRATEGY: PRODUCT FOCUS (HYPER-REALISM) ***
-        - **Prompt Logic**: "Generate a hyper-realistic, 8K product photo of the [Main Image] in a ${inputs.tone} studio environment with soft studio lighting and a clean background."
-        - **Focus**: Material texture, sharp details, and impeccable lighting.
-        - **Layout**: Center the product as the undisputed HERO. Leave ample negative space for ad copy.
+        - **Goal**: Show the product's quality, texture, and details.
+        - **Visuals**: Hyper-realistic 8K render. Studio lighting (Softbox or Rim light).
+        - **Background**: Clean, non-distracting studio environment or simple podium.
+        - **Depth**: Sharp focus on the product, slight fall-off on background.
         `;
     } else if (focus === 'lifestyle') {
         visualStrategy = `
-        *** STRATEGY: LIFESTYLE SHOT (IN-CONTEXT) ***
-        - **Prompt Logic**: "Create an ultra-realistic 4K lifestyle photo of the product being used in a [${inputs.tone}] setting (e.g. bustling city, cozy cafe, modern office)."
-        - **Lighting**: Use warm 'golden hour' lighting or cinematic natural light.
-        - **Depth**: Apply a shallow depth of field (bokeh) to the background to keep the product sharp.
-        - **Vibe**: Aspirational, human, authentic.
+        *** STRATEGY: LIFESTYLE (AUTHENTICITY) ***
+        - **Goal**: Show the product in use. "Sound-off" visual storytelling.
+        - **Visuals**: Candid, authentic, "User Generated Content" vibe but pro quality.
+        - **Lighting**: Golden hour or natural window light.
+        - **Atmosphere**: Warm, relatable, human presence (hands, blurred figures).
         `;
     } else if (focus === 'conceptual') {
         visualStrategy = `
-        *** STRATEGY: CONCEPTUAL AD (METAPHOR) ***
-        - **Prompt Logic**: "Generate a conceptual image depicting the BENEFIT of the product (e.g. Speed, Freshness, Comfort) using a creative visual metaphor."
-        - **Style**: Dreamlike, soft focus, or vibrant color palette. It should look like a high-end editorial ad graphic.
-        - **Composition**: Use surreal elements (floating objects, splashes, glow) to tell a story without words.
+        *** STRATEGY: CONCEPTUAL (METAPHOR) ***
+        - **Goal**: Illustrate the BENEFIT or FEELING (e.g., Speed, Freshness, Calm).
+        - **Visuals**: Creative visual metaphor, surreal elements, floating objects.
+        - **Style**: Editorial, dreamlike, high-end art direction.
         `;
     }
+
+    // 3. SMART MAPPING
+    const smartMappingLogic = `
+    *** DESIGN PROTOCOL: WORLD CLASS & CLUTTER-FREE ***
+    - **Clutter-Free**: Use ample whitespace. Focus on ONE core message.
+    - **Authenticity**: Avoid looking cheap or overly "salesy". Use elegant layouts.
+    - **Brand Integration**: Incorporate the logo naturally.
+    - **Hierarchy**: 
+      1. HERO IMAGE (Visual Story)
+      2. HEADLINE (Short, < 6 words)
+      3. CTA (Button/Pill)
+    `;
 
     // 3. BLUEPRINT INJECTION
     let styleInstruction = "";
@@ -119,164 +140,96 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     }
 
     const commonRules = `
-    *** VISUAL DESIGN PROTOCOL (HIGH CONVERSION) ***
-    1. **Visual Hierarchy**: The Main Image is the HERO. It must occupy 60-70% of the space.
-    2. **Readability**: Use "Glassmorphism" (blur backgrounds) or solid overlays/gradients behind text if the background is busy.
-    3. **Professionalism**: Perfect alignment (grid system), negative space, and premium font choices.
-    4. **Lighting**: Relight the subject to look integrated with any background elements generated. Global illumination matching.
+    ${layoutRules}
+    ${smartMappingLogic}
+    ${visualStrategy}
+    ${styleInstruction}
     `;
 
     // INDUSTRY SPECIFIC LOGIC
     
     if (inputs.industry === 'realty') {
         return `You are a Luxury Real Estate Designer.
-        TASK: Create a Premium Property Flyer.
+        TASK: Create a Premium Property Ad (${ratio}).
         DATA: 
-        - Project Name: "${inputs.project}"
-        - Location: "${inputs.location}"
-        - Configuration: "${inputs.config}"
+        - Project: "${inputs.project}"
+        - Loc: "${inputs.location}"
+        - Config: "${inputs.config}"
         - Features: ${inputs.features?.join(', ')}
         
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
-        
         EXECUTION:
-        - Layout: Large hero image of the property at the top/center. Text info in a clean footer or floating glass card.
-        - Text: Elegant Serif fonts for headers. Minimalist modern sans-serif for details.
+        - Layout: Large hero image of the property.
+        - Text: Elegant Serif fonts for headers.
         - **Critical**: Make the property look expensive. Boost dynamic range (HDR look).
         ${commonRules}`;
     }
 
     if (inputs.industry === 'food') {
-        return `You are a Gourmet Food Photographer & Menu Designer.
-        TASK: Create a Mouth-Watering Social Media Ad.
+        return `You are a Gourmet Food Ad Designer.
+        TASK: Create a Mouth-Watering Ad (${ratio}).
         DATA: 
-        - Dish Name: "${inputs.dishName}"
-        - Restaurant/Brand: "${inputs.restaurant}"
-        VIBE: ${inputs.tone} (e.g. Fresh, Spicy, Comfort).
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
+        - Dish: "${inputs.dishName}"
+        - Brand: "${inputs.restaurant}"
+        VIBE: ${inputs.tone}.
         
         EXECUTION:
-        - Layout: Top-down or 45-degree angle of the food. Text floating around or below.
-        - Physics: Add steam, water droplets, or flying ingredients (splash) if relevant to make it look fresh.
-        - Text: Bold, appetizing typography.
-        - **Critical**: The food must look edible and delicious.
+        - Layout: Macro shot or Top-down.
+        - Physics: Steam, droplets, flying ingredients (splash).
+        - **Critical**: Must look edible and delicious.
         ${commonRules}`;
     }
 
     if (inputs.industry === 'fmcg') {
-        return `You are a CPG (Consumer Packaged Goods) Ad Designer.
-        TASK: Create a High-Impact Product Ad for Supermarkets/Social.
+        return `You are a CPG Ad Designer.
+        TASK: Create a High-Impact Product Ad (${ratio}).
         DATA: 
-        - Product Name: "${inputs.productName}"
-        - Offer/Hook: "${inputs.offer}"
-        - Description: "${inputs.description}"
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
+        - Product: "${inputs.productName}"
+        - Offer: "${inputs.offer}"
+        - Desc: "${inputs.description}"
         
         EXECUTION:
-        - Layout: Center the product packaging (bottle/box/bag). Make it pop with a glow or burst background.
-        - Elements: Add fresh ingredients (fruits, splashes, leaves) floating around if organic.
-        - Text: VERY BOLD, punchy text. "Buy 1 Get 1", "New Flavor". Use starbursts or badges for offers.
+        - Layout: Center the packaging. Make it pop.
+        - Text: BOLD, punchy. Use badges for offers.
         - **Critical**: Brand color consistency.
         ${commonRules}`;
     }
 
     if (inputs.industry === 'fashion') {
-        return `You are a High-Fashion Editorial Designer.
-        TASK: Create a Stylish Lifestyle Ad.
+        return `You are a High-Fashion Ad Designer.
+        TASK: Create a Stylish Ad (${ratio}).
         DATA: 
-        - Brand/Product: "${inputs.productName}"
-        - Collection/Offer: "${inputs.offer}"
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
+        - Brand: "${inputs.productName}"
+        - Offer: "${inputs.offer}"
         
         EXECUTION:
-        - Layout: Magazine cover style. Full bleed image. Text overlay is minimal and elegant (small serif or bold grotesque).
+        - Layout: Magazine cover style. Full bleed.
         - Vibe: Trendy, Chic, Aspirational.
-        - Lighting: Soft, flattering studio light or golden hour sun.
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'education') {
-        return `You are an EdTech Marketing Designer.
-        TASK: Create a Course Enrollment Ad.
-        DATA: 
-        - Course Title: "${inputs.headline}"
-        - Sub-header: "${inputs.subheadline}"
-        - CTA: "${inputs.cta}"
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
-        
-        EXECUTION:
-        - Layout: Split screen (Image of happy student/teacher on one side, clean text area on the other).
-        - Vibe: Trustworthy, Growth-oriented, Academic but modern.
-        - Graphics: Use subtle geometric shapes, arrows, or icons related to learning.
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'services') {
-        return `You are a B2B / Professional Services Designer.
-        TASK: Create a Trust-Building Service Ad.
-        DATA: 
-        - Service Name: "${inputs.headline}"
-        - Value Prop: "${inputs.subheadline}"
-        - CTA: "${inputs.cta}"
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
-        
-        EXECUTION:
-        - Layout: Clean corporate aesthetic.
-        - Vibe: Professional, Efficient, Reliable. Blue/Grey tones often work well unless Blueprint specifies otherwise.
-        - Text: Clear, sans-serif, easy to read.
+        - **Critical**: Model/Clothing must look premium.
         ${commonRules}`;
     }
 
     if (inputs.industry === 'saas') {
-        return `You are a Tech/SaaS Marketing Designer.
-        TASK: Create a High-Trust B2B Ad Creative.
+        return `You are a Tech/SaaS Ad Designer.
+        TASK: Create a B2B Ad Creative (${ratio}).
         DATA: 
         - Headline: "${inputs.headline}"
         - CTA: "${inputs.cta}"
-        VIBE: Trust, Growth, Modern Tech.
-        
-        ${smartMappingLogic}
-        ${visualStrategy}
-        ${styleInstruction}
         
         EXECUTION:
-        - Layout: Device mockup (laptop/phone) showing the product, or abstract tech visualization.
-        - Text: Modern Sans-Serif (Inter/Roboto style).
-        - **Critical**: Incorporate the uploaded asset (Screen UI or Stock Photo) into a modern device mockup or abstract tech environment.
+        - Layout: Abstract tech visualization or device mockup.
+        - Text: Modern Sans-Serif. Clean.
         ${commonRules}`;
     }
 
-    // Default: Ecommerce
+    // Default
     return `You are a Direct Response Ad Designer.
-    TASK: Create a High-CTR Product Ad.
+    TASK: Create a High-CTR Ad (${ratio}).
     DATA: 
     - Product: "${inputs.productName}"
     - Offer: "${inputs.offer}"
-    - Description: "${inputs.description}"
-    
-    ${smartMappingLogic}
-    ${visualStrategy}
-    ${styleInstruction}
+    - Desc: "${inputs.description}"
     
     EXECUTION:
-    - Features: Add a "Shadow" to ground the product.
     - Text: Punchy, bold, urgent.
     - **Critical**: The product must pop.
     ${commonRules}`;
@@ -302,7 +255,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs): Promise<string>
     // 3. Prompt
     const systemPrompt = getSystemPrompt(inputs);
     parts.push({ text: systemPrompt });
-    parts.push({ text: "OUTPUT: A single high-resolution image file (1024x1024). Ensure text is legible and correctly spelled." });
+    parts.push({ text: `OUTPUT: A single high-resolution image file. Ensure text is legible and correctly spelled. Aspect Ratio: ${inputs.aspectRatio || '1:1'}.` });
 
     // 4. Generate
     try {
@@ -311,7 +264,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs): Promise<string>
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
+                imageConfig: { 
+                    aspectRatio: inputs.aspectRatio || "1:1", 
+                    imageSize: "1K" 
+                }
             },
         }));
 
