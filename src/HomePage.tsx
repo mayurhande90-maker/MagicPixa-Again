@@ -14,6 +14,15 @@ interface HomePageProps {
   appConfig: AppConfig | null;
 }
 
+// Plan Hierarchy Definition (Matches Billing.tsx)
+const PLAN_WEIGHTS: Record<string, number> = {
+    'Free': 0,
+    'Starter Pack': 1,
+    'Creator Pack': 2,
+    'Studio Pack': 3,
+    'Agency Pack': 4
+};
+
 const features = [
     {
         id: 'studio',
@@ -161,15 +170,16 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
 
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   const creditPacks = appConfig?.creditPacks || [];
+  
+  // Calculate weights
+  const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
 
   const featuresWithConfig = features.map(f => {
     if (f.id && appConfig?.featureToggles && f.id in appConfig.featureToggles) {
         return { ...f, disabled: !appConfig.featureToggles[f.id] };
     }
-    // For items with hardcoded `disabled: true`, respect that setting.
     return f;
   });
-
 
   return (
     <>
@@ -255,43 +265,76 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             {/* Pricing Section */}
             <section id="pricing" className={HomeStyles.pricingSection}>
                 <div className={HomeStyles.reviewsContainer}>
-                    <h2 className={HomeStyles.sectionHeader}>Recharge Your Creative Energy</h2>
-                    <p className={HomeStyles.sectionSubheader}>Simple, one-time credit packs. No subscriptions needed.</p>
+                    <h2 className={HomeStyles.sectionHeader}>Upgrade Membership</h2>
+                    <p className={HomeStyles.sectionSubheader}>Unlock higher tiers for more perks and bulk savings.</p>
                     
                     <div className={HomeStyles.pricingGrid}>
-                        {creditPacks.map((pack, index) => (
-                            <div key={index} className={`${HomeStyles.pricingCard} ${pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard}`}>
-                                {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
-                                <h3 className={HomeStyles.featureTitle}>{pack.name}</h3>
-                                <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
-                                
-                                <div className="my-2">
-                                    <span className="text-4xl font-bold text-[#1A1A1E]">
-                                        {pack.totalCredits}
-                                    </span>
-                                    <span className="text-[#5F6368] ml-1">Credits</span>
+                        {creditPacks.map((pack, index) => {
+                            // Calculate Logic based on Auth Status
+                            const packWeight = PLAN_WEIGHTS[pack.name] || 0;
+                            
+                            let isUpgrade = true;
+                            let isCurrent = false;
+                            let isDowngrade = false;
+
+                            if (auth.isAuthenticated && auth.user) {
+                                isUpgrade = packWeight > currentPlanWeight;
+                                isCurrent = packWeight === currentPlanWeight;
+                                isDowngrade = packWeight < currentPlanWeight;
+                            }
+
+                            return (
+                                <div key={index} className={`${HomeStyles.pricingCard} ${pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard} ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 bg-gray-50' : ''}`}>
+                                    {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                    <h3 className={HomeStyles.featureTitle}>{pack.name}</h3>
+                                    <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
+                                    
+                                    <div className="my-2">
+                                        <span className="text-4xl font-bold text-[#1A1A1E]">
+                                            {pack.totalCredits}
+                                        </span>
+                                        <span className="text-[#5F6368] ml-1">Credits</span>
+                                    </div>
+                                    <div className="h-5 mb-4">
+                                      {pack.bonus > 0 && (
+                                          <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
+                                              {pack.credits} + {pack.bonus} Bonus!
+                                          </p>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
+                                        <span className="text-2xl font-bold text-[#1A1A1E]">₹{pack.price}</span>
+                                        <p className="text-xs text-gray-500">One-time payment</p>
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={() => {
+                                            if (!auth.isAuthenticated) {
+                                                auth.openAuthModal();
+                                            } else if (isUpgrade) {
+                                                navigateTo('dashboard', 'billing');
+                                            }
+                                        }}
+                                        disabled={auth.isAuthenticated && !isUpgrade}
+                                        className={`
+                                            ${HomeStyles.pricingButton} 
+                                            ${auth.isAuthenticated 
+                                                ? (isUpgrade 
+                                                    ? (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                                    : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')
+                                                : (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                            }
+                                        `}
+                                    >
+                                        {auth.isAuthenticated 
+                                            ? (isCurrent ? "Active Plan" : isDowngrade ? "Included" : "Upgrade")
+                                            : "Buy Now"
+                                        }
+                                    </button>
                                 </div>
-                                <div className="h-5 mb-4">
-                                  {pack.bonus > 0 && (
-                                      <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
-                                          {pack.credits} + {pack.bonus} Bonus!
-                                      </p>
-                                  )}
-                                </div>
-                                
-                                <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
-                                    <span className="text-2xl font-bold text-[#1A1A1E]">₹{pack.price}</span>
-                                    <p className="text-xs text-gray-500">One-time payment</p>
-                                </div>
-                                
-                                <button 
-                                    onClick={() => navigateTo('dashboard', 'billing')}
-                                    className={`${HomeStyles.pricingButton} ${pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard}`}
-                                >
-                                    Buy Now
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </section>
