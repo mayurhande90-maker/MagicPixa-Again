@@ -263,6 +263,16 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 </div>
                 
                 <div className="flex items-center gap-2">
+                    {/* New Chat Button - Moved to Header */}
+                    <button 
+                        onClick={handleNewChat}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-indigo-100"
+                        title="Start a new session (Clears history)"
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:inline">New Chat</span>
+                        <PlusIcon className="w-5 h-5" />
+                    </button>
+
                     {/* Toggle Sidebar Button for < 2XL screens */}
                     <button 
                         onClick={onToggleSidebar} 
@@ -379,18 +389,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 
                 <div className="flex gap-2 items-end bg-white border border-gray-200 p-2 rounded-[1.5rem] shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
                     
-                    {/* New Chat Button - Integrated Left */}
-                    <button
-                        onClick={handleNewChat}
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
-                        title="New Chat"
-                    >
-                        <PlusIcon className="w-5 h-5" />
-                    </button>
-
-                    {/* Vertical Divider */}
-                    <div className="w-px h-6 bg-gray-200 my-auto hidden sm:block"></div>
-
+                    {/* Attachment Button */}
                     <button 
                         onClick={() => fileInputRef.current?.click()}
                         className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shrink-0"
