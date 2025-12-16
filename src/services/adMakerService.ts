@@ -28,6 +28,7 @@ export const STYLE_BLUEPRINTS = [
 
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
+    visualFocus?: 'product' | 'lifestyle' | 'conceptual'; // New Visual Strategy
     // Common
     mainImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
@@ -54,7 +55,6 @@ export interface AdMakerInputs {
 
 const getSystemPrompt = (inputs: AdMakerInputs) => {
     // 1. SMART MAPPING / SEMANTIC SLOTTING LOGIC
-    // Enhanced instruction to force the AI to act as a layout engine, not just an image generator.
     const smartMappingLogic = `
     *** SMART LAYOUT ENGINE: SEMANTIC SLOTTING ***
     You are an expert Advertising Designer. Your task is to generate a **finished marketing asset**, NOT just a background.
@@ -70,8 +70,53 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     
     **RULE: USER DATA AUTHORITY**
     - The User's Input overrides ANY text found in the Reference Image or Blueprint.
-    - If the Reference Style has a "Phone Number" but the User provided a "Website", you must SWAP the slot.
     `;
+
+    // 2. VISUAL FOCUS STRATEGY (User Logic)
+    let visualStrategy = "";
+    const focus = inputs.visualFocus || 'product';
+
+    if (focus === 'product') {
+        visualStrategy = `
+        *** STRATEGY: PRODUCT FOCUS (HYPER-REALISM) ***
+        - **Prompt Logic**: "Generate a hyper-realistic, 8K product photo of the [Main Image] in a ${inputs.tone} studio environment with soft studio lighting and a clean background."
+        - **Focus**: Material texture, sharp details, and impeccable lighting.
+        - **Layout**: Center the product as the undisputed HERO. Leave ample negative space for ad copy.
+        `;
+    } else if (focus === 'lifestyle') {
+        visualStrategy = `
+        *** STRATEGY: LIFESTYLE SHOT (IN-CONTEXT) ***
+        - **Prompt Logic**: "Create an ultra-realistic 4K lifestyle photo of the product being used in a [${inputs.tone}] setting (e.g. bustling city, cozy cafe, modern office)."
+        - **Lighting**: Use warm 'golden hour' lighting or cinematic natural light.
+        - **Depth**: Apply a shallow depth of field (bokeh) to the background to keep the product sharp.
+        - **Vibe**: Aspirational, human, authentic.
+        `;
+    } else if (focus === 'conceptual') {
+        visualStrategy = `
+        *** STRATEGY: CONCEPTUAL AD (METAPHOR) ***
+        - **Prompt Logic**: "Generate a conceptual image depicting the BENEFIT of the product (e.g. Speed, Freshness, Comfort) using a creative visual metaphor."
+        - **Style**: Dreamlike, soft focus, or vibrant color palette. It should look like a high-end editorial ad graphic.
+        - **Composition**: Use surreal elements (floating objects, splashes, glow) to tell a story without words.
+        `;
+    }
+
+    // 3. BLUEPRINT INJECTION
+    let styleInstruction = "";
+    if (inputs.blueprintId) {
+        const blueprint = STYLE_BLUEPRINTS.find(b => b.id === inputs.blueprintId);
+        if (blueprint) {
+            styleInstruction = `
+            *** STYLE BLUEPRINT: ${blueprint.label.toUpperCase()} ***
+            - **Visual Direction**: ${blueprint.prompt}
+            - **Constraint**: Adhere strictly to this aesthetic.
+            `;
+        }
+    } else {
+        styleInstruction = `
+        *** REFERENCE MATCHING ***
+        - **Visual Direction**: Analyze the 'Reference Image' provided (if any). Copy its lighting, layout structure, text placement, and color palette exactly.
+        `;
+    }
 
     const commonRules = `
     *** VISUAL DESIGN PROTOCOL (HIGH CONVERSION) ***
@@ -80,25 +125,6 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     3. **Professionalism**: Perfect alignment (grid system), negative space, and premium font choices.
     4. **Lighting**: Relight the subject to look integrated with any background elements generated. Global illumination matching.
     `;
-
-    // 2. BLUEPRINT INJECTION
-    let styleInstruction = "";
-    if (inputs.blueprintId) {
-        const blueprint = STYLE_BLUEPRINTS.find(b => b.id === inputs.blueprintId);
-        if (blueprint) {
-            styleInstruction = `
-            *** STYLE BLUEPRINT: ${blueprint.label.toUpperCase()} ***
-            - **Visual Direction**: ${blueprint.prompt}
-            - **Constraint**: Adhere strictly to this aesthetic. Ignore generic style defaults.
-            `;
-        }
-    } else {
-        styleInstruction = `
-        *** REFERENCE MATCHING ***
-        - **Visual Direction**: Analyze the 'Reference Image' provided (if any). Copy its lighting, layout structure, text placement, and color palette exactly.
-        - **Adaptation**: Keep the style of the reference, but replace the content with the User's Product and Text.
-        `;
-    }
 
     // INDUSTRY SPECIFIC LOGIC
     
@@ -112,6 +138,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - Features: ${inputs.features?.join(', ')}
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -130,6 +157,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         VIBE: ${inputs.tone} (e.g. Fresh, Spicy, Comfort).
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -149,6 +177,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - Description: "${inputs.description}"
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -167,6 +196,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - Collection/Offer: "${inputs.offer}"
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -185,6 +215,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - CTA: "${inputs.cta}"
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -203,6 +234,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - CTA: "${inputs.cta}"
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -221,6 +253,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         VIBE: Trust, Growth, Modern Tech.
         
         ${smartMappingLogic}
+        ${visualStrategy}
         ${styleInstruction}
         
         EXECUTION:
@@ -239,6 +272,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     - Description: "${inputs.description}"
     
     ${smartMappingLogic}
+    ${visualStrategy}
     ${styleInstruction}
     
     EXECUTION:

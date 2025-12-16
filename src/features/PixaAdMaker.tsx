@@ -35,6 +35,24 @@ const IndustryCard: React.FC<{
     </button>
 );
 
+// --- COMPONENT: VISUAL FOCUS CARD ---
+const FocusCard: React.FC<{ title: string; desc: string; selected: boolean; onClick: () => void }> = ({ title, desc, selected, onClick }) => (
+    <button 
+        onClick={onClick} 
+        className={`flex-1 p-3 rounded-xl border-2 transition-all duration-300 text-center relative overflow-hidden group ${
+            selected 
+            ? 'bg-indigo-50 border-indigo-500 shadow-md scale-[1.02]' 
+            : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+        }`}
+    >
+        <div className="relative z-10">
+            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</p>
+            <p className={`text-[9px] font-medium leading-tight ${selected ? 'text-indigo-500' : 'text-gray-400'}`}>{desc}</p>
+        </div>
+        {selected && <div className="absolute top-1 right-1 text-indigo-500"><CheckIcon className="w-3 h-3"/></div>}
+    </button>
+);
+
 // --- COMPONENT: COMPACT UPLOAD ---
 const CompactUpload: React.FC<{ 
     label: string; 
@@ -91,6 +109,7 @@ const CompactUpload: React.FC<{
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     // 1. SELECTION STATE
     const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services' | null>(null);
+    const [visualFocus, setVisualFocus] = useState<'product' | 'lifestyle' | 'conceptual'>('product');
 
     // 2. COMMON ASSETS
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -207,6 +226,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const inputs: AdMakerInputs = {
                 industry,
+                visualFocus, // Passed here
                 mainImage: mainImage.base64,
                 logoImage: logoImage?.base64,
                 tone,
@@ -244,6 +264,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setReferenceImage(null);
         setSelectedBlueprint(null);
         setRefAnalysisDone(false);
+        setVisualFocus('product');
         // Clear forms
         setProductName(''); setOffer(''); setDesc('');
         setProject(''); setLocation(''); setConfig(''); setFeatures([]);
@@ -383,7 +404,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* 2. STYLE INTELLIGENCE (NEW SECTION) */}
+                                    {/* 2. STYLE INTELLIGENCE */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>2</span>
@@ -439,10 +460,35 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         )}
                                     </div>
 
-                                    {/* 3. DETAILS */}
+                                    {/* 3. SMART DETAILS & STRATEGY */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         
+                                        {/* NEW VISUAL FOCUS SELECTOR */}
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Campaign Focus</label>
+                                            <div className="flex gap-2">
+                                                <FocusCard 
+                                                    title="Product" 
+                                                    desc="Studio Focus"
+                                                    selected={visualFocus === 'product'} 
+                                                    onClick={() => setVisualFocus('product')} 
+                                                />
+                                                <FocusCard 
+                                                    title="Lifestyle" 
+                                                    desc="In-Context"
+                                                    selected={visualFocus === 'lifestyle'} 
+                                                    onClick={() => setVisualFocus('lifestyle')} 
+                                                />
+                                                <FocusCard 
+                                                    title="Concept" 
+                                                    desc="Creative Art"
+                                                    selected={visualFocus === 'conceptual'} 
+                                                    onClick={() => setVisualFocus('conceptual')} 
+                                                />
+                                            </div>
+                                        </div>
+
                                         {(industry === 'ecommerce' || industry === 'fmcg') && (
                                             <div className="space-y-4">
                                                 <div className={AdMakerStyles.grid2}>
