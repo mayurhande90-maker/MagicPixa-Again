@@ -9,7 +9,7 @@ import {
     PaperAirplaneIcon,
     TrashIcon,
     ArrowDownIcon,
-    LifebuoyIcon,
+    PixaSupportIcon,
     PlusIcon,
     TicketIcon
 } from '../../components/icons';
@@ -228,7 +228,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             <div className="flex-none px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                        <LifebuoyIcon className="w-5 h-5" />
+                        <PixaSupportIcon className="w-5 h-5" />
                     </div>
                     <div>
                         <h2 className="text-sm font-bold text-gray-800">Support Chat</h2>
