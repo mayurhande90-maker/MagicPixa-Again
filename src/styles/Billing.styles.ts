@@ -16,15 +16,26 @@ export const BillingStyles = {
   creditBigNumber: "text-7xl font-black",
   
   // Packs Grid
-  packGrid: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch",
-  packCard: `bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-transform transform hover:-translate-y-2`,
+  packGrid: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch mt-8", // Added margin top for badges
+  packCard: `bg-white p-6 rounded-2xl shadow-sm border-2 text-left flex flex-col transition-all duration-300 transform hover:-translate-y-2 relative`,
+  
+  // Variants
+  packCardActive: "border-indigo-600 bg-indigo-50/10 shadow-2xl ring-4 ring-indigo-500/10 scale-[1.03] z-10",
   packCardPopular: "border-[#F9D230] shadow-lg shadow-yellow-500/10",
   packCardStandard: "border-gray-200/80",
+  
+  // Typography
   packTitle: `text-xl font-bold ${Theme.colors.textPrimary} mb-2`,
   packPrice: `text-2xl font-bold ${Theme.colors.textPrimary}`,
+  
+  // Buttons
   packButton: `w-full mt-auto py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2`,
   packButtonPopular: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.colors.primaryHover}`,
   packButtonStandard: "bg-gray-100 text-[#1A1A1E] hover:bg-gray-200",
+  packButtonActive: "bg-indigo-600 text-white cursor-default shadow-md",
+
+  // Badges
+  activeBadge: "absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-md border-4 border-white",
   
   // History
   historyContainer: "bg-white p-2 rounded-2xl border border-gray-200/80 shadow-sm",

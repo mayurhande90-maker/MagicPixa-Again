@@ -302,8 +302,26 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                     const isDowngrade = packWeight < currentPlanWeight;
 
                     return (
-                        <div key={index} className={`${BillingStyles.packCard} ${pack.popular ? BillingStyles.packCardPopular : BillingStyles.packCardStandard} ${!isUpgrade && !isCurrent ? 'opacity-70 bg-gray-50' : ''}`}>
-                            {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                        <div 
+                            key={index} 
+                            className={`
+                                ${BillingStyles.packCard} 
+                                ${isCurrent 
+                                    ? BillingStyles.packCardActive 
+                                    : (pack.popular ? BillingStyles.packCardPopular : BillingStyles.packCardStandard)
+                                } 
+                                ${!isUpgrade && !isCurrent ? 'opacity-70 bg-gray-50' : ''}
+                            `}
+                        >
+                            {/* ACTIVE PLAN BADGE */}
+                            {isCurrent && <div className={BillingStyles.activeBadge}>Current Plan</div>}
+
+                            {/* POPULAR BADGE (Only if not current) */}
+                            {pack.popular && !isCurrent && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                            
+                            {/* Spacer if active to handle the badge offset visually inside if needed, or margin */}
+                            {isCurrent && <div className="h-2"></div>}
+
                             <h3 className={BillingStyles.packTitle}>{pack.name}</h3>
                             <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                             
@@ -330,16 +348,22 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                 className={`
                                     ${BillingStyles.packButton} 
                                     ${loadingPackage === `plan-${index}` ? 'cursor-wait opacity-80' : ''}
-                                    ${isUpgrade 
-                                        ? (pack.popular ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard)
-                                        : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200'
+                                    ${isCurrent 
+                                        ? BillingStyles.packButtonActive
+                                        : (isUpgrade 
+                                            ? (pack.popular ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard)
+                                            : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')
                                     }
                                 `}
                             >
                                 {loadingPackage === `plan-${index}` ? (
                                     <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
                                 ) : (
-                                    isCurrent ? "Active Plan" : isDowngrade ? "Included" : "Upgrade"
+                                    isCurrent ? (
+                                        <>
+                                            <CheckIcon className="w-5 h-5"/> Active
+                                        </>
+                                    ) : isDowngrade ? "Included" : "Upgrade"
                                 )}
                             </button>
                         </div>
