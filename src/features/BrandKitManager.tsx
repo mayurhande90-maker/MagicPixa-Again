@@ -1,12 +1,12 @@
 
 // ... existing imports ...
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, BrandKit } from '../types';
+import { AuthProps, BrandKit, BRAND_LIMITS } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
-    SparklesIcon, CheckIcon, ArrowLeftIcon
+    SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
@@ -178,6 +178,14 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
 
+    // LIMIT LOGIC
+    const userPlan = auth.user?.plan || 'Free';
+    // Use "includes" to check plan string (e.g. "Studio Pack | Top-up")
+    const matchedPlanKey = Object.keys(BRAND_LIMITS).find(k => userPlan.includes(k)) || 'Free';
+    const limit = BRAND_LIMITS[matchedPlanKey] || 1;
+    const usage = brands.length;
+    const isLimitReached = usage >= limit;
+
     // Replaced manual fetch with Subscription
     useEffect(() => {
         if (auth.user) {
@@ -203,6 +211,10 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     });
 
     const handleAddNewBrand = () => {
+        if (isLimitReached) {
+            setToast({ msg: `Plan limit reached (${usage}/${limit}). Please upgrade.`, type: 'error' });
+            return;
+        }
         const newBrand = createEmptyBrand('New Brand');
         setKit(newBrand);
         setViewMode('detail');
@@ -341,21 +353,47 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     // --- RENDER LIST VIEW ---
     const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
-            <div className="mb-10">
-                <h1 className={BrandKitManagerStyles.sectionTitle}>My Brands</h1>
-                <p className={BrandKitManagerStyles.sectionSubtitle}>Manage your brand profiles and visual identities.</p>
+            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className={BrandKitManagerStyles.sectionTitle}>My Brands</h1>
+                    <p className={BrandKitManagerStyles.sectionSubtitle}>Manage your brand profiles and visual identities.</p>
+                </div>
+                
+                {/* Usage Counter Badge */}
+                <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${
+                    isLimitReached 
+                    ? 'bg-red-50 border-red-200 text-red-700' 
+                    : 'bg-white border-gray-200 text-gray-600'
+                }`}>
+                    <div className={`w-2 h-2 rounded-full ${isLimitReached ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className="text-xs font-bold uppercase tracking-wide">
+                        Storage: {usage} / {limit} Used
+                    </span>
+                </div>
             </div>
 
             <div className={BrandKitManagerStyles.brandGrid}>
                 {/* ADD NEW CARD */}
                 <button 
                     onClick={handleAddNewBrand}
-                    className={BrandKitManagerStyles.addCard}
+                    className={`${BrandKitManagerStyles.addCard} ${isLimitReached ? 'opacity-70 cursor-not-allowed hover:border-red-200 hover:shadow-none bg-gray-100' : ''}`}
                 >
-                    <div className={BrandKitManagerStyles.addCardIcon}>
-                        <PlusIcon className="w-8 h-8" />
-                    </div>
-                    <span className={BrandKitManagerStyles.addCardText}>Create New Brand</span>
+                    {isLimitReached ? (
+                        <div className="flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
+                                <LockIcon className="w-8 h-8" />
+                            </div>
+                            <span className="text-sm font-bold text-red-500 uppercase tracking-wider">Limit Reached</span>
+                            <span className="text-xs text-gray-500 mt-1">Upgrade to add more brands</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={BrandKitManagerStyles.addCardIcon}>
+                                <PlusIcon className="w-8 h-8" />
+                            </div>
+                            <span className={BrandKitManagerStyles.addCardText}>Create New Brand</span>
+                        </>
+                    )}
                 </button>
                 
                 {isLoadingBrands ? (

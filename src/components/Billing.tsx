@@ -70,12 +70,12 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState<{ totalCredits: number } | null>(null);
 
-  // Default credit packs if appConfig fails to load or is empty
+  // Default credit packs with Brand Kit Limits
   const defaultCreditPacks: CreditPack[] = [
-    { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: 'For quick tests & personal use', popular: false, value: 1.98 },
-    { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: 'For creators & influencers — extra credits included!', popular: true, value: 1.51 },
-    { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: 'For professional video and design teams', popular: false, value: 1.21 },
-    { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
+    { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: '1 Brand Kit included. For personal use.', popular: false, value: 1.98 },
+    { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: '3 Brand Kits. For creators & influencers.', popular: true, value: 1.51 },
+    { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: '10 Brand Kits. For professional teams.', popular: false, value: 1.21 },
+    { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: '50 Brand Kits. For high volume agencies.', popular: false, value: 0.99 },
   ];
 
   // Refill Bundles (Gap-Filler Strategy) - Updated Names & Styling Logic
