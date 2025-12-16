@@ -179,10 +179,14 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setHasInteracted(true);
+            
+            const dataUri = `data:${base64.mimeType};base64,${base64.base64}`;
+            
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
-                content: "**[Uploaded Image]** Analyzing...",
+                content: "Analyzing attached screenshot...",
+                attachment: dataUri,
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, userMsg]);
@@ -260,6 +264,13 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                                 ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
                                                 : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
                                             }`}>
+                                                {/* Render Image Attachment if exists */}
+                                                {msg.attachment && (
+                                                    <div className="mb-3 rounded-lg overflow-hidden border border-white/20 shadow-sm bg-black/10">
+                                                        <img src={msg.attachment} alt="Upload" className="max-w-full h-auto max-h-60 object-cover" />
+                                                    </div>
+                                                )}
+
                                                 {msg.role === 'user' 
                                                     ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                                                     : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />

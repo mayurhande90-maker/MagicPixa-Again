@@ -158,6 +158,7 @@ export interface ChatMessage {
     ticketDraft?: Partial<Ticket>; // Data if it's a proposal
     timestamp: number;
     isSubmitted?: boolean; // Track if proposal was converted to ticket
+    attachment?: string; // New: Optional Data URI for image uploads
 }
 
 /**
