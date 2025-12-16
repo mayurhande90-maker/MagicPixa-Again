@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket, AppConfig } from '../../types';
-import { sendSupportMessage, createTicket, ChatMessage, analyzeErrorScreenshot } from '../../services/supportService';
+import { sendSupportMessage, createTicket, ChatMessage, analyzeSupportImage } from '../../services/supportService';
 import { fileToBase64 } from '../../utils/imageUtils';
 import { saveSupportMessage, getSupportHistory, clearSupportChat } from '../../firebase';
 import { 
@@ -182,22 +182,39 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             
             const dataUri = `data:${base64.mimeType};base64,${base64.base64}`;
             
+            // Show the user message with image immediately
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
-                content: "Analyzing attached screenshot...",
+                content: "", // Content empty, image is in attachment
                 attachment: dataUri,
                 timestamp: Date.now()
             };
+            
             setMessages(prev => [...prev, userMsg]);
             saveSupportMessage(auth.user!.uid, userMsg).catch(e => console.warn("Save failed", e));
+            
             setIsTyping(true);
-            const analysis = await analyzeErrorScreenshot(base64.base64, base64.mimeType);
+            
+            // 1. Analyze Image
+            const analysis = await analyzeSupportImage(base64.base64, base64.mimeType);
+            
+            // 2. Send Analysis as Hidden System Context to Bot
             const response = await sendSupportMessage(
-                [...messages, userMsg, { role: 'user', content: `I uploaded an error screenshot. Analysis: ${analysis}`, id: 'sys', timestamp: Date.now() }],
+                [
+                    ...messages, 
+                    userMsg, 
+                    { 
+                        role: 'user', 
+                        content: `[SYSTEM: USER UPLOADED IMAGE]\n\nIMAGE ANALYSIS:\n${analysis}\n\nINSTRUCTION: Acknowledge the image, describe what you see based on the analysis to confirm, and ask how you can help with it.`, 
+                        id: 'sys_' + Date.now(), 
+                        timestamp: Date.now() 
+                    }
+                ],
                 { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan },
                 appConfig?.featureCosts || {}
             );
+            
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
             setIsTyping(false);
@@ -259,23 +276,32 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                             {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                         </div>
                                         <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full min-w-0`}>
-                                            <div className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed border shadow-sm ${
-                                                msg.role === 'user' 
-                                                ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
-                                                : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
-                                            }`}>
-                                                {/* Render Image Attachment if exists */}
-                                                {msg.attachment && (
-                                                    <div className="mb-3 rounded-lg overflow-hidden border border-white/20 shadow-sm bg-black/10">
-                                                        <img src={msg.attachment} alt="Upload" className="max-w-full h-auto max-h-60 object-cover" />
-                                                    </div>
-                                                )}
-
-                                                {msg.role === 'user' 
-                                                    ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                                    : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
-                                                }
-                                            </div>
+                                            
+                                            {/* RENDER IMAGE ATTACHMENT */}
+                                            {msg.attachment && (
+                                                <div className={`mb-1 p-1 bg-white rounded-xl border border-gray-200 shadow-sm inline-block ${msg.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
+                                                    <img 
+                                                        src={msg.attachment} 
+                                                        alt="Upload" 
+                                                        className="max-h-32 w-auto object-cover rounded-lg cursor-zoom-in hover:opacity-90 transition-opacity" 
+                                                        onClick={() => window.open(msg.attachment, '_blank')}
+                                                    />
+                                                </div>
+                                            )}
+                                            
+                                            {/* RENDER TEXT CONTENT (If Exists) */}
+                                            {msg.content && (
+                                                <div className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed border shadow-sm ${
+                                                    msg.role === 'user' 
+                                                    ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
+                                                    : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
+                                                }`}>
+                                                    {msg.role === 'user' 
+                                                        ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                                        : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
+                                                    }
+                                                </div>
+                                            )}
 
                                             {/* Interactive Widgets */}
                                             {msg.type === 'proposal' && msg.ticketDraft && (

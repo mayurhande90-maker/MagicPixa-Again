@@ -36,6 +36,7 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
 2.  **Pricing Authority**: **CRITICAL**: Use the [LIVE PRICING TABLE] provided in the context for accurate credit costs. Do NOT guess costs. Do NOT use training data for costs. If a feature isn't in the table, say you can't check the live price.
 3.  **Educate/Guide**: If the user asks "How do I...", provide a numbered, step-by-step guide based on the [DOCUMENTATION] below. Be specific about button names and locations.
 4.  **Gatekeep Tickets**: Do NOT create a ticket for general questions, "how-to" requests, or simple billing questions. ONLY create a ticket if there is a technical bug, a refund request for a failed generation, or if the user explicitly demands a human after you've tried to help.
+5.  **Visual Context**: If the user sends an image, use the [IMAGE ANALYSIS] provided to understand their issue. If it looks like a bug, acknowledge it. If it's a creation, compliment it.
 
 *** MAGICPIXA COMPLETE DOCUMENTATION (KNOWLEDGE BASE) ***
 
@@ -279,9 +280,9 @@ export const sendSupportMessage = async (
 };
 
 /**
- * Analyzes a screenshot to extract error details automatically.
+ * Analyzes a screenshot/image to extract support details automatically.
  */
-export const analyzeErrorScreenshot = async (base64: string, mimeType: string): Promise<string> => {
+export const analyzeSupportImage = async (base64: string, mimeType: string): Promise<string> => {
     try {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
@@ -289,13 +290,25 @@ export const analyzeErrorScreenshot = async (base64: string, mimeType: string): 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
-                    { text: "Act as a Debugger. Analyze this screenshot. 1. Identify any visible error text. 2. Identify which screen/feature this is. 3. Describe visual glitches. Return a concise technical summary." }
+                    { text: `
+                    Act as a Technical Support Assistant. Analyze this user-uploaded image.
+                    
+                    Identify:
+                    1. **UI Context**: Does this look like a screenshot of the MagicPixa app? If so, which feature (e.g., Product Studio, Billing, Login)?
+                    2. **Error Detection**: Are there any visible error messages (red text, alerts, toasts)? Transcribe them exactly.
+                    3. **Visual Glitches**: Are there broken images, layout shifts, or infinite loading spinners?
+                    4. **User Intent**: If it's not an error, what is it? (e.g. A product photo they might want help editing, or a payment receipt).
+                    
+                    Return a concise, factual summary of what is seen in the image to help the support agent.
+                    Example: "User uploaded a screenshot of the 'Pixa Product Shots' page. There is a red error toast saying 'Upload failed: Server 500'. The loading spinner seems stuck."
+                    ` }
                 ]
             }
         });
-        return response.text || "No error details found.";
+        return response.text || "Image received but no specific details identified.";
     } catch (e) {
-        return "Could not analyze screenshot.";
+        console.error("Image analysis failed", e);
+        return "System could not process the image for auto-analysis. Please ask the user for details.";
     }
 };
 
