@@ -14,7 +14,7 @@ import { generateBrandIdentity, processLogoAsset } from '../services/brandKitSer
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
-// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal as is) ...
+// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal exactly as they are) ...
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
@@ -392,7 +392,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                     e.stopPropagation();
                                     navigateTo('dashboard', 'billing');
                                 }}
-                                className="bg-[#1A1A1E] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all shadow-md hover:scale-105"
+                                className="bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#dfbc2b] transition-all shadow-md hover:scale-105"
                             >
                                 Upgrade Plan
                             </div>
