@@ -33,8 +33,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
     };
 
     return (
-        // CHANGED: Use h-screen and fallback to dvh for mobile to lock scroll properly
-        <div className="h-screen supports-[height:100dvh]:h-[100dvh] w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        // CHANGED: h-full ensures it fits within the Dashboard's main area without overflowing.
+        <div className="h-full w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
             
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
@@ -71,15 +71,10 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
                 </div>
             </div>
 
-            {/* Main Content Area - Absolute positioning to lock scroll area */}
-            <div className="flex-1 w-full relative z-10 overflow-hidden">
-                {/* 
-                   CHANGED: absolute inset-0 forces this container to take exactly the remaining space 
-                   calculated by flex-1 parent, ensuring the children know exactly how tall they can be.
-                   Padding reduced for small screens.
-                */}
-                <div className="absolute inset-0 w-full max-w-7xl mx-auto p-2 sm:p-4 lg:p-6">
-                    {/* Grid is now explicitly h-full of the absolute container */}
+            {/* Main Content Area - Flex-1 takes remaining space */}
+            <div className="flex-1 w-full relative z-10 min-h-0 overflow-hidden">
+                <div className="h-full w-full max-w-7xl mx-auto p-2 sm:p-4 lg:p-6">
+                    {/* Grid takes full height of container */}
                     <div className="h-full w-full grid grid-cols-1 2xl:grid-cols-3 gap-0 sm:gap-6 relative">
                         
                         {/* LEFT: CHAT INTERFACE */}
