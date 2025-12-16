@@ -46,4 +46,12 @@ export const AdMakerStyles = {
   
   // Input Groups
   grid2: "grid grid-cols-2 gap-3",
+
+  // Blueprint Styles
+  blueprintGrid: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+  blueprintCard: "relative p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center gap-2 min-h-[90px] group overflow-hidden bg-white hover:shadow-md",
+  blueprintCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20",
+  blueprintCardInactive: "border-gray-100 hover:border-indigo-200",
+  blueprintLabel: "text-[10px] font-bold uppercase tracking-wider z-10 relative",
+  blueprintCheck: "absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center text-white z-10 animate-scaleIn",
 };

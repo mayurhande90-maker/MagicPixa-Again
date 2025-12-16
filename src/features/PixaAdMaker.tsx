@@ -2,10 +2,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, UtensilsIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-import { generateAdCreative, AdMakerInputs } from '../services/adMakerService';
+import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -45,7 +45,8 @@ const CompactUpload: React.FC<{
     heightClass?: string; 
     optional?: boolean;
     uploadText?: string;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional, uploadText }) => {
+    isScanning?: boolean; // New prop for scan animation
+}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional, uploadText, isScanning }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
         <div className="relative w-full group h-full">
@@ -55,9 +56,24 @@ const CompactUpload: React.FC<{
             </div>
             {image ? (
                 <div className={`relative w-full ${heightClass} bg-white rounded-xl border border-blue-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:border-blue-300 transition-all`}>
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+                    
+                    {/* Scanning Overlay Effect */}
+                    {isScanning && (
+                        <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[1px] flex flex-col items-center justify-center">
+                            <div className="w-full h-0.5 bg-blue-400 shadow-[0_0_10px_#60A5FA] absolute top-0 animate-[scan-vertical_1.5s_linear_infinite]"></div>
+                            <div className="bg-black/60 px-3 py-1 rounded-full border border-white/20 backdrop-blur-md">
+                                <p className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                                    AI Scanning
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    
                     <img src={image.url} className="max-w-full max-h-full object-contain p-2 relative z-10" alt={label} />
-                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-lg shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-20 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                    {!isScanning && (
+                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-lg shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-20 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                    )}
                 </div>
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
@@ -67,6 +83,7 @@ const CompactUpload: React.FC<{
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+            <style>{`@keyframes scan-vertical { 0% { top: 0%; } 100% { top: 100%; } }`}</style>
         </div>
     );
 };
@@ -78,23 +95,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // 2. COMMON ASSETS
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [tone, setTone] = useState('Professional');
+    const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
+    
+    // Scan State
+    const [isRefScanning, setIsRefScanning] = useState(false);
+    const [refAnalysisDone, setRefAnalysisDone] = useState(false);
 
     // 3. INDUSTRY SPECIFIC FIELDS
-    // E-commerce
     const [productName, setProductName] = useState('');
     const [offer, setOffer] = useState('');
     const [desc, setDesc] = useState('');
-    // Realty
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('');
-    const [config, setConfig] = useState(''); // 2BHK
+    const [config, setConfig] = useState('');
     const [features, setFeatures] = useState<string[]>([]);
     const [currentFeature, setCurrentFeature] = useState('');
-    // Food
     const [dishName, setDishName] = useState('');
     const [restaurant, setRestaurant] = useState('');
-    // SaaS
     const [headline, setHeadline] = useState('');
     const [cta, setCta] = useState('');
 
@@ -136,6 +155,32 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
     };
 
+    // Special handler for Reference Upload to trigger Scan Effect
+    const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setReferenceImage({ url: URL.createObjectURL(file), base64 });
+            setSelectedBlueprint(null); // Clear blueprint if ref uploaded
+            
+            // Trigger Scan Effect
+            setIsRefScanning(true);
+            setRefAnalysisDone(false);
+            
+            // Simulate Scan Delay (In real implementation, call analyzeReferenceStructure here)
+            setTimeout(() => {
+                setIsRefScanning(false);
+                setRefAnalysisDone(true);
+            }, 2500);
+        }
+        e.target.value = '';
+    };
+
+    const handleClearRef = () => {
+        setReferenceImage(null);
+        setRefAnalysisDone(false);
+    };
+
     const addFeature = () => {
         if (currentFeature.trim() && features.length < 4) {
             setFeatures([...features, currentFeature.trim()]);
@@ -148,7 +193,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
-        setLoadingText("Pixa Strategy AI is analyzing market trends...");
+        setLoadingText("Pixa Intelligence is constructing the ad...");
 
         try {
             const inputs: AdMakerInputs = {
@@ -156,6 +201,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 mainImage: mainImage.base64,
                 logoImage: logoImage?.base64,
                 tone,
+                blueprintId: selectedBlueprint || undefined, // Pass blueprint ID if selected
                 // Map fields based on industry
                 productName, offer, description: desc,
                 project, location, config, features,
@@ -186,6 +232,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setIndustry(null);
         setMainImage(null);
         setResultImage(null);
+        setReferenceImage(null);
+        setSelectedBlueprint(null);
+        setRefAnalysisDone(false);
         // Clear forms
         setProductName(''); setOffer(''); setDesc('');
         setProject(''); setLocation(''); setConfig(''); setFeatures([]);
@@ -211,7 +260,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         <>
             <FeatureLayout
                 title="Pixa AdMaker" 
-                description="Create high-converting ad creatives for any industry. AI handles research, copy, and design." 
+                description="Intelligent ad creation. AI scans your reference to copy the structure, or use a Blueprint to start from scratch." 
                 icon={<MagicAdsIcon className="w-14 h-14" />} 
                 rawIcon={true} 
                 creditCost={cost} 
@@ -223,9 +272,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onResetResult={undefined}
                 onNewSession={undefined}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} 
-                resultHeightClass="h-[850px]" 
+                resultHeightClass="h-[900px]" 
                 hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Ad Creative" }} 
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Smart Ad" }} 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -253,25 +302,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             {!industry ? (
                                 <div className={AdMakerStyles.modeGrid}>
                                     <IndustryCard 
-                                        title="E-commerce" desc="Product ads, Sales, Social posts" 
+                                        title="E-commerce" desc="Product ads, Sales" 
                                         icon={<CubeIcon className={`w-8 h-8 ${AdMakerStyles.iconEcommerce}`}/>} 
                                         onClick={() => setIndustry('ecommerce')}
                                         styles={{ card: AdMakerStyles.cardEcommerce, orb: AdMakerStyles.orbEcommerce, icon: AdMakerStyles.iconEcommerce }}
                                     />
                                     <IndustryCard 
-                                        title="Real Estate" desc="Property flyers, Listings" 
+                                        title="Real Estate" desc="Property flyers" 
                                         icon={<BuildingIcon className={`w-8 h-8 ${AdMakerStyles.iconRealty}`}/>} 
                                         onClick={() => setIndustry('realty')}
                                         styles={{ card: AdMakerStyles.cardRealty, orb: AdMakerStyles.orbRealty, icon: AdMakerStyles.iconRealty }}
                                     />
                                     <IndustryCard 
-                                        title="Food & Dining" desc="Menus, Restaurant promos" 
+                                        title="Food & Dining" desc="Menus, Promos" 
                                         icon={<FoodIcon className={`w-8 h-8 ${AdMakerStyles.iconFood}`}/>} 
                                         onClick={() => setIndustry('food')}
                                         styles={{ card: AdMakerStyles.cardFood, orb: AdMakerStyles.orbFood, icon: AdMakerStyles.iconFood }}
                                     />
                                     <IndustryCard 
-                                        title="Digital & SaaS" desc="App Launch, B2B, Services" 
+                                        title="SaaS / Tech" desc="B2B, App Launch" 
                                         icon={<SaaSRequestIcon className={`w-8 h-8 ${AdMakerStyles.iconSaaS}`}/>} 
                                         onClick={() => setIndustry('saas')}
                                         styles={{ card: AdMakerStyles.cardSaaS, orb: AdMakerStyles.orbSaaS, icon: AdMakerStyles.iconSaaS }}
@@ -284,7 +333,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         ← Change Industry
                                     </button>
                                     
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center justify-between mb-2">
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
                                             {industry === 'ecommerce' ? 'E-commerce Mode' : industry === 'realty' ? 'Real Estate Mode' : industry === 'food' ? 'Food & Dining Mode' : 'SaaS Mode'}
                                         </span>
@@ -294,14 +343,70 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
                                         <div className={AdMakerStyles.grid2}>
-                                            <CompactUpload label="Main Image" uploadText="Upload Hero Image" image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
+                                            <CompactUpload label="Main Image" uploadText="Upload Hero" image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
                                             <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<BuildingIcon className="w-5 h-5 text-gray-400"/>} optional={true} />
                                         </div>
                                     </div>
 
-                                    {/* 2. INDUSTRY SPECIFIC INPUTS */}
+                                    {/* 2. STYLE INTELLIGENCE (NEW SECTION) */}
                                     <div>
-                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>2</span><label className={AdMakerStyles.sectionTitle}>Ad Details</label></div>
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>2</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Style Intelligence</label>
+                                        </div>
+                                        
+                                        {/* Reference Upload */}
+                                        <div className="mb-4">
+                                            <CompactUpload 
+                                                label="Upload Reference (Scanner)" 
+                                                uploadText="Scan a Layout" 
+                                                image={referenceImage} 
+                                                onUpload={handleRefUpload} 
+                                                onClear={handleClearRef} 
+                                                icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} 
+                                                heightClass="h-28"
+                                                optional={true}
+                                                isScanning={isRefScanning} // Pass scanning state
+                                            />
+                                            {refAnalysisDone && (
+                                                <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn">
+                                                    <CheckIcon className="w-3 h-3" />
+                                                    <span>Structure Analyzed! Layout will match this reference.</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Blueprints (Only show if NO reference uploaded) */}
+                                        {!referenceImage && (
+                                            <div className="animate-fadeIn">
+                                                <div className="flex items-center gap-2 mb-2 px-1">
+                                                    <LightbulbIcon className="w-3 h-3 text-yellow-500" />
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Choose a Blueprint</label>
+                                                </div>
+                                                <div className={AdMakerStyles.blueprintGrid}>
+                                                    {STYLE_BLUEPRINTS.map(bp => (
+                                                        <button 
+                                                            key={bp.id}
+                                                            onClick={() => setSelectedBlueprint(bp.id)}
+                                                            className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-gray-100 mb-1 flex items-center justify-center">
+                                                                <PaletteIcon className={`w-4 h-4 ${selectedBlueprint === bp.id ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                                            </div>
+                                                            <span className={`${AdMakerStyles.blueprintLabel} ${selectedBlueprint === bp.id ? 'text-indigo-700' : 'text-gray-600'}`}>{bp.label}</span>
+                                                            {selectedBlueprint === bp.id && (
+                                                                <div className={AdMakerStyles.blueprintCheck}><CheckIcon className="w-3 h-3"/></div>
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 3. DETAILS */}
+                                    <div>
+                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         
                                         {industry === 'ecommerce' && (
                                             <div className="space-y-4">
