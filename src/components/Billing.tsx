@@ -308,7 +308,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                 ${BillingStyles.packCard} 
                                 ${isCurrent 
                                     ? BillingStyles.packCardActive 
-                                    : (pack.popular ? BillingStyles.packCardPopular : BillingStyles.packCardStandard)
+                                    : (pack.popular && !isDowngrade ? BillingStyles.packCardPopular : BillingStyles.packCardStandard)
                                 } 
                                 ${!isUpgrade && !isCurrent ? 'opacity-70 bg-gray-50' : ''}
                             `}
@@ -351,7 +351,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                                     ${isCurrent 
                                         ? BillingStyles.packButtonActive
                                         : (isUpgrade 
-                                            ? (pack.popular ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard)
+                                            ? (pack.popular && !isDowngrade ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard)
                                             : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')
                                     }
                                 `}

@@ -290,7 +290,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                         ${HomeStyles.pricingCard} 
                                         ${isCurrent 
                                             ? HomeStyles.pricingCardActive 
-                                            : (pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard)
+                                            : (pack.popular && !isDowngrade ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard)
                                         } 
                                         ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 bg-gray-50' : ''}
                                     `}
@@ -341,7 +341,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                                 ? (isCurrent 
                                                     ? HomeStyles.pricingButtonActive
                                                     : (isUpgrade 
-                                                        ? (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                                        ? (pack.popular && !isDowngrade ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
                                                         : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200'))
                                                 : (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
                                             }
