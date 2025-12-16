@@ -254,8 +254,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
 
-            {/* HEADER BAR (Sticky to prevent scrolling) */}
-            <div className="flex-none sticky top-0 left-0 right-0 px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/60 backdrop-blur-md z-30 h-14">
+            {/* HEADER BAR (Absolute to pin to top without scrolling) */}
+            <div className="absolute top-0 left-0 right-0 px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/60 backdrop-blur-md z-30 h-14">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold opacity-70">
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider hidden sm:inline">Live Support Chat</span>
@@ -284,11 +284,11 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 </div>
             </div>
 
-            {/* Main Chat Scroll Area - Added flex flex-col to parent */}
+            {/* Main Chat Scroll Area - Added pt-16 to clear absolute header */}
             <div 
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 md:px-8 pt-4 pb-2 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
+                className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 md:px-8 pt-16 pb-2 space-y-4 sm:space-y-6 custom-scrollbar relative z-10 scroll-smooth flex flex-col overscroll-contain"
             >
                 {loadingHistory ? (
                     <div className="flex-1 flex flex-col items-center justify-center h-full">
