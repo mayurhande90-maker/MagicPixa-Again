@@ -284,8 +284,26 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                             }
 
                             return (
-                                <div key={index} className={`${HomeStyles.pricingCard} ${pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard} ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 bg-gray-50' : ''}`}>
-                                    {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                <div 
+                                    key={index} 
+                                    className={`
+                                        ${HomeStyles.pricingCard} 
+                                        ${isCurrent 
+                                            ? HomeStyles.pricingCardActive 
+                                            : (pack.popular ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard)
+                                        } 
+                                        ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 bg-gray-50' : ''}
+                                    `}
+                                >
+                                    {/* ACTIVE PLAN BADGE */}
+                                    {isCurrent && <div className={HomeStyles.activeBadge}>Current Plan</div>}
+
+                                    {/* POPULAR BADGE (Only if not current) */}
+                                    {pack.popular && !isCurrent && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                    
+                                    {/* Spacer if active to handle badge overlap visually */}
+                                    {isCurrent && <div className="h-2"></div>}
+
                                     <h3 className={HomeStyles.featureTitle}>{pack.name}</h3>
                                     <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
                                     
@@ -320,15 +338,17 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                         className={`
                                             ${HomeStyles.pricingButton} 
                                             ${auth.isAuthenticated 
-                                                ? (isUpgrade 
-                                                    ? (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
-                                                    : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')
+                                                ? (isCurrent 
+                                                    ? HomeStyles.pricingButtonActive
+                                                    : (isUpgrade 
+                                                        ? (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                                        : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200'))
                                                 : (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
                                             }
                                         `}
                                     >
                                         {auth.isAuthenticated 
-                                            ? (isCurrent ? "Active Plan" : isDowngrade ? "Included" : "Upgrade")
+                                            ? (isCurrent ? <><CheckIcon className="w-5 h-5"/> Active</> : isDowngrade ? "Included" : "Upgrade")
                                             : "Buy Now"
                                         }
                                     </button>
