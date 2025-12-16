@@ -153,7 +153,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             case 'creations':
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'brand_manager':
-                return <BrandKitManager auth={auth} />;
+                return <BrandKitManager auth={auth} navigateTo={navigateTo} />;
             case 'studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':

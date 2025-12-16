@@ -1,7 +1,7 @@
 
 // ... existing imports ...
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, BrandKit, BRAND_LIMITS } from '../types';
+import { AuthProps, BrandKit, BRAND_LIMITS, Page, View } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
     CaptionIcon, BrandKitIcon, 
@@ -152,7 +152,7 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
     );
 };
 
-export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
+export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View) => void }> = ({ auth, navigateTo }) => {
     // ... keep existing state ...
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
@@ -367,7 +367,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 }`}>
                     <div className={`w-2 h-2 rounded-full ${isLimitReached ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
                     <span className="text-xs font-bold uppercase tracking-wide">
-                        Storage: {usage} / {limit} Used
+                        Brands: {usage} / {limit}
                     </span>
                 </div>
             </div>
@@ -376,15 +376,26 @@ export const BrandKitManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 {/* ADD NEW CARD */}
                 <button 
                     onClick={handleAddNewBrand}
-                    className={`${BrandKitManagerStyles.addCard} ${isLimitReached ? 'opacity-70 cursor-not-allowed hover:border-red-200 hover:shadow-none bg-gray-100' : ''}`}
+                    className={`${BrandKitManagerStyles.addCard} ${isLimitReached ? 'opacity-90 cursor-default hover:shadow-none bg-gray-50' : ''}`}
                 >
                     {isLimitReached ? (
-                        <div className="flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
-                                <LockIcon className="w-8 h-8" />
+                        <div className="flex flex-col items-center justify-center p-4 text-center">
+                            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-3 text-red-500">
+                                <LockIcon className="w-6 h-6" />
                             </div>
-                            <span className="text-sm font-bold text-red-500 uppercase tracking-wider">Limit Reached</span>
-                            <span className="text-xs text-gray-500 mt-1">Upgrade to add more brands</span>
+                            <span className="text-xs font-bold text-red-500 uppercase tracking-widest">Limit Reached</span>
+                            <span className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight mb-3">
+                                You've used all {limit} brand slots.
+                            </span>
+                            <div 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigateTo('dashboard', 'billing');
+                                }}
+                                className="bg-[#1A1A1E] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all shadow-md hover:scale-105"
+                            >
+                                Upgrade Plan
+                            </div>
                         </div>
                     ) : (
                         <>
