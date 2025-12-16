@@ -298,8 +298,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                     {/* ACTIVE PLAN BADGE */}
                                     {isCurrent && <div className={HomeStyles.activeBadge}>Current Plan</div>}
 
-                                    {/* POPULAR BADGE (Only if not current) */}
-                                    {pack.popular && !isCurrent && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                    {/* POPULAR BADGE (Only if not current AND not a downgrade) */}
+                                    {pack.popular && !isCurrent && !isDowngrade && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
                                     
                                     {/* Spacer if active to handle badge overlap visually */}
                                     {isCurrent && <div className="h-2"></div>}

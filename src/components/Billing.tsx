@@ -316,8 +316,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                             {/* ACTIVE PLAN BADGE */}
                             {isCurrent && <div className={BillingStyles.activeBadge}>Current Plan</div>}
 
-                            {/* POPULAR BADGE (Only if not current) */}
-                            {pack.popular && !isCurrent && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                            {/* POPULAR BADGE (Only if not current AND not a downgrade - user already has better plan) */}
+                            {pack.popular && !isCurrent && !isDowngrade && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
                             
                             {/* Spacer if active to handle the badge offset visually inside if needed, or margin */}
                             {isCurrent && <div className="h-2"></div>}
