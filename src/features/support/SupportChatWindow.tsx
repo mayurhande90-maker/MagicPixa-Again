@@ -227,9 +227,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             {/* CONSOLE HEADER */}
             <div className="flex-none px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-20">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                        <PixaSupportIcon className="w-5 h-5" />
-                    </div>
+                    <PixaSupportIcon className="w-8 h-8 text-indigo-600" />
                     <div>
                         <h2 className="text-sm font-bold text-gray-800">Support Chat</h2>
                         <div className="flex items-center gap-1.5">
@@ -246,12 +244,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     >
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>New Session</span>
-                    </button>
-                    <button 
-                        onClick={onToggleSidebar} 
-                        className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        <TicketIcon className="w-5 h-5" />
                     </button>
                 </div>
             </div>
