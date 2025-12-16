@@ -254,8 +254,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
 
-            {/* HEADER BAR (Dedicated non-scrolling area) */}
-            <div className="flex-none px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/40 backdrop-blur-md z-20 h-14">
+            {/* HEADER BAR (Sticky to prevent scrolling) */}
+            <div className="flex-none sticky top-0 left-0 right-0 px-4 py-2 sm:py-3 border-b border-white/20 flex justify-between items-center bg-white/60 backdrop-blur-md z-30 h-14">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold opacity-70">
                     <LifebuoyIcon className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-wider hidden sm:inline">Live Support Chat</span>
@@ -263,7 +263,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    {/* New Chat Button - Moved to Header */}
+                    {/* New Chat Button */}
                     <button 
                         onClick={handleNewChat}
                         className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-indigo-100"

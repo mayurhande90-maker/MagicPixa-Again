@@ -33,8 +33,8 @@ export const SupportCenter: React.FC<{ auth: AuthProps; appConfig?: AppConfig | 
     };
 
     return (
-        // CHANGED: h-screen forces exact viewport height, preventing body scroll
-        <div className="h-screen w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        // CHANGED: Use h-screen and fallback to dvh for mobile to lock scroll properly
+        <div className="h-screen supports-[height:100dvh]:h-[100dvh] w-full bg-[#F8FAFC] flex flex-col font-sans text-slate-900 overflow-hidden relative">
             
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
