@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
-import { purchaseTopUp, getCreditHistory } from '../firebase';
+import { purchaseTopUp, purchaseCreditRefill, getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
@@ -47,8 +47,17 @@ const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => 
     );
 };
 
+// Plan Hierarchy Definition
+const PLAN_WEIGHTS: Record<string, number> = {
+    'Free': 0,
+    'Starter Pack': 1,
+    'Creator Pack': 2,
+    'Studio Pack': 3,
+    'Agency Pack': 4
+};
+
 export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setActiveView }) => {
-  const [loadingPackage, setLoadingPackage] = useState<number | null>(null);
+  const [loadingPackage, setLoadingPackage] = useState<string | null>(null); // Use string ID for loading
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -66,9 +75,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     ? appConfig.creditPacks 
     : defaultCreditPacks;
 
+  const currentPlanWeight = PLAN_WEIGHTS[user.plan || 'Free'] || 0;
+
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
-    if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant')) {
+    if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
         return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
     }
     
@@ -135,8 +146,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     fetchHistory();
   }, [user]);
 
-  const handlePurchase = async (pkg: any, index: number) => {
-    setLoadingPackage(index);
+  const handlePurchase = async (pkg: any, type: 'plan' | 'refill', index: number) => {
+    const loadingId = `${type}-${index}`;
+    setLoadingPackage(loadingId);
 
     if (!window.Razorpay) {
         alert("Payment gateway is not available. Please check your internet connection and refresh the page.");
@@ -156,12 +168,21 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       key: razorpayKey,
       amount: pkg.price * 100, // Amount in paise
       currency: "INR",
-      name: `MagicPixa: ${pkg.name}`,
-      description: `One-time purchase of ${pkg.totalCredits} credits.`,
+      name: `MagicPixa: ${type === 'plan' ? pkg.name : 'Credit Refill'}`,
+      description: `Purchase of ${pkg.totalCredits} credits.`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
       handler: async (response: any) => {
         try {
-            const updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
+            let updatedProfile;
+            
+            if (type === 'plan') {
+                // PLAN UPDATE: Changes status and credits
+                updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
+            } else {
+                // REFILL: Only adds credits, ignores plan change
+                updatedProfile = await purchaseCreditRefill(user.uid, pkg.totalCredits, pkg.price);
+            }
+
             setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
             setConfirmedPurchase({ totalCredits: pkg.totalCredits });
             setShowConfirmation(true);
@@ -171,8 +192,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                 setTransactions(history as Transaction[]);
             } catch (historyError) { console.error(historyError); }
         } catch (error) {
-            console.error("Failed to add credits after payment:", error);
-            alert("Payment successful but credit update failed. Contact support.");
+            console.error("Failed to process purchase:", error);
+            alert("Payment successful but account update failed. Contact support.");
         } finally {
             setLoadingPackage(null);
         }
@@ -252,48 +273,95 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             </div>
         </div>
 
+        {/* SECTION 1: MEMBERSHIP TIERS */}
         <div className="mb-16">
             <div className="text-center mb-10">
-                <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2">Recharge Your Creative Energy</h3>
-                <p className="text-lg text-[#5F6368]">Choose a credit pack that fits your needs. No subscriptions.</p>
+                <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2">Upgrade Membership</h3>
+                <p className="text-lg text-[#5F6368]">Unlock higher tiers for more perks and bulk savings.</p>
             </div>
           
             <div className={BillingStyles.packGrid}>
+                {creditPacks.map((pack, index) => {
+                    const packWeight = PLAN_WEIGHTS[pack.name] || 0;
+                    const isUpgrade = packWeight > currentPlanWeight;
+                    const isCurrent = packWeight === currentPlanWeight;
+                    const isDowngrade = packWeight < currentPlanWeight;
+
+                    return (
+                        <div key={index} className={`${BillingStyles.packCard} ${pack.popular ? BillingStyles.packCardPopular : BillingStyles.packCardStandard} ${!isUpgrade && !isCurrent ? 'opacity-70 bg-gray-50' : ''}`}>
+                            {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                            <h3 className={BillingStyles.packTitle}>{pack.name}</h3>
+                            <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
+                            
+                            <div className="my-2">
+                                <span className="text-4xl font-bold text-[#1A1A1E]">{pack.totalCredits}</span>
+                                <span className="text-[#5F6368] ml-1">Credits</span>
+                            </div>
+                            <div className="h-5 mb-4">
+                              {pack.bonus > 0 && (
+                                  <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
+                                      {pack.credits} + {pack.bonus} Bonus!
+                                  </p>
+                              )}
+                            </div>
+                            
+                            <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
+                                <span className={BillingStyles.packPrice}>₹{pack.price}</span>
+                                <p className="text-xs text-gray-500">One-time payment</p>
+                            </div>
+                            
+                            <button 
+                                onClick={() => isUpgrade && handlePurchase(pack, 'plan', index)}
+                                disabled={!isUpgrade || loadingPackage !== null}
+                                className={`
+                                    ${BillingStyles.packButton} 
+                                    ${loadingPackage === `plan-${index}` ? 'cursor-wait opacity-80' : ''}
+                                    ${isUpgrade 
+                                        ? (pack.popular ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard)
+                                        : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200'
+                                    }
+                                `}
+                            >
+                                {loadingPackage === `plan-${index}` ? (
+                                    <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
+                                ) : (
+                                    isCurrent ? "Active Plan" : isDowngrade ? "Included" : "Upgrade"
+                                )}
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+
+        {/* SECTION 2: CREDIT REFILLS */}
+        <div className="mb-16 pt-8 border-t border-gray-100">
+            <div className="text-center mb-10">
+                <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2 flex items-center justify-center gap-2">
+                    <PlusCircleIcon className="w-6 h-6 text-green-500" /> Need More Credits?
+                </h3>
+                <p className="text-lg text-[#5F6368]">Top up instantly without changing your membership plan.</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {creditPacks.map((pack, index) => (
-                    <div key={index} className={`${BillingStyles.packCard} ${pack.popular ? BillingStyles.packCardPopular : BillingStyles.packCardStandard}`}>
-                        {pack.popular && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
-                        <h3 className={BillingStyles.packTitle}>{pack.name}</h3>
-                        <p className="text-[#5F6368] text-sm mb-4 h-10">{pack.tagline}</p>
-                        
-                        <div className="my-2">
-                            <span className="text-4xl font-bold text-[#1A1A1E]">{pack.totalCredits}</span>
-                            <span className="text-[#5F6368] ml-1">Credits</span>
+                    <button 
+                        key={`refill-${index}`}
+                        onClick={() => handlePurchase(pack, 'refill', index)}
+                        disabled={loadingPackage !== null}
+                        className="flex flex-col items-center p-4 bg-white border border-gray-200 rounded-2xl hover:border-green-400 hover:shadow-md transition-all group"
+                    >
+                        <div className="mb-2">
+                            <span className="text-2xl font-bold text-gray-800 group-hover:text-green-600 transition-colors">+{pack.totalCredits}</span>
+                            <span className="text-xs font-bold text-gray-400 ml-1 uppercase">Credits</span>
                         </div>
-                        <div className="h-5 mb-4">
-                          {pack.bonus > 0 && (
-                              <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
-                                  {pack.credits} + {pack.bonus} Bonus!
-                              </p>
-                          )}
+                        <div className="bg-gray-50 px-3 py-1 rounded-lg text-sm font-semibold text-gray-600 group-hover:bg-green-50 group-hover:text-green-700 transition-colors">
+                            ₹{pack.price}
                         </div>
-                        
-                        <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6">
-                            <span className={BillingStyles.packPrice}>₹{pack.price}</span>
-                            <p className="text-xs text-gray-500">One-time payment</p>
-                        </div>
-                        
-                        <button 
-                            onClick={() => handlePurchase(pack, index)}
-                            disabled={loadingPackage !== null}
-                            className={`${BillingStyles.packButton} ${pack.popular ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard}`}
-                        >
-                            {loadingPackage === index ? (
-                                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
-                            ) : (
-                                "Buy Now"
-                            )}
-                        </button>
-                    </div>
+                        {loadingPackage === `refill-${index}` && (
+                            <div className="mt-2 animate-spin w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full"></div>
+                        )}
+                    </button>
                 ))}
             </div>
         </div>

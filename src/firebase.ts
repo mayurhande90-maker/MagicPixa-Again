@@ -357,6 +357,7 @@ export const getCreditHistory = async (uid: string) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
+// Purchase TopUp: Updates Plan AND Credits
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
@@ -366,6 +367,7 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
         plan: packName,
+        // Upgrade storage tier if Studio or Agency
         ...(packName.includes('Studio') || packName.includes('Agency') ? { 
             storageTier: 'unlimited', 
             basePlan: packName,
@@ -384,6 +386,39 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
     await db.collection('purchases').add({
         userId: uid,
         packName,
+        creditsAdded: credits,
+        amountPaid: price,
+        purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const userSnap = await userRef.get();
+    return userSnap.data() as User;
+};
+
+// Pure Credit Refill: Updates Credits ONLY (Does not touch Plan or Storage Tier)
+export const purchaseCreditRefill = async (uid: string, credits: number, price: number) => {
+    if (!db) throw new Error("DB not initialized");
+    const userRef = db.collection('users').doc(uid);
+
+    await userRef.update({
+        credits: firebase.firestore.FieldValue.increment(credits),
+        totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
+        totalSpent: firebase.firestore.FieldValue.increment(price),
+        // CRITICAL: We do NOT update the plan here. 
+        // This preserves "Agency" or "Studio" status if they are just buying more credits.
+    });
+
+    await userRef.collection('transactions').add({
+        feature: `Credit Refill`,
+        cost: 0,
+        creditChange: `+${credits}`,
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        pricePaid: price
+    });
+
+    await db.collection('purchases').add({
+        userId: uid,
+        packName: 'Credit Refill',
         creditsAdded: credits,
         amountPaid: price,
         purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
