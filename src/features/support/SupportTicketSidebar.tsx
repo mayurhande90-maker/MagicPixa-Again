@@ -3,9 +3,7 @@ import React from 'react';
 import { Ticket } from '../../types';
 import { 
     XIcon, 
-    TicketIcon,
-    InformationCircleIcon,
-    CheckIcon
+    InformationCircleIcon
 } from '../../components/icons';
 import { TicketHistoryItem } from './SupportComponents';
 
@@ -27,7 +25,6 @@ export const SupportTicketSidebar: React.FC<SupportTicketSidebarProps> = ({ tick
             <div className="p-6 border-b border-gray-100 bg-white shrink-0">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm uppercase tracking-wide">
-                        <TicketIcon className="w-4 h-4 text-indigo-500" />
                         Ticket History
                     </h3>
                     {variant === 'mobile' && (
