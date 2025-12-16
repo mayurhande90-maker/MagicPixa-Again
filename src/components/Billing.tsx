@@ -71,6 +71,13 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
   ];
 
+  // Refill Bundles (Gap-Filler Strategy)
+  const refillPacks = [
+    { credits: 20, price: 49, label: 'Micro' },
+    { credits: 150, price: 299, label: 'Medium' },
+    { credits: 500, price: 899, label: 'Large' }
+  ];
+
   const creditPacks = appConfig?.creditPacks && appConfig.creditPacks.length > 0 
     ? appConfig.creditPacks 
     : defaultCreditPacks;
@@ -334,35 +341,49 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             </div>
         </div>
 
-        {/* SECTION 2: CREDIT REFILLS */}
+        {/* SECTION 2: CREDIT REFILLS (Gap-Filler Strategy) */}
         <div className="mb-16 pt-8 border-t border-gray-100">
-            <div className="text-center mb-10">
-                <h3 className="text-2xl font-bold text-[#1A1A1E] mb-2 flex items-center justify-center gap-2">
-                    <PlusCircleIcon className="w-6 h-6 text-green-500" /> Need More Credits?
-                </h3>
-                <p className="text-lg text-[#5F6368]">Top up instantly without changing your membership plan.</p>
-            </div>
+            <div className="bg-[#1A1A1E] rounded-3xl p-8 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+                {/* Background Decor */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-3xl opacity-10 -mr-16 -mt-16 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-10 -ml-10 -mb-10 pointer-events-none"></div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {creditPacks.map((pack, index) => (
-                    <button 
-                        key={`refill-${index}`}
-                        onClick={() => handlePurchase(pack, 'refill', index)}
-                        disabled={loadingPackage !== null}
-                        className="flex flex-col items-center p-4 bg-white border border-gray-200 rounded-2xl hover:border-green-400 hover:shadow-md transition-all group"
-                    >
-                        <div className="mb-2">
-                            <span className="text-2xl font-bold text-gray-800 group-hover:text-green-600 transition-colors">+{pack.totalCredits}</span>
-                            <span className="text-xs font-bold text-gray-400 ml-1 uppercase">Credits</span>
-                        </div>
-                        <div className="bg-gray-50 px-3 py-1 rounded-lg text-sm font-semibold text-gray-600 group-hover:bg-green-50 group-hover:text-green-700 transition-colors">
-                            ₹{pack.price}
-                        </div>
-                        {loadingPackage === `refill-${index}` && (
-                            <div className="mt-2 animate-spin w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full"></div>
-                        )}
-                    </button>
-                ))}
+                <div className="relative z-10 text-center md:text-left">
+                    <h3 className="text-2xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
+                        <PlusCircleIcon className="w-7 h-7 text-[#6EFACC]" /> 
+                        Need more credits?
+                    </h3>
+                    <p className="text-gray-400 text-sm max-w-md">
+                        Running low? Top up instantly. These credits never expire and are added to your existing balance.
+                    </p>
+                </div>
+
+                <div className="relative z-10 flex flex-wrap justify-center gap-4">
+                    {refillPacks.map((pack, index) => (
+                        <button 
+                            key={`refill-${index}`}
+                            onClick={() => handlePurchase({ name: 'Credit Refill', price: pack.price, totalCredits: pack.credits }, 'refill', index)}
+                            disabled={loadingPackage !== null}
+                            className="group relative flex flex-col items-center justify-center bg-white/5 hover:bg-white text-white hover:text-[#1A1A1E] border border-white/10 hover:border-white rounded-2xl w-32 py-4 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg"
+                        >
+                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 group-hover:text-gray-500 mb-1 transition-colors">
+                                {pack.label}
+                            </span>
+                            <span className="text-2xl font-black leading-none mb-2">
+                                {pack.credits}
+                            </span>
+                            <span className="text-xs font-bold bg-white/20 group-hover:bg-[#1A1A1E] group-hover:text-white px-3 py-1 rounded-full transition-colors">
+                                ₹{pack.price}
+                            </span>
+                            
+                            {loadingPackage === `refill-${index}` && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl backdrop-blur-sm">
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
 
