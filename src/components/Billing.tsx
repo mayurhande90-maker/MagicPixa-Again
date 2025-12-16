@@ -10,6 +10,13 @@ import {
 } from './icons';
 import { BillingStyles } from '../styles/Billing.styles';
 
+// Local Icon for the Refill Station
+const ZapIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd" />
+    </svg>
+);
+
 interface BillingProps {
   user: User;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -71,11 +78,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: 'For studios and agencies — biggest savings!', popular: false, value: 0.99 },
   ];
 
-  // Refill Bundles (Gap-Filler Strategy)
+  // Refill Bundles (Gap-Filler Strategy) - Updated Names & Styling Logic
   const refillPacks = [
-    { credits: 20, price: 49, label: 'Micro' },
-    { credits: 150, price: 299, label: 'Medium' },
-    { credits: 500, price: 899, label: 'Large' }
+    { credits: 20, price: 49, label: 'Mini Boost', color: 'from-blue-400 to-blue-600', iconColor: 'text-blue-200' },
+    { credits: 150, price: 299, label: 'Power Pack', color: 'from-purple-400 to-purple-600', iconColor: 'text-purple-200' },
+    { credits: 500, price: 899, label: 'Mega Tank', color: 'from-amber-400 to-orange-500', iconColor: 'text-amber-200' }
   ];
 
   const creditPacks = appConfig?.creditPacks && appConfig.creditPacks.length > 0 
@@ -341,48 +348,74 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             </div>
         </div>
 
-        {/* SECTION 2: CREDIT REFILLS (Gap-Filler Strategy) */}
+        {/* SECTION 2: RECHARGE STATION (Gap-Filler Strategy Redesigned) */}
         <div className="mb-16 pt-8 border-t border-gray-100">
-            <div className="bg-[#1A1A1E] rounded-3xl p-8 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#4D7CFF] rounded-full blur-3xl opacity-10 -mr-16 -mt-16 pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-10 -ml-10 -mb-10 pointer-events-none"></div>
+            <div className="bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 rounded-[2rem] p-1.5 shadow-2xl relative overflow-hidden">
+                {/* Background Animation Layer */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none"></div>
+                
+                <div className="bg-[#13151A] rounded-[1.7rem] p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 relative z-10">
+                    
+                    {/* Left: Branding */}
+                    <div className="text-center lg:text-left max-w-md">
+                        <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full mb-4">
+                            <ZapIcon className="w-4 h-4 text-[#F9D230] animate-pulse" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Instant Recharge</span>
+                        </div>
+                        <h3 className="text-3xl md:text-4xl font-black text-white leading-tight mb-3">
+                            Running Low on Power?
+                        </h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Top up your balance instantly without changing your membership plan. 
+                            These credits never expire.
+                        </p>
+                    </div>
 
-                <div className="relative z-10 text-center md:text-left">
-                    <h3 className="text-2xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
-                        <PlusCircleIcon className="w-7 h-7 text-[#6EFACC]" /> 
-                        Need more credits?
-                    </h3>
-                    <p className="text-gray-400 text-sm max-w-md">
-                        Running low? Top up instantly. These credits never expire and are added to your existing balance.
-                    </p>
-                </div>
+                    {/* Right: Fuel Capsules */}
+                    <div className="flex flex-wrap justify-center gap-4">
+                        {refillPacks.map((pack, index) => (
+                            <button 
+                                key={`refill-${index}`}
+                                onClick={() => handlePurchase({ name: 'Credit Refill', price: pack.price, totalCredits: pack.credits }, 'refill', index)}
+                                disabled={loadingPackage !== null}
+                                className="group relative w-32 h-44 bg-gray-800/50 hover:bg-gray-700/50 backdrop-blur-md rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col items-center justify-between p-1 overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20"
+                            >
+                                {/* Loading Overlay */}
+                                {loadingPackage === `refill-${index}` && (
+                                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                )}
 
-                <div className="relative z-10 flex flex-wrap justify-center gap-4">
-                    {refillPacks.map((pack, index) => (
-                        <button 
-                            key={`refill-${index}`}
-                            onClick={() => handlePurchase({ name: 'Credit Refill', price: pack.price, totalCredits: pack.credits }, 'refill', index)}
-                            disabled={loadingPackage !== null}
-                            className="group relative flex flex-col items-center justify-center bg-white/5 hover:bg-white text-white hover:text-[#1A1A1E] border border-white/10 hover:border-white rounded-2xl w-32 py-4 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg"
-                        >
-                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 group-hover:text-gray-500 mb-1 transition-colors">
-                                {pack.label}
-                            </span>
-                            <span className="text-2xl font-black leading-none mb-2">
-                                {pack.credits}
-                            </span>
-                            <span className="text-xs font-bold bg-white/20 group-hover:bg-[#1A1A1E] group-hover:text-white px-3 py-1 rounded-full transition-colors">
-                                ₹{pack.price}
-                            </span>
-                            
-                            {loadingPackage === `refill-${index}` && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl backdrop-blur-sm">
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                {/* Inner Content */}
+                                <div className="w-full h-full bg-[#1A1C23] rounded-xl flex flex-col items-center justify-between p-4 relative group-hover:bg-[#20232A] transition-colors">
+                                    
+                                    {/* Top Label */}
+                                    <div className="text-center">
+                                        <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${pack.iconColor} opacity-80 group-hover:opacity-100`}>
+                                            {pack.label}
+                                        </div>
+                                    </div>
+
+                                    {/* Credit Value (Center Hero) */}
+                                    <div className="relative z-10">
+                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-md group-hover:scale-110 transition-transform duration-300 block">
+                                            {pack.credits}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide block text-center -mt-1">
+                                            Credits
+                                        </span>
+                                    </div>
+
+                                    {/* Bottom Price Button */}
+                                    <div className={`w-full py-1.5 rounded-lg text-xs font-bold text-white text-center bg-gradient-to-r ${pack.color} shadow-lg transition-all group-hover:shadow-indigo-500/40`}>
+                                        ₹{pack.price}
+                                    </div>
                                 </div>
-                            )}
-                        </button>
-                    ))}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
