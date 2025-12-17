@@ -388,28 +388,29 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     // --- PRODUCT CATALOG HANDLERS ---
     const handleProductUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!auth.user || !e.target.files?.[0]) return;
-        const file = e.target.files[0];
+        if (!auth.user || !e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
         setUploadingState(prev => ({ ...prev, products: true }));
         
         try {
-            const base64Data = await fileToBase64(file);
-            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
-            // Use random ID for storage path
-            const tempId = Math.random().toString(36).substring(7);
-            const url = await uploadBrandAsset(auth.user.uid, processedUri, `product_${tempId}`);
+            const newProducts = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(auth.user!.uid, processedUri, `product_${tempId}`);
+                
+                return {
+                    id: tempId,
+                    name: file.name.split('.')[0] || 'New Product',
+                    imageUrl: url
+                };
+            }));
             
-            const newProduct = {
-                id: tempId,
-                name: file.name.split('.')[0] || 'New Product',
-                imageUrl: url
-            };
-            
-            setKit(prev => ({ ...prev, products: [...(prev.products || []), newProduct] }));
-            setToast({ msg: "Product added.", type: "success" });
+            setKit(prev => ({ ...prev, products: [...(prev.products || []), ...newProducts] }));
+            setToast({ msg: `${newProducts.length} product(s) added.`, type: "success" });
         } catch (error: any) {
             console.error("Product upload failed", error);
-            setToast({ msg: "Failed to upload product.", type: "error" });
+            setToast({ msg: "Failed to upload products.", type: "error" });
         } finally {
             setUploadingState(prev => ({ ...prev, products: false }));
             e.target.value = '';
@@ -432,26 +433,28 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     // --- MOOD BOARD HANDLERS ---
     const handleMoodUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!auth.user || !e.target.files?.[0]) return;
-        const file = e.target.files[0];
+        if (!auth.user || !e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
         setUploadingState(prev => ({ ...prev, mood: true }));
         
         try {
-            const base64Data = await fileToBase64(file);
-            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
-            const tempId = Math.random().toString(36).substring(7);
-            const url = await uploadBrandAsset(auth.user.uid, processedUri, `mood_${tempId}`);
+            const newItems = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(auth.user!.uid, processedUri, `mood_${tempId}`);
+                
+                return {
+                    id: tempId,
+                    imageUrl: url
+                };
+            }));
             
-            const newMoodItem = {
-                id: tempId,
-                imageUrl: url
-            };
-            
-            setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), newMoodItem] }));
-            setToast({ msg: "Inspiration added.", type: "success" });
+            setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), ...newItems] }));
+            setToast({ msg: `${newItems.length} image(s) added.`, type: "success" });
         } catch (error: any) {
             console.error("Mood upload failed", error);
-            setToast({ msg: "Failed to upload image.", type: "error" });
+            setToast({ msg: "Failed to upload images.", type: "error" });
         } finally {
             setUploadingState(prev => ({ ...prev, mood: false }));
             e.target.value = '';
@@ -467,26 +470,28 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     // --- COMPETITOR INTEL HANDLERS ---
     const handleCompetitorAdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!auth.user || !e.target.files?.[0]) return;
-        const file = e.target.files[0];
+        if (!auth.user || !e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
         setUploadingState(prev => ({ ...prev, competitor: true }));
         
         try {
-            const base64Data = await fileToBase64(file);
-            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
-            const tempId = Math.random().toString(36).substring(7);
-            const url = await uploadBrandAsset(auth.user.uid, processedUri, `comp_ad_${tempId}`);
-            
-            const newItem = { id: tempId, imageUrl: url };
+            const newItems = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(auth.user!.uid, processedUri, `comp_ad_${tempId}`);
+                
+                return { id: tempId, imageUrl: url };
+            }));
             
             setKit(prev => ({
                 ...prev,
                 competitor: {
                     ...prev.competitor || { website: '', adScreenshots: [] },
-                    adScreenshots: [...(prev.competitor?.adScreenshots || []), newItem]
+                    adScreenshots: [...(prev.competitor?.adScreenshots || []), ...newItems]
                 }
             }));
-            setToast({ msg: "Competitor ad added.", type: "success" });
+            setToast({ msg: `${newItems.length} screenshot(s) added.`, type: "success" });
         } catch (error: any) {
             console.error(error);
             setToast({ msg: "Upload failed.", type: "error" });
@@ -872,7 +877,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                     >
                                         {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Product</>}
                                     </button>
-                                    <input ref={productInputRef} type="file" className="hidden" accept="image/*" onChange={handleProductUpload} />
+                                    <input ref={productInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} />
                                 </div>
                                 <div className={`${BrandKitManagerStyles.cardContent}`}>
                                     {(!kit.products || kit.products.length === 0) ? (
@@ -911,7 +916,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                     >
                                         {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}
                                     </button>
-                                    <input ref={moodInputRef} type="file" className="hidden" accept="image/*" onChange={handleMoodUpload} />
+                                    <input ref={moodInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} />
                                 </div>
                                 <div className={`${BrandKitManagerStyles.cardContent}`}>
                                     {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
@@ -1055,7 +1060,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                                 >
                                                     {uploadingState['competitor'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}
                                                 </button>
-                                                <input ref={competitorAdRef} type="file" className="hidden" accept="image/*" onChange={handleCompetitorAdUpload} />
+                                                <input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} />
                                             </div>
 
                                             {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (
