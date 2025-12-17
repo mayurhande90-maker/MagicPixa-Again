@@ -6,16 +6,9 @@ import {
     SparklesIcon, CheckIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
     PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon,
-    CreditCoinIcon, PixaHeadshotIcon
+    CreditCoinIcon, PixaHeadshotIcon, LightningIcon
 } from './icons';
 import { BillingStyles } from '../styles/Billing.styles';
-
-// Local Icon for the Refill Station
-const ZapIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd" />
-    </svg>
-);
 
 interface BillingProps {
   user: User;
@@ -94,7 +87,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-5 h-5";
     if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
-        return <div className="p-2 bg-green-100 rounded-full"><PlusCircleIcon className={`${iconClass} text-green-600`} /></div>;
+        return <div className="p-2 bg-yellow-100 rounded-full"><LightningIcon className={`${iconClass} text-yellow-600`} /></div>;
     }
     
     if (feature.includes('Product') || feature.includes('Model')) return <PhotoStudioIcon className="w-10 h-10" />;
@@ -384,7 +377,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                     {/* Left: Branding */}
                     <div className="text-center lg:text-left max-w-md">
                         <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full mb-4">
-                            <ZapIcon className="w-4 h-4 text-[#F9D230] animate-pulse" />
+                            <LightningIcon className="w-4 h-4 text-[#F9D230] animate-pulse" />
                             <span className="text-[10px] font-bold text-white uppercase tracking-widest">Instant Recharge</span>
                         </div>
                         <h3 className="text-3xl md:text-4xl font-black text-white leading-tight mb-3">
