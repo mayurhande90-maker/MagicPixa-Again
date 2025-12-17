@@ -9,6 +9,14 @@ export const PlannerStyles = {
     optionIconSelected: "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30",
     optionIconInactive: "bg-gray-100 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-600",
     
+    // Thinking Log
+    logContainer: "w-full max-w-md bg-[#0F172A] rounded-2xl p-6 border border-white/10 shadow-2xl overflow-hidden mt-8",
+    logHeader: "flex items-center gap-2 mb-4 border-b border-white/10 pb-3",
+    logTitle: "text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]",
+    logItem: "flex items-start gap-3 mb-3 animate-fadeIn",
+    logDot: "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
+    logText: "text-xs text-gray-300 font-medium leading-relaxed",
+
     // Review Grid
     gridContainer: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
     dayCard: "bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow relative group",
@@ -27,7 +35,7 @@ export const PlannerStyles = {
     resultOverlay: "absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4",
     
     // Progress Overlay
-    progressContainer: "fixed inset-0 z-50 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8",
+    progressContainer: "fixed inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-8",
     progressBar: "w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden mt-6",
     progressFill: "h-full bg-indigo-600 transition-all duration-300 ease-out",
 };

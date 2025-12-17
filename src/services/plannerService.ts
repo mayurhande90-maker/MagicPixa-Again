@@ -4,18 +4,6 @@ import { getAiClient, callWithRetry } from "./geminiClient";
 import { BrandKit } from "../types";
 import { resizeImage } from "../utils/imageUtils";
 
-const optimizeImage = async (base64: string, mimeType: string, size: number = 1024): Promise<{ data: string; mimeType: string }> => {
-    try {
-        const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, size, 0.85);
-        const [header, data] = resizedUri.split(',');
-        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-        return { data, mimeType: newMime };
-    } catch (e) {
-        return { data: base64, mimeType };
-    }
-};
-
 export interface PlanConfig {
     month: string;
     year: number;
@@ -37,7 +25,9 @@ export interface CalendarPost {
     caption: string;
     hashtags: string;
     imagePrompt: string; 
-    selectedProductId?: string; 
+    selectedProductId?: string;
+    archetype?: 'Value' | 'Hard Sell' | 'Seasonal'; // New field for strategic categorization
+    reasoning?: string; // AI's strategic explanation
 }
 
 const FREQUENCY_MAP: Record<string, number> = {
@@ -48,104 +38,57 @@ const FREQUENCY_MAP: Record<string, number> = {
 };
 
 /**
- * NEW: Extract structured plan from a CSV or PDF document using Gemini 2.5 Flash
- */
-export const extractPlanFromDocument = async (
-    brand: BrandKit,
-    fileBase64: string,
-    mimeType: string
-): Promise<CalendarPost[]> => {
-    const ai = getAiClient();
-    
-    const prompt = `You are a Content Data Architect. Extract the content schedule from the attached document.
-    
-    *** RULES ***
-    1. Identify dates, topics, and captions.
-    2. Map each post to one of the brand's products: [${brand.products?.map(p => p.name).join(', ') || 'General'}].
-    3. Generate a technical "imagePrompt" for each post focusing on commercial-grade aesthetics.
-    4. Format the output strictly as a JSON array of CalendarPost objects.
-    
-    JSON Schema:
-    - date: "YYYY-MM-DD"
-    - dayLabel: "Oct 1"
-    - topic: string
-    - postType: "Ad" | "Photo" | "Greeting"
-    - headline: string (Max 5 words, for text-on-image)
-    - visualIdea: string (description of the scene)
-    - caption: string (social media caption)
-    - hashtags: string (5-10 tags)
-    - imagePrompt: technical prompt for AI image generator
-    - selectedProductId: the ID of the product from the catalog.
-    `;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data: fileBase64, mimeType } },
-                    { text: prompt }
-                ]
-            },
-            config: { responseMimeType: "application/json" }
-        });
-
-        const jsonText = response.text || "[]";
-        let plan: CalendarPost[] = JSON.parse(jsonText);
-        return plan.map((p, idx) => ({ ...p, id: `import_${Date.now()}_${idx}` }));
-    } catch (e) {
-        console.error("Document extraction failed", e);
-        throw new Error("Failed to read the document. Ensure it contains a clear schedule.");
-    }
-};
-
-/**
- * STEP 1: GENERATE STRATEGIC CONTENT PLAN
- * Enhanced with catalog rotation logic.
+ * STEP 1: DEEP AUDIT & STRATEGY GENERATION
+ * Acts as a Lead Brand Strategist.
  */
 export const generateContentPlan = async (
     brand: BrandKit,
     config: PlanConfig
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
-    
-    // Explicitly listing products for the AI
-    const productCatalog = brand.products?.map(p => `- ${p.name} (ID: ${p.id})`).join('\n') || 'Generic Brand Items';
     const postCount = FREQUENCY_MAP[config.frequency] || 12;
 
-    const systemPrompt = `You are a World-Class Creative Director & Multi-Product Strategist.
+    const auditPrompt = `You are a World-Class CMO and Digital Content Strategist.
     
-    *** BRAND IDENTITY ***
-    - Company: ${brand.companyName}
-    - Tone: ${brand.toneOfVoice}
-    - Audience: ${brand.targetAudience}
+    *** ASSIGNMENT ***
+    Create a highly scientific, results-driven 30-day content strategy for ${brand.companyName}.
     
-    *** THE PRODUCT CATALOG (CRITICAL) ***
-    ${productCatalog}
+    *** PHASE 1: RESEARCH (SOURCE OF TRUTH) ***
+    - **Website**: ${brand.website}
+    - **Core Tone**: ${brand.toneOfVoice}
+    - **Provided Audience**: ${brand.targetAudience}
+    - **Product Catalog**: ${brand.products?.map(p => p.name).join(', ') || 'General Portfolio'}
     
-    *** STRATEGIC MISSION ***
-    1. Generate exactly ${postCount} posts for ${config.month} ${config.year}.
-    2. **CATALOG ROTATION RULE**: You MUST use every product in the list above at least once. DO NOT just repeat the same product. Showcase the diversity of the brand.
-    3. **SMART MAPPING**: Match each product to a theme (e.g., use premium items for Ads, lifestyle items for Photos).
+    *** INSTRUCTIONS ***
+    1. **Deep Audit (Google Search)**: Crawl ${brand.website}. Identify the brand's USP (Unique Selling Proposition), pricing tier (Luxury vs Value), and existing visual style.
+    2. **Persona Mapping**: Define a high-intent "Target Persona" based on your audit.
+    3. **The 70/20/10 Archetype Rule**:
+       - 70% Value/Lifestyle: Educational content, trust-building shots.
+       - 20% Hard Sell: High-conversion ads for products.
+       - 10% Trending/Seasonal: Content grounded in ${config.month} trends in ${config.country}.
+    4. **Catalog Saturation**: You MUST rotate through ALL products in the catalog.
     
     *** OUTPUT JSON ARRAY ***
-    For each post, return:
-    - "date": "YYYY-MM-DD"
-    - "dayLabel": "e.g. Oct 5"
-    - "topic": Engaging post title
-    - "postType": "Ad" | "Photo" | "Greeting"
-    - "selectedProductId": The EXACT ID from the catalog list above (NOT the name)
-    - "headline": Hook for the visual (Max 6 words)
-    - "visualIdea": Description of the scene
-    - "caption": High-engagement copy
-    - "hashtags": Strategic tags
-    - "imagePrompt": Detailed technical AI prompt for photorealism.
+    Generate EXACTLY ${postCount} posts.
+    Return an array of objects:
+    - date (YYYY-MM-DD)
+    - dayLabel (e.g. Oct 5)
+    - topic (Catchy title)
+    - postType ("Ad", "Photo", "Greeting")
+    - archetype ("Value", "Hard Sell", "Seasonal")
+    - selectedProductId (ID from catalog)
+    - headline (The main text to render on the image - Max 6 words)
+    - visualIdea (Technical scene description)
+    - reasoning (1 sentence explaining why this post exists for the persona)
+    - caption (Engaging copy)
+    - hashtags (Strategic tags)
+    - imagePrompt (Technical prompt for a 4K commercial photo)
     `;
 
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ text: systemPrompt }] },
+            contents: { parts: [{ text: auditPrompt }] },
             config: {
                 tools: [{ googleSearch: {} }], 
                 responseMimeType: "application/json",
@@ -158,14 +101,16 @@ export const generateContentPlan = async (
                             dayLabel: { type: Type.STRING },
                             topic: { type: Type.STRING },
                             postType: { type: Type.STRING, enum: ["Ad", "Photo", "Greeting"] },
+                            archetype: { type: Type.STRING, enum: ["Value", "Hard Sell", "Seasonal"] },
                             selectedProductId: { type: Type.STRING },
                             headline: { type: Type.STRING },
                             visualIdea: { type: Type.STRING },
+                            reasoning: { type: Type.STRING },
                             caption: { type: Type.STRING },
                             hashtags: { type: Type.STRING },
                             imagePrompt: { type: Type.STRING }
                         },
-                        required: ["date", "topic", "postType", "selectedProductId", "visualIdea", "imagePrompt", "headline", "caption"]
+                        required: ["date", "topic", "postType", "selectedProductId", "visualIdea", "imagePrompt", "headline", "caption", "reasoning", "archetype"]
                     }
                 }
             }
@@ -175,12 +120,14 @@ export const generateContentPlan = async (
         let plan: CalendarPost[] = JSON.parse(jsonText);
         return plan.slice(0, postCount).map((p, idx) => ({ ...p, id: `post_${Date.now()}_${idx}` }));
     } catch (e) {
-        throw new Error("Strategic strategy generation failed.");
+        console.error("Strategy generation failed", e);
+        throw new Error("Failed to engineer strategy. The AI is likely having trouble accessing the brand website.");
     }
 };
 
 /**
- * STEP 2: GENERATE DESIGNED CREATIVE
+ * STEP 2: HYPER-REALISTIC CREATIVE PRODUCTION
+ * Acts as a Commercial Photographer & Digital Artist.
  */
 export const generatePostImage = async (
     post: CalendarPost,
@@ -193,41 +140,42 @@ export const generatePostImage = async (
     const parts: any[] = [];
     
     if (productAsset) {
-        parts.push({ text: "HERO PRODUCT (Main Physical Subject):" });
+        parts.push({ text: "HERO PRODUCT (The Sacred Subject - Preserve Identity Exactly):" });
         parts.push({ inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
     }
     
     if (logoAsset) {
-        parts.push({ text: "BRAND LOGO (Overlay discreetly):" });
+        parts.push({ text: "BRAND LOGO (Overlay with high contrast):" });
         parts.push({ inlineData: { data: logoAsset.data, mimeType: logoAsset.mimeType } });
     }
 
     if (moodBoardAssets.length > 0) {
-        parts.push({ text: "MOOD BOARD (Reference for Texture, Lighting, and Color Grade):" });
+        parts.push({ text: "BRAND AESTHETIC REFERENCE (Copy the lighting, grain, and grading style):" });
         moodBoardAssets.slice(0, 3).forEach(m => {
             parts.push({ inlineData: { data: m.data, mimeType: m.mimeType } });
         });
     }
 
-    let designPrompt = `You are a High-End Commercial Photographer & Digital Artist.
+    const productionPrompt = `You are an Elite Commercial Photographer.
     
-    *** DESIGN BRIEF ***
+    *** THE BRIEF ***
+    Category: ${post.archetype} (${post.postType})
     Brand: ${brand.companyName}
-    Colors: ${brand.colors.primary}, ${brand.colors.accent}
-    Vibe: ${brand.toneOfVoice}
+    Target Mood: ${brand.toneOfVoice}
+    Primary Color: ${brand.colors.primary}
     
-    *** THE TASK ***
-    Create a ${post.postType} for "${post.topic}".
-    
-    *** RULES FOR HYPER-REALISM ***
-    1. **Fidelity**: Preserve the physical details of the HERO PRODUCT exactly. 
-    2. **Aesthetic**: Study the MOOD BOARD images. Copy the grain, bokeh, and lighting temperature.
-    3. **Scene**: ${post.visualIdea}. 
-    4. **Typography**: If ${post.postType} is an Ad or Greeting, render text "${post.headline}" in a premium font. 
-    
-    OUTPUT: A photorealistic, 4K marketing asset. No distortions. Commercial grade.`;
+    *** TECHNICAL PROTOCOL: HYPER-REALISM ***
+    1. **Lighting Physics**: Match the lighting style from the BRAND AESTHETIC REFERENCE images. (e.g. Studio Soft, Harsh Sunlight, Moody Noir). 
+    2. **Fidelity**: The HERO PRODUCT is the center of the universe. Ensure it has realistic contact shadows and micro-reflections.
+    3. **Typography**: Render "${post.headline}" using a premium, clean layout. Use the brand's primary color if appropriate. Ensure text is perfectly spelled and legible.
+    4. **Composition**: ${post.visualIdea}. 
+    5. **Camera**: 8K resolution, 85mm lens, f/1.8 aperture for professional bokeh.
 
-    parts.push({ text: designPrompt });
+    *** OUTPUT ***
+    A SINGLE high-resolution, photorealistic 4:5 vertical masterpiece. Commercial grade only.
+    `;
+
+    parts.push({ text: productionPrompt });
 
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
@@ -242,7 +190,41 @@ export const generatePostImage = async (
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         return imagePart?.inlineData?.data || "";
     } catch (e) {
-        console.error("Creative rendering failed", e);
+        console.error("Image rendering failed", e);
         throw e;
+    }
+};
+
+/**
+ * UTILITY: Extract from document
+ */
+export const extractPlanFromDocument = async (
+    brand: BrandKit,
+    fileBase64: string,
+    mimeType: string
+): Promise<CalendarPost[]> => {
+    const ai = getAiClient();
+    
+    const prompt = `Extract the content schedule from this document. 
+    Map each item to products: [${brand.products?.map(p => p.name).join(', ') || 'General'}].
+    Ensure each post has a technical "imagePrompt" for photorealistic generation.
+    Return strictly a JSON array of CalendarPost objects.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: fileBase64, mimeType } },
+                    { text: prompt }
+                ]
+            },
+            config: { responseMimeType: "application/json" }
+        });
+
+        const jsonText = response.text || "[]";
+        return JSON.parse(jsonText).map((p: any, idx: number) => ({ ...p, id: `import_${Date.now()}_${idx}` }));
+    } catch (e) {
+        throw new Error("Failed to parse document schedule.");
     }
 };
