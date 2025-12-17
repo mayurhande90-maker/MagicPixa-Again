@@ -6,13 +6,12 @@ import {
     CalendarIcon, SparklesIcon, CheckIcon, ArrowRightIcon, 
     ArrowLeftIcon, DownloadIcon, TrashIcon, RefreshIcon, 
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
-    XIcon
+    XIcon, BrandKitIcon, CubeIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
-import { base64ToBlobUrl } from '../utils/imageUtils';
+import { base64ToBlobUrl, urlToBase64, downloadImage } from '../utils/imageUtils';
 import ToastNotification from '../components/ToastNotification';
-import { downloadImage } from '../utils/imageUtils';
 // @ts-ignore
 import JSZip from 'jszip';
 
@@ -23,8 +22,9 @@ const OptionCard: React.FC<{
     title: string; 
     icon: React.ReactNode; 
     selected: boolean; 
-    onClick: () => void 
-}> = ({ title, icon, selected, onClick }) => (
+    onClick: () => void;
+    description?: string;
+}> = ({ title, icon, selected, onClick, description }) => (
     <button 
         onClick={onClick}
         className={`${PlannerStyles.optionCard} ${selected ? PlannerStyles.optionCardSelected : PlannerStyles.optionCardInactive}`}
@@ -32,7 +32,10 @@ const OptionCard: React.FC<{
         <div className={`${PlannerStyles.optionIcon} ${selected ? PlannerStyles.optionIconSelected : PlannerStyles.optionIconInactive}`}>
             {icon}
         </div>
-        <span className={`text-sm font-bold ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</span>
+        <div>
+            <span className={`text-sm font-bold block ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</span>
+            {description && <span className="text-[10px] text-gray-400 font-medium leading-tight block mt-1">{description}</span>}
+        </div>
         {selected && <div className="absolute top-2 right-2 text-indigo-600"><CheckIcon className="w-4 h-4"/></div>}
     </button>
 );
@@ -44,11 +47,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         year: new Date().getFullYear(),
         goal: '',
         frequency: '',
-        country: 'United States' // Default
+        country: 'United States',
+        mixType: 'Balanced'
     });
     
     const [plan, setPlan] = useState<CalendarPost[]>([]);
-    const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({}); // Map post ID to Blob URL
+    const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({}); 
     const [progress, setProgress] = useState(0);
     const [loadingText, setLoadingText] = useState('');
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -66,6 +70,11 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const goals = ['Brand Awareness', 'Sales & Promos', 'Education', 'Community Engagement'];
     const frequencies = ['Every Day (30 Posts)', 'Weekday Warrior (20 Posts)', 'Steady Growth (12 Posts)', 'Minimalist (4 Posts)'];
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const mixTypes = [
+        { label: 'Balanced', desc: 'Mix of Photos, Ads & Greetings' },
+        { label: 'Ads Only', desc: '100% Flyers & Text Overlays' },
+        { label: 'Lifestyle Only', desc: 'Clean Photography (No Text)' }
+    ];
 
     const handleGeneratePlan = async () => {
         if (!activeBrand) return;
@@ -74,8 +83,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             return;
         }
 
-        setLoadingText("Researching trends & creating schedule...");
-        // Temp step to show loading overlay
+        setLoadingText("Researching trends, holidays & scheduling content...");
         const prevStep = step;
         setStep('generating'); 
 
@@ -98,19 +106,39 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleStartGeneration = async () => {
-        if (!auth.user) return;
+        if (!auth.user || !activeBrand) return;
         if (userCredits < totalCost) {
             setToast({ msg: `Insufficient credits. Need ${totalCost}, have ${userCredits}.`, type: "error" });
             return;
         }
         
-        if (!confirm(`Generate ${plan.length} images for ${totalCost} credits? This process may take a few minutes.`)) return;
+        if (!confirm(`Generate ${plan.length} creative assets for ${totalCost} credits?`)) return;
 
         setStep('generating');
         setProgress(0);
         
         try {
-            // Deduct credits upfront (or we could deduct per image, but upfront is safer for large batches)
+            // 1. Prepare Brand Assets (Logo & Product)
+            let logoAsset = null;
+            let productAsset = null;
+
+            if (activeBrand.logos.primary) {
+                try {
+                    const b64 = await urlToBase64(activeBrand.logos.primary);
+                    logoAsset = b64;
+                } catch (e) { console.warn("Logo fetch failed", e); }
+            }
+
+            // For MVP, we use the FIRST product in the brand kit as the default product.
+            // In a future version, we could let users select specific products per post.
+            if (activeBrand.products && activeBrand.products.length > 0 && activeBrand.products[0].imageUrl) {
+                try {
+                    const b64 = await urlToBase64(activeBrand.products[0].imageUrl);
+                    productAsset = b64;
+                } catch (e) { console.warn("Product fetch failed", e); }
+            }
+
+            // Deduct credits upfront
             const updatedUser = await deductCredits(auth.user.uid, totalCost, `Pixa Planner (${config.month})`);
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -119,20 +147,19 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             
             for (let i = 0; i < plan.length; i++) {
                 const post = plan[i];
-                setLoadingText(`Designing Post ${i + 1} of ${plan.length}: ${post.topic}`);
+                setLoadingText(`Designing Post ${i + 1}/${plan.length}: ${post.topic}`);
                 
                 try {
-                    const b64 = await generatePostImage(post.imagePrompt, activeBrand!);
+                    const b64 = await generatePostImage(post, activeBrand, logoAsset, productAsset);
                     const blobUrl = await base64ToBlobUrl(b64, 'image/jpeg');
                     results[post.id] = blobUrl;
                     
-                    // Save to FireStore immediately
+                    // Save to FireStore
                     const dataUri = `data:image/jpeg;base64,${b64}`;
                     await saveCreation(auth.user.uid, dataUri, `Planner: ${post.topic}`);
                     
                 } catch (err) {
                     console.error(`Failed post ${post.id}`, err);
-                    // Continue to next, don't crash whole batch
                 }
                 
                 setProgress(((i + 1) / plan.length) * 100);
@@ -154,14 +181,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         plan.forEach((post) => {
             const url = generatedImages[post.id];
             if (url) {
-                // Fetch blob
                 zip.file(`${post.date}_${post.topic.replace(/\s+/g, '_')}.jpg`, fetch(url).then(r => r.blob()));
             }
         });
         
-        // Add a text file with captions
         const textContent = plan.map(p => 
-            `Date: ${p.date}\nTopic: ${p.topic}\nCaption: ${p.caption}\nHashtags: ${p.hashtags}\n\n---\n`
+            `Date: ${p.date}\nTopic: ${p.topic}\nHeadline: ${p.headline || 'N/A'}\nCaption: ${p.caption}\nHashtags: ${p.hashtags}\n\n---\n`
         ).join('\n');
         
         zip.file("content_plan.txt", textContent);
@@ -180,7 +205,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <LockIcon className="w-10 h-10 text-gray-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Brand Kit Required</h2>
-                <p className="text-gray-500 mb-8 max-w-md">Pixa Planner needs your Brand DNA (Logo, Colors, Tone) to function. Please set up your brand profile first.</p>
+                <p className="text-gray-500 mb-8 max-w-md">Pixa Planner needs your Brand DNA (Logo, Colors, Tone) to generate on-brand ads. Please set up your brand profile first.</p>
                 <button 
                     onClick={() => navigateTo('dashboard', 'brand_manager')}
                     className="bg-[#1A1A1E] text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors"
@@ -194,13 +219,27 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     return (
         <div className="p-6 max-w-7xl mx-auto pb-32 animate-fadeIn">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                    <CalendarIcon className="w-8 h-8" />
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <CalendarIcon className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900">Pixa Planner</h1>
+                        <p className="text-sm text-gray-500">
+                            Auto-pilot content calendar for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span>
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900">Pixa Planner</h1>
-                    <p className="text-sm text-gray-500">Auto-pilot content calendar for {activeBrand.companyName}</p>
+                
+                {/* Brand Assets Indicator */}
+                <div className="hidden md:flex gap-3">
+                     <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-2 ${activeBrand.logos.primary ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                        <BrandKitIcon className="w-4 h-4"/> Logo {activeBrand.logos.primary ? 'Ready' : 'Missing'}
+                     </div>
+                     <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-2 ${activeBrand.products?.length ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                        <CubeIcon className="w-4 h-4"/> Product {activeBrand.products?.length ? 'Ready' : 'Generic'}
+                     </div>
                 </div>
             </div>
 
@@ -246,6 +285,23 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             ))}
                         </div>
                     </div>
+                    
+                    {/* Content Mix (NEW) */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Content Strategy</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {mixTypes.map(m => (
+                                <OptionCard 
+                                    key={m.label} 
+                                    title={m.label} 
+                                    description={m.desc}
+                                    icon={<MagicWandIcon className="w-5 h-5"/>} 
+                                    selected={config.mixType === m.label} 
+                                    onClick={() => setConfig({...config, mixType: m.label as any})} 
+                                />
+                            ))}
+                        </div>
+                    </div>
 
                     {/* Frequency */}
                     <div>
@@ -269,8 +325,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             onClick={handleGeneratePlan}
                             className="bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:scale-105 flex items-center gap-2"
                         >
-                            <MagicWandIcon className="w-5 h-5 text-[#F9D230]" />
-                            Generate Plan
+                            <SparklesIcon className="w-5 h-5 text-[#F9D230]" />
+                            Create Strategy
                         </button>
                     </div>
                 </div>
@@ -284,7 +340,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             <span className="bg-white p-2 rounded-lg shadow-sm font-bold text-indigo-600 text-lg border border-indigo-100">{plan.length}</span>
                             <div>
                                 <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Posts Generated</p>
-                                <p className="text-indigo-900 font-medium text-sm">Review the text plan before generating images.</p>
+                                <p className="text-indigo-900 font-medium text-sm">Review text & headlines before generating designs.</p>
                             </div>
                         </div>
                         <div className="flex gap-3">
@@ -299,10 +355,18 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     {/* Plan Grid */}
                     <div className={PlannerStyles.gridContainer}>
                         {plan.map((post) => (
-                            <div key={post.id} className={PlannerStyles.dayCard}>
+                            <div key={post.id} className={`${PlannerStyles.dayCard} ${post.postType !== 'Photo' ? 'ring-1 ring-purple-100' : ''}`}>
                                 <div className={PlannerStyles.dayHeader}>
-                                    <span className={PlannerStyles.dayLabel}>{post.dayLabel}</span>
-                                    {/* Edit functionality is implicit via inputs below, maybe add a delete btn later */}
+                                    <div className="flex items-center gap-2">
+                                        <span className={PlannerStyles.dayLabel}>{post.dayLabel}</span>
+                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                            post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 
+                                            post.postType === 'Greeting' ? 'bg-yellow-100 text-yellow-700' : 
+                                            'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            {post.postType}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className={PlannerStyles.dayContent}>
                                     <input 
@@ -311,6 +375,20 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         className={PlannerStyles.topicInput}
                                         placeholder="Topic"
                                     />
+                                    
+                                    {/* Headline Input for Ads */}
+                                    {(post.postType === 'Ad' || post.postType === 'Greeting') && (
+                                        <div className="relative">
+                                            <input 
+                                                value={post.headline || ''}
+                                                onChange={e => updatePost(post.id, 'headline', e.target.value)}
+                                                className="w-full text-xs font-bold text-purple-700 bg-purple-50 p-2 rounded-lg border border-transparent focus:border-purple-300 focus:outline-none"
+                                                placeholder="Ad Headline (Required)"
+                                            />
+                                            <span className="absolute top-1 right-2 text-[8px] text-purple-400 font-bold">TEXT ON IMG</span>
+                                        </div>
+                                    )}
+
                                     <textarea 
                                         value={post.visualIdea} 
                                         onChange={e => updatePost(post.id, 'visualIdea', e.target.value)}
@@ -319,8 +397,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         placeholder="Visual description..."
                                     />
                                     <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Caption Preview</p>
-                                        <p className="text-xs text-gray-600 line-clamp-3">{post.caption}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Caption</p>
+                                        <p className="text-xs text-gray-600 line-clamp-2">{post.caption}</p>
                                     </div>
                                 </div>
                             </div>
@@ -333,7 +411,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             className="bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-full font-bold text-lg hover:bg-[#dfbc2b] transition-all hover:scale-105 flex items-center gap-3 border-4 border-white"
                         >
                             <SparklesIcon className="w-6 h-6" />
-                            Generate All Images ({totalCost} Cr)
+                            Generate Designs ({totalCost} Cr)
                         </button>
                     </div>
                 </div>
@@ -393,6 +471,11 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md">
                                                 {post.dayLabel}
                                             </div>
+                                            {post.headline && (
+                                                <div className="absolute bottom-16 left-2 bg-purple-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-md max-w-[90%] truncate">
+                                                    Ad: {post.headline}
+                                                </div>
+                                            )}
                                             <div className={PlannerStyles.resultOverlay}>
                                                 <button 
                                                     onClick={() => downloadImage(imgUrl, `post_${post.date}.jpg`)}
