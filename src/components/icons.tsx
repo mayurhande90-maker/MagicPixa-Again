@@ -6,3 +6,9 @@ export * from './icons/uiIcons';
 export * from './icons/actionIcons';
 export * from './icons/statusIcons';
 export * from './icons/brandIcons';
+export * from './icons/adMakerIcons';
+export * from './icons/headshotIcons';
+
+// Add specific exports if missing from sub-files or alias them here
+import { CalendarIcon } from './icons/uiIcons';
+export { CalendarIcon }; 

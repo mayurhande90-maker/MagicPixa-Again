@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -15,7 +15,7 @@ interface SidebarProps {
 }
 
 const NavButton: React.FC<{
-    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean };
+    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean; badge?: string };
     activeView: View;
     onClick: () => void;
 }> = ({ item, activeView, onClick }) => (
@@ -33,6 +33,11 @@ const NavButton: React.FC<{
     >
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${activeView === item.id ? '' : 'group-hover:scale-110'}`} />
         <span className="truncate">{item.label}</span>
+        {item.badge && (
+            <span className="ml-auto text-[9px] bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                {item.badge}
+            </span>
+        )}
         {item.disabled && (
             <span className="ml-auto text-[10px] bg-gray-200 text-gray-500 font-bold px-1.5 py-0.5 rounded-full">
                 SOON
@@ -48,6 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
+    { id: 'pixa_planner', label: 'Pixa Planner', icon: CalendarIcon, disabled: false, badge: 'NEW' }, // NEW ITEM
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },

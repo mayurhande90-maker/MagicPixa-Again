@@ -25,7 +25,7 @@ export const BRAND_LIMITS: Record<string, number> = {
 };
 
 export type Page = 'home' | 'dashboard' | 'about';
-export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center' | 'headshot';
+export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center' | 'headshot' | 'pixa_planner';
 
 export interface BrandKit {
     id?: string; // Unique ID for the brand profile
@@ -70,6 +70,8 @@ export interface BrandKit {
         };
     };
 }
+
+// ... (Rest of existing types remain unchanged)
 
 export interface Ticket {
     id: string;
