@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
+import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
 import { PlannerStyles } from '../styles/features/PixaPlanner.styles';
 import { 
     CalendarIcon, SparklesIcon, CheckIcon, ArrowRightIcon, 
@@ -9,7 +9,7 @@ import {
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon
 } from '../components/icons';
-import { generateContentPlan, generatePostImage, extractPlanFromDocument, CalendarPost, PlanConfig } from '../services/plannerService';
+import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
 import { base64ToBlobUrl, urlToBase64, downloadImage, rawFileToBase64, resizeImage } from '../utils/imageUtils';
 import ToastNotification from '../components/ToastNotification';
@@ -69,6 +69,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     });
     
     const [plan, setPlan] = useState<CalendarPost[]>([]);
+    const [productAudits, setProductAudits] = useState<Record<string, ProductAnalysis>>({});
     const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({}); 
     const [progress, setProgress] = useState(0);
     const [loadingText, setLoadingText] = useState('');
@@ -111,18 +112,33 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setStep('generating'); 
         setLogs([]);
         
-        setTimeout(() => addLog(`Crawling Brand Website: ${activeBrand.website}...`), 500);
-        setTimeout(() => addLog(`Performing Deep Visual Analysis on ${activeBrand.products?.length || 0} products...`), 1500);
-        setTimeout(() => addLog(`Researching competitor trends for ${config.month} in ${config.country}...`), 3000);
-        setTimeout(() => addLog(`Engineering 70/20/10 strategic content matrix...`), 5000);
-        setTimeout(() => addLog(`Synthesizing photorealistic visual direction...`), 7000);
-
         try {
-            const newPlan = await generateContentPlan(activeBrand, config);
+            // STEP 1: FORENSIC AUDIT OF ALL PRODUCTS
+            addLog("Initiating Vision Interrogation Protocol...");
+            const products = activeBrand.products || [];
+            const audits: Record<string, ProductAnalysis> = {};
+            
+            for (let i = 0; i < products.length; i++) {
+                const p = products[i];
+                addLog(`Forensic analysis of product: ${p.name}...`);
+                const res = await urlToBase64(p.imageUrl);
+                const audit = await analyzeProductPhysically(p.id, res.base64, res.mimeType);
+                audits[p.id] = audit;
+                setProgress(((i + 1) / products.length) * 50); // First 50% for audit
+            }
+            setProductAudits(audits);
+
+            // STEP 2: STRATEGY GENERATION
+            addLog(`Crawling Brand Website: ${activeBrand.website}...`);
+            addLog(`Injecting Immutable Product Truths into strategy engine...`);
+            
+            const newPlan = await generateContentPlan(activeBrand, config, audits);
             setPlan(newPlan);
+            setProgress(100);
             setStep('review');
         } catch (e: any) {
-            setToast({ msg: "Deep Strategy Engine failed. Please try again.", type: "error" });
+            console.error(e);
+            setToast({ msg: "Strategy Engine failed to verify product physics. Please try again.", type: "error" });
             setStep('config');
         }
     };
@@ -135,7 +151,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
         
         setStep('generating');
-        setLogs(["Pre-loading Brand DNA & Identity...", "Conducting Physics-Aware mass audit on products..."]);
+        setLogs(["Pre-loading Brand DNA & Identity...", "Locking scene constraints based on audits..."]);
         setProgress(0);
         
         try {
@@ -155,9 +171,10 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
                 const prodRes = product ? await urlToBase64(product.imageUrl) : null;
                 const productB64 = prodRes ? { data: prodRes.base64, mimeType: prodRes.mimeType } : null;
+                const audit = productAudits[post.selectedProductId] || null;
 
                 try {
-                    const b64 = await generatePostImage(post, activeBrand, logoB64, productB64, moodAssets);
+                    const b64 = await generatePostImage(post, activeBrand, logoB64, productB64, audit, moodAssets);
                     const blobUrl = await base64ToBlobUrl(b64, 'image/png');
                     results[post.id] = blobUrl;
                     
@@ -279,7 +296,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="flex justify-end pt-4 relative z-10">
                         <button onClick={handleGeneratePlan} className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-105 flex items-center gap-3">
                             <MagicWandIcon className="w-6 h-6 text-yellow-400" />
-                            Engineer Multi-Product Strategy
+                            Engineer High-Fidelity Strategy
                         </button>
                     </div>
                 </div>
@@ -321,8 +338,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
+                                    {/* PIXA ANALYSIS BADGE */}
                                     <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">AI Strategic Reason</p>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Pixa Analysis</p>
+                                            <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-black uppercase">{post.analysisSnippet || 'Verified'}</span>
+                                        </div>
                                         <p className="text-xs text-indigo-900 leading-relaxed italic">"{post.reasoning}"</p>
                                     </div>
                                     

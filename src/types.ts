@@ -27,6 +27,16 @@ export const BRAND_LIMITS: Record<string, number> = {
 export type Page = 'home' | 'dashboard' | 'about';
 export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'mockup' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center' | 'headshot' | 'pixa_planner';
 
+export interface ProductAnalysis {
+    id: string;
+    detectedName: string;
+    category: 'Edible' | 'Topical' | 'Wearable' | 'Tech' | 'Home' | 'Other';
+    state: 'Liquid' | 'Solid' | 'Granular' | 'Powder' | 'Digital';
+    physicalScale: string;
+    sceneConstraints: string;
+    visualCues: string; // OCR text and visual markers
+}
+
 export interface BrandKit {
     id?: string; // Unique ID for the brand profile
     name?: string; // Display name for the brand profile (e.g. "Nike Summer")
@@ -53,6 +63,7 @@ export interface BrandKit {
         id: string;
         name: string;
         imageUrl: string;
+        analysis?: ProductAnalysis; // AI's forensic report
     }[];
     moodBoard?: {
         id: string;
@@ -70,8 +81,6 @@ export interface BrandKit {
         };
     };
 }
-
-// ... (Rest of existing types remain unchanged)
 
 export interface Ticket {
     id: string;
