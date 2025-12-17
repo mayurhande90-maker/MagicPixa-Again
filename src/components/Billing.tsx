@@ -373,7 +373,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         </div>
 
         {/* SECTION 2: RECHARGE STATION (Gap-Filler Strategy Redesigned) */}
-        <div className="mb-16 pt-8 border-t border-gray-100">
+        <div id="recharge-station" className="mb-16 pt-8 border-t border-gray-100">
             <div className="bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 rounded-[2rem] p-1.5 shadow-2xl relative overflow-hidden">
                 {/* Background Animation Layer */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
