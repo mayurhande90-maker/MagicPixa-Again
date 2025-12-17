@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Page, View } from '../types';
-import { LogoutIcon, DashboardIcon, ProjectsIcon, PixaBillingIcon, ShieldCheckIcon } from './icons';
+import { LogoutIcon, DashboardIcon, ProjectsIcon, PixaBillingIcon, ShieldCheckIcon, PlusCircleIcon } from './icons';
 import { getBadgeInfo } from '../utils/badgeUtils';
 import { CreatorRanksModal } from './CreatorRanksModal';
 
@@ -91,6 +91,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
             <button onClick={() => handleNavigation('creations')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <ProjectsIcon className="w-5 h-5" /> My Creations
             </button>
+            
+            <button onClick={() => handleNavigation('billing')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm font-semibold text-green-600 hover:bg-green-50" role="menuitem">
+              <PlusCircleIcon className="w-5 h-5" /> Topup Credit
+            </button>
+
             <button onClick={() => handleNavigation('billing')} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
               <PixaBillingIcon className="w-5 h-5" /> Billing & Credits
             </button>
