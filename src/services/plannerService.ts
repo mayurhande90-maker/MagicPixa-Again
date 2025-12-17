@@ -28,7 +28,8 @@ export interface CalendarPost {
     selectedProductId: string;
     archetype: 'Value' | 'Hard Sell' | 'Seasonal';
     reasoning: string; 
-    analysisSnippet?: string; // Analysis for UI feedback
+    analysisSnippet?: string; 
+    visualBrief?: string; // New: Technical art direction notes
 }
 
 const FREQUENCY_MAP: Record<string, number> = {
@@ -39,8 +40,7 @@ const FREQUENCY_MAP: Record<string, number> = {
 };
 
 /**
- * PHASE 1: VISION INTERROGATION
- * Performs a physical audit of a product image.
+ * PHASE 1: FORENSIC AUDIT (Pre-verification)
  */
 export const analyzeProductPhysically = async (
     productId: string,
@@ -48,22 +48,22 @@ export const analyzeProductPhysically = async (
     mimeType: string
 ): Promise<ProductAnalysis> => {
     const ai = getAiClient();
-    const prompt = `Perform a Technical Forensic Audit of this product image.
+    const prompt = `Perform a Technical Forensic Audit of this product image for high-end commercial rendering.
     
-    1. **OCR & Labels**: Transcribe all readable text on the packaging.
-    2. **Material Check**: Is it a liquid, solid, granular (like seeds/spices), or powder?
-    3. **Consumption Logic**: Is it Edible (eaten), Topical (applied to skin), or Functional (tool/object)?
-    4. **Scaling**: Estimate its real-world height in cm based on common packaging cues.
-    5. **Scene Constraint**: Where should this NEVER be placed? (e.g. mukhwas/digestive must be in dining/hospitality contexts, NEVER in a bathroom or near skincare props).
+    1. **Identity Capture**: Transcribe packaging text, logos, and specific design markers.
+    2. **Material Science**: Is the surface high-gloss, matte, metallic, or textured?
+    3. **Physics Categorization**: Is it Edible, Topical (Skincare), or a Hard Good?
+    4. **Scale Logic**: Determine its height/mass (e.g., "15cm tall bottle", "500g heavy jar").
+    5. **Art Direction Constraints**: List scenes where this product looks 'premium' vs 'cheap'.
     
     RETURN JSON:
     {
         "detectedName": "string",
         "category": "Edible | Topical | Wearable | Tech | Home | Other",
         "state": "Liquid | Solid | Granular | Powder | Digital",
-        "physicalScale": "string (e.g. 10cm tall bottle)",
+        "physicalScale": "string",
         "sceneConstraints": "string",
-        "visualCues": "OCR result and main visual markers"
+        "visualCues": "string"
     }`;
 
     try {
@@ -95,13 +95,13 @@ export const analyzeProductPhysically = async (
         const data = JSON.parse(response.text || "{}");
         return { ...data, id: productId };
     } catch (e) {
-        console.error("Forensic audit failed for product", productId, e);
+        console.error("Forensic audit failed", e);
         throw e;
     }
 };
 
 /**
- * STEP 1: STRATEGY GENERATION with IMMUTABLE TRUTH
+ * STEP 1: STRATEGY ENGINE (CMO + Art Director)
  */
 export const generateContentPlan = async (
     brand: BrandKit,
@@ -112,28 +112,23 @@ export const generateContentPlan = async (
     const postCount = FREQUENCY_MAP[config.frequency] || 12;
 
     const auditData = Object.values(productAudits).map(a => 
-        `- Product ID: ${a.id}
-          IMMUTABLE TRUTH: This is ${a.detectedName}. 
-          Type: ${a.category} (${a.state}). 
-          Rules: ${a.sceneConstraints}.
-          Scale: ${a.physicalScale}.`
-    ).join('\n\n');
+        `- [${a.detectedName}]: ${a.category} item. Rules: ${a.sceneConstraints}. Vibe: ${a.visualCues}`
+    ).join('\n');
 
-    const auditPrompt = `You are a Lead Brand Strategist for ${brand.companyName}.
+    const auditPrompt = `You are a World-Class CMO and Senior Art Director for ${brand.companyName}.
     
-    *** PRODUCT DATABASE (IMMUTABLE TRUTH) ***
+    *** PRODUCT DATABASE ***
     ${auditData}
     
-    *** ASSIGNMENT ***
-    1. **Internet Trend Scan**: Use Google Search for ${brand.website} and ${config.month} trends in ${config.country}.
-    2. **Logic Check**: Match products to days. IF Edible/Granular (e.g. Mukhwas/Candy), focus on dining, hospitality, and taste. NEVER treat it as skincare.
-    3. **Strategy**: Generate ${postCount} posts using the 70/20/10 rule.
+    *** STRATEGY BRIEF ***
+    1. **Internet Trends**: Search for viral aesthetics for ${brand.website} and ${brand.companyName} niche for ${config.month} in ${config.country}.
+    2. **Content Archetypes**: Apply 70% Value, 20% Hard Sell, 10% Trends.
+    3. **Art Direction**: For EVERY post, generate a "visualBrief" that describes high-end photography settings (e.g. "Use Chiaroscuro lighting for drama", "Flat-lay with organic textures").
     
     *** OUTPUT JSON ARRAY ***
-    Return array of objects including:
-    - selectedProductId (MUST MATCH ONE FROM DATABASE)
-    - analysisSnippet (Short string from database to confirm identity in UI)
-    ... (standard fields)`;
+    Return strictly ${postCount} objects. 
+    Ensure "selectedProductId" is accurate. 
+    "visualBrief" must contain camera focal length and lighting type.`;
 
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
@@ -156,12 +151,13 @@ export const generateContentPlan = async (
                             analysisSnippet: { type: Type.STRING },
                             headline: { type: Type.STRING },
                             visualIdea: { type: Type.STRING },
+                            visualBrief: { type: Type.STRING },
                             reasoning: { type: Type.STRING },
                             caption: { type: Type.STRING },
                             hashtags: { type: Type.STRING },
                             imagePrompt: { type: Type.STRING }
                         },
-                        required: ["date", "topic", "postType", "selectedProductId", "visualIdea", "imagePrompt", "headline", "caption", "reasoning", "archetype", "analysisSnippet"]
+                        required: ["date", "topic", "postType", "selectedProductId", "visualIdea", "visualBrief", "imagePrompt", "headline", "caption", "reasoning", "archetype", "analysisSnippet"]
                     }
                 }
             }
@@ -177,7 +173,7 @@ export const generateContentPlan = async (
 };
 
 /**
- * STEP 2: PHYSICS-AWARE PRODUCTION
+ * STEP 2: PRO PRODUCTION ENGINE (Senior Commercial Photographer)
  */
 export const generatePostImage = async (
     post: CalendarPost,
@@ -191,36 +187,37 @@ export const generatePostImage = async (
     const parts: any[] = [];
     
     if (productAsset) {
-        parts.push({ text: `HERO PRODUCT IMMUTABLE TRUTH:
-        ID: ${post.selectedProductId}
-        Identity: ${productAudit?.detectedName}
-        Category: ${productAudit?.category} (${productAudit?.state})
-        Scale: ${productAudit?.physicalScale}
-        Constraints: ${productAudit?.sceneConstraints}` });
+        parts.push({ text: "HERO PRODUCT (The Subject - Analyze Material and Scale):" });
         parts.push({ inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
     }
     
-    if (logoAsset) {
-        parts.push({ text: "BRAND LOGO:" });
-        parts.push({ inlineData: { data: logoAsset.data, mimeType: logoAsset.mimeType } });
-    }
-
     if (moodBoardAssets.length > 0) {
-        parts.push({ text: "AESTHETIC REFERENCE:" });
+        parts.push({ text: "BRAND VISUAL DNA (Style Anchor - Copy this Lighting, Color Grading, and Vibe):" });
         moodBoardAssets.slice(0, 3).forEach(m => {
             parts.push({ inlineData: { data: m.data, mimeType: m.mimeType } });
         });
     }
 
-    const productionPrompt = `You are an Elite Commercial Photographer.
+    const productionPrompt = `You are an Elite Commercial Photographer commissioned by ${brand.companyName}.
     
-    *** CRITICAL: PHYSICS & CONTEXT ***
-    - **Physical Scaling**: ${productAudit?.physicalScale || 'Maintain realistic proportions'}.
-    - **Context Lock**: This product is ${productAudit?.category}. ${productAudit?.sceneConstraints}. 
-    - **Visual Brief**: ${post.visualIdea}. 
-    - **Headline**: Render "${post.headline}" with premium typography.
+    *** THE PRODUCTION BRIEF ***
+    Object: ${productAudit?.detectedName} (${productAudit?.category})
+    Post Focus: ${post.topic}
+    Art Direction: ${post.visualBrief}
+    Visual Concept: ${post.visualIdea}
+    Primary Color: ${brand.colors.primary}
     
-    OUTPUT: A single 4:5 vertical 4K masterpiece. Total realism.`;
+    *** COMMERCIAL QUALITY PROTOCOL ***
+    1. **Optics**: Render as if shot on a Phase One XF IQ4, 100MP, 80mm Schneider lens, f/4 for maximum clarity and realistic fall-off.
+    2. **Lighting Physics**: Match the lighting structure found in the BRAND VISUAL DNA images. Use high-dynamic range (HDR).
+    3. **Physics & Contact**: Ensure the product has realistic weight. Add deep contact shadows (ambient occlusion) where it meets surfaces. 
+    4. **Material Fidelity**: Preserve the product identity exactly. If it is a ${productAudit?.state}, ensure the physics of the material (reflections, translucency) are 100% realistic.
+    5. **Typography**: Integrate "${post.headline}" using ${brand.fonts.heading}. Text must be clean, legible, and premium.
+    
+    *** COMPOSITION ***
+    Apply the "Rule of Thirds" and "Leading Lines" to ensure the product is the hero. Use negative space effectively for the headline.
+    
+    OUTPUT: A single, photorealistic 4:5 vertical masterpiece. Zero AI artifacts. Magazine quality.`;
 
     parts.push({ text: productionPrompt });
 
@@ -237,7 +234,7 @@ export const generatePostImage = async (
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         return imagePart?.inlineData?.data || "";
     } catch (e) {
-        console.error("Image rendering failed", e);
+        console.error("High-fidelity rendering failed", e);
         throw e;
     }
 };
@@ -248,7 +245,7 @@ export const extractPlanFromDocument = async (
     mimeType: string
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
-    const prompt = `Extract the content schedule from this document. Format as JSON array.`;
+    const prompt = `Extract the content schedule from this document. Format as JSON array. Link to products: ${brand.products?.map(p => p.name).join(', ')}.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -258,5 +255,5 @@ export const extractPlanFromDocument = async (
             config: { responseMimeType: "application/json" }
         });
         return JSON.parse(response.text || "[]");
-    } catch (e) { throw new Error("Document parsing failed."); }
+    } catch (e) { throw new Error("Parsing failed."); }
 };
