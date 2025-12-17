@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
 import { PlannerStyles } from '../styles/features/PixaPlanner.styles';
 import { 
     CalendarIcon, SparklesIcon, CheckIcon, ArrowRightIcon, 
     ArrowLeftIcon, DownloadIcon, TrashIcon, RefreshIcon, 
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
-    XIcon, BrandKitIcon, CubeIcon
+    XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -15,30 +15,7 @@ import ToastNotification from '../components/ToastNotification';
 // @ts-ignore
 import JSZip from 'jszip';
 
-// Steps of the Wizard
 type Step = 'config' | 'review' | 'generating' | 'done';
-
-const OptionCard: React.FC<{ 
-    title: string; 
-    icon: React.ReactNode; 
-    selected: boolean; 
-    onClick: () => void;
-    description?: string;
-}> = ({ title, icon, selected, onClick, description }) => (
-    <button 
-        onClick={onClick}
-        className={`${PlannerStyles.optionCard} ${selected ? PlannerStyles.optionCardSelected : PlannerStyles.optionCardInactive}`}
-    >
-        <div className={`${PlannerStyles.optionIcon} ${selected ? PlannerStyles.optionIconSelected : PlannerStyles.optionIconInactive}`}>
-            {icon}
-        </div>
-        <div>
-            <span className={`text-sm font-bold block ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</span>
-            {description && <span className="text-[10px] text-gray-400 font-medium leading-tight block mt-1">{description}</span>}
-        </div>
-        {selected && <div className="absolute top-2 right-2 text-indigo-600"><CheckIcon className="w-4 h-4"/></div>}
-    </button>
-);
 
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
@@ -57,270 +34,191 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [loadingText, setLoadingText] = useState('');
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // CRITICAL FIX: Use useMemo to ensure activeBrand is always the freshest reference from the user profile
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
     const hasBrand = !!activeBrand;
+    const csvInputRef = useRef<HTMLInputElement>(null);
 
-    // Cost Calculation
     const costPerImage = 10;
     const totalCost = plan.length * costPerImage;
     const userCredits = auth.user?.credits || 0;
 
-    // Reset plan if brand changes significantly
-    useEffect(() => {
-        if (step === 'review' || step === 'done') {
-            // Optional: You might want to warn the user or auto-reset
-            // For now, we just ensure the UI reflects the new name
-        }
-    }, [auth.user?.brandKit?.id]);
+    const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    const goals = ['Brand Awareness', 'Sales & Promos', 'Education', 'Community Engagement'];
-    const frequencies = ['Every Day (30 Posts)', 'Weekday Warrior (20 Posts)', 'Steady Growth (12 Posts)', 'Minimalist (4 Posts)'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const mixTypes = [
-        { label: 'Balanced', desc: 'Mix of Photos, Ads & Greetings' },
-        { label: 'Ads Only', desc: '100% Flyers & Text Overlays' },
-        { label: 'Lifestyle Only', desc: 'Clean Photography (No Text)' }
-    ];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            const lines = text.split('\n').filter(l => l.trim());
+            const header = lines[0].split(',');
+            
+            const importedPlan: CalendarPost[] = lines.slice(1).map((line, idx) => {
+                const cols = line.split(',');
+                return {
+                    id: `csv_${Date.now()}_${idx}`,
+                    date: cols[0] || '',
+                    dayLabel: cols[0] || `Day ${idx + 1}`,
+                    topic: cols[1] || 'Imported Post',
+                    postType: (cols[2] as any) || 'Photo',
+                    headline: cols[3] || '',
+                    visualIdea: cols[4] || '',
+                    caption: cols[5] || '',
+                    hashtags: cols[6] || '',
+                    imagePrompt: cols[7] || '',
+                    selectedProductId: activeBrand?.products?.[0]?.id || ''
+                };
+            });
+            setPlan(importedPlan);
+            setStep('review');
+        };
+        reader.readAsText(file);
+    };
 
     const handleGeneratePlan = async () => {
         if (!activeBrand) return;
         if (!config.goal || !config.frequency) {
-            setToast({ msg: "Please select a goal and frequency.", type: "error" });
+            setToast({ msg: "Select goal and frequency.", type: "error" });
             return;
         }
-
-        setLoadingText(`Planning content for ${activeBrand.companyName}...`);
-        const prevStep = step;
+        setLoadingText(`Pixa is analyzing your ${activeBrand.products?.length || 0} products and trends...`);
         setStep('generating'); 
-
         try {
             const newPlan = await generateContentPlan(activeBrand, config);
             setPlan(newPlan);
             setStep('review');
         } catch (e: any) {
-            console.error(e);
             setToast({ msg: e.message, type: "error" });
-            setStep(prevStep);
+            setStep('config');
         } finally {
             setLoadingText('');
         }
     };
 
-    const updatePost = (id: string, field: keyof CalendarPost, value: string) => {
-        setPlan(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    const updatePostProduct = (postId: string, productId: string) => {
+        setPlan(prev => prev.map(p => p.id === postId ? { ...p, selectedProductId: productId } : p));
     };
 
     const handleStartGeneration = async () => {
         if (!auth.user || !activeBrand) return;
         if (userCredits < totalCost) {
-            setToast({ msg: `Insufficient credits. Need ${totalCost}, have ${userCredits}.`, type: "error" });
+            setToast({ msg: `Need ${totalCost} credits.`, type: "error" });
             return;
         }
         
-        if (!confirm(`Generate ${plan.length} creative assets for ${activeBrand.companyName}?`)) return;
-
         setStep('generating');
         setProgress(0);
         
         try {
-            // 1. Prepare Brand Assets (Logo & Product)
-            let logoAsset = null;
-            let productAsset = null;
+            // Pre-load mood board
+            const moodAssets = await Promise.all((activeBrand.moodBoard || []).map(async m => {
+                const b64 = await urlToBase64(m.imageUrl);
+                return b64;
+            }));
 
-            if (activeBrand.logos?.primary) {
-                try {
-                    const b64 = await urlToBase64(activeBrand.logos.primary);
-                    logoAsset = b64;
-                } catch (e) { console.warn("Logo fetch failed", e); }
-            }
-
-            if (activeBrand.products && activeBrand.products.length > 0 && activeBrand.products[0].imageUrl) {
-                try {
-                    const b64 = await urlToBase64(activeBrand.products[0].imageUrl);
-                    productAsset = b64;
-                } catch (e) { console.warn("Product fetch failed", e); }
-            }
-
-            const updatedUser = await deductCredits(auth.user.uid, totalCost, `Pixa Planner (${config.month})`);
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            const logoB64 = activeBrand.logos?.primary ? await urlToBase64(activeBrand.logos.primary) : null;
 
             const results: Record<string, string> = {};
-            
             for (let i = 0; i < plan.length; i++) {
                 const post = plan[i];
-                setLoadingText(`Designing: ${post.topic}`);
+                setLoadingText(`Designing creative for ${post.topic}...`);
                 
+                // Get the specific product selected for this post
+                const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
+                const productB64 = product ? await urlToBase64(product.imageUrl) : null;
+
                 try {
-                    const b64 = await generatePostImage(post, activeBrand, logoAsset, productAsset);
+                    const b64 = await generatePostImage(post, activeBrand, logoB64, productB64, moodAssets);
                     const blobUrl = await base64ToBlobUrl(b64, 'image/jpeg');
                     results[post.id] = blobUrl;
-                    
-                    const dataUri = `data:image/jpeg;base64,${b64}`;
-                    await saveCreation(auth.user.uid, dataUri, `Planner: ${post.topic}`);
-                    
+                    await saveCreation(auth.user.uid, `data:image/jpeg;base64,${b64}`, `Planner: ${post.topic}`);
                 } catch (err) {
-                    console.error(`Failed post ${post.id}`, err);
+                    console.error(err);
                 }
-                
                 setProgress(((i + 1) / plan.length) * 100);
             }
 
+            await deductCredits(auth.user.uid, totalCost, "Planner Batch");
             setGeneratedImages(results);
             setStep('done');
-
-        } catch (e: any) {
-            setToast({ msg: "Batch generation failed.", type: "error" });
+        } catch (e) {
             setStep('review');
         }
     };
-
-    const handleDownloadAll = async () => {
-        const zip = new JSZip();
-        plan.forEach((post) => {
-            const url = generatedImages[post.id];
-            if (url) {
-                zip.file(`${post.date}_${post.topic.replace(/\s+/g, '_')}.jpg`, fetch(url).then(r => r.blob()));
-            }
-        });
-        const textContent = plan.map(p => `Date: ${p.date}\nTopic: ${p.topic}\nHeadline: ${p.headline || 'N/A'}\nCaption: ${p.caption}\nHashtags: ${p.hashtags}\n\n---\n`).join('\n');
-        zip.file("content_plan.txt", textContent);
-        const content = await zip.generateAsync({ type: "blob" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(content);
-        link.download = `${activeBrand?.companyName || 'Brand'}_${config.month}_Content_Kit.zip`;
-        link.click();
-    };
-
-    if (!hasBrand) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <LockIcon className="w-10 h-10 text-gray-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Brand Kit Required</h2>
-                <p className="text-gray-500 mb-8 max-w-md">Pixa Planner needs your Brand DNA to generate on-brand ads. Please set up your brand profile first.</p>
-                <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="bg-[#1A1A1E] text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors">Go to Brand Kit</button>
-            </div>
-        );
-    }
 
     return (
         <div className="p-6 max-w-7xl mx-auto pb-32 animate-fadeIn">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                        <CalendarIcon className="w-8 h-8" />
-                    </div>
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarIcon className="w-8 h-8" /></div>
                     <div>
                         <h1 className="text-3xl font-black text-gray-900">Pixa Planner</h1>
-                        <p className="text-sm text-gray-500">
-                            Auto-pilot content calendar for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span>
-                        </p>
+                        <p className="text-sm text-gray-500">Auto-pilot calendar for <span className="font-bold text-indigo-600">{activeBrand?.companyName}</span></p>
                     </div>
                 </div>
-                
-                <div className="hidden md:flex gap-3">
-                     <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-2 ${activeBrand.logos?.primary ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                        <BrandKitIcon className="w-4 h-4"/> Logo {activeBrand.logos?.primary ? 'Ready' : 'Missing'}
-                     </div>
-                     <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-2 ${activeBrand.products?.length ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                        <CubeIcon className="w-4 h-4"/> Product {activeBrand.products?.length ? 'Ready' : 'Generic'}
-                     </div>
-                </div>
+                {step === 'config' && (
+                    <button onClick={() => csvInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                        <DocumentTextIcon className="w-4 h-4"/> Import CSV
+                    </button>
+                )}
             </div>
 
             {step === 'config' && (
-                <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-8 animate-fadeIn">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-8">
+                    <div className="grid grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Target Month</label>
-                            <select value={config.month} onChange={e => setConfig({...config, month: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500">
-                                {months.map(m => <option key={m}>{m}</option>)}
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Month</label>
+                            <select value={config.month} onChange={e => setConfig({...config, month: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl font-bold">
+                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m}>{m}</option>)}
                             </select>
                         </div>
-                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Target Country</label>
-                            <input type="text" value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500" />
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Goal</label>
+                            <select value={config.goal} onChange={e => setConfig({...config, goal: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl font-bold">
+                                <option value="">Select Goal</option>
+                                <option>Sales & Promos</option>
+                                <option>Brand Awareness</option>
+                                <option>Education</option>
+                            </select>
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Campaign Goal</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {goals.map(g => (<OptionCard key={g} title={g} icon={<SparklesIcon className="w-5 h-5"/>} selected={config.goal === g} onClick={() => setConfig({...config, goal: g})} />))}
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Content Strategy</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {mixTypes.map(m => (<OptionCard key={m.label} title={m.label} description={m.desc} icon={<MagicWandIcon className="w-5 h-5"/>} selected={config.mixType === m.label} onClick={() => setConfig({...config, mixType: m.label as any})} />))}
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Posting Frequency</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {frequencies.map(f => (<OptionCard key={f} title={f} icon={<CalendarIcon className="w-5 h-5"/>} selected={config.frequency === f} onClick={() => setConfig({...config, frequency: f})} />))}
-                        </div>
-                    </div>
-                    <div className="pt-4 flex justify-end">
-                        <button onClick={handleGeneratePlan} className="bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:scale-105 flex items-center gap-2">
-                            <SparklesIcon className="w-5 h-5 text-[#F9D230]" /> Create Strategy
+                    <div className="flex justify-end">
+                        <button onClick={handleGeneratePlan} className="bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black flex items-center gap-2">
+                            <SparklesIcon className="w-5 h-5 text-yellow-400" /> Create Strategy
                         </button>
                     </div>
                 </div>
             )}
 
             {step === 'review' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                        <div className="flex items-center gap-3">
-                            <span className="bg-white p-2 rounded-lg shadow-sm font-bold text-indigo-600 text-lg border border-indigo-100">{plan.length}</span>
-                            <div>
-                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Posts Generated</p>
-                                <p className="text-indigo-900 font-medium text-sm">Review text & headlines before generating designs.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setStep('config')} className="text-gray-400 hover:text-gray-600 font-bold text-sm px-3">Back</button>
-                            <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 flex items-center gap-2">
-                                <span className="text-xs text-gray-400 font-bold uppercase">Total Cost</span>
-                                <span className="text-sm font-black text-gray-800">{totalCost} Credits</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={PlannerStyles.gridContainer}>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {plan.map((post) => (
-                            <div key={post.id} className={`${PlannerStyles.dayCard} ${post.postType !== 'Photo' ? 'ring-1 ring-purple-100' : ''}`}>
-                                <div className={PlannerStyles.dayHeader}>
-                                    <div className="flex items-center gap-2">
-                                        <span className={PlannerStyles.dayLabel}>{post.dayLabel}</span>
-                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : post.postType === 'Greeting' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
-                                            {post.postType}
-                                        </span>
-                                    </div>
+                            <div key={post.id} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm relative group">
+                                <div className="flex justify-between items-start mb-3">
+                                    <span className="text-xs font-black text-indigo-600">{post.dayLabel}</span>
+                                    <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full font-bold">{post.postType}</span>
                                 </div>
-                                <div className={PlannerStyles.dayContent}>
-                                    <input value={post.topic} onChange={e => updatePost(post.id, 'topic', e.target.value)} className={PlannerStyles.topicInput} placeholder="Topic" />
-                                    {(post.postType === 'Ad' || post.postType === 'Greeting') && (
-                                        <div className="relative">
-                                            <input value={post.headline || ''} onChange={e => updatePost(post.id, 'headline', e.target.value)} className="w-full text-xs font-bold text-purple-700 bg-purple-50 p-2 rounded-lg border border-transparent focus:border-purple-300 focus:outline-none" placeholder="Ad Headline (Required)" />
-                                            <span className="absolute top-1 right-2 text-[8px] text-purple-400 font-bold">TEXT ON IMG</span>
-                                        </div>
-                                    )}
-                                    <textarea value={post.visualIdea} onChange={e => updatePost(post.id, 'visualIdea', e.target.value)} className={PlannerStyles.visualInput} rows={3} placeholder="Visual description..." />
-                                    <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Caption</p>
-                                        <p className="text-xs text-gray-600 line-clamp-2">{post.caption}</p>
-                                    </div>
+                                <h4 className="font-bold text-gray-800 mb-2">{post.topic}</h4>
+                                
+                                {/* Product Selector */}
+                                <div className="mb-3">
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1">Product Asset</label>
+                                    <select 
+                                        value={post.selectedProductId} 
+                                        onChange={(e) => updatePostProduct(post.id, e.target.value)}
+                                        className="w-full text-xs p-2 bg-indigo-50 border border-indigo-100 rounded-lg outline-none font-medium"
+                                    >
+                                        {activeBrand?.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
                                 </div>
+
+                                <p className="text-[11px] text-gray-500 line-clamp-3 mb-2 italic">"{post.visualIdea}"</p>
                             </div>
                         ))}
                     </div>
-
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 shadow-2xl">
-                         <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-full font-bold text-lg hover:bg-[#dfbc2b] transition-all hover:scale-105 flex items-center gap-3 border-4 border-white">
-                            <SparklesIcon className="w-6 h-6" /> Generate Designs ({totalCost} Cr)
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+                        <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-full font-bold text-lg shadow-2xl flex items-center gap-3 border-4 border-white">
+                            <SparklesIcon className="w-6 h-6" /> Generate {plan.length} Designs
                         </button>
                     </div>
                 </div>
@@ -328,71 +226,26 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             {step === 'generating' && (
                 <div className={PlannerStyles.progressContainer}>
-                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 relative">
-                        <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <MagicWandIcon className="w-10 h-10 text-indigo-600 animate-pulse" />
+                    <div className="w-20 h-20 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+                    <h2 className="text-xl font-bold mb-2">Pixa Designer is Working...</h2>
+                    <p className="text-sm text-gray-500">{loadingText}</p>
+                    <div className="w-64 h-2 bg-gray-200 rounded-full mt-6 overflow-hidden">
+                        <div className="h-full bg-indigo-600 transition-all" style={{ width: `${progress}%` }}></div>
                     </div>
-                    <h2 className="text-2xl font-black text-gray-900 mb-2">Creating Magic...</h2>
-                    <p className="text-gray-500 font-medium animate-pulse">{loadingText}</p>
-                    <div className={PlannerStyles.progressBar}>
-                        <div className={PlannerStyles.progressFill} style={{ width: `${progress}%` }}></div>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2 font-mono">{Math.round(progress)}% Complete</p>
                 </div>
             )}
 
             {step === 'done' && (
-                <div className="space-y-8 animate-fadeIn">
-                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-green-50 p-6 rounded-2xl border border-green-100">
-                        <div>
-                            <h2 className="text-2xl font-bold text-green-800 flex items-center gap-2">
-                                <CheckIcon className="w-6 h-6"/> Campaign Ready!
-                            </h2>
-                            <p className="text-green-600 mt-1">Successfully generated {Object.keys(generatedImages).length} assets.</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {plan.map(p => (
+                        <div key={p.id} className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden relative">
+                            {generatedImages[p.id] ? <img src={generatedImages[p.id]} className="w-full h-full object-cover"/> : <div className="p-4 text-xs">Failed</div>}
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setStep('config')} className="text-green-700 font-bold text-sm hover:underline px-4">Start New</button>
-                            <button onClick={handleDownloadAll} className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg flex items-center gap-2">
-                                <DownloadIcon className="w-5 h-5"/> Download Kit (ZIP)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className={PlannerStyles.gridContainer}>
-                        {plan.map((post) => {
-                            const imgUrl = generatedImages[post.id];
-                            return (
-                                <div key={post.id} className={PlannerStyles.resultCard}>
-                                    {imgUrl ? (
-                                        <>
-                                            <img src={imgUrl} className={PlannerStyles.resultImage} alt={post.topic} />
-                                            <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md">
-                                                {post.dayLabel}
-                                            </div>
-                                            {post.headline && (
-                                                <div className="absolute bottom-16 left-2 bg-purple-600/90 text-white text-[9px] font-bold px-2 py-1 rounded-md max-w-[90%] truncate">
-                                                    Ad: {post.headline}
-                                                </div>
-                                            )}
-                                            <div className={PlannerStyles.resultOverlay}>
-                                                <button onClick={() => downloadImage(imgUrl, `post_${post.date}.jpg`)} className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-xs hover:bg-gray-100 flex items-center gap-2"><DownloadIcon className="w-4 h-4"/> Save Image</button>
-                                                <button onClick={() => navigator.clipboard.writeText(post.caption)} className="text-white text-xs font-bold hover:text-indigo-300 mt-2">Copy Caption</button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-400 p-4 text-center">
-                                            <XIcon className="w-8 h-8 mb-2 opacity-50"/>
-                                            <span className="text-xs font-bold">Failed</span>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                    ))}
                 </div>
             )}
             
+            <input type="file" ref={csvInputRef} className="hidden" accept=".csv" onChange={handleImportCSV} />
             {toast && <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
