@@ -141,6 +141,83 @@ export const generateBrandIdentity = async (
 };
 
 /**
+ * COMPETITOR ANALYSIS STRATEGY
+ * Uses Gemini 3 Pro with Vision + Google Search to analyze competitor strategy.
+ */
+export const analyzeCompetitorStrategy = async (
+    competitorUrl: string,
+    screenshotBase64s: { data: string; mimeType: string }[]
+): Promise<{ theirStrategy: string; winningAngle: string; visualGap: string; avoidTags: string }> => {
+    const ai = getAiClient();
+    
+    const parts: any[] = [];
+    
+    // Add Screenshots for Vision Analysis
+    for (const img of screenshotBase64s) {
+        parts.push({ inlineData: { data: img.data, mimeType: img.mimeType } });
+    }
+
+    const prompt = `You are a World-Class Brand Strategist & Visual Director.
+    
+    *** INPUTS ***
+    - **Competitor Website**: ${competitorUrl}
+    - **Competitor Ad Creatives**: (Attached Images)
+    
+    *** TASK: COMPETITOR INTELLIGENCE REPORT ***
+    1. **DEEP SEARCH**: Use Google Search to analyze the competitor's website (${competitorUrl}) for their Value Proposition, Target Audience, and Pricing Tier.
+    2. **VISUAL AUDIT**: Analyze the attached ad screenshots. Identify their aesthetic (e.g., "Loud Neon", "Minimalist Beige", "Aggressive Sales").
+    
+    *** SYNTHESIS: THE WINNING STRATEGY ***
+    Based on the audit, generate a strategy for MY brand to win.
+    
+    1. **Their Strategy**: Describe what they are doing. (e.g., "They focus on speed and low cost with loud red graphics.")
+    2. **Winning Angle**: Propose a counter-strategy. (e.g., "We will focus on premium quality and calmness. Be the 'Apple' to their 'Android'.")
+    3. **Visual Gap**: What visual space is empty? (e.g., "They lack human emotion. We will use authentic lifestyle photography.")
+    4. **Negative Prompts (Avoid Tags)**: List specific visual elements seen in THEIR ads that we must AVOID to prevent looking like them. (e.g., "neon text, clutter, red background, cartoon characters").
+    
+    *** OUTPUT FORMAT ***
+    Return strictly a valid JSON object inside a markdown code block.
+    Example:
+    \`\`\`json
+    {
+        "theirStrategy": "Short summary of their vibe...",
+        "winningAngle": "Strategic direction for us...",
+        "visualGap": "The aesthetic opportunity...",
+        "avoidTags": "comma, separated, visual, tags, to, avoid"
+    }
+    \`\`\``;
+
+    parts.push({ text: prompt });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview', // Pro model required for complex reasoning + search + vision
+            contents: { parts },
+            config: {
+                tools: [{ googleSearch: {} }] // Enabled for website analysis
+            }
+        });
+
+        let text = response.text || "{}";
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+            text = jsonMatch[1];
+        }
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Competitor Analysis Failed:", e);
+        return {
+            theirStrategy: "Analysis failed. Please ensure the URL is valid.",
+            winningAngle: "Focus on your unique value proposition.",
+            visualGap: "Maintain a clean and consistent visual identity.",
+            avoidTags: "low quality, clutter"
+        };
+    }
+};
+
+/**
  * Process Logo Asset:
  * LOGIC UPDATE: We strictly DO NOT regenerate the logo using AI, as this alters the brand identity.
  * 1. If PNG: Return exactly as is.

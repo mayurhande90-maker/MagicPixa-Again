@@ -58,6 +58,17 @@ export interface BrandKit {
         id: string;
         imageUrl: string;
     }[];
+    competitor?: {
+        website: string;
+        adScreenshots: { id: string; imageUrl: string }[];
+        analysis?: {
+            theirStrategy: string;
+            winningAngle: string;
+            visualGap: string;
+            avoidTags: string; // Negative prompts derived from competitor
+            lastUpdated: string;
+        };
+    };
 }
 
 export interface Ticket {

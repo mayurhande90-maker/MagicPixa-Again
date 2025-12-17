@@ -6,11 +6,11 @@ import {
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
     SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon,
-    CubeIcon, LightbulbIcon
+    CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon
 } from '../components/icons';
-import { fileToBase64 } from '../utils/imageUtils';
+import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
-import { generateBrandIdentity, processLogoAsset } from '../services/brandKitService';
+import { generateBrandIdentity, processLogoAsset, analyzeCompetitorStrategy } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
@@ -143,7 +143,7 @@ const ProductItem: React.FC<{
     );
 };
 
-// --- NEW COMPONENT: MOOD BOARD ITEM ---
+// --- NEW COMPONENT: MOOD BOARD / AD ITEM ---
 const MoodItem: React.FC<{
     item: { id: string, imageUrl: string };
     onDelete: () => void;
@@ -205,6 +205,8 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 
 export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View) => void }> = ({ auth, navigateTo }) => {
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+    const [detailTab, setDetailTab] = useState<'identity' | 'competitor'>('identity');
+
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [isLoadingBrands, setIsLoadingBrands] = useState(true);
     
@@ -228,10 +230,14 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
+    
+    // Competitor Analysis States
+    const [isAnalyzingCompetitor, setIsAnalyzingCompetitor] = useState(false);
 
     // Refs for hidden inputs
     const productInputRef = useRef<HTMLInputElement>(null);
     const moodInputRef = useRef<HTMLInputElement>(null);
+    const competitorAdRef = useRef<HTMLInputElement>(null);
 
     // LIMIT LOGIC
     const userPlan = auth.user?.plan || 'Free';
@@ -262,7 +268,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         fonts: { heading: 'Modern Sans', body: 'Clean Sans' },
         logos: { primary: null, secondary: null, mark: null },
         products: [],
-        moodBoard: []
+        moodBoard: [],
+        competitor: { website: '', adScreenshots: [] }
     });
 
     const handleAddNewBrand = () => {
@@ -272,6 +279,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         }
         const newBrand = createEmptyBrand('New Brand');
         setKit(newBrand);
+        setDetailTab('identity');
         setViewMode('detail');
         setLastSaved(null);
     };
@@ -281,8 +289,10 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         setKit({
             ...brand,
             products: brand.products || [],
-            moodBoard: brand.moodBoard || []
+            moodBoard: brand.moodBoard || [],
+            competitor: brand.competitor || { website: '', adScreenshots: [] }
         });
+        setDetailTab('identity');
         setViewMode('detail');
         setLastSaved(null);
     };
@@ -453,6 +463,100 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             ...prev,
             moodBoard: prev.moodBoard?.filter(m => m.id !== id) || []
         }));
+    };
+
+    // --- COMPETITOR INTEL HANDLERS ---
+    const handleCompetitorAdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!auth.user || !e.target.files?.[0]) return;
+        const file = e.target.files[0];
+        setUploadingState(prev => ({ ...prev, competitor: true }));
+        
+        try {
+            const base64Data = await fileToBase64(file);
+            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+            const tempId = Math.random().toString(36).substring(7);
+            const url = await uploadBrandAsset(auth.user.uid, processedUri, `comp_ad_${tempId}`);
+            
+            const newItem = { id: tempId, imageUrl: url };
+            
+            setKit(prev => ({
+                ...prev,
+                competitor: {
+                    ...prev.competitor || { website: '', adScreenshots: [] },
+                    adScreenshots: [...(prev.competitor?.adScreenshots || []), newItem]
+                }
+            }));
+            setToast({ msg: "Competitor ad added.", type: "success" });
+        } catch (error: any) {
+            console.error(error);
+            setToast({ msg: "Upload failed.", type: "error" });
+        } finally {
+            setUploadingState(prev => ({ ...prev, competitor: false }));
+            e.target.value = '';
+        }
+    };
+
+    const deleteCompetitorAd = (id: string) => {
+        setKit(prev => ({
+            ...prev,
+            competitor: {
+                ...prev.competitor || { website: '', adScreenshots: [] },
+                adScreenshots: prev.competitor?.adScreenshots.filter(i => i.id !== id) || []
+            }
+        }));
+    };
+
+    const runCompetitorAnalysis = async () => {
+        if (!kit.competitor?.website || kit.competitor.adScreenshots.length === 0) {
+            alert("Please provide a Competitor Website and at least one Ad Screenshot.");
+            return;
+        }
+
+        setIsAnalyzingCompetitor(true);
+        try {
+            // Fetch images as base64 for analysis
+            const screenshots = await Promise.all(kit.competitor.adScreenshots.map(async (item) => {
+                const response = await fetch(item.imageUrl);
+                const blob = await response.blob();
+                return new Promise<{data: string, mimeType: string}>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve({
+                        data: (reader.result as string).split(',')[1],
+                        mimeType: blob.type
+                    });
+                    reader.readAsDataURL(blob);
+                });
+            }));
+
+            const result = await analyzeCompetitorStrategy(kit.competitor.website, screenshots);
+            
+            setKit(prev => ({
+                ...prev,
+                competitor: {
+                    ...prev.competitor!,
+                    analysis: {
+                        ...result,
+                        lastUpdated: new Date().toISOString()
+                    }
+                }
+            }));
+            setToast({ msg: "Analysis Complete!", type: "success" });
+        } catch (e: any) {
+            console.error(e);
+            setToast({ msg: "Analysis failed. Try fewer images.", type: "error" });
+        } finally {
+            setIsAnalyzingCompetitor(false);
+        }
+    };
+
+    const applyNegativePrompts = () => {
+        if (kit.competitor?.analysis?.avoidTags) {
+            const current = kit.negativePrompts || "";
+            const toAdd = kit.competitor.analysis.avoidTags;
+            const combined = current ? `${current}, ${toAdd}` : toAdd;
+            setKit(prev => ({ ...prev, negativePrompts: combined }));
+            setToast({ msg: "Negative constraints applied to Brand Strategy.", type: "success" });
+        }
     };
 
     const handleMagicGenerate = async (url: string, desc: string) => {
@@ -628,263 +732,432 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                 </div>
             </div>
 
+            {/* NEW: TABS NAVIGATION */}
+            <div className="flex gap-4 mb-6 border-b border-gray-100 pb-1">
+                <button 
+                    onClick={() => setDetailTab('identity')} 
+                    className={`pb-3 px-2 text-sm font-bold transition-all ${detailTab === 'identity' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Brand Identity
+                </button>
+                <button 
+                    onClick={() => setDetailTab('competitor')} 
+                    className={`pb-3 px-2 text-sm font-bold transition-all flex items-center gap-2 ${detailTab === 'competitor' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <ChartBarIcon className="w-4 h-4" /> Competitor Intel
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
                 <div className="xl:col-span-2 space-y-8">
                     
-                    {/* 1. Identity Assets Card */}
-                    <div className={BrandKitManagerStyles.card}>
-                        <div className={BrandKitManagerStyles.cardHeader}>
-                            <div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                <ShieldCheckIcon className="w-5 h-5" />
+                    {/* --- TAB CONTENT: BRAND IDENTITY (EXISTING) --- */}
+                    {detailTab === 'identity' && (
+                        <>
+                            {/* 1. Identity Assets Card */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <ShieldCheckIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Identity Assets</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>We'll auto-remove backgrounds for you.</p>
+                                    </div>
+                                </div>
+                                
+                                <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}>
+                                    <AssetUploader 
+                                        label="Main Logo" 
+                                        subLabel="Auto-Processed"
+                                        currentUrl={kit.logos.primary} 
+                                        onUpload={(f) => handleUpload('primary', f)} 
+                                        onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))}
+                                        isLoading={uploadingState['primary']}
+                                        isProcessing={processingState['primary']}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <h2 className={BrandKitManagerStyles.cardTitle}>Identity Assets</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>We'll auto-remove backgrounds for you.</p>
-                            </div>
-                        </div>
-                        
-                        <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}>
-                            <AssetUploader 
-                                label="Main Logo" 
-                                subLabel="Auto-Processed"
-                                currentUrl={kit.logos.primary} 
-                                onUpload={(f) => handleUpload('primary', f)} 
-                                onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))}
-                                isLoading={uploadingState['primary']}
-                                isProcessing={processingState['primary']}
-                            />
-                        </div>
-                    </div>
 
-                    {/* 2. Visual DNA Card (Colors & Fonts) */}
-                    <div className={BrandKitManagerStyles.card}>
-                        <div className={BrandKitManagerStyles.cardHeader}>
-                            <div className={`bg-purple-100 text-purple-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                <PaletteIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h2 className={BrandKitManagerStyles.cardTitle}>Visual DNA</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>Colors and typography.</p>
-                            </div>
-                        </div>
+                            {/* 2. Visual DNA Card (Colors & Fonts) */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-purple-100 text-purple-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <PaletteIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Visual DNA</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>Colors and typography.</p>
+                                    </div>
+                                </div>
 
-                        <div className={`grid grid-cols-1 md:grid-cols-2 gap-10 ${BrandKitManagerStyles.cardContent}`}>
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Color Palette
-                                </h3>
-                                <div className="space-y-4">
-                                    <ColorInput 
-                                        label="Primary (Brand Color)" 
-                                        value={kit.colors.primary} 
-                                        onChange={(v) => updateDeepLocal('colors', 'primary', v)}
-                                        onBlur={() => {}}
-                                    />
-                                    <ColorInput 
-                                        label="Secondary (Backgrounds)" 
-                                        value={kit.colors.secondary} 
-                                        onChange={(v) => updateDeepLocal('colors', 'secondary', v)} 
-                                        onBlur={() => {}}
-                                    />
-                                    <ColorInput 
-                                        label="Accent (CTAs / Highlights)" 
-                                        value={kit.colors.accent} 
-                                        onChange={(v) => updateDeepLocal('colors', 'accent', v)} 
-                                        onBlur={() => {}}
-                                    />
+                                <div className={`grid grid-cols-1 md:grid-cols-2 gap-10 ${BrandKitManagerStyles.cardContent}`}>
+                                    <div>
+                                        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Color Palette
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <ColorInput 
+                                                label="Primary (Brand Color)" 
+                                                value={kit.colors.primary} 
+                                                onChange={(v) => updateDeepLocal('colors', 'primary', v)}
+                                                onBlur={() => {}}
+                                            />
+                                            <ColorInput 
+                                                label="Secondary (Backgrounds)" 
+                                                value={kit.colors.secondary} 
+                                                onChange={(v) => updateDeepLocal('colors', 'secondary', v)} 
+                                                onBlur={() => {}}
+                                            />
+                                            <ColorInput 
+                                                label="Accent (CTAs / Highlights)" 
+                                                value={kit.colors.accent} 
+                                                onChange={(v) => updateDeepLocal('colors', 'accent', v)} 
+                                                onBlur={() => {}}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Typography
+                                        </h3>
+                                        <div className="space-y-5">
+                                            <div>
+                                                <label className={BrandKitManagerStyles.inputLabel}>Heading Style</label>
+                                                <select 
+                                                    value={kit.fonts.heading}
+                                                    onChange={(e) => updateDeepImmediate('fonts', 'heading', e.target.value)}
+                                                    className={BrandKitManagerStyles.selectField}
+                                                >
+                                                    <option>Modern Sans (Clean)</option>
+                                                    <option>Classic Serif (Luxury)</option>
+                                                    <option>Bold Display (Impact)</option>
+                                                    <option>Elegant Script (Soft)</option>
+                                                    <option>Minimal Mono (Tech)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={BrandKitManagerStyles.inputLabel}>Body Text Style</label>
+                                                <select 
+                                                    value={kit.fonts.body}
+                                                    onChange={(e) => updateDeepImmediate('fonts', 'body', e.target.value)}
+                                                    className={BrandKitManagerStyles.selectField}
+                                                >
+                                                    <option>Clean Sans (Readable)</option>
+                                                    <option>Readable Serif (Traditional)</option>
+                                                    <option>System Default (Neutral)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Product Catalog (NEW) */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-orange-100 text-orange-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <CubeIcon className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Product Catalog</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>Upload core products once, use everywhere.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => productInputRef.current?.click()}
+                                        disabled={uploadingState['products']}
+                                        className="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Product</>}
+                                    </button>
+                                    <input ref={productInputRef} type="file" className="hidden" accept="image/*" onChange={handleProductUpload} />
+                                </div>
+                                <div className={`${BrandKitManagerStyles.cardContent}`}>
+                                    {(!kit.products || kit.products.length === 0) ? (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                            <p className="text-sm text-gray-400 font-medium">No products added yet.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                            {kit.products.map(product => (
+                                                <ProductItem 
+                                                    key={product.id} 
+                                                    item={product} 
+                                                    onDelete={() => deleteProduct(product.id)}
+                                                    onNameChange={(name) => updateProductName(product.id, name)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 4. Mood Board (NEW) */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <LightbulbIcon className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Mood Board</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>Upload inspiration for AI style matching.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => moodInputRef.current?.click()}
+                                        disabled={uploadingState['mood']}
+                                        className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}
+                                    </button>
+                                    <input ref={moodInputRef} type="file" className="hidden" accept="image/*" onChange={handleMoodUpload} />
+                                </div>
+                                <div className={`${BrandKitManagerStyles.cardContent}`}>
+                                    {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                            <p className="text-sm text-gray-400 font-medium">No inspiration images added.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                            {kit.moodBoard.map(item => (
+                                                <MoodItem 
+                                                    key={item.id} 
+                                                    item={item} 
+                                                    onDelete={() => deleteMoodItem(item.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 5. Brand Strategy (Expanded) */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <CaptionIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>Defining your voice and audience.</p>
+                                    </div>
+                                </div>
+
+                                <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Company Legal Name</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.companyName}
+                                                onChange={(e) => handleTextChange('companyName', e.target.value)}
+                                                placeholder="e.g. Skyline Realty LLC"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Website</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.website}
+                                                onChange={(e) => handleTextChange('website', e.target.value)}
+                                                placeholder="e.g. www.skyline.com"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label>
+                                            <select 
+                                                value={kit.toneOfVoice}
+                                                onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
+                                                className={BrandKitManagerStyles.selectField}
+                                            >
+                                                <option>Professional</option>
+                                                <option>Luxury</option>
+                                                <option>Playful</option>
+                                                <option>Urgent / Sales</option>
+                                                <option>Friendly / Casual</option>
+                                                <option>Technical</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Target Audience</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.targetAudience || ''}
+                                                onChange={(e) => handleTextChange('targetAudience', e.target.value)}
+                                                placeholder="e.g. Tech-savvy millennials"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={BrandKitManagerStyles.inputLabel}>Negative Prompts (What to Avoid)</label>
+                                        <input 
+                                            type="text" 
+                                            value={kit.negativePrompts || ''}
+                                            onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
+                                            placeholder="e.g. No cartoons, no neon colors, no clutter"
+                                            className={BrandKitManagerStyles.inputField}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* --- TAB CONTENT: COMPETITOR INTELLIGENCE (NEW) --- */}
+                    {detailTab === 'competitor' && (
+                        <div className={BrandKitManagerStyles.card}>
+                            <div className={BrandKitManagerStyles.cardHeader}>
+                                <div className={`bg-amber-100 text-amber-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                    <ChartBarIcon className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <h2 className={BrandKitManagerStyles.cardTitle}>Competitor Intelligence</h2>
+                                    <p className={BrandKitManagerStyles.cardDesc}>Analyze your rivals to outsmart them.</p>
                                 </div>
                             </div>
                             
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Typography
-                                </h3>
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className={BrandKitManagerStyles.inputLabel}>Heading Style</label>
-                                        <select 
-                                            value={kit.fonts.heading}
-                                            onChange={(e) => updateDeepImmediate('fonts', 'heading', e.target.value)}
-                                            className={BrandKitManagerStyles.selectField}
+                            <div className={BrandKitManagerStyles.cardContent}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Left: Input */}
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Competitor Website</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g. www.competitor.com"
+                                                className={BrandKitManagerStyles.inputField}
+                                                value={kit.competitor?.website || ''}
+                                                onChange={(e) => setKit(prev => ({ 
+                                                    ...prev, 
+                                                    competitor: { 
+                                                        ...prev.competitor || { adScreenshots: [] }, 
+                                                        website: e.target.value 
+                                                    } 
+                                                }))}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className={BrandKitManagerStyles.inputLabel}>Competitor Ad Screenshots</label>
+                                                <button 
+                                                    onClick={() => competitorAdRef.current?.click()}
+                                                    disabled={uploadingState['competitor']}
+                                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                                                >
+                                                    {uploadingState['competitor'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}
+                                                </button>
+                                                <input ref={competitorAdRef} type="file" className="hidden" accept="image/*" onChange={handleCompetitorAdUpload} />
+                                            </div>
+
+                                            {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (
+                                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/50">
+                                                    <p className="text-xs text-gray-400">Upload screenshots of their ads or social posts.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {kit.competitor.adScreenshots.map(ad => (
+                                                        <div key={ad.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-100">
+                                                            <img src={ad.imageUrl} className="w-full h-full object-cover" />
+                                                            <button 
+                                                                onClick={() => deleteCompetitorAd(ad.id)}
+                                                                className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50"
+                                                            >
+                                                                <XIcon className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button 
+                                            onClick={runCompetitorAnalysis}
+                                            disabled={isAnalyzingCompetitor || !kit.competitor?.website}
+                                            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none"
                                         >
-                                            <option>Modern Sans (Clean)</option>
-                                            <option>Classic Serif (Luxury)</option>
-                                            <option>Bold Display (Impact)</option>
-                                            <option>Elegant Script (Soft)</option>
-                                            <option>Minimal Mono (Tech)</option>
-                                        </select>
+                                            {isAnalyzingCompetitor ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    Analyzing Strategy...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <LightningIcon className="w-4 h-4 text-white" />
+                                                    Analyze & Outsmart
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
-                                    <div>
-                                        <label className={BrandKitManagerStyles.inputLabel}>Body Text Style</label>
-                                        <select 
-                                            value={kit.fonts.body}
-                                            onChange={(e) => updateDeepImmediate('fonts', 'body', e.target.value)}
-                                            className={BrandKitManagerStyles.selectField}
-                                        >
-                                            <option>Clean Sans (Readable)</option>
-                                            <option>Readable Serif (Traditional)</option>
-                                            <option>System Default (Neutral)</option>
-                                        </select>
+
+                                    {/* Right: Results */}
+                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 h-full">
+                                        {kit.competitor?.analysis ? (
+                                            <div className="space-y-6 animate-fadeIn">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">Strategic Report</h3>
+                                                    <span className="text-[10px] text-gray-400">
+                                                        Updated: {new Date(kit.competitor.analysis.lastUpdated).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Their Strategy</p>
+                                                        <p className="text-sm text-gray-700 leading-relaxed">{kit.competitor.analysis.theirStrategy}</p>
+                                                    </div>
+
+                                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 opacity-10 rounded-bl-full -mr-4 -mt-4"></div>
+                                                        <p className="text-[10px] font-bold text-indigo-500 uppercase mb-1 flex items-center gap-1">
+                                                            <SparklesIcon className="w-3 h-3" /> Your Winning Angle
+                                                        </p>
+                                                        <p className="text-sm font-bold text-indigo-900 leading-relaxed">{kit.competitor.analysis.winningAngle}</p>
+                                                    </div>
+
+                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Visual Gap (Opportunity)</p>
+                                                        <p className="text-sm text-gray-700 leading-relaxed">{kit.competitor.analysis.visualGap}</p>
+                                                    </div>
+
+                                                    {kit.competitor.analysis.avoidTags && (
+                                                        <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                                                            <p className="text-[10px] font-bold text-red-500 uppercase mb-2">Avoid (Differentiation)</p>
+                                                            <p className="text-xs text-red-800 italic mb-3">"{kit.competitor.analysis.avoidTags}"</p>
+                                                            <button 
+                                                                onClick={applyNegativePrompts}
+                                                                className="text-[10px] font-bold bg-white text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors shadow-sm w-full"
+                                                            >
+                                                                Apply to Negative Prompts
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
+                                                    <ChartBarIcon className="w-8 h-8 text-gray-300" />
+                                                </div>
+                                                <h4 className="text-sm font-bold text-gray-500">No Intelligence Yet</h4>
+                                                <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
+                                                    Add a website and ad screenshots, then run analysis to reveal their strategy.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* 3. Product Catalog (NEW) */}
-                    <div className={BrandKitManagerStyles.card}>
-                        <div className={BrandKitManagerStyles.cardHeader}>
-                            <div className={`bg-orange-100 text-orange-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                <CubeIcon className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1">
-                                <h2 className={BrandKitManagerStyles.cardTitle}>Product Catalog</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>Upload core products once, use everywhere.</p>
-                            </div>
-                            <button 
-                                onClick={() => productInputRef.current?.click()}
-                                disabled={uploadingState['products']}
-                                className="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors flex items-center gap-1.5"
-                            >
-                                {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Product</>}
-                            </button>
-                            <input ref={productInputRef} type="file" className="hidden" accept="image/*" onChange={handleProductUpload} />
-                        </div>
-                        <div className={`${BrandKitManagerStyles.cardContent}`}>
-                            {(!kit.products || kit.products.length === 0) ? (
-                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                    <p className="text-sm text-gray-400 font-medium">No products added yet.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    {kit.products.map(product => (
-                                        <ProductItem 
-                                            key={product.id} 
-                                            item={product} 
-                                            onDelete={() => deleteProduct(product.id)}
-                                            onNameChange={(name) => updateProductName(product.id, name)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 4. Mood Board (NEW) */}
-                    <div className={BrandKitManagerStyles.card}>
-                        <div className={BrandKitManagerStyles.cardHeader}>
-                            <div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                <LightbulbIcon className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1">
-                                <h2 className={BrandKitManagerStyles.cardTitle}>Mood Board</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>Upload inspiration for AI style matching.</p>
-                            </div>
-                            <button 
-                                onClick={() => moodInputRef.current?.click()}
-                                disabled={uploadingState['mood']}
-                                className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1.5"
-                            >
-                                {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}
-                            </button>
-                            <input ref={moodInputRef} type="file" className="hidden" accept="image/*" onChange={handleMoodUpload} />
-                        </div>
-                        <div className={`${BrandKitManagerStyles.cardContent}`}>
-                            {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
-                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                    <p className="text-sm text-gray-400 font-medium">No inspiration images added.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                    {kit.moodBoard.map(item => (
-                                        <MoodItem 
-                                            key={item.id} 
-                                            item={item} 
-                                            onDelete={() => deleteMoodItem(item.id)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 5. Brand Strategy (Expanded) */}
-                    <div className={BrandKitManagerStyles.card}>
-                        <div className={BrandKitManagerStyles.cardHeader}>
-                            <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                <CaptionIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2>
-                                <p className={BrandKitManagerStyles.cardDesc}>Defining your voice and audience.</p>
-                            </div>
-                        </div>
-
-                        <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Company Legal Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={kit.companyName}
-                                        onChange={(e) => handleTextChange('companyName', e.target.value)}
-                                        placeholder="e.g. Skyline Realty LLC"
-                                        className={BrandKitManagerStyles.inputField}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Website</label>
-                                    <input 
-                                        type="text" 
-                                        value={kit.website}
-                                        onChange={(e) => handleTextChange('website', e.target.value)}
-                                        placeholder="e.g. www.skyline.com"
-                                        className={BrandKitManagerStyles.inputField}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label>
-                                    <select 
-                                        value={kit.toneOfVoice}
-                                        onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
-                                        className={BrandKitManagerStyles.selectField}
-                                    >
-                                        <option>Professional</option>
-                                        <option>Luxury</option>
-                                        <option>Playful</option>
-                                        <option>Urgent / Sales</option>
-                                        <option>Friendly / Casual</option>
-                                        <option>Technical</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className={BrandKitManagerStyles.inputLabel}>Target Audience</label>
-                                    <input 
-                                        type="text" 
-                                        value={kit.targetAudience || ''}
-                                        onChange={(e) => handleTextChange('targetAudience', e.target.value)}
-                                        placeholder="e.g. Tech-savvy millennials"
-                                        className={BrandKitManagerStyles.inputField}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className={BrandKitManagerStyles.inputLabel}>Negative Prompts (What to Avoid)</label>
-                                <input 
-                                    type="text" 
-                                    value={kit.negativePrompts || ''}
-                                    onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
-                                    placeholder="e.g. No cartoons, no neon colors, no clutter"
-                                    className={BrandKitManagerStyles.inputField}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* RIGHT COLUMN: PREVIEW (Sticky) */}
