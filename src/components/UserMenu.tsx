@@ -44,16 +44,29 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
     } else {
       navigateTo('dashboard', 'billing');
     }
+    setIsOpen(false);
     
-    // 2. Scroll to Recharge Station (with delay to ensure mount)
-    setTimeout(() => {
+    // 2. Robust Polling for Scroll Target
+    // Polling ensures the element exists even if React takes a moment to render the view
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds (20 * 100ms)
+    
+    const pollInterval = setInterval(() => {
         const element = document.getElementById('recharge-station');
         if (element) {
+            clearInterval(pollInterval);
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Optional: Visual Highlight
+            element.classList.add('ring-2', 'ring-yellow-400', 'transition-all', 'duration-500');
+            setTimeout(() => element.classList.remove('ring-2', 'ring-yellow-400'), 2000);
         }
-    }, 500);
-    
-    setIsOpen(false);
+        
+        attempts++;
+        if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+        }
+    }, 100);
   };
 
   return (
@@ -115,8 +128,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
               <PixaBillingIcon className="w-5 h-5" /> Billing & Credits
             </button>
 
-            <button onClick={handleTopup} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm font-semibold text-green-600 hover:bg-green-50" role="menuitem">
-              <LightningIcon className="w-5 h-5" /> Topup Credit
+            <button onClick={handleTopup} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm font-semibold text-[#1E1E1E] hover:bg-gray-100" role="menuitem">
+              <LightningIcon className="w-5 h-5 text-yellow-500" /> Topup Credit
             </button>
           </div>
           <div className="py-2 border-t border-gray-200/80">
