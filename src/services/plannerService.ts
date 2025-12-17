@@ -25,9 +25,9 @@ export interface CalendarPost {
     caption: string;
     hashtags: string;
     imagePrompt: string; 
-    selectedProductId?: string;
-    archetype?: 'Value' | 'Hard Sell' | 'Seasonal'; // New field for strategic categorization
-    reasoning?: string; // AI's strategic explanation
+    selectedProductId: string; // Mandatory link to catalog
+    archetype: 'Value' | 'Hard Sell' | 'Seasonal';
+    reasoning: string; 
 }
 
 const FREQUENCY_MAP: Record<string, number> = {
@@ -39,7 +39,7 @@ const FREQUENCY_MAP: Record<string, number> = {
 
 /**
  * STEP 1: DEEP AUDIT & STRATEGY GENERATION
- * Acts as a Lead Brand Strategist.
+ * Analyzes the brand, internet trends, and the product catalog.
  */
 export const generateContentPlan = async (
     brand: BrandKit,
@@ -48,41 +48,38 @@ export const generateContentPlan = async (
     const ai = getAiClient();
     const postCount = FREQUENCY_MAP[config.frequency] || 12;
 
+    const productList = brand.products?.map(p => `- ${p.name} (ID: ${p.id})`).join('\n') || 'General Portfolio';
+
     const auditPrompt = `You are a World-Class CMO and Digital Content Strategist.
     
-    *** ASSIGNMENT ***
-    Create a highly scientific, results-driven 30-day content strategy for ${brand.companyName}.
-    
-    *** PHASE 1: RESEARCH (SOURCE OF TRUTH) ***
+    *** BRAND DATA ***
+    - **Company**: ${brand.companyName}
     - **Website**: ${brand.website}
-    - **Core Tone**: ${brand.toneOfVoice}
-    - **Provided Audience**: ${brand.targetAudience}
-    - **Product Catalog**: ${brand.products?.map(p => p.name).join(', ') || 'General Portfolio'}
+    - **Tone**: ${brand.toneOfVoice}
+    - **Product Catalog**:
+    ${productList}
     
-    *** INSTRUCTIONS ***
-    1. **Deep Audit (Google Search)**: Crawl ${brand.website}. Identify the brand's USP (Unique Selling Proposition), pricing tier (Luxury vs Value), and existing visual style.
-    2. **Persona Mapping**: Define a high-intent "Target Persona" based on your audit.
-    3. **The 70/20/10 Archetype Rule**:
-       - 70% Value/Lifestyle: Educational content, trust-building shots.
-       - 20% Hard Sell: High-conversion ads for products.
-       - 10% Trending/Seasonal: Content grounded in ${config.month} trends in ${config.country}.
-    4. **Catalog Saturation**: You MUST rotate through ALL products in the catalog.
+    *** ASSIGNMENT ***
+    1. **Internet Trend Scan**: Use Google Search to analyze current viral aesthetics for brands similar to ${brand.companyName} in ${config.month}. Identify what lighting, colors, and compositions are driving the highest engagement in ${config.country}.
+    2. **Strategic Product Matching**: Analyze each product in the catalog. Assign the *right* product to the *right* day based on the topic. 
+       - e.g. High-end items for "Luxury Friday". 
+       - e.g. Specific functional items for "How-to Tuesday".
+    3. **Content Architecture**: Generate exactly ${postCount} posts following the 70/20/10 rule.
     
     *** OUTPUT JSON ARRAY ***
-    Generate EXACTLY ${postCount} posts.
     Return an array of objects:
     - date (YYYY-MM-DD)
     - dayLabel (e.g. Oct 5)
     - topic (Catchy title)
     - postType ("Ad", "Photo", "Greeting")
     - archetype ("Value", "Hard Sell", "Seasonal")
-    - selectedProductId (ID from catalog)
-    - headline (The main text to render on the image - Max 6 words)
-    - visualIdea (Technical scene description)
-    - reasoning (1 sentence explaining why this post exists for the persona)
-    - caption (Engaging copy)
-    - hashtags (Strategic tags)
-    - imagePrompt (Technical prompt for a 4K commercial photo)
+    - selectedProductId (The EXACT ID from the catalog list provided above)
+    - headline (Max 6 words)
+    - visualIdea (Strategic scene description)
+    - reasoning (Why this product was chosen for this specific day/trend)
+    - caption (High-engagement copy)
+    - hashtags
+    - imagePrompt (Technical prompt for a 4K photo)
     `;
 
     try {
@@ -121,13 +118,13 @@ export const generateContentPlan = async (
         return plan.slice(0, postCount).map((p, idx) => ({ ...p, id: `post_${Date.now()}_${idx}` }));
     } catch (e) {
         console.error("Strategy generation failed", e);
-        throw new Error("Failed to engineer strategy. The AI is likely having trouble accessing the brand website.");
+        throw new Error("Failed to engineer strategy.");
     }
 };
 
 /**
- * STEP 2: HYPER-REALISTIC CREATIVE PRODUCTION
- * Acts as a Commercial Photographer & Digital Artist.
+ * STEP 2: PHYSICS-AWARE CREATIVE PRODUCTION
+ * Ensures correct scale, lighting, and commercial quality.
  */
 export const generatePostImage = async (
     post: CalendarPost,
@@ -140,40 +137,41 @@ export const generatePostImage = async (
     const parts: any[] = [];
     
     if (productAsset) {
-        parts.push({ text: "HERO PRODUCT (The Sacred Subject - Preserve Identity Exactly):" });
+        parts.push({ text: "HERO PRODUCT (Sacred Identity - Analyze its physical type):" });
         parts.push({ inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
     }
     
     if (logoAsset) {
-        parts.push({ text: "BRAND LOGO (Overlay with high contrast):" });
+        parts.push({ text: "BRAND LOGO:" });
         parts.push({ inlineData: { data: logoAsset.data, mimeType: logoAsset.mimeType } });
     }
 
     if (moodBoardAssets.length > 0) {
-        parts.push({ text: "BRAND AESTHETIC REFERENCE (Copy the lighting, grain, and grading style):" });
+        parts.push({ text: "AESTHETIC STYLE REFERENCE (Color grading & mood):" });
         moodBoardAssets.slice(0, 3).forEach(m => {
             parts.push({ inlineData: { data: m.data, mimeType: m.mimeType } });
         });
     }
 
-    const productionPrompt = `You are an Elite Commercial Photographer.
+    const productionPrompt = `You are an Elite Commercial Photographer specializing in Product Visualization.
     
     *** THE BRIEF ***
-    Category: ${post.archetype} (${post.postType})
     Brand: ${brand.companyName}
-    Target Mood: ${brand.toneOfVoice}
-    Primary Color: ${brand.colors.primary}
+    Post Objective: ${post.topic} (${post.archetype})
+    Visual Brief: ${post.visualIdea}
     
-    *** TECHNICAL PROTOCOL: HYPER-REALISM ***
-    1. **Lighting Physics**: Match the lighting style from the BRAND AESTHETIC REFERENCE images. (e.g. Studio Soft, Harsh Sunlight, Moody Noir). 
-    2. **Fidelity**: The HERO PRODUCT is the center of the universe. Ensure it has realistic contact shadows and micro-reflections.
-    3. **Typography**: Render "${post.headline}" using a premium, clean layout. Use the brand's primary color if appropriate. Ensure text is perfectly spelled and legible.
-    4. **Composition**: ${post.visualIdea}. 
-    5. **Camera**: 8K resolution, 85mm lens, f/1.8 aperture for professional bokeh.
-
-    *** OUTPUT ***
-    A SINGLE high-resolution, photorealistic 4:5 vertical masterpiece. Commercial grade only.
-    `;
+    *** CRITICAL: PHYSICAL PROPORTION & PHYSICS AUDIT ***
+    1. **Size Consistency**: Analyze the HERO PRODUCT image. Determine if it is a handheld item (e.g. bottle), a wearable (e.g. watch), or a large object (e.g. furniture). 
+    2. **Scaling Rule**: Place the product in the scene so its scale is 100% realistic compared to the environment. If it's a 30ml bottle, it must look like it fits in a palm. Do NOT make it look giant unless the prompt asks for surrealism.
+    3. **Weight & Mass**: Apply "Grounding". Ensure the product has deep contact shadows (ambient occlusion) where it meets the surface. It should look like it has weight, not like it is floating.
+    4. **Materials**: Reflect the environment in the product's surface (glossy, matte, metallic).
+    
+    *** PHOTOGRAPHY PROTOCOL ***
+    - **Camera**: Sony A7R V, 85mm G Master lens for professional compression and bokeh.
+    - **Lighting**: Cinematic studio lighting that matches the AESTHETIC STYLE REFERENCE.
+    - **Typography**: Render "${post.headline}" in a premium, perfectly legible layout.
+    
+    OUTPUT: A single 4:5 vertical 4K masterpiece. Total realism. No AI artifacts.`;
 
     parts.push({ text: productionPrompt });
 
@@ -195,36 +193,21 @@ export const generatePostImage = async (
     }
 };
 
-/**
- * UTILITY: Extract from document
- */
 export const extractPlanFromDocument = async (
     brand: BrandKit,
     fileBase64: string,
     mimeType: string
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
-    
-    const prompt = `Extract the content schedule from this document. 
-    Map each item to products: [${brand.products?.map(p => p.name).join(', ') || 'General'}].
-    Ensure each post has a technical "imagePrompt" for photorealistic generation.
-    Return strictly a JSON array of CalendarPost objects.`;
-
+    const prompt = `Extract the content schedule from this document. Format as JSON array. Use products from: ${brand.products?.map(p => p.name).join(', ')}.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: {
-                parts: [
-                    { inlineData: { data: fileBase64, mimeType } },
-                    { text: prompt }
-                ]
+                parts: [{ inlineData: { data: fileBase64, mimeType } }, { text: prompt }]
             },
             config: { responseMimeType: "application/json" }
         });
-
-        const jsonText = response.text || "[]";
-        return JSON.parse(jsonText).map((p: any, idx: number) => ({ ...p, id: `import_${Date.now()}_${idx}` }));
-    } catch (e) {
-        throw new Error("Failed to parse document schedule.");
-    }
+        return JSON.parse(response.text || "[]");
+    } catch (e) { throw new Error("Document parsing failed."); }
 };

@@ -111,17 +111,18 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setStep('generating'); 
         setLogs([]);
         
-        setTimeout(() => addLog(`Injesting website: ${activeBrand.website}...`), 500);
-        setTimeout(() => addLog(`Analyzing industry trends for ${config.month}...`), 2000);
-        setTimeout(() => addLog(`Identifying competitor visual gaps...`), 4000);
-        setTimeout(() => addLog(`Mapping 70/20/10 content archetype architecture...`), 6500);
+        setTimeout(() => addLog(`Crawling Brand Website: ${activeBrand.website}...`), 500);
+        setTimeout(() => addLog(`Performing Deep Visual Analysis on ${activeBrand.products?.length || 0} products...`), 1500);
+        setTimeout(() => addLog(`Researching competitor trends for ${config.month} in ${config.country}...`), 3000);
+        setTimeout(() => addLog(`Engineering 70/20/10 strategic content matrix...`), 5000);
+        setTimeout(() => addLog(`Synthesizing photorealistic visual direction...`), 7000);
 
         try {
             const newPlan = await generateContentPlan(activeBrand, config);
             setPlan(newPlan);
             setStep('review');
         } catch (e: any) {
-            setToast({ msg: "Deep Audit failed. Website might be unreachable.", type: "error" });
+            setToast({ msg: "Deep Strategy Engine failed. Please try again.", type: "error" });
             setStep('config');
         }
     };
@@ -134,7 +135,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
         
         setStep('generating');
-        setLogs(["Pre-loading Brand DNA...", "Analyzing product photography materials..."]);
+        setLogs(["Pre-loading Brand DNA & Identity...", "Conducting Physics-Aware mass audit on products..."]);
         setProgress(0);
         
         try {
@@ -149,7 +150,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const results: Record<string, string> = {};
             for (let i = 0; i < plan.length; i++) {
                 const post = plan[i];
-                setLoadingText(`Rendering ${post.topic}...`);
+                setLoadingText(`Manufacturing asset ${i + 1} of ${plan.length}: ${post.topic}`);
                 
                 const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
                 const prodRes = product ? await urlToBase64(product.imageUrl) : null;
@@ -168,7 +169,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 setProgress(((i + 1) / plan.length) * 100);
             }
 
-            await deductCredits(auth.user.uid, totalCost, "Campaign Rendering");
+            await deductCredits(auth.user.uid, totalCost, "Full Campaign Rendering");
             setGeneratedImages(results);
             setStep('done');
         } catch (e) {
@@ -188,7 +189,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(zipBlob);
-        link.download = `${activeBrand?.companyName}_Campaign.zip`;
+        link.download = `${activeBrand?.companyName}_AI_Campaign.zip`;
         link.click();
     };
 
@@ -198,8 +199,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                     <LockIcon className="w-10 h-10 text-gray-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Agency Mode Required</h2>
-                <p className="text-gray-500 mb-8 max-w-md">The Planner acts as your AI agency. You must have a Brand Kit configured to proceed.</p>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Agency Protocol Required</h2>
+                <p className="text-gray-500 mb-8 max-w-md">Planner acts as your dedicated AI agency. You must have a Brand Kit with products to start a strategy.</p>
                 <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="bg-[#1A1A1E] text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors">Setup Brand Kit</button>
             </div>
         );
@@ -213,12 +214,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarIcon className="w-8 h-8" /></div>
                     <div>
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Pixa Planner</h1>
-                        <p className="text-sm text-gray-500">AI Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
+                        <p className="text-sm text-gray-500">Multimodal Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
                     </div>
                 </div>
                 {step === 'config' && (
                     <button onClick={() => documentInputRef.current?.click()} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white border-2 border-indigo-100 rounded-xl text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm group">
-                        <DocumentTextIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Import CSV / PDF
+                        <DocumentTextIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Import Document
                     </button>
                 )}
             </div>
@@ -236,7 +237,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Country Strategy</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Market Country</label>
                             <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. India" />
                         </div>
                     </div>
@@ -245,10 +246,10 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <label className="block text-xs font-bold text-gray-400 uppercase mb-3">Posting Frequency</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {[
-                                { label: 'Every Day (30 Posts)', desc: 'High Intensity' },
-                                { label: 'Weekday Warrior (20 Posts)', desc: 'Consistent B2B' },
-                                { label: 'Steady Growth (12 Posts)', desc: 'Balanced 3x/week' },
-                                { label: 'Minimalist (4 Posts)', desc: 'Core Presence' }
+                                { label: 'Every Day (30 Posts)', desc: 'Organic Dominance' },
+                                { label: 'Weekday Warrior (20 Posts)', desc: 'Growth Focus' },
+                                { label: 'Steady Growth (12 Posts)', desc: 'Balanced Presence' },
+                                { label: 'Minimalist (4 Posts)', desc: 'Foundational Presence' }
                             ].map(f => (
                                 <OptionCard 
                                     key={f.label} 
@@ -263,12 +264,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="relative z-10">
-                        <label className="block text-xs font-bold text-gray-400 uppercase mb-3">Strategy Mix</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-3">Creative Algorithm</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { label: 'Balanced', desc: '70/20/10 Archetype Rule' },
-                                { label: 'Ads Only', desc: '100% High Conversion' },
-                                { label: 'Lifestyle Only', desc: 'Aesthetic Photography' }
+                                { label: 'Balanced', desc: '70/20/10 Content Archetype' },
+                                { label: 'Ads Only', desc: 'Performance Marketing Focus' },
+                                { label: 'Lifestyle Only', desc: 'Aesthetic Storytelling' }
                             ].map(m => (
                                 <OptionCard key={m.label} title={m.label} description={m.desc} icon={<SparklesIcon className="w-5 h-5"/>} selected={config.mixType === m.label} onClick={() => setConfig({...config, mixType: m.label as any})} />
                             ))}
@@ -278,7 +279,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="flex justify-end pt-4 relative z-10">
                         <button onClick={handleGeneratePlan} className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-105 flex items-center gap-3">
                             <MagicWandIcon className="w-6 h-6 text-yellow-400" />
-                            Engineer Campaign Strategy
+                            Engineer Multi-Product Strategy
                         </button>
                     </div>
                 </div>
@@ -291,55 +292,64 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="relative z-10">
                             <h2 className="text-3xl font-black mb-2 flex items-center gap-3"><CheckIcon className="w-8 h-8 p-1 bg-white/20 rounded-full"/> Strategy Engineered</h2>
-                            <p className="text-indigo-100 font-medium">We've mapped {plan.length} posts aligned with your brand DNA and website audit.</p>
+                            <p className="text-indigo-100 font-medium">Mapped {plan.length} physics-aware entries optimized for internet trends.</p>
                         </div>
-                        <button onClick={() => setStep('config')} className="relative z-10 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all border border-white/20">Edit Strategy</button>
+                        <button onClick={() => setStep('config')} className="relative z-10 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all border border-white/20">Refine Settings</button>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {plan.map((post) => (
-                            <div key={post.id} className="bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col gap-5 group relative">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-indigo-600 uppercase tracking-tighter">{post.dayLabel}</span>
-                                    <div className="flex gap-1.5">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>{post.postType}</span>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 italic">{post.archetype}</span>
+                        {plan.map((post) => {
+                            const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
+                            return (
+                                <div key={post.id} className="bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col gap-5 group relative">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-black text-indigo-600 uppercase tracking-tighter">{post.dayLabel}</span>
+                                        <div className="flex gap-1.5">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>{post.postType}</span>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 italic">{post.archetype}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-4 items-start">
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shrink-0 bg-gray-50 flex items-center justify-center relative">
+                                            {product?.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-contain p-1" /> : <CubeIcon className="w-5 h-5 text-gray-300"/>}
+                                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Concept</h4>
+                                            <input value={post.topic} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, topic: e.target.value} : p))} className="w-full font-bold text-gray-800 text-lg bg-transparent border-none p-0 focus:ring-0 truncate" />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">AI Strategic Reason</p>
+                                        <p className="text-xs text-indigo-900 leading-relaxed italic">"{post.reasoning}"</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5 px-1">Selected Product</label>
+                                        <select 
+                                            value={post.selectedProductId} 
+                                            onChange={(e) => setPlan(prev => prev.map(p => p.id === post.id ? {...p, selectedProductId: e.target.value} : p))}
+                                            className="w-full text-xs font-bold p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none"
+                                        >
+                                            {activeBrand.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5 px-1">Visual Architecture Brief</label>
+                                        <textarea value={post.visualIdea} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, visualIdea: e.target.value} : p))} className="w-full text-xs text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-xl border-none h-24 resize-none focus:ring-2 focus:ring-indigo-500" />
                                     </div>
                                 </div>
-                                
-                                <div>
-                                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 px-1">Concept</h4>
-                                    <input value={post.topic} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, topic: e.target.value} : p))} className="w-full font-bold text-gray-800 text-xl bg-transparent border-none p-0 focus:ring-0" />
-                                </div>
-
-                                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
-                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Strategic Reasoning</p>
-                                    <p className="text-xs text-indigo-900 leading-relaxed italic">"{post.reasoning}"</p>
-                                </div>
-                                
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5 px-1">Selected Product</label>
-                                    <select 
-                                        value={post.selectedProductId} 
-                                        onChange={(e) => setPlan(prev => prev.map(p => p.id === post.id ? {...p, selectedProductId: e.target.value} : p))}
-                                        className="w-full text-xs font-bold p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                                    >
-                                        {activeBrand.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5 px-1">Visual Brief</label>
-                                    <textarea value={post.visualIdea} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, visualIdea: e.target.value} : p))} className="w-full text-xs text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-xl border-none h-24 resize-none focus:ring-2 focus:ring-indigo-500" />
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
                         <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-all border-4 border-white active:scale-95">
                             <SparklesIcon className="w-7 h-7" />
-                            Render Full Campaign ({totalCost} CR)
+                            Render Campaign ({totalCost} CR)
                         </button>
                     </div>
                 </div>
@@ -350,8 +360,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 <div className={PlannerStyles.progressContainer}>
                     <div className="flex flex-col items-center max-w-lg w-full text-center">
                         <div className="w-24 h-24 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                        <h2 className="text-3xl font-black text-gray-900 mb-2">Agency mode active.</h2>
-                        <p className="text-lg text-gray-500 font-medium">{loadingText || 'Architecting Brilliance...'}</p>
+                        <h2 className="text-3xl font-black text-gray-900 mb-2">Strategy sync active.</h2>
+                        <p className="text-lg text-gray-500 font-medium">{loadingText || 'Analyzing Trends & Physics...'}</p>
                         
                         <ThinkingLog logs={logs} />
 
@@ -369,8 +379,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-10 rounded-[3rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                         <div className="relative z-10">
-                            <h2 className="text-4xl font-black mb-2 flex items-center gap-4"><CheckIcon className="w-10 h-10 p-2 bg-white/20 rounded-full"/> Kit Engineered!</h2>
-                            <p className="text-green-50 font-medium text-lg opacity-90">High-fidelity assets optimized for your Grid Strategy.</p>
+                            <h2 className="text-4xl font-black mb-2 flex items-center gap-4"><CheckIcon className="w-10 h-10 p-2 bg-white/20 rounded-full"/> Kit Finalized!</h2>
+                            <p className="text-green-50 font-medium text-lg opacity-90">Commercial assets delivered with trend-grounded visuals.</p>
                         </div>
                         <div className="flex gap-4 relative z-10 w-full md:w-auto">
                             <button onClick={() => setStep('config')} className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10">Start New</button>
@@ -393,8 +403,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </button>
                                                 <button onClick={() => {
                                                     navigator.clipboard.writeText(`${p.caption}\n\n${p.hashtags}`);
-                                                    setToast({ msg: "Caption copied!", type: "success" });
-                                                }} className="text-white text-xs font-bold hover:underline">Copy Strategy Caption</button>
+                                                    setToast({ msg: "Copy-paste ready caption copied!", type: "success" });
+                                                }} className="text-white text-xs font-bold hover:underline">Copy Caption</button>
                                             </div>
                                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
                                                 {p.dayLabel}
@@ -409,10 +419,13 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
                                 <div className="p-5 border-t border-gray-50">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
-                                            p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
-                                        }`}>{p.postType}</span>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase">{p.archetype}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
+                                                p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
+                                            }`}>{p.postType}</span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase">{p.archetype}</span>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase">{p.date}</span>
                                     </div>
                                     <h4 className="font-bold text-gray-800 text-sm truncate">{p.topic}</h4>
                                 </div>
