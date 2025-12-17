@@ -1,12 +1,12 @@
 
-// ... existing imports ...
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
-    SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon
+    SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon,
+    CubeIcon, LightbulbIcon
 } from '../components/icons';
 import { fileToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
@@ -14,7 +14,6 @@ import { generateBrandIdentity, processLogoAsset } from '../services/brandKitSer
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
-// ... (keep all sub-components: ColorInput, AssetUploader, MagicSetupModal exactly as they are) ...
 const ColorInput: React.FC<{ 
     label: string; 
     value: string; 
@@ -103,11 +102,63 @@ const AssetUploader: React.FC<{
                             <UploadIcon className="w-5 h-5" />
                         </div>
                         <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600">Click to Upload</p>
-                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG (Auto-Clean)</p>
+                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG</p>
                     </div>
                 )}
             </div>
             <input ref={inputRef} type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={handleChange} />
+        </div>
+    );
+};
+
+// --- NEW COMPONENT: PRODUCT CATALOG ITEM ---
+const ProductItem: React.FC<{
+    item: { id: string, name: string, imageUrl: string };
+    onDelete: () => void;
+    onNameChange: (name: string) => void;
+}> = ({ item, onDelete, onNameChange }) => {
+    return (
+        <div className="relative group bg-gray-50 rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+            <div className="aspect-square relative bg-white">
+                <img src={item.imageUrl} className="w-full h-full object-contain p-2" alt={item.name} />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                        className="bg-white text-red-500 p-1.5 rounded-lg shadow-sm hover:bg-red-50"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+            <div className="p-2 border-t border-gray-100">
+                <input 
+                    type="text" 
+                    value={item.name} 
+                    onChange={(e) => onNameChange(e.target.value)}
+                    className="w-full text-xs font-bold text-gray-700 bg-transparent outline-none focus:text-indigo-600 placeholder-gray-400"
+                    placeholder="Product Name"
+                />
+            </div>
+        </div>
+    );
+};
+
+// --- NEW COMPONENT: MOOD BOARD ITEM ---
+const MoodItem: React.FC<{
+    item: { id: string, imageUrl: string };
+    onDelete: () => void;
+}> = ({ item, onDelete }) => {
+    return (
+        <div className="relative group aspect-square rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-all">
+            <img src={item.imageUrl} className="w-full h-full object-cover" alt="Inspiration" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    className="bg-white text-red-500 p-1.5 rounded-lg shadow-sm hover:bg-red-50"
+                >
+                    <TrashIcon className="w-4 h-4" />
+                </button>
+            </div>
         </div>
     );
 };
@@ -153,12 +204,10 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
 };
 
 export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View) => void }> = ({ auth, navigateTo }) => {
-    // ... keep existing state ...
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [isLoadingBrands, setIsLoadingBrands] = useState(true);
     
-    // Active Kit State (Detail View)
     const [kit, setKit] = useState<BrandKit>({
         companyName: '',
         website: '',
@@ -167,7 +216,9 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         negativePrompts: '',
         colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
         fonts: { heading: 'Modern Sans', body: 'Clean Sans' },
-        logos: { primary: null, secondary: null, mark: null }
+        logos: { primary: null, secondary: null, mark: null },
+        products: [],
+        moodBoard: []
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -178,15 +229,17 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
 
+    // Refs for hidden inputs
+    const productInputRef = useRef<HTMLInputElement>(null);
+    const moodInputRef = useRef<HTMLInputElement>(null);
+
     // LIMIT LOGIC
     const userPlan = auth.user?.plan || 'Free';
-    // Use "includes" to check plan string (e.g. "Studio Pack | Top-up")
     const matchedPlanKey = Object.keys(BRAND_LIMITS).find(k => userPlan.includes(k)) || 'Free';
     const limit = BRAND_LIMITS[matchedPlanKey] || 1;
     const usage = brands.length;
     const isLimitReached = usage >= limit;
 
-    // Replaced manual fetch with Subscription
     useEffect(() => {
         if (auth.user) {
             setIsLoadingBrands(true);
@@ -207,7 +260,9 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         negativePrompts: '',
         colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
         fonts: { heading: 'Modern Sans', body: 'Clean Sans' },
-        logos: { primary: null, secondary: null, mark: null }
+        logos: { primary: null, secondary: null, mark: null },
+        products: [],
+        moodBoard: []
     });
 
     const handleAddNewBrand = () => {
@@ -222,7 +277,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     };
 
     const handleSelectBrand = (brand: BrandKit) => {
-        setKit(brand);
+        // Ensure arrays exist for old data
+        setKit({
+            ...brand,
+            products: brand.products || [],
+            moodBoard: brand.moodBoard || []
+        });
         setViewMode('detail');
         setLastSaved(null);
     };
@@ -233,7 +293,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         
         try {
             await deleteBrandFromCollection(auth.user.uid, brandId);
-            // No need to manually update state, subscription handles it
             setToast({ msg: "Brand deleted.", type: "success" });
         } catch(e) {
             console.error(e);
@@ -245,7 +304,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         if (!auth.user) return;
         setIsSaving(true);
         
-        // Auto-update profile name if default 'New Brand' but Company Name exists
         let finalKit = { ...updatedKit };
         if (finalKit.name === 'New Brand' && finalKit.companyName) {
             finalKit.name = finalKit.companyName;
@@ -253,11 +311,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
         try {
             const savedKit = await saveUserBrandKit(auth.user.uid, finalKit);
-            
-            // Update local Detail State
             setKit(savedKit as BrandKit);
-            
-            // No need to manually update List State, subscription handles it
             auth.setUser(prev => prev ? { ...prev, brandKit: savedKit as BrandKit } : null);
             setLastSaved(new Date());
             setToast({ msg: "Brand saved successfully.", type: "success" });
@@ -272,8 +326,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const handleBackToList = () => {
         setViewMode('list');
     };
-
-    // --- FORM HANDLERS ---
 
     const handleTextChange = (field: keyof BrandKit, value: string) => {
         setKit(prev => ({ ...prev, [field]: value }));
@@ -298,13 +350,11 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const handleUpload = async (key: 'primary', file: File) => {
         if (!auth.user) return;
         
-        // 1. Process Logo Smartly (Client-Side Only now)
         setProcessingState(prev => ({ ...prev, [key]: true }));
         try {
             const base64Data = await fileToBase64(file);
             let processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             
-            // Process to remove background if it's the main logo
             if (key === 'primary') {
                 processedUri = await processLogoAsset(base64Data.base64, base64Data.mimeType);
             }
@@ -312,7 +362,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             setProcessingState(prev => ({ ...prev, [key]: false }));
             setUploadingState(prev => ({ ...prev, [key]: true }));
 
-            // 2. Upload to Storage
             const url = await uploadBrandAsset(auth.user.uid, processedUri, key);
             
             setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
@@ -327,17 +376,93 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         }
     };
 
+    // --- PRODUCT CATALOG HANDLERS ---
+    const handleProductUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!auth.user || !e.target.files?.[0]) return;
+        const file = e.target.files[0];
+        setUploadingState(prev => ({ ...prev, products: true }));
+        
+        try {
+            const base64Data = await fileToBase64(file);
+            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+            // Use random ID for storage path
+            const tempId = Math.random().toString(36).substring(7);
+            const url = await uploadBrandAsset(auth.user.uid, processedUri, `product_${tempId}`);
+            
+            const newProduct = {
+                id: tempId,
+                name: file.name.split('.')[0] || 'New Product',
+                imageUrl: url
+            };
+            
+            setKit(prev => ({ ...prev, products: [...(prev.products || []), newProduct] }));
+            setToast({ msg: "Product added.", type: "success" });
+        } catch (error: any) {
+            console.error("Product upload failed", error);
+            setToast({ msg: "Failed to upload product.", type: "error" });
+        } finally {
+            setUploadingState(prev => ({ ...prev, products: false }));
+            e.target.value = '';
+        }
+    };
+
+    const deleteProduct = (id: string) => {
+        setKit(prev => ({
+            ...prev,
+            products: prev.products?.filter(p => p.id !== id) || []
+        }));
+    };
+
+    const updateProductName = (id: string, newName: string) => {
+        setKit(prev => ({
+            ...prev,
+            products: prev.products?.map(p => p.id === id ? { ...p, name: newName } : p) || []
+        }));
+    };
+
+    // --- MOOD BOARD HANDLERS ---
+    const handleMoodUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!auth.user || !e.target.files?.[0]) return;
+        const file = e.target.files[0];
+        setUploadingState(prev => ({ ...prev, mood: true }));
+        
+        try {
+            const base64Data = await fileToBase64(file);
+            const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+            const tempId = Math.random().toString(36).substring(7);
+            const url = await uploadBrandAsset(auth.user.uid, processedUri, `mood_${tempId}`);
+            
+            const newMoodItem = {
+                id: tempId,
+                imageUrl: url
+            };
+            
+            setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), newMoodItem] }));
+            setToast({ msg: "Inspiration added.", type: "success" });
+        } catch (error: any) {
+            console.error("Mood upload failed", error);
+            setToast({ msg: "Failed to upload image.", type: "error" });
+        } finally {
+            setUploadingState(prev => ({ ...prev, mood: false }));
+            e.target.value = '';
+        }
+    };
+
+    const deleteMoodItem = (id: string) => {
+        setKit(prev => ({
+            ...prev,
+            moodBoard: prev.moodBoard?.filter(m => m.id !== id) || []
+        }));
+    };
+
     const handleMagicGenerate = async (url: string, desc: string) => {
         setIsMagicGen(true);
         try {
             const generated = await generateBrandIdentity(url, desc);
             const newKit = { ...kit, ...generated };
-            
-            // Also update the profile name if we inferred a company name
             if (generated.companyName && newKit.name === 'New Brand') {
                 newKit.name = generated.companyName;
             }
-            
             setKit(newKit);
             setToast({ msg: "Brand identity generated! Review and save.", type: "success" });
             setShowMagicModal(false);
@@ -349,8 +474,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         }
     };
 
-    // ... (rest of the render functions remain the same) ...
-    // --- RENDER LIST VIEW ---
     const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -359,7 +482,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                     <p className={BrandKitManagerStyles.sectionSubtitle}>Manage your brand profiles and visual identities.</p>
                 </div>
                 
-                {/* Usage Counter Badge */}
                 <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${
                     isLimitReached 
                     ? 'bg-red-50 border-red-200 text-red-700' 
@@ -373,7 +495,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             </div>
 
             <div className={BrandKitManagerStyles.brandGrid}>
-                {/* ADD NEW CARD */}
                 <button 
                     onClick={handleAddNewBrand}
                     className={`${BrandKitManagerStyles.addCard} ${isLimitReached ? 'opacity-90 cursor-default hover:shadow-none bg-gray-50' : ''}`}
@@ -408,7 +529,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                 </button>
                 
                 {isLoadingBrands ? (
-                    // Skeleton Loaders
                     [1, 2, 3].map(i => (
                         <div key={i} className="h-64 bg-white rounded-3xl animate-pulse border border-gray-100 shadow-sm flex flex-col overflow-hidden">
                              <div className="h-32 bg-gray-100"></div>
@@ -426,14 +546,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         </div>
                     ))
                 ) : (
-                    // BRAND CARDS
                     brands.map((brand, idx) => (
                         <div 
                             key={brand.id || idx} 
                             onClick={() => handleSelectBrand(brand)}
                             className={BrandKitManagerStyles.brandCard}
                         >
-                            {/* Header / Logo Preview */}
                             <div className={BrandKitManagerStyles.brandCardHeader}>
                                 {brand.logos.primary ? (
                                     <img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />
@@ -453,14 +571,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 )}
                             </div>
 
-                            {/* Body */}
                             <div className={BrandKitManagerStyles.brandCardBody}>
                                 <div>
                                     <h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3>
                                     <p className={BrandKitManagerStyles.brandCardMeta}>{brand.toneOfVoice || 'Professional'} • {brand.website ? 'Web Linked' : 'No URL'}</p>
                                 </div>
                                 
-                                {/* Color Preview Swatches */}
                                 <div className={BrandKitManagerStyles.brandCardPalette}>
                                     <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div>
                                     <div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div>
@@ -474,10 +590,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         </div>
     );
 
-    // --- RENDER DETAIL VIEW ---
     const renderBrandDetail = () => (
         <div className={BrandKitManagerStyles.container}>
-            {/* STICKY HEADER */}
             <div className={BrandKitManagerStyles.detailHeader}>
                 <div className="flex flex-col gap-1 w-full md:w-auto">
                     <button onClick={handleBackToList} className={BrandKitManagerStyles.backBtn}>
@@ -518,7 +632,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                 {/* LEFT COLUMN: EDITING AREA (2/3 Width) */}
                 <div className="xl:col-span-2 space-y-8">
                     
-                    {/* 1. Identity Assets Card (Simplified) */}
+                    {/* 1. Identity Assets Card */}
                     <div className={BrandKitManagerStyles.card}>
                         <div className={BrandKitManagerStyles.cardHeader}>
                             <div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}>
@@ -531,7 +645,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         </div>
                         
                         <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}>
-                            {/* Only Main Logo Required */}
                             <AssetUploader 
                                 label="Main Logo" 
                                 subLabel="Auto-Processed"
@@ -557,7 +670,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         </div>
 
                         <div className={`grid grid-cols-1 md:grid-cols-2 gap-10 ${BrandKitManagerStyles.cardContent}`}>
-                            {/* Colors */}
                             <div>
                                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Color Palette
@@ -584,7 +696,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 </div>
                             </div>
                             
-                            {/* Typography */}
                             <div>
                                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Typography
@@ -621,7 +732,84 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         </div>
                     </div>
 
-                    {/* 3. Brand Strategy (Expanded) */}
+                    {/* 3. Product Catalog (NEW) */}
+                    <div className={BrandKitManagerStyles.card}>
+                        <div className={BrandKitManagerStyles.cardHeader}>
+                            <div className={`bg-orange-100 text-orange-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                <CubeIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className={BrandKitManagerStyles.cardTitle}>Product Catalog</h2>
+                                <p className={BrandKitManagerStyles.cardDesc}>Upload core products once, use everywhere.</p>
+                            </div>
+                            <button 
+                                onClick={() => productInputRef.current?.click()}
+                                disabled={uploadingState['products']}
+                                className="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors flex items-center gap-1.5"
+                            >
+                                {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Product</>}
+                            </button>
+                            <input ref={productInputRef} type="file" className="hidden" accept="image/*" onChange={handleProductUpload} />
+                        </div>
+                        <div className={`${BrandKitManagerStyles.cardContent}`}>
+                            {(!kit.products || kit.products.length === 0) ? (
+                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <p className="text-sm text-gray-400 font-medium">No products added yet.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {kit.products.map(product => (
+                                        <ProductItem 
+                                            key={product.id} 
+                                            item={product} 
+                                            onDelete={() => deleteProduct(product.id)}
+                                            onNameChange={(name) => updateProductName(product.id, name)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 4. Mood Board (NEW) */}
+                    <div className={BrandKitManagerStyles.card}>
+                        <div className={BrandKitManagerStyles.cardHeader}>
+                            <div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                <LightbulbIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className={BrandKitManagerStyles.cardTitle}>Mood Board</h2>
+                                <p className={BrandKitManagerStyles.cardDesc}>Upload inspiration for AI style matching.</p>
+                            </div>
+                            <button 
+                                onClick={() => moodInputRef.current?.click()}
+                                disabled={uploadingState['mood']}
+                                className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1.5"
+                            >
+                                {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}
+                            </button>
+                            <input ref={moodInputRef} type="file" className="hidden" accept="image/*" onChange={handleMoodUpload} />
+                        </div>
+                        <div className={`${BrandKitManagerStyles.cardContent}`}>
+                            {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
+                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <p className="text-sm text-gray-400 font-medium">No inspiration images added.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                    {kit.moodBoard.map(item => (
+                                        <MoodItem 
+                                            key={item.id} 
+                                            item={item} 
+                                            onDelete={() => deleteMoodItem(item.id)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 5. Brand Strategy (Expanded) */}
                     <div className={BrandKitManagerStyles.card}>
                         <div className={BrandKitManagerStyles.cardHeader}>
                             <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>

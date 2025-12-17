@@ -49,6 +49,15 @@ export interface BrandKit {
         secondary: string | null; // URL
         mark: string | null; // URL
     };
+    products?: {
+        id: string;
+        name: string;
+        imageUrl: string;
+    }[];
+    moodBoard?: {
+        id: string;
+        imageUrl: string;
+    }[];
 }
 
 export interface Ticket {
