@@ -101,6 +101,7 @@ export const extractPlanFromDocument = async (
 
 /**
  * STEP 1: GENERATE STRATEGIC CONTENT PLAN
+ * Enhanced with catalog rotation logic.
  */
 export const generateContentPlan = async (
     brand: BrandKit,
@@ -108,43 +109,37 @@ export const generateContentPlan = async (
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
     
+    // Explicitly listing products for the AI
     const productCatalog = brand.products?.map(p => `- ${p.name} (ID: ${p.id})`).join('\n') || 'Generic Brand Items';
     const postCount = FREQUENCY_MAP[config.frequency] || 12;
 
-    const systemPrompt = `You are a World-Class Creative Director & Performance Marketer.
+    const systemPrompt = `You are a World-Class Creative Director & Multi-Product Strategist.
     
-    *** BRAND IDENTITY (ABSOLUTE SOURCE OF TRUTH) ***
+    *** BRAND IDENTITY ***
     - Company: ${brand.companyName}
     - Tone: ${brand.toneOfVoice}
-    - Colors: ${brand.colors.primary}, ${brand.colors.accent}
     - Audience: ${brand.targetAudience}
-    - CATALOG (USE ONLY THESE PRODUCTS): 
+    
+    *** THE PRODUCT CATALOG (CRITICAL) ***
     ${productCatalog}
     
-    *** CAMPAIGN CONTEXT ***
-    - Goal: ${config.goal}
-    - Mix: ${config.mixType}
-    - Timeframe: ${config.month} ${config.year}
-    - Target Region: ${config.country} (Integrate local festivals and cultural nuances).
-    
-    *** MANDATORY TASK ***
-    Generate a full content calendar with EXACTLY ${postCount} posts.
-    1. Evenly distribute the catalog products.
-    2. "Ad" posts must have punchy headlines designed for 2-second scroll stop.
-    3. "Greeting" posts must be relevant to ${config.country}'s specific holidays in ${config.month}.
-    4. "Photo" posts should focus on aesthetic lifestyle usage.
+    *** STRATEGIC MISSION ***
+    1. Generate exactly ${postCount} posts for ${config.month} ${config.year}.
+    2. **CATALOG ROTATION RULE**: You MUST use every product in the list above at least once. DO NOT just repeat the same product. Showcase the diversity of the brand.
+    3. **SMART MAPPING**: Match each product to a theme (e.g., use premium items for Ads, lifestyle items for Photos).
     
     *** OUTPUT JSON ARRAY ***
-    - date (YYYY-MM-DD)
-    - dayLabel (e.g. "Oct 5")
-    - topic
-    - postType ("Ad", "Photo", "Greeting")
-    - selectedProductId (ID from catalog)
-    - headline (Max 5-6 words for text-on-image)
-    - visualIdea (Strategic scene description)
-    - caption (High-engagement social copy)
-    - hashtags
-    - imagePrompt (Hyper-detailed technical prompt for AI Image Gen)
+    For each post, return:
+    - "date": "YYYY-MM-DD"
+    - "dayLabel": "e.g. Oct 5"
+    - "topic": Engaging post title
+    - "postType": "Ad" | "Photo" | "Greeting"
+    - "selectedProductId": The EXACT ID from the catalog list above (NOT the name)
+    - "headline": Hook for the visual (Max 6 words)
+    - "visualIdea": Description of the scene
+    - "caption": High-engagement copy
+    - "hashtags": Strategic tags
+    - "imagePrompt": Detailed technical AI prompt for photorealism.
     `;
 
     try {
@@ -178,7 +173,6 @@ export const generateContentPlan = async (
 
         const jsonText = response.text || "[]";
         let plan: CalendarPost[] = JSON.parse(jsonText);
-        // Safety check to ensure we match frequency count
         return plan.slice(0, postCount).map((p, idx) => ({ ...p, id: `post_${Date.now()}_${idx}` }));
     } catch (e) {
         throw new Error("Strategic strategy generation failed.");
@@ -199,43 +193,39 @@ export const generatePostImage = async (
     const parts: any[] = [];
     
     if (productAsset) {
-        parts.push({ text: "HERO PRODUCT (Preserve exactly):" });
+        parts.push({ text: "HERO PRODUCT (Main Physical Subject):" });
         parts.push({ inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
     }
     
     if (logoAsset) {
-        parts.push({ text: "BRAND LOGO (Place with high contrast):" });
+        parts.push({ text: "BRAND LOGO (Overlay discreetly):" });
         parts.push({ inlineData: { data: logoAsset.data, mimeType: logoAsset.mimeType } });
     }
 
     if (moodBoardAssets.length > 0) {
-        parts.push({ text: "MOOD BOARD (Reference for textures, lighting, and grading):" });
+        parts.push({ text: "MOOD BOARD (Reference for Texture, Lighting, and Color Grade):" });
         moodBoardAssets.slice(0, 3).forEach(m => {
             parts.push({ inlineData: { data: m.data, mimeType: m.mimeType } });
         });
     }
 
-    let designPrompt = `You are a World-Class Graphic Designer & Commercial Photographer.
+    let designPrompt = `You are a High-End Commercial Photographer & Digital Artist.
     
     *** DESIGN BRIEF ***
-    Brand: ${brand.companyName}.
-    Vibe: ${brand.toneOfVoice}.
-    Palette: ${brand.colors.primary}, ${brand.colors.accent}.
-    Fonts: ${brand.fonts.heading}.
+    Brand: ${brand.companyName}
+    Colors: ${brand.colors.primary}, ${brand.colors.accent}
+    Vibe: ${brand.toneOfVoice}
     
-    *** TECHNICAL TASK ***
-    Generate a photorealistic ${post.postType} creative for: "${post.topic}".
+    *** THE TASK ***
+    Create a ${post.postType} for "${post.topic}".
     
-    *** COMPOSITION RULES ***
-    1. **Visual Hierarchy**: Place the HERO PRODUCT as the absolute focal point. Use lighting to separate it from the background.
-    2. **Mood Match**: Study the MOOD BOARD images. Copy the color grading, lighting temperature, and depth-of-field style exactly.
-    3. **Typography**: If "${post.postType}" is an Ad or Greeting, you MUST render the text "${post.headline}" onto the image. Use a bold, modern, and perfectly legible layout. Ensure text doesn't overlap the product hero areas.
-    4. **Commercial Realism**: The final result must look like a 4K RAW photograph. Use professional lens artifacts (f/1.8 bokeh, subtle grain).
+    *** RULES FOR HYPER-REALISM ***
+    1. **Fidelity**: Preserve the physical details of the HERO PRODUCT exactly. 
+    2. **Aesthetic**: Study the MOOD BOARD images. Copy the grain, bokeh, and lighting temperature.
+    3. **Scene**: ${post.visualIdea}. 
+    4. **Typography**: If ${post.postType} is an Ad or Greeting, render text "${post.headline}" in a premium font. 
     
-    SCENE: ${post.visualIdea}.
-    AI PROMPT: ${post.imagePrompt}.
-    
-    OUTPUT: A single 4:5 vertical commercial asset.`;
+    OUTPUT: A photorealistic, 4K marketing asset. No distortions. Commercial grade.`;
 
     parts.push({ text: designPrompt });
 

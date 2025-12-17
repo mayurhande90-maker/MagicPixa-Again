@@ -10,7 +10,6 @@ import {
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
-// Added resizeImage to imports
 import { base64ToBlobUrl, urlToBase64, downloadImage, rawFileToBase64, resizeImage } from '../utils/imageUtils';
 import ToastNotification from '../components/ToastNotification';
 // @ts-ignore
@@ -73,7 +72,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setStep('generating');
         
         try {
-            // FIX: Using rawFileToBase64 instead of fileToBase64 to allow PDFs and CSVs
             const raw = await rawFileToBase64(file);
             const importedPlan = await extractPlanFromDocument(activeBrand, raw.base64, raw.mimeType);
             setPlan(importedPlan);
@@ -133,7 +131,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 const post = plan[i];
                 setLoadingText(`Rendering post ${i + 1} of ${plan.length}: ${post.topic}`);
                 
-                const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
+                // INTELLIGENT MATCHING: AI might return ID or NAME
+                const product = activeBrand.products?.find(p => 
+                    p.id === post.selectedProductId || 
+                    p.name.toLowerCase() === post.selectedProductId?.toLowerCase()
+                ) || activeBrand.products?.[0];
+
                 const prodRes = product ? await urlToBase64(product.imageUrl) : null;
                 const productB64 = prodRes ? { data: prodRes.base64, mimeType: prodRes.mimeType } : null;
 
@@ -287,46 +290,56 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {plan.map((post) => (
-                            <div key={post.id} className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 group">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-indigo-600 uppercase tracking-tighter">{post.dayLabel}</span>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                        post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 
-                                        post.postType === 'Greeting' ? 'bg-amber-100 text-amber-700' :
-                                        'bg-green-100 text-green-700'
-                                    }`}>{post.postType}</span>
-                                </div>
-                                
-                                <input 
-                                    value={post.topic} 
-                                    onChange={e => updatePost(post.id, 'topic', e.target.value)} 
-                                    className="font-bold text-gray-800 text-lg bg-transparent border-none p-0 focus:ring-0 truncate" 
-                                />
-                                
-                                <div>
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1 ml-1">Target Product</label>
-                                    <select 
-                                        value={post.selectedProductId} 
-                                        onChange={(e) => updatePost(post.id, 'selectedProductId', e.target.value)}
-                                        className="w-full text-xs font-bold p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none"
-                                    >
-                                        {activeBrand.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                </div>
+                        {plan.map((post) => {
+                            // Check if the current ID/Name mapping is valid visually
+                            const product = activeBrand.products?.find(p => 
+                                p.id === post.selectedProductId || 
+                                p.name.toLowerCase() === post.selectedProductId?.toLowerCase()
+                            );
 
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1 ml-1">Visual Direction</label>
-                                        <textarea value={post.visualIdea} onChange={e => updatePost(post.id, 'visualIdea', e.target.value)} className="w-full text-[11px] text-gray-500 leading-relaxed bg-gray-50/50 p-3 rounded-xl border-none h-20 resize-none focus:ring-2 focus:ring-indigo-500" />
+                            return (
+                                <div key={post.id} className={`bg-white rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 group ${!product ? 'border-red-200' : 'border-gray-100'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-black text-indigo-600 uppercase tracking-tighter">{post.dayLabel}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                            post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 
+                                            post.postType === 'Greeting' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-green-100 text-green-700'
+                                        }`}>{post.postType}</span>
                                     </div>
-                                    <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-50">
-                                        <label className="text-[9px] font-bold text-indigo-400 uppercase block mb-1">Social Caption</label>
-                                        <p className="text-[11px] text-indigo-900 line-clamp-3 leading-relaxed">{post.caption}</p>
+                                    
+                                    <input 
+                                        value={post.topic} 
+                                        onChange={e => updatePost(post.id, 'topic', e.target.value)} 
+                                        className="font-bold text-gray-800 text-lg bg-transparent border-none p-0 focus:ring-0 truncate" 
+                                    />
+                                    
+                                    <div>
+                                        <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1 ml-1">Target Product</label>
+                                        <select 
+                                            value={product?.id || post.selectedProductId} 
+                                            onChange={(e) => updatePost(post.id, 'selectedProductId', e.target.value)}
+                                            className={`w-full text-xs font-bold p-3 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none ${!product ? 'bg-red-50 text-red-700' : 'bg-gray-50'}`}
+                                        >
+                                            <option value="">Select a product...</option>
+                                            {activeBrand.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                        {!product && <p className="text-[8px] text-red-500 font-bold mt-1 ml-1 uppercase">Warning: Product mismatch. AI suggested unknown ID.</p>}
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1 ml-1">Visual Direction</label>
+                                            <textarea value={post.visualIdea} onChange={e => updatePost(post.id, 'visualIdea', e.target.value)} className="w-full text-[11px] text-gray-500 leading-relaxed bg-gray-50/50 p-3 rounded-xl border-none h-20 resize-none focus:ring-2 focus:ring-indigo-500" />
+                                        </div>
+                                        <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-50">
+                                            <label className="text-[9px] font-bold text-indigo-400 uppercase block mb-1">Social Caption</label>
+                                            <p className="text-[11px] text-indigo-900 line-clamp-3 leading-relaxed">{post.caption}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
