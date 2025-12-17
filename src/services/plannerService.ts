@@ -33,8 +33,8 @@ export interface CalendarPost {
     date: string;
     dayLabel: string;
     topic: string;
-    postType: 'Ad' | 'Photo' | 'Greeting'; // New field to determine rendering logic
-    headline?: string; // For Ads/Greetings
+    postType: 'Ad' | 'Photo' | 'Greeting'; 
+    headline?: string; 
     visualIdea: string;
     caption: string;
     hashtags: string;
@@ -50,42 +50,44 @@ export const generateContentPlan = async (
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
     
-    // Construct System Prompt
+    const productsList = brand.products?.map(p => p.name).join(', ') || 'General Brand Products';
+
+    // Construct System Prompt with STRICT identity enforcement
     const systemPrompt = `You are a World-Class Creative Director & Social Media Strategist.
     
-    *** CLIENT BRAND IDENTITY ***
-    - **Name**: ${brand.companyName}
-    - **Voice**: ${brand.toneOfVoice}
-    - **Audience**: ${brand.targetAudience || 'General'}
-    - **Key Products**: ${brand.products?.map(p => p.name).join(', ') || 'Range of products'}
+    *** STRICT BRAND IDENTITY LOCK (CRITICAL) ***
+    - **Company Name**: ${brand.companyName}
+    - **CORE PRODUCTS**: ${productsList}
+    - **Tone**: ${brand.toneOfVoice}
+    - **Target Audience**: ${brand.targetAudience || 'General'}
+    
+    *** MANDATORY RULE: NO PRODUCT HALLUCINATION ***
+    You MUST ONLY generate content for the products listed above: [${productsList}]. 
+    DO NOT, under any circumstances, suggest or generate content for unrelated items (e.g., do not suggest "Ghee" if the product is "Amla"). If you are unsure of the product, stick strictly to the Company Name "${brand.companyName}" and its specific niche.
     
     *** CAMPAIGN PARAMETERS ***
     - **Date**: ${config.month} ${config.year}
-    - **Region**: ${config.country} (CRITICAL: Identify cultural holidays, festivals, and shopping events for this region).
+    - **Region**: ${config.country} (Identify relevant cultural holidays).
     - **Goal**: ${config.goal}
     - **Frequency**: ${config.frequency}
     - **Content Mix**: ${config.mixType}
-    ${config.customContext ? `- **Specific Focus**: ${config.customContext}` : ''}
+    ${config.customContext ? `- **User Special Focus**: ${config.customContext}` : ''}
     
     *** TASK: GENERATE A VISUAL CONTENT CALENDAR ***
-    1. **Festive Intelligence**: If there is a major festival (e.g., Diwali, Christmas, Ramadan, 4th of July) in this month for ${config.country}, you MUST schedule "Greeting" or "Festive Sale" posts.
-    2. **Ad Creation**: If the goal is "Sales" or mix is "Ads Only", schedule "Ad" posts with punchy HEADLINES.
-    3. **Mix Logic**:
-       - "Ads Only": 100% Graphic Designs with Text/Offers.
-       - "Lifestyle Only": 100% Clean Photography (No text).
-       - "Balanced": Mix of Product Heroes, Lifestyle shots, and 2-3 Sale/Festive Ads.
+    1. **Festive Intelligence**: Include holiday greetings specific to ${config.country}.
+    2. **Product Centricity**: Ensure every post features the brand's actual products.
     
     *** OUTPUT FORMAT (JSON Array) ***
     Return a JSON array where each object has:
     - "date": "YYYY-MM-DD"
     - "dayLabel": "Oct 1"
-    - "topic": Short title (e.g. "Diwali Wish", "Product Launch").
+    - "topic": Short title.
     - "postType": One of ["Ad", "Photo", "Greeting"].
-    - "headline": (REQUIRED for Ad/Greeting) Short text to write ON the image (max 5 words). Empty for Photo.
-    - "visualIdea": Description of the image for the USER.
-    - "caption": Engaging social caption.
-    - "hashtags": 5-10 relevant tags.
-    - "imagePrompt": Technical prompt for the AI generator. Include lighting, composition, and style.
+    - "headline": (REQUIRED for Ad/Greeting) Text to write ON the image.
+    - "visualIdea": Description of the image.
+    - "caption": Social caption.
+    - "hashtags": 5-10 tags.
+    - "imagePrompt": Detailed technical prompt for the AI generator.
     `;
 
     try {
@@ -118,10 +120,7 @@ export const generateContentPlan = async (
 
         const jsonText = response.text || "[]";
         let plan: CalendarPost[] = JSON.parse(jsonText);
-        
-        // Add local IDs
         plan = plan.map((p, idx) => ({ ...p, id: `post_${Date.now()}_${idx}` }));
-        
         return plan;
     } catch (e) {
         console.error("Plan Generation Failed", e);
@@ -131,7 +130,6 @@ export const generateContentPlan = async (
 
 /**
  * STEP 2: GENERATE DESIGNED CREATIVE
- * Now supports Logo placement, Product compositing, and Typography.
  */
 export const generatePostImage = async (
     post: CalendarPost,
@@ -142,13 +140,11 @@ export const generatePostImage = async (
     const ai = getAiClient();
     const parts: any[] = [];
     
-    // 1. Optimize Assets
     const optLogo = logoAsset ? await optimizeImage(logoAsset.base64, logoAsset.mimeType, 512) : null;
     const optProduct = productAsset ? await optimizeImage(productAsset.base64, productAsset.mimeType, 1024) : null;
 
-    // 2. Add Assets to Context
     if (optProduct) {
-        parts.push({ text: "MAIN PRODUCT IMAGE (Hero Subject):" });
+        parts.push({ text: "SOURCE PRODUCT (Hero Subject - USE THIS EXACTLY):" });
         parts.push({ inlineData: { data: optProduct.data, mimeType: optProduct.mimeType } });
     }
     
@@ -157,52 +153,33 @@ export const generatePostImage = async (
         parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
-    // 3. Build The "Graphic Designer" Prompt
-    let designPrompt = `You are a World-Class Graphic Designer & AI Artist.
+    let designPrompt = `You are a World-Class Graphic Designer.
     
-    *** BRAND GUIDELINES ***
-    - **Primary Color**: ${brand.colors.primary}
-    - **Accent Color**: ${brand.colors.accent}
-    - **Font Style**: ${brand.fonts.heading}
-    - **Vibe**: ${brand.toneOfVoice}
-    - **Avoid**: ${brand.negativePrompts || 'Clutter, distorted text'}
+    *** BRAND IDENTITY LOCK ***
+    - **Brand Name**: ${brand.companyName}
+    - **Target Products**: ${brand.products?.map(p => p.name).join(', ') || 'Brand item'}
+    - **Tone**: ${brand.toneOfVoice}
     
-    *** TASK: CREATE A ${post.postType.toUpperCase()} CREATIVE ***
-    Context: ${post.topic}.
-    Visual Description: ${post.imagePrompt}.
+    *** STRICT INSTRUCTION: PRODUCT FIDELITY ***
+    You MUST use the visual features of the provided "SOURCE PRODUCT" image. DO NOT generate different products or generic items like milk/ghee if the product is herbal/amla.
     
-    *** EXECUTION RULES ***
+    *** TASK: CREATE A ${post.postType.toUpperCase()} ***
+    Topic: ${post.topic}.
+    Instruction: ${post.imagePrompt}.
+    
+    *** LAYOUT RULES ***
     `;
 
     if (post.postType === 'Ad' || post.postType === 'Greeting') {
         designPrompt += `
-        1. **TYPOGRAPHY (CRITICAL)**: You MUST render the text "${post.headline}" onto the image.
-           - Font: Bold, legible, premium.
-           - Contrast: Ensure text is readable against the background (use shadows or overlays if needed).
-           - Placement: Integrated into the composition (e.g., floating in 3D space, or on a clean negative space area).
-        
-        2. **LAYOUT**: Create a professional ad layout.
-           - If Product Image provided: Place it as the HERO in the center or bottom.
-           - If Logo provided: Place it tastefully in the Top Center or Top Right corner.
-           - Background: Use Brand Colors or a thematic background (e.g. for Festivals, use relevant decor like lights/patterns).
-        `;
-    } else {
-        // Photo Mode (Lifestyle)
-        designPrompt += `
-        1. **PHOTOGRAPHY FOCUS**: Create a stunning, text-free lifestyle or product photograph.
-        2. **REALISM**: Focus on lighting, texture, and composition. 4K Commercial quality.
-        3. **BRANDING**: If Logo provided, subtly emboss it on a surface or place it in the corner like a watermark.
-        `;
-    }
-
-    if (optProduct) {
-        designPrompt += `
-        4. **PRODUCT FIDELITY**: You have the actual product image. Use it as the main subject. Do not hallucinate a different product. Relight it to match the scene perfectly.
+        1. **TYPOGRAPHY**: Render the text "${post.headline}" onto the image. Large, bold, readable.
+        2. **LOGO**: Place the brand logo in a corner or top center.
         `;
     }
 
     designPrompt += `
-    Output a single, high-resolution image (4:5 Aspect Ratio) optimized for Instagram/Social Media.
+    3. **REALISM**: Commercial 4K photography.
+    Output a single image in 4:5 aspect ratio.
     `;
 
     parts.push({ text: designPrompt });
