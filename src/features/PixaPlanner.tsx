@@ -40,22 +40,32 @@ const OptionCard: React.FC<{
     </button>
 );
 
-const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => (
-    <div className={PlannerStyles.logContainer + " max-h-40 overflow-y-auto custom-scrollbar"}>
-        <div className={PlannerStyles.logHeader}>
-            <LightningIcon className="w-3 h-3 text-indigo-400 animate-pulse" />
-            <h4 className={PlannerStyles.logTitle}>Deep Strategy Intelligence</h4>
+const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
+    const logEndRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom whenever logs update
+    useEffect(() => {
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
+
+    return (
+        <div className={PlannerStyles.logContainer + " max-h-40 overflow-y-auto custom-scrollbar scroll-smooth"}>
+            <div className={PlannerStyles.logHeader}>
+                <LightningIcon className="w-3 h-3 text-indigo-400 animate-pulse" />
+                <h4 className={PlannerStyles.logTitle}>Deep Strategy Intelligence</h4>
+            </div>
+            <div className="space-y-3">
+                {logs.map((log, idx) => (
+                    <div key={idx} className={PlannerStyles.logItem}>
+                        <div className={`${PlannerStyles.logDot} ${idx === logs.length - 1 ? 'bg-indigo-500 animate-ping' : 'bg-green-500'}`}></div>
+                        <p className={PlannerStyles.logText}>{log}</p>
+                    </div>
+                ))}
+                <div ref={logEndRef} />
+            </div>
         </div>
-        <div className="space-y-3">
-            {logs.map((log, idx) => (
-                <div key={idx} className={PlannerStyles.logItem}>
-                    <div className={`${PlannerStyles.logDot} ${idx === logs.length - 1 ? 'bg-indigo-500 animate-ping' : 'bg-green-500'}`}></div>
-                    <p className={PlannerStyles.logText}>{log}</p>
-                </div>
-            ))}
-        </div>
-    </div>
-);
+    );
+};
 
 const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: number }> = ({ loadingText, logs, progress }) => {
     return createPortal(
