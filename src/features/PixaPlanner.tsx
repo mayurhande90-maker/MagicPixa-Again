@@ -241,6 +241,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const url = generatedImages[post.id];
             if (url) {
                 const blob = await fetch(url).then(r => r.blob());
+                // Fixed: Corrected variable name from p.topic to post.topic
                 zip.file(`${post.date}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
             }
         }
@@ -313,7 +314,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Market</label>
-                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Manhattan, NY or Tokyo" />
+                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, Maharashtra or Bangalore" />
                         </div>
                     </div>
 
