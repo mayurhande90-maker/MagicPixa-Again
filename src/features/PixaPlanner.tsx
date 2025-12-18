@@ -58,7 +58,7 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
             <div className="space-y-3">
                 {logs.map((log, idx) => (
                     <div key={idx} className={PlannerStyles.logItem}>
-                        <div className={`${PlannerStyles.logDot} ${idx === logs.length - 1 ? 'bg-indigo-500 animate-ping' : 'bg-green-500'}`}></div>
+                        <div className={`${PlannerStyles.logDot} ${idx === logs.length - 1 ? 'bg-indigo-50 animate-ping' : 'bg-green-50'}`}></div>
                         <p className={PlannerStyles.logText}>{log}</p>
                     </div>
                 ))}
@@ -108,6 +108,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [loadingText, setLoadingText] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
 
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
     const hasBrand = !!activeBrand;
@@ -245,6 +246,22 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         link.click();
     };
 
+    const handleCopyText = (id: string, text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIds(prev => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+        setTimeout(() => {
+            setCopiedIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }, 2000);
+    };
+
     if (!hasBrand) {
         return (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -352,6 +369,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {plan.map((post) => {
                             const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
+                            const isCopied = copiedIds.has(post.id);
                             return (
                                 <div key={post.id} className="bg-white rounded-[2.5rem] border border-gray-100 p-7 shadow-sm hover:shadow-xl transition-all flex flex-col gap-6 group relative">
                                     {/* Card Top: Date and Meta */}
@@ -385,14 +403,16 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Smart Caption</h4>
                                                 </div>
                                                 <button 
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`${post.caption}\n\n${post.hashtags}`);
-                                                        setToast({ msg: "Caption & Hashtags copied!", type: "success" });
-                                                    }}
-                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                                                    title="Copy to clipboard"
+                                                    onClick={() => handleCopyText(post.id, `${post.caption}\n\n${post.hashtags}`)}
+                                                    className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${
+                                                        isCopied 
+                                                        ? 'bg-green-100 text-green-600 border border-green-200' 
+                                                        : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
+                                                    }`}
                                                 >
-                                                    <CopyIcon className="w-3.5 h-3.5" />
+                                                    <span className={`inline-block animate-fadeIn ${isCopied ? 'scale-110' : ''}`}>
+                                                        {isCopied ? 'Copied' : 'Copy'}
+                                                    </span>
                                                 </button>
                                             </div>
                                             <div className="relative">
@@ -504,7 +524,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
                                                 p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
                                             }`}>{p.postType}</span>
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase">{p.archetype}</span>
+                                            <span className={`text-[9px] font-bold text-gray-400 uppercase`}>{p.archetype}</span>
                                         </div>
                                         <span className="text-[9px] font-bold text-gray-400 uppercase">{p.date}</span>
                                     </div>
