@@ -92,13 +92,15 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    // Initial configuration with no pre-selections
     const [config, setConfig] = useState<PlanConfig>({
-        month: new Date().toLocaleString('default', { month: 'long' }),
+        month: '',
         year: new Date().getFullYear(),
         goal: 'Sales & Promos',
-        frequency: 'Steady Growth (12 Posts)',
-        country: 'United States',
-        mixType: 'Balanced'
+        frequency: '',
+        country: '', // UI label: Target Market
+        mixType: '' as any
     });
     
     const [plan, setPlan] = useState<CalendarPost[]>([]);
@@ -117,6 +119,9 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const costPerImage = 10;
     const totalCost = plan.length * costPerImage;
     const userCredits = auth.user?.credits || 0;
+
+    // Validation for enabling the generation button
+    const isConfigValid = config.month && config.country && config.frequency && config.mixType;
 
     const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
 
@@ -162,7 +167,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }
             setProductAudits(audits);
 
-            addLog(`Crawling ${activeBrand.website} for industry visual trends...`);
+            addLog(`Deep Research: Scanning trends for "${config.country}"...`);
             addLog(`Applying "Rule of Thirds" and negative space logic...`);
             
             const newPlan = await generateContentPlan(activeBrand, config, audits);
@@ -301,13 +306,14 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                         <div>
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Month</label>
-                            <select value={config.month} onChange={e => setConfig({...config, month: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500">
-                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m}>{m}</option>)}
+                            <select value={config.month} onChange={e => setConfig({...config, month: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500 appearance-none">
+                                <option value="" disabled>Select Month</option>
+                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Country Market</label>
-                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. India" />
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Market</label>
+                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Manhattan, NY or Tokyo" />
                         </div>
                     </div>
 
@@ -346,7 +352,11 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="flex justify-end pt-4 relative z-10">
-                        <button onClick={handleGeneratePlan} className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-105 flex items-center gap-3">
+                        <button 
+                            onClick={handleGeneratePlan} 
+                            disabled={!isConfigValid}
+                            className={`bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-black hover:scale-105 shadow-indigo-500/20'}`}
+                        >
                             <MagicWandIcon className="w-6 h-6 text-yellow-400" />
                             Engineer Pro Strategy
                         </button>

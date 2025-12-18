@@ -123,16 +123,22 @@ export const generateContentPlan = async (
     *** PRODUCT INVENTORY (YOU MUST SELECT FROM THESE IDs) ***
     ${auditData}
     
+    *** TARGET MARKET RESEARCH ***
+    - Target Location: "${config.country}"
+    - Current Month: ${config.month}
+    - **TASK**: Use Google Search to perform a Deep Cultural & Market Analysis for "${config.country}". 
+    - Identify specific local holidays, seasonal aesthetics, consumer behaviors, and visual trends unique to this exact city/region/country for the month of ${config.month}.
+    - Ensure the visual ideas and topics feel "local" and highly relevant to someone living in ${config.country}.
+    
     *** THE STRATEGIC MANDATE ***
     1. **INVENTORY DIVERSIFICATION**: You MUST distribute the ${postCount} posts across ALL available products listed in the inventory. Do NOT focus on just one product. Every product provided must be featured at least once in the month.
     2. **TOPIC MATCHING**: Intelligently pair each post's topic with the most relevant product from the inventory. (e.g., Use skincare for a "Self-care Sunday" post, but use food for "Healthy Brunch" post).
-    3. **INTERNET TRENDS**: Incorporate real-world trends for ${config.month} in ${config.country}.
-    4. **CONTENT MIX**: Follow the user's request for a "${config.mixType}" mix.
+    3. **CONTENT MIX**: Follow the user's request for a "${config.mixType}" mix.
     
     *** OUTPUT REQUIREMENTS ***
     - Generate exactly ${postCount} posts.
     - "selectedProductId" MUST strictly match one of the "USE_ID" strings provided in the inventory above.
-    - "visualBrief" must describe a unique high-end photography setting for THAT specific product.
+    - "visualBrief" must describe a unique high-end photography setting for THAT specific product, grounded in your local research of ${config.country}.
     
     RETURN JSON ARRAY.`;
 
