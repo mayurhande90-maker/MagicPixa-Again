@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
 import { PlannerStyles } from '../styles/features/PixaPlanner.styles';
@@ -7,7 +6,7 @@ import {
     ArrowLeftIcon, DownloadIcon, TrashIcon, RefreshIcon, 
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
-    ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon
+    ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -307,7 +306,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="relative z-10">
                             <h2 className="text-3xl font-black mb-2 flex items-center gap-3"><CheckIcon className="w-8 h-8 p-1 bg-white/20 rounded-full"/> Strategy Engineered</h2>
-                            <p className="text-indigo-100 font-medium">Verified {plan.length} entries for ${activeBrand.companyName}. Each shot is art-directed for high-fidelity production.</p>
+                            <p className="text-indigo-100 font-medium">Verified {plan.length} entries for {activeBrand.companyName}. Each post is designed to maximize engagement and ROI.</p>
                         </div>
                         <button onClick={() => setStep('config')} className="relative z-10 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all border border-white/20">Refine Settings</button>
                     </div>
@@ -316,38 +315,65 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         {plan.map((post) => {
                             const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
                             return (
-                                <div key={post.id} className="bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col gap-5 group relative">
+                                <div key={post.id} className="bg-white rounded-[2.5rem] border border-gray-100 p-7 shadow-sm hover:shadow-xl transition-all flex flex-col gap-6 group relative">
+                                    {/* Card Top: Date and Meta */}
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-black text-indigo-600 uppercase tracking-tighter">{post.dayLabel}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.date}</span>
+                                            <span className="text-sm font-black text-indigo-600 uppercase tracking-tight">{post.dayLabel}</span>
+                                        </div>
                                         <div className="flex gap-1.5">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${post.postType === 'Ad' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>{post.postType}</span>
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 italic">{post.archetype}</span>
+                                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide ${post.postType === 'Ad' ? 'bg-purple-600 text-white shadow-sm' : 'bg-green-600 text-white shadow-sm'}`}>{post.postType}</span>
                                         </div>
                                     </div>
                                     
-                                    <div className="flex gap-4 items-start">
-                                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shrink-0 bg-gray-50 flex items-center justify-center relative shadow-inner">
+                                    {/* Campaign Topic Section */}
+                                    <div className="flex gap-5 items-center bg-gray-50/50 p-4 rounded-3xl border border-gray-100/50">
+                                        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shrink-0 bg-white flex items-center justify-center relative shadow-sm">
                                             {product?.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-contain p-1" /> : <CubeIcon className="w-5 h-5 text-gray-300"/>}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Campaign Topic</h4>
-                                            <input value={post.topic} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, topic: e.target.value} : p))} className="w-full font-bold text-gray-800 text-lg bg-transparent border-none p-0 focus:ring-0 truncate" />
+                                            <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Topic</h4>
+                                            <input value={post.topic} onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, topic: e.target.value} : p))} className="w-full font-black text-gray-900 text-base bg-transparent border-none p-0 focus:ring-0 truncate" />
                                         </div>
                                     </div>
 
-                                    <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50 relative overflow-hidden">
-                                        <div className="absolute right-0 top-0 p-2 opacity-20"><CameraIcon className="w-8 h-8 text-indigo-600"/></div>
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Visual Art Direction</p>
-                                        <p className="text-xs text-indigo-900 leading-relaxed font-bold italic">"{post.visualBrief}"</p>
-                                        <p className="text-[10px] text-indigo-600/70 mt-2 leading-relaxed">{post.visualIdea}</p>
+                                    {/* Post Content Box (Updated: prioritized over visual spec) */}
+                                    <div className="flex-1 flex flex-col gap-4">
+                                        <div className="bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-inner relative group-hover:border-indigo-100 transition-colors">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><CaptionIcon className="w-4 h-4"/></div>
+                                                <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Smart Caption</h4>
+                                            </div>
+                                            <div className="relative">
+                                                <textarea 
+                                                    value={post.caption} 
+                                                    onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, caption: e.target.value} : p))}
+                                                    className="w-full text-xs text-gray-700 leading-relaxed font-medium bg-transparent border-none p-0 focus:ring-0 resize-none min-h-[80px]" 
+                                                />
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <p className="text-[10px] font-bold text-indigo-500/70 mb-1">Hashtags</p>
+                                                    <p className="text-[10px] text-gray-400 font-mono leading-relaxed line-clamp-2">{post.hashtags}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Collapsible/Compact Visual Info */}
+                                        <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <CameraIcon className="w-3.5 h-3.5 text-gray-400"/>
+                                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Photography Plan</span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-medium italic line-clamp-1">{post.visualBrief}</p>
+                                        </div>
                                     </div>
                                     
-                                    <div>
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5 px-1">Selected Product</label>
+                                    <div className="pt-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-2 px-1">Selected Product</label>
                                         <select 
                                             value={post.selectedProductId} 
                                             onChange={(e) => setPlan(prev => prev.map(p => p.id === post.id ? {...p, selectedProductId: e.target.value} : p))}
-                                            className="w-full text-xs font-bold p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none shadow-sm"
+                                            className="w-full text-[11px] font-black p-3.5 bg-white border-2 border-gray-100 rounded-2xl focus:border-indigo-500 focus:ring-0 cursor-pointer appearance-none shadow-sm transition-all"
                                         >
                                             {activeBrand.products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                         </select>
