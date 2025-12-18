@@ -7,7 +7,8 @@ import {
     ArrowLeftIcon, DownloadIcon, TrashIcon, RefreshIcon, 
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
-    ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon
+    ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
+    CopyIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -69,8 +70,8 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
 
 const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: number }> = ({ loadingText, logs, progress }) => {
     return createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight" onClick={e => e.stopPropagation()}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
                 <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
                 <h2 className="text-2xl font-black text-gray-900 mb-2">Agency processing active.</h2>
@@ -378,9 +379,21 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     {/* Post Content Box (Smart Caption) */}
                                     <div className="flex-1 flex flex-col gap-4">
                                         <div className="bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-inner relative group-hover:border-indigo-100 transition-colors">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><CaptionIcon className="w-4 h-4"/></div>
-                                                <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Smart Caption</h4>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><CaptionIcon className="w-4 h-4"/></div>
+                                                    <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Smart Caption</h4>
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${post.caption}\n\n${post.hashtags}`);
+                                                        setToast({ msg: "Caption & Hashtags copied!", type: "success" });
+                                                    }}
+                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                    title="Copy to clipboard"
+                                                >
+                                                    <CopyIcon className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
                                             <div className="relative">
                                                 <textarea 
@@ -389,7 +402,9 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     className="w-full text-xs text-gray-700 leading-relaxed font-medium bg-transparent border-none p-0 focus:ring-0 resize-none min-h-[80px]" 
                                                 />
                                                 <div className="mt-3 pt-3 border-t border-gray-100">
-                                                    <p className="text-[10px] font-bold text-indigo-500/70 mb-1">Hashtags</p>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <p className="text-[10px] font-bold text-indigo-500/70">Hashtags</p>
+                                                    </div>
                                                     <p className="text-[10px] text-gray-400 font-mono leading-relaxed line-clamp-2">{post.hashtags}</p>
                                                 </div>
                                             </div>
