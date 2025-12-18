@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
@@ -8,7 +9,7 @@ import {
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
-    CopyIcon
+    CopyIcon, ChevronRightIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -89,6 +90,121 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
     );
 };
 
+/**
+ * NEW: Multi-image Full-screen Gallery Viewer
+ */
+const MultiGalleryViewer: React.FC<{ 
+    posts: CalendarPost[]; 
+    images: Record<string, string>;
+    initialIndex: number; 
+    onClose: () => void;
+    onToast: (msg: string) => void;
+}> = ({ posts, images, initialIndex, onClose, onToast }) => {
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const post = posts[currentIndex];
+    const imageUrl = images[post.id];
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleNext = () => setCurrentIndex(prev => (prev + 1) % posts.length);
+    const handlePrev = () => setCurrentIndex(prev => (prev - 1 + posts.length) % posts.length);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(`${post.caption}\n\n${post.hashtags}`);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+        onToast("Campaign copy copied to clipboard!");
+    };
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') handleNext();
+            if (e.key === 'ArrowLeft') handlePrev();
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentIndex]);
+
+    return createPortal(
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-fadeIn" onClick={onClose}>
+            <div className="relative w-full h-full flex flex-col items-center justify-center p-4 md:p-10" onClick={e => e.stopPropagation()}>
+                
+                {/* Header Controls */}
+                <div className="absolute top-6 left-0 right-0 px-6 flex justify-between items-center z-50">
+                    <div className="flex flex-col">
+                        <span className="text-white font-black text-xl tracking-tight">{post.topic}</span>
+                        <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">{post.date} • {post.dayLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => downloadImage(imageUrl, `PixaPlanner_${post.date.replace(/\//g, '-')}.jpg`)}
+                            className="bg-white/10 hover:bg-white text-white hover:text-black p-3 rounded-full transition-all border border-white/10 shadow-xl"
+                            title="Download Image"
+                        >
+                            <DownloadIcon className="w-6 h-6"/>
+                        </button>
+                        <button 
+                            onClick={onClose}
+                            className="bg-white/10 hover:bg-red-500 text-white p-3 rounded-full transition-all border border-white/10 shadow-xl"
+                            title="Close"
+                        >
+                            <XIcon className="w-6 h-6"/>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="flex-1 w-full flex items-center justify-center relative">
+                    {/* Navigation Arrows */}
+                    <button onClick={handlePrev} className="absolute left-4 p-4 text-white/50 hover:text-white transition-all hover:scale-110 z-50 bg-black/20 hover:bg-black/50 rounded-full">
+                        <ArrowLeftIcon className="w-10 h-10" />
+                    </button>
+                    
+                    <div className="max-w-4xl w-full flex flex-col items-center gap-8 animate-[scaleIn_0.4s_cubic-bezier(0.16,1,0.3,1)]">
+                        {/* The Image */}
+                        <div className="relative group max-h-[60vh]">
+                             <img src={imageUrl} className="max-w-full max-h-[60vh] rounded-2xl shadow-2xl object-contain border border-white/5" alt={post.topic} />
+                        </div>
+
+                        {/* Caption Area */}
+                        <div className="w-full bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-2xl max-w-2xl">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex items-center gap-2">
+                                    <CaptionIcon className="w-4 h-4 text-indigo-400" />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Campaign Copy</span>
+                                </div>
+                                <button 
+                                    onClick={handleCopy}
+                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-all flex items-center gap-2 ${
+                                        isCopied ? 'bg-green-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                    }`}
+                                >
+                                    {isCopied ? <><CheckIcon className="w-3 h-3"/> Copied</> : <><CopyIcon className="w-3 h-3"/> Copy All</>}
+                                </button>
+                            </div>
+                            <p className="text-gray-200 text-sm leading-relaxed mb-4 whitespace-pre-wrap">{post.caption}</p>
+                            <div className="pt-3 border-t border-white/5 text-[11px] font-mono text-indigo-300 line-clamp-2">
+                                {post.hashtags}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onClick={handleNext} className="absolute right-4 p-4 text-white/50 hover:text-white transition-all hover:scale-110 z-50 bg-black/20 hover:bg-black/50 rounded-full">
+                        <ChevronRightIcon className="w-10 h-10" />
+                    </button>
+                </div>
+                
+                {/* Counter */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+                    <span className="text-white/40 text-xs font-black tracking-widest">{currentIndex + 1} / {posts.length}</span>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -111,6 +227,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [logs, setLogs] = useState<string[]>([]);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
+    const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
     const hasBrand = !!activeBrand;
@@ -241,8 +358,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const url = generatedImages[post.id];
             if (url) {
                 const blob = await fetch(url).then(r => r.blob());
-                // Fixed: Corrected variable name from p.topic to post.topic
-                zip.file(`${post.date}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
+                // Handle slashes in dates for filename safety
+                zip.file(`${post.date.replace(/\//g, '-')}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
             }
         }
         const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -503,21 +620,31 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {plan.map(p => (
+                        {plan.map((p, idx) => (
                             <div key={p.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all">
-                                <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden">
+                                <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden cursor-zoom-in" onClick={() => setViewingIndex(idx)}>
                                     {generatedImages[p.id] ? (
                                         <>
                                             <img src={generatedImages[p.id]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 gap-3 backdrop-blur-[2px]">
-                                                <button onClick={() => downloadImage(generatedImages[p.id], `${p.date}.jpg`)} className="w-full bg-white text-gray-900 py-3 rounded-xl font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                                                    <DownloadIcon className="w-5 h-5"/> Save Image
-                                                </button>
-                                                <button onClick={() => {
-                                                    navigator.clipboard.writeText(`${p.caption}\n\n${p.hashtags}`);
-                                                    setToast({ msg: "Caption copied!", type: "success" });
-                                                }} className="text-white text-xs font-bold hover:underline">Copy Caption</button>
+                                            
+                                            {/* Top Right Quick Download Button */}
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    downloadImage(generatedImages[p.id], `PixaPlanner_${p.date.replace(/\//g, '-')}.jpg`);
+                                                }}
+                                                className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-gray-800 shadow-lg border border-white/20 hover:bg-white hover:scale-110 transition-all z-20 opacity-0 group-hover:opacity-100"
+                                                title="Quick Download"
+                                            >
+                                                <DownloadIcon className="w-4 h-4"/>
+                                            </button>
+
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
+                                                    <SparklesIcon className="w-6 h-6"/>
+                                                </div>
                                             </div>
+
                                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
                                                 {p.dayLabel}
                                             </div>
@@ -530,16 +657,21 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     )}
                                 </div>
                                 <div className="p-5 border-t border-gray-50">
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-1.5">
                                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
                                                 p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
                                             }`}>{p.postType}</span>
                                             <span className={`text-[9px] font-bold text-gray-400 uppercase`}>{p.archetype}</span>
                                         </div>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase">{p.date}</span>
+                                        <span className="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">{p.date}</span>
                                     </div>
-                                    <h4 className="font-bold text-gray-800 text-sm truncate">{p.topic}</h4>
+                                    <h4 className="font-bold text-gray-900 text-sm truncate mb-3">{p.topic}</h4>
+                                    
+                                    {/* Card Preview Text */}
+                                    <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100 group-hover:bg-indigo-50/30 transition-colors">
+                                        <p className="text-[11px] text-gray-500 italic line-clamp-2 leading-relaxed">"{p.caption}"</p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -547,6 +679,17 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 </div>
             )}
             
+            {/* Full Screen Gallery Viewer */}
+            {viewingIndex !== null && (
+                <MultiGalleryViewer 
+                    posts={plan}
+                    images={generatedImages}
+                    initialIndex={viewingIndex}
+                    onClose={() => setViewingIndex(null)}
+                    onToast={(msg) => setToast({ msg, type: 'success' })}
+                />
+            )}
+
             {isGenerating && <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />}
             
             <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf" onChange={handleImportDocument} />
