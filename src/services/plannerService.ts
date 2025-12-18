@@ -1,4 +1,3 @@
-
 import { Modality, Type, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { BrandKit, ProductAnalysis } from "../types";
@@ -41,6 +40,7 @@ const FREQUENCY_MAP: Record<string, number> = {
 
 /**
  * PHASE 1: FORENSIC AUDIT (Pre-verification)
+ * Deeply analyzes the product image to understand identity and physical properties.
  */
 export const analyzeProductPhysically = async (
     productId: string,
@@ -48,22 +48,23 @@ export const analyzeProductPhysically = async (
     mimeType: string
 ): Promise<ProductAnalysis> => {
     const ai = getAiClient();
-    const prompt = `Perform a Technical Forensic Audit of this product image for high-end commercial rendering.
+    const prompt = `Perform an Exhaustive Technical Forensic Audit of this product image.
     
-    1. **Identity Capture**: Transcribe packaging text, logos, and specific design markers.
-    2. **Material Science**: Is the surface high-gloss, matte, metallic, or textured?
-    3. **Physics Categorization**: Is it Edible, Topical (Skincare), or a Hard Good?
-    4. **Scale Logic**: Determine its height/mass (e.g., "15cm tall bottle", "500g heavy jar").
-    5. **Art Direction Constraints**: List scenes where this product looks 'premium' vs 'cheap'.
+    1. **OCR & Text Identity**: Transcribe EVERY piece of text visible on the packaging (brand name, variant, ingredients, volume, labels).
+    2. **Logo & Graphics**: Describe all logos, icons, and graphic patterns found on the object.
+    3. **Material Science**: Is the surface high-gloss, matte, metallic, or textured? Describe the reflectivity.
+    4. **Physics Categorization**: Is it Edible, Topical (Skincare), a Hard Good, or Tech?
+    5. **Scale & Volume**: Estimate height, mass, and volume based on labels (e.g., "15cm tall bottle", "50ml liquid volume").
+    6. **Art Direction Constraints**: Identify where this product looks 'premium' vs 'cheap'. Note any specific orientation (standing vs lying).
     
     RETURN JSON:
     {
-        "detectedName": "string",
+        "detectedName": "string (The official name found on packaging)",
         "category": "Edible | Topical | Wearable | Tech | Home | Other",
         "state": "Liquid | Solid | Granular | Powder | Digital",
-        "physicalScale": "string",
-        "sceneConstraints": "string",
-        "visualCues": "string"
+        "physicalScale": "string (Extracted size/weight)",
+        "sceneConstraints": "string (Lighting/Surface advice)",
+        "visualCues": "string (Logos and text markers)"
     }`;
 
     try {
@@ -102,6 +103,7 @@ export const analyzeProductPhysically = async (
 
 /**
  * STEP 1: STRATEGY ENGINE (CMO + Art Director)
+ * Builds the calendar by matching topics to specific product analysis results.
  */
 export const generateContentPlan = async (
     brand: BrandKit,
@@ -111,29 +113,33 @@ export const generateContentPlan = async (
     const ai = getAiClient();
     const postCount = FREQUENCY_MAP[config.frequency] || 12;
 
+    // Build the inventory list for the AI to pick from
     const auditData = Object.values(productAudits).map(a => 
-        `- [${a.detectedName}]: ${a.category} item. Rules: ${a.sceneConstraints}. Vibe: ${a.visualCues}`
+        `- [USE_ID: "${a.id}"] Name: "${a.detectedName}" | Category: ${a.category} | State: ${a.state} | Detail: ${a.visualCues}`
     ).join('\n');
 
-    const auditPrompt = `You are a World-Class CMO and Senior Art Director for ${brand.companyName}.
+    const strategyPrompt = `You are a World-Class CMO and Senior Art Director for ${brand.companyName}.
     
-    *** PRODUCT DATABASE ***
+    *** PRODUCT INVENTORY (YOU MUST SELECT FROM THESE IDs) ***
     ${auditData}
     
-    *** STRATEGY BRIEF ***
-    1. **Internet Trends**: Search for viral aesthetics for ${brand.website} and ${brand.companyName} niche for ${config.month} in ${config.country}.
-    2. **Content Archetypes**: Apply 70% Value, 20% Hard Sell, 10% Trends.
-    3. **Art Direction**: For EVERY post, generate a "visualBrief" that describes high-end photography settings (e.g. "Use Chiaroscuro lighting for drama", "Flat-lay with organic textures").
+    *** THE STRATEGIC MANDATE ***
+    1. **INVENTORY DIVERSIFICATION**: You MUST distribute the ${postCount} posts across ALL available products listed in the inventory. Do NOT focus on just one product. Every product provided must be featured at least once in the month.
+    2. **TOPIC MATCHING**: Intelligently pair each post's topic with the most relevant product from the inventory. (e.g., Use skincare for a "Self-care Sunday" post, but use food for "Healthy Brunch" post).
+    3. **INTERNET TRENDS**: Incorporate real-world trends for ${config.month} in ${config.country}.
+    4. **CONTENT MIX**: Follow the user's request for a "${config.mixType}" mix.
     
-    *** OUTPUT JSON ARRAY ***
-    Return strictly ${postCount} objects. 
-    Ensure "selectedProductId" is accurate. 
-    "visualBrief" must contain camera focal length and lighting type.`;
+    *** OUTPUT REQUIREMENTS ***
+    - Generate exactly ${postCount} posts.
+    - "selectedProductId" MUST strictly match one of the "USE_ID" strings provided in the inventory above.
+    - "visualBrief" must describe a unique high-end photography setting for THAT specific product.
+    
+    RETURN JSON ARRAY.`;
 
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ text: auditPrompt }] },
+            contents: { parts: [{ text: strategyPrompt }] },
             config: {
                 tools: [{ googleSearch: {} }], 
                 responseMimeType: "application/json",
@@ -202,6 +208,7 @@ export const generatePostImage = async (
     
     *** THE PRODUCTION BRIEF ***
     Object: ${productAudit?.detectedName} (${productAudit?.category})
+    Product Details: ${productAudit?.visualCues}
     Post Focus: ${post.topic}
     Art Direction: ${post.visualBrief}
     Visual Concept: ${post.visualIdea}
@@ -211,7 +218,7 @@ export const generatePostImage = async (
     1. **Optics**: Render as if shot on a Phase One XF IQ4, 100MP, 80mm Schneider lens, f/4 for maximum clarity and realistic fall-off.
     2. **Lighting Physics**: Match the lighting structure found in the BRAND VISUAL DNA images. Use high-dynamic range (HDR).
     3. **Physics & Contact**: Ensure the product has realistic weight. Add deep contact shadows (ambient occlusion) where it meets surfaces. 
-    4. **Material Fidelity**: Preserve the product identity exactly. If it is a ${productAudit?.state}, ensure the physics of the material (reflections, translucency) are 100% realistic.
+    4. **Material Fidelity**: Preserve the product identity EXACTLY. Captures all text and logos from the reference image. If it is a ${productAudit?.state}, ensure the physics of the material (reflections, translucency) are 100% realistic.
     5. **Typography**: Integrate "${post.headline}" using ${brand.fonts.heading}. Text must be clean, legible, and premium.
     
     *** COMPOSITION ***
