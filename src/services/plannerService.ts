@@ -134,7 +134,6 @@ export const generateContentPlan = async (
     1. **INVENTORY DIVERSIFICATION**: You MUST distribute the ${postCount} posts across ALL available products listed in the inventory. Do NOT focus on just one product. Every product provided must be featured at least once in the month.
     2. **TOPIC MATCHING**: Intelligently pair each post's topic with the most relevant product from the inventory. (e.g., Use skincare for a "Self-care Sunday" post, but use food for "Healthy Brunch" post).
     3. **CONTENT MIX**: Follow the user's request for a "${config.mixType}" mix.
-    4. **DATE FORMAT**: You MUST format all dates as dd/mm/yyyy (Indian Standard).
     
     *** OUTPUT REQUIREMENTS ***
     - Generate exactly ${postCount} posts.
@@ -259,7 +258,7 @@ export const extractPlanFromDocument = async (
     mimeType: string
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
-    const prompt = `Extract the content schedule from this document. Format as JSON array. Link to products: ${brand.products?.map(p => p.name).join(', ')}. Ensure all dates are in dd/mm/yyyy format.`;
+    const prompt = `Extract the content schedule from this document. Format as JSON array. Link to products: ${brand.products?.map(p => p.name).join(', ')}.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',

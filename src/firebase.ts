@@ -1,3 +1,5 @@
+
+// ... existing imports
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -5,6 +7,7 @@ import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
 import { resizeImage } from './utils/imageUtils';
 
+// ... (keep existing configuration code up to getUserBrands) ...
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 

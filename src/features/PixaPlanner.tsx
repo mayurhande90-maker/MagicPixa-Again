@@ -8,7 +8,7 @@ import {
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
-    CopyIcon, ChevronLeftIcon, ChevronRightIcon
+    CopyIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -89,87 +89,6 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
     );
 };
 
-const PlannerImageModal: React.FC<{ 
-    plan: CalendarPost[];
-    viewIndex: number;
-    onClose: () => void;
-    onNext: () => void;
-    onPrev: () => void;
-    generatedImages: Record<string, string>;
-    onCopy: (id: string, text: string) => void;
-    copiedIds: Set<string>;
-}> = ({ plan, viewIndex, onClose, onNext, onPrev, generatedImages, onCopy, copiedIds }) => {
-    const post = plan[viewIndex];
-    const imageUrl = generatedImages[post.id];
-    const isCopied = copiedIds.has(post.id);
-
-    return createPortal(
-        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-fadeIn" onClick={onClose}>
-            <button onClick={onClose} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-50">
-                <XIcon className="w-8 h-8" />
-            </button>
-
-            {/* Navigation Arrows */}
-            <button 
-                onClick={(e) => { e.stopPropagation(); onPrev(); }} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-all p-3 z-50 disabled:opacity-10"
-                disabled={viewIndex === 0}
-            >
-                <ChevronLeftIcon className="w-12 h-12" />
-            </button>
-            <button 
-                onClick={(e) => { e.stopPropagation(); onNext(); }} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-all p-3 z-50 disabled:opacity-10"
-                disabled={viewIndex === plan.length - 1}
-            >
-                <ChevronRightIcon className="w-12 h-12" />
-            </button>
-
-            <div className="flex flex-col items-center max-w-5xl w-full h-full justify-center gap-6" onClick={e => e.stopPropagation()}>
-                <div className="relative flex-1 flex items-center justify-center min-h-0 w-full group">
-                    <img src={imageUrl} className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-fadeIn" alt={post.topic} />
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); downloadImage(imageUrl, `${post.date}.jpg`); }}
-                        className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white p-2.5 rounded-full border border-white/20 shadow-lg hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
-                        title="Download Image"
-                    >
-                        <DownloadIcon className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="w-full bg-white/10 backdrop-blur-md rounded-[2.5rem] p-6 border border-white/10 shadow-2xl animate-fadeInUp">
-                    <div className="flex justify-between items-start mb-4 gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">{post.date}</span>
-                                <span className="text-[10px] font-black text-white/40">•</span>
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{post.dayLabel}</span>
-                            </div>
-                            <h3 className="text-white text-xl font-black tracking-tight">{post.topic}</h3>
-                        </div>
-                        <button 
-                            onClick={() => onCopy(post.id, `${post.caption}\n\n${post.hashtags}`)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                                isCopied 
-                                ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' 
-                                : 'bg-white text-indigo-900 hover:bg-indigo-50 shadow-lg'
-                            }`}
-                        >
-                            {isCopied ? <><CheckIcon className="w-4 h-4"/> Copied</> : <><CopyIcon className="w-4 h-4"/> Copy Details</>}
-                        </button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                        <p className="text-white/80 text-sm leading-relaxed font-medium line-clamp-3 overflow-y-auto max-h-24 custom-scrollbar-white pr-2">{post.caption}</p>
-                        <p className="text-indigo-400 text-xs font-mono font-bold">{post.hashtags}</p>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-};
-
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -192,7 +111,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [logs, setLogs] = useState<string[]>([]);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
-    const [viewIndex, setViewIndex] = useState<number | null>(null);
 
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
     const hasBrand = !!activeBrand;
@@ -323,7 +241,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const url = generatedImages[post.id];
             if (url) {
                 const blob = await fetch(url).then(r => r.blob());
-                zip.file(`${post.date.replace(/\//g, '-')}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
+                zip.file(`${post.date}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
             }
         }
         const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -395,7 +313,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Market</label>
-                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, Maharashtra or Bangalore" />
+                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Manhattan, NY or Tokyo" />
                         </div>
                     </div>
 
@@ -584,29 +502,20 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {plan.map((p, idx) => (
+                        {plan.map(p => (
                             <div key={p.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all">
-                                <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden cursor-zoom-in" onClick={() => setViewIndex(idx)}>
+                                <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden">
                                     {generatedImages[p.id] ? (
                                         <>
                                             <img src={generatedImages[p.id]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                            
-                                            {/* Download Icon Overlay */}
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    downloadImage(generatedImages[p.id], `${p.date}.jpg`);
-                                                }}
-                                                className="absolute top-4 right-4 bg-white/80 backdrop-blur-md text-gray-900 p-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-10 border border-gray-100"
-                                                title="Download Image"
-                                            >
-                                                <DownloadIcon className="w-4 h-4" />
-                                            </button>
-
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 gap-3 backdrop-blur-[2px]">
-                                                <button className="bg-white text-gray-900 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                                                    View Full Screen
+                                                <button onClick={() => downloadImage(generatedImages[p.id], `${p.date}.jpg`)} className="w-full bg-white text-gray-900 py-3 rounded-xl font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                                                    <DownloadIcon className="w-5 h-5"/> Save Image
                                                 </button>
+                                                <button onClick={() => {
+                                                    navigator.clipboard.writeText(`${p.caption}\n\n${p.hashtags}`);
+                                                    setToast({ msg: "Caption copied!", type: "success" });
+                                                }} className="text-white text-xs font-bold hover:underline">Copy Caption</button>
                                             </div>
                                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
                                                 {p.dayLabel}
@@ -638,19 +547,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             )}
             
             {isGenerating && <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />}
-            
-            {viewIndex !== null && (
-                <PlannerImageModal 
-                    plan={plan}
-                    viewIndex={viewIndex}
-                    onClose={() => setViewIndex(null)}
-                    onNext={() => setViewIndex(prev => prev !== null ? Math.min(prev + 1, plan.length - 1) : null)}
-                    onPrev={() => setViewIndex(prev => prev !== null ? Math.max(prev - 1, 0) : null)}
-                    generatedImages={generatedImages}
-                    onCopy={handleCopyText}
-                    copiedIds={copiedIds}
-                />
-            )}
             
             <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf" onChange={handleImportDocument} />
             {toast && <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
