@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
 import { PlannerStyles } from '../styles/features/PixaPlanner.styles';
 import { 
@@ -15,7 +16,7 @@ import ToastNotification from '../components/ToastNotification';
 // @ts-ignore
 import JSZip from 'jszip';
 
-type Step = 'config' | 'review' | 'generating' | 'done';
+type Step = 'config' | 'review' | 'done';
 
 const OptionCard: React.FC<{ 
     title: string; 
@@ -40,7 +41,7 @@ const OptionCard: React.FC<{
 );
 
 const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => (
-    <div className={PlannerStyles.logContainer}>
+    <div className={PlannerStyles.logContainer + " max-h-40 overflow-y-auto custom-scrollbar"}>
         <div className={PlannerStyles.logHeader}>
             <LightningIcon className="w-3 h-3 text-indigo-400 animate-pulse" />
             <h4 className={PlannerStyles.logTitle}>Deep Strategy Intelligence</h4>
@@ -56,8 +57,30 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => (
     </div>
 );
 
+const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: number }> = ({ loadingText, logs, progress }) => {
+    return createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight">
+                <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
+                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Agency processing active.</h2>
+                <p className="text-sm text-gray-500 font-medium mb-8 h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
+                
+                <ThinkingLog logs={logs} />
+
+                <div className={PlannerStyles.progressBar + " mt-8 w-full h-2 bg-gray-100 rounded-full overflow-hidden"}>
+                    <div className={PlannerStyles.progressFill + " h-full bg-indigo-600 transition-all duration-300"} style={{ width: `${progress}%` }}></div>
+                </div>
+                <p className="text-[10px] font-black text-gray-400 mt-4 tracking-widest uppercase">{Math.round(progress)}% COMPLETE</p>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
+    const [isGenerating, setIsGenerating] = useState(false);
     const [config, setConfig] = useState<PlanConfig>({
         month: new Date().toLocaleString('default', { month: 'long' }),
         year: new Date().getFullYear(),
@@ -89,7 +112,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         const file = e.target.files?.[0];
         if (!file || !activeBrand) return;
 
-        setStep('generating');
+        setIsGenerating(true);
         setLogs(["Parsing provided document structure...", "Mapping data to product catalog..."]);
         
         try {
@@ -100,16 +123,17 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setToast({ msg: `Imported ${importedPlan.length} posts successfully!`, type: 'success' });
         } catch (error: any) {
             setToast({ msg: error.message, type: 'error' });
-            setStep('config');
         } finally {
+            setIsGenerating(false);
             e.target.value = '';
         }
     };
 
     const handleGeneratePlan = async () => {
         if (!activeBrand) return;
-        setStep('generating'); 
+        setIsGenerating(true); 
         setLogs([]);
+        setProgress(0);
         
         try {
             addLog("Initiating Art Direction Protocol...");
@@ -136,7 +160,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         } catch (e: any) {
             console.error(e);
             setToast({ msg: "Strategy Engine failed. Try again.", type: "error" });
-            setStep('config');
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -147,7 +172,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             return;
         }
         
-        setStep('generating');
+        setIsGenerating(true);
         setLogs(["Activating Production Engine...", "Anchoring to Brand Visual DNA..."]);
         setProgress(0);
         
@@ -187,7 +212,9 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setGeneratedImages(results);
             setStep('done');
         } catch (e) {
-            setStep('review');
+            console.error(e);
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -221,7 +248,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto pb-32 animate-fadeIn">
+        <div className="p-6 max-w-7xl mx-auto pb-32 animate-fadeIn relative">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-4">
@@ -392,25 +419,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 </div>
             )}
 
-            {/* Step 3: Generating */}
-            {step === 'generating' && (
-                <div className={PlannerStyles.progressContainer}>
-                    <div className="flex flex-col items-center max-w-lg w-full text-center">
-                        <div className="w-24 h-24 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-10"></div>
-                        <h2 className="text-3xl font-black text-gray-900 mb-2">Agency rendering active.</h2>
-                        <p className="text-lg text-gray-500 font-medium">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
-                        
-                        <ThinkingLog logs={logs} />
-
-                        <div className={PlannerStyles.progressBar}>
-                            <div className={PlannerStyles.progressFill} style={{ width: `${progress}%` }}></div>
-                        </div>
-                        <p className="text-[10px] font-black text-gray-400 mt-4 tracking-widest uppercase">{Math.round(progress)}% COMPLETE</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Step 4: Done */}
+            {/* Step 3: Done */}
             {step === 'done' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white p-10 rounded-[3rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
@@ -471,6 +480,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
                 </div>
             )}
+            
+            {isGenerating && <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />}
             
             <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf" onChange={handleImportDocument} />
             {toast && <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
