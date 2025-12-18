@@ -365,7 +365,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* Post Content Box (Updated: prioritized over visual spec) */}
+                                    {/* Post Content Box (Smart Caption) */}
                                     <div className="flex-1 flex flex-col gap-4">
                                         <div className="bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-inner relative group-hover:border-indigo-100 transition-colors">
                                             <div className="flex items-center gap-2 mb-3">
@@ -385,13 +385,23 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         </div>
 
-                                        {/* Collapsible/Compact Visual Info */}
-                                        <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <CameraIcon className="w-3.5 h-3.5 text-gray-400"/>
-                                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Photography Plan</span>
+                                        {/* AI Image Generation Details (Editable) */}
+                                        <div className="bg-indigo-50/30 p-4 rounded-2xl border border-indigo-100/50 group-hover:border-indigo-200 transition-colors">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <SparklesIcon className="w-3.5 h-3.5 text-indigo-500"/>
+                                                    <span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">AI Image Engine</span>
+                                                </div>
+                                                <div className="p-1 bg-white rounded-md shadow-sm border border-indigo-50">
+                                                    <CameraIcon className="w-2.5 h-2.5 text-indigo-400"/>
+                                                </div>
                                             </div>
-                                            <p className="text-[10px] text-gray-500 font-medium italic line-clamp-1">{post.visualBrief}</p>
+                                            <textarea 
+                                                value={post.imagePrompt} 
+                                                onChange={e => setPlan(prev => prev.map(p => p.id === post.id ? {...p, imagePrompt: e.target.value} : p))}
+                                                className="w-full text-[10px] text-indigo-900/80 leading-relaxed font-medium bg-transparent border-none p-0 focus:ring-0 resize-none min-h-[50px] custom-scrollbar" 
+                                                placeholder="Describe the visual style..."
+                                            />
                                         </div>
                                     </div>
                                     
