@@ -188,9 +188,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         <section id="home" className={HomeStyles.heroSection}>
             <div className={HomeStyles.heroContainer}>
                 <div className={HomeStyles.heroBackgroundGrid}></div>
-                {/* Fixed: Accessing heroBlob1 from HomeStyles to resolve 'Cannot find name' error */}
                 <div className={HomeStyles.heroBlob1}></div>
-                {/* Fixed: Accessing heroBlob2 from HomeStyles to resolve 'Cannot find name' error */}
                 <div className={HomeStyles.heroBlob2}></div>
                 
                 <div className={HomeStyles.heroContent}>
@@ -211,58 +209,62 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </div>
         </section>
 
-        {/* Redesigned Audience Section */}
+        {/* New Redesigned Audience Section */}
         <section className={HomeStyles.audienceSection}>
             <div className={HomeStyles.audienceContainer}>
                 <div className={HomeStyles.audienceHeader}>
-                    <h2 className={HomeStyles.sectionHeader}>One Powerful Engine. Tailored for Your Hustle.</h2>
-                    <p className={HomeStyles.sectionSubheader}>MagicPixa adapts to your unique professional workflow.</p>
+                    <h2 className={HomeStyles.sectionHeader}>One Engine. Infinite Roles.</h2>
+                    <p className={HomeStyles.sectionSubheader}>MagicPixa is the visual core for modern business workflows.</p>
                 </div>
                 
                 <div className={HomeStyles.audienceGrid}>
-                    {/* For E-commerce Brands */}
+                    {/* E-commerce Brands */}
                     <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceCardAccent}></div>
                         <div className={HomeStyles.audienceIconContainer}>
                             <PixaEcommerceIcon className="w-8 h-8 text-blue-500" />
                         </div>
-                        <span className={HomeStyles.audienceTitle}>For E-commerce Brands</span>
-                        <h3 className={HomeStyles.audienceHook}>"Marketplace Ready in Seconds."</h3>
+                        <h3 className={HomeStyles.audienceTitle}>E-commerce Brands</h3>
+                        <p className={HomeStyles.audienceHook}>"Marketplace Ready in Seconds."</p>
                         <p className={HomeStyles.audienceDescription}>
                             Transform raw product photos into high-converting Amazon, Shopify, or Instagram listings without expensive studio equipment.
                         </p>
                     </div>
 
-                    {/* For Creative Agencies */}
+                    {/* Creative Agencies */}
                     <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceCardAccent}></div>
                         <div className={HomeStyles.audienceIconContainer}>
                             <ShieldCheckIcon className="w-8 h-8 text-indigo-600" />
                         </div>
-                        <span className={HomeStyles.audienceTitle}>For Creative Agencies</span>
-                        <h3 className={HomeStyles.audienceHook}>"Scale Your Output, Not Your Effort."</h3>
+                        <h3 className={HomeStyles.audienceTitle}>Creative Agencies</h3>
+                        <p className={HomeStyles.audienceHook}>"Scale Your Output, Not Your Effort."</p>
                         <p className={HomeStyles.audienceDescription}>
                             Manage multiple client Brand Kits, generate ad concepts in batches, and deliver professional results at 10x speed.
                         </p>
                     </div>
 
-                    {/* For Startups & Founders */}
+                    {/* Startups & Founders */}
                     <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceCardAccent}></div>
                         <div className={HomeStyles.audienceIconContainer}>
                             <LightbulbIcon className="w-8 h-8 text-yellow-500" />
                         </div>
-                        <span className={HomeStyles.audienceTitle}>For Startups & Founders</span>
-                        <h3 className={HomeStyles.audienceHook}>"Premium Branding on a Bootstrap."</h3>
+                        <h3 className={HomeStyles.audienceTitle}>Startups & Founders</h3>
+                        <p className={HomeStyles.audienceHook}>"Premium Branding on a Bootstrap."</p>
                         <p className={HomeStyles.audienceDescription}>
                             Create high-end marketing visuals, professional headshots, and social content without a dedicated design team.
                         </p>
                     </div>
 
-                    {/* For Creative Freelancers */}
+                    {/* Creative Freelancers */}
                     <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceCardAccent}></div>
                         <div className={HomeStyles.audienceIconContainer}>
                             <PaletteIcon className="w-8 h-8 text-purple-600" />
                         </div>
-                        <span className={HomeStyles.audienceTitle}>For Creative Freelancers</span>
-                        <h3 className={HomeStyles.audienceHook}>"The 10x Content Machine."</h3>
+                        <h3 className={HomeStyles.audienceTitle}>Creative Freelancers</h3>
+                        <p className={HomeStyles.audienceHook}>"The 10x Content Machine."</p>
                         <p className={HomeStyles.audienceDescription}>
                             Deliver studio-grade product photos and social content for your clients at lightning speed, without the overhead.
                         </p>
