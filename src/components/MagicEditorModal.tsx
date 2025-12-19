@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon, PencilIcon } from './icons';
@@ -330,8 +329,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 {/* Header */}
                 <div className="px-8 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0">
                     <div>
-                        <h2 className="text-2xl font-bold text-[#1A1A1E] flex items-center gap-2">
-                            <div className="p-2 bg-[#F9D230] rounded-full text-[#1A1A1E]"><MagicWandIcon className="w-5 h-5"/></div>
+                        <h2 className="text-2xl font-bold text-[#1A1A1E] flex items-center gap-3">
+                            <MagicWandIcon className="w-8 h-8"/>
                             Magic Editor
                         </h2>
                         <p className="text-xs text-gray-500 mt-1 ml-11">Highlight unwanted objects to remove them instantly.</p>
@@ -465,24 +464,25 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         </div>
                     </div>
 
-                    <div className="flex gap-3 w-full sm:w-auto">
-                        <button 
-                            onClick={handleDone}
-                            disabled={isProcessing}
-                            className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-2 disabled:opacity-50"
-                        >
-                            <CheckIcon className="w-5 h-5"/> Done
-                        </button>
+                    <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cost: 2 Credits</div>
+                        <div className="flex gap-3 w-full">
+                            <button 
+                                onClick={handleDone}
+                                disabled={isProcessing}
+                                className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <CheckIcon className="w-5 h-5"/> Done
+                            </button>
 
-                        <button 
-                            onClick={handleRemove} 
-                            disabled={isProcessing}
-                            className="flex-1 sm:flex-none bg-[#1A1A1E] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:transform-none disabled:cursor-wait"
-                        >
-                            <MagicWandIcon className="w-5 h-5 text-[#F9D230]"/>
-                            <span>Remove Selected</span>
-                            <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded text-white font-normal ml-1">1 Credit</span>
-                        </button>
+                            <button 
+                                onClick={handleRemove} 
+                                disabled={isProcessing}
+                                className="flex-1 sm:flex-none bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:transform-none disabled:cursor-wait"
+                            >
+                                <span>Remove Selected</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
