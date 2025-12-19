@@ -28,6 +28,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [isDrawing, setIsDrawing] = useState(false);
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
     const [maskHistory, setMaskHistory] = useState<ImageData[]>([]);
     const [maskRedoStack, setMaskRedoStack] = useState<ImageData[]>([]);
@@ -40,8 +41,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
     const [loadingText, setLoadingText] = useState("Initializing...");
 
-    const MIN_ZOOM = 0.25;
-    const MAX_ZOOM = 5.0;
+    const MIN_ZOOM = 0.1;
+    const MAX_ZOOM = 10.0;
 
     // Loading Animation Cycle
     useEffect(() => {
@@ -67,30 +68,17 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const resetView = useCallback((width: number, height: number) => {
         if (!width || !height) return;
         
-        const containerWidth = containerRef.current?.clientWidth || window.innerWidth * 0.9;
-        const containerHeight = containerRef.current?.clientHeight || window.innerHeight * 0.6;
+        const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+        const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
 
         const fitZoom = Math.min(
-            (containerWidth * 0.85) / width,
-            (containerHeight * 0.85) / height,
+            (containerWidth * 0.8) / width,
+            (containerHeight * 0.7) / height,
             1
         );
         
-        setZoomLevel(Math.max(fitZoom, MIN_ZOOM));
-        
-        if (containerRef.current) {
-            setTimeout(() => {
-                if (containerRef.current) {
-                    const scrollX = (width * fitZoom - containerRef.current.clientWidth) / 2;
-                    const scrollY = (height * fitZoom - containerRef.current.clientHeight) / 2;
-                    containerRef.current.scrollTo({
-                        left: Math.max(0, scrollX),
-                        top: Math.max(0, scrollY),
-                        behavior: 'smooth'
-                    });
-                }
-            }, 50);
-        }
+        setZoomLevel(Math.max(fitZoom, 0.1));
+        setPanOffset({ x: 0, y: 0 });
     }, []);
 
     useEffect(() => {
@@ -120,7 +108,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     setMaskRedoStack([]);
                 }
                 
-                // Only fit view if it's the very first load or manually triggered
+                // On initial load of a new image (not from undo/redo), fit the view
                 if (imageHistory.length === 0 && imageRedoStack.length === 0) {
                     resetView(img.width, img.height);
                 }
@@ -166,7 +154,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
             if (isProcessing) return;
-            const zoomSensitivity = 0.0012; 
+            
+            const zoomSensitivity = 0.002; 
             const delta = -e.deltaY * zoomSensitivity;
             setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
         };
@@ -181,7 +170,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         if (maskCanvas && ctx) {
             const currentData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
             setMaskHistory(prev => [...prev, currentData]);
-            setMaskRedoStack([]); // Clear redo on new action
+            setMaskRedoStack([]); 
         }
     };
 
@@ -241,7 +230,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         if (isSpacePanning || e.button === 1) {
             e.preventDefault();
             setIsPanning(true);
-            setPanStart({ x: e.clientX, y: e.clientY });
+            setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
         } else if (e.button === 0) {
             setIsDrawing(true);
             draw(e);
@@ -250,12 +239,10 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (isProcessing) return;
-        if (isPanning && containerRef.current) {
-            const dx = e.clientX - panStart.x;
-            const dy = e.clientY - panStart.y;
-            containerRef.current.scrollLeft -= dx;
-            containerRef.current.scrollTop -= dy;
-            setPanStart({ x: e.clientX, y: e.clientY });
+        if (isPanning) {
+            const newX = e.clientX - panStart.x;
+            const newY = e.clientY - panStart.y;
+            setPanOffset({ x: newX, y: newY });
         } else if (isDrawing) {
             draw(e);
         }
@@ -277,6 +264,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         
         if (maskCanvas && ctx) {
             const rect = maskCanvas.getBoundingClientRect();
+            // rect.width/height is the visual size on screen (affected by zoom)
+            // maskCanvas.width/height is the actual pixel size
             const scaleX = maskCanvas.width / rect.width;
             const scaleY = maskCanvas.height / rect.height;
             const x = (e.clientX - rect.left) * scaleX;
@@ -286,7 +275,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             ctx.lineCap = 'round';
             ctx.globalCompositeOperation = 'source-over';
             ctx.beginPath();
-            ctx.arc(x, y, (brushSize / 2) * scaleX, 0, Math.PI * 2); 
+            ctx.arc(x, y, (brushSize / 2), 0, Math.PI * 2); 
             ctx.fillStyle = 'rgba(239, 68, 68, 0.6)'; 
             ctx.fill();
         }
@@ -295,7 +284,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const handleRemove = async () => {
         if (!imageCanvasRef.current || !maskCanvasRef.current) return;
         
-        // Fit to screen before showing the loading overlay
+        // Fit to screen before processing
         resetView(imgDims.w, imgDims.h);
         setIsProcessing(true);
         
@@ -393,19 +382,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             {/* Canvas Workspace */}
             <div 
                 ref={containerRef}
-                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-auto custom-scrollbar ${isProcessing ? 'cursor-wait' : isSpacePanning || isPanning ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
+                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-hidden ${isProcessing ? 'cursor-wait' : isSpacePanning || isPanning ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
-                style={{ overscrollBehavior: 'none' }}
             >
                 <div 
                     className="relative shadow-2xl transition-transform duration-75 ease-out origin-center"
                     style={{ 
                         width: imgDims.w, 
                         height: imgDims.h,
-                        transform: `scale(${zoomLevel})` 
+                        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})` 
                     }}
                 >
                     <canvas ref={imageCanvasRef} className="absolute inset-0 z-10" />
@@ -458,9 +446,10 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     <div className="hidden xl:block w-px h-4 bg-gray-200 mx-2"></div>
 
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomOutIcon className="w-4 h-4"/></button>
+                        <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom Out"><ZoomOutIcon className="w-4 h-4"/></button>
                         <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                        <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomInIcon className="w-4 h-4"/></button>
+                        <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom In"><ZoomInIcon className="w-4 h-4"/></button>
+                        <button onClick={() => resetView(imgDims.w, imgDims.h)} className="text-gray-400 hover:text-indigo-600 transition-colors ml-1" title="Fit to Screen"><EyeIcon className="w-4 h-4"/></button>
                     </div>
                     
                     <div className="w-px h-4 bg-gray-200 mx-2 hidden sm:block"></div>
