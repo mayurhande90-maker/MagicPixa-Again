@@ -13,23 +13,6 @@ export const HomeStyles = {
   heroTitle: `text-4xl md:text-6xl font-bold ${Theme.colors.textPrimary} mb-4 leading-tight`,
   heroSubtitle: `text-lg md:text-xl ${Theme.colors.textSecondary} max-w-2xl mx-auto mb-10`,
   heroButton: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.shapes.button} py-3 px-8 hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/30 ${Theme.colors.primaryHover}`,
-  
-  // Audience Section (High-End Redesign)
-  audienceSection: "py-32 px-4 bg-white",
-  audienceContainer: "max-w-7xl mx-auto",
-  audienceHeader: "text-center mb-24 max-w-4xl mx-auto",
-  audienceHeading: "text-5xl md:text-6xl font-black text-gray-900 tracking-tighter mb-6",
-  audienceSubheading: "text-lg text-gray-500 font-medium tracking-tight",
-  
-  audienceGrid: "grid grid-cols-1 md:grid-cols-2 gap-8",
-  audienceCard: "group relative bg-white p-12 rounded-[3rem] border border-gray-100 transition-all duration-700 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] flex flex-col items-start text-left overflow-hidden",
-  audienceIconBox: "w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-10 group-hover:scale-110 group-hover:bg-indigo-50 transition-all duration-500 border border-gray-100/50",
-  audienceTitle: "text-4xl font-black text-gray-900 mb-4 tracking-tighter group-hover:translate-x-2 transition-transform duration-500",
-  audienceHook: "text-xs font-black text-indigo-600 uppercase tracking-[0.3em] mb-6 opacity-70",
-  audienceDescription: "text-base text-gray-500 font-medium leading-relaxed max-w-md",
-  
-  // Visual Decor for Cards
-  cardGlow: "absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-700",
 
   // Features Section
   featuresSection: `${Theme.layout.sectionPadding} ${Theme.colors.bgSurface}`,
