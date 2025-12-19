@@ -177,7 +177,7 @@ const MultiGalleryViewer: React.FC<{
                                 <button 
                                     onClick={handleCopy}
                                     className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-all flex items-center gap-2 ${
-                                        isCopied ? 'bg-green-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                        isCopied ? 'bg-green-50 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                     }`}
                                 >
                                     {isCopied ? <><CheckIcon className="w-3 h-3"/> Copied</> : <><CopyIcon className="w-3 h-3"/> Copy All</>}
@@ -620,61 +620,85 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {plan.map((p, idx) => (
-                            <div key={p.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all">
-                                <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden cursor-zoom-in" onClick={() => setViewingIndex(idx)}>
-                                    {generatedImages[p.id] ? (
-                                        <>
-                                            <img src={generatedImages[p.id]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                            
-                                            {/* Top Right Quick Download Button */}
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    downloadImage(generatedImages[p.id], `PixaPlanner_${p.date.replace(/\//g, '-')}.jpg`);
-                                                }}
-                                                className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-gray-800 shadow-lg border border-white/20 hover:bg-white hover:scale-110 transition-all z-20 opacity-0 group-hover:opacity-100"
-                                                title="Quick Download"
-                                            >
-                                                <DownloadIcon className="w-4 h-4"/>
-                                            </button>
+                        {plan.map((p, idx) => {
+                            const isCopied = copiedIds.has(p.id);
+                            return (
+                                <div key={p.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all flex flex-col">
+                                    <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden cursor-zoom-in" onClick={() => setViewingIndex(idx)}>
+                                        {generatedImages[p.id] ? (
+                                            <>
+                                                <img src={generatedImages[p.id]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                
+                                                {/* Top Right Quick Download Button */}
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        downloadImage(generatedImages[p.id], `PixaPlanner_${p.date.replace(/\//g, '-')}.jpg`);
+                                                    }}
+                                                    className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-gray-800 shadow-lg border border-white/20 hover:bg-white hover:scale-110 transition-all z-20 opacity-0 group-hover:opacity-100"
+                                                    title="Quick Download"
+                                                >
+                                                    <DownloadIcon className="w-4 h-4"/>
+                                                </button>
 
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
-                                                    <SparklesIcon className="w-6 h-6"/>
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                    <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
+                                                        <SparklesIcon className="w-6 h-6"/>
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
-                                                {p.dayLabel}
+                                                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
+                                                    {p.dayLabel}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
+                                                <XIcon className="w-10 h-10 mb-2 opacity-50"/>
+                                                <span className="text-xs font-bold uppercase tracking-widest">Failed</span>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
-                                            <XIcon className="w-10 h-10 mb-2 opacity-50"/>
-                                            <span className="text-xs font-bold uppercase tracking-widest">Failed</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-5 border-t border-gray-50">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
-                                                p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
-                                            }`}>{p.postType}</span>
-                                            <span className={`text-[9px] font-bold text-gray-400 uppercase`}>{p.archetype}</span>
-                                        </div>
-                                        <span className="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">{p.date}</span>
+                                        )}
                                     </div>
-                                    <h4 className="font-bold text-gray-900 text-sm truncate mb-3">{p.topic}</h4>
-                                    
-                                    {/* Card Preview Text */}
-                                    <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100 group-hover:bg-indigo-50/30 transition-colors">
-                                        <p className="text-[11px] text-gray-500 italic line-clamp-2 leading-relaxed">"{p.caption}"</p>
+                                    <div className="p-5 flex-1 flex flex-col gap-4">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
+                                                        p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
+                                                    }`}>{p.postType}</span>
+                                                    <span className={`text-[9px] font-bold text-gray-400 uppercase`}>{p.archetype}</span>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">{p.date}</span>
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 text-sm truncate">{p.topic}</h4>
+                                        </div>
+                                        
+                                        {/* NEW: Finalized Caption Section */}
+                                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm relative group-hover:border-indigo-100 transition-colors">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <CaptionIcon className="w-3.5 h-3.5 text-indigo-500"/>
+                                                    <h4 className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">Campaign Copy</h4>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleCopyText(p.id, `${p.caption}\n\n${p.hashtags}`)}
+                                                    className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase transition-all duration-300 ${
+                                                        isCopied 
+                                                        ? 'bg-green-100 text-green-600 border border-green-200' 
+                                                        : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
+                                                    }`}
+                                                >
+                                                    {isCopied ? 'Copied' : 'Copy'}
+                                                </button>
+                                            </div>
+                                            <p className="text-[11px] text-gray-600 leading-relaxed font-medium line-clamp-3 mb-2">{p.caption}</p>
+                                            <div className="pt-2 border-t border-gray-50 text-[9px] font-mono text-indigo-400 line-clamp-1">
+                                                {p.hashtags}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
