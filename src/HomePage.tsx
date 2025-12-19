@@ -209,20 +209,20 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </div>
         </section>
 
-        {/* New Redesigned Audience Section */}
+        {/* REDESIGNED AUDIENCE SECTION */}
         <section className={HomeStyles.audienceSection}>
             <div className={HomeStyles.audienceContainer}>
                 <div className={HomeStyles.audienceHeader}>
-                    <h2 className={HomeStyles.sectionHeader}>One Engine. Infinite Roles.</h2>
-                    <p className={HomeStyles.sectionSubheader}>MagicPixa is the visual core for modern business workflows.</p>
+                    <h2 className={HomeStyles.audienceHeading}>One Engine. Optimized for Your Success.</h2>
+                    <p className={HomeStyles.audienceSubheading}>MagicPixa provides high-fidelity visual solutions across every major professional category.</p>
                 </div>
                 
                 <div className={HomeStyles.audienceGrid}>
                     {/* E-commerce Brands */}
                     <div className={HomeStyles.audienceCard}>
-                        <div className={HomeStyles.audienceCardAccent}></div>
-                        <div className={HomeStyles.audienceIconContainer}>
-                            <PixaEcommerceIcon className="w-8 h-8 text-blue-500" />
+                        <div className={HomeStyles.cardGlow}></div>
+                        <div className={HomeStyles.audienceIconBox}>
+                            <PixaEcommerceIcon className="w-8 h-8 text-indigo-600" />
                         </div>
                         <h3 className={HomeStyles.audienceTitle}>E-commerce Brands</h3>
                         <p className={HomeStyles.audienceHook}>"Marketplace Ready in Seconds."</p>
@@ -233,8 +233,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
                     {/* Creative Agencies */}
                     <div className={HomeStyles.audienceCard}>
-                        <div className={HomeStyles.audienceCardAccent}></div>
-                        <div className={HomeStyles.audienceIconContainer}>
+                        <div className={HomeStyles.cardGlow}></div>
+                        <div className={HomeStyles.audienceIconBox}>
                             <ShieldCheckIcon className="w-8 h-8 text-indigo-600" />
                         </div>
                         <h3 className={HomeStyles.audienceTitle}>Creative Agencies</h3>
@@ -246,9 +246,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
                     {/* Startups & Founders */}
                     <div className={HomeStyles.audienceCard}>
-                        <div className={HomeStyles.audienceCardAccent}></div>
-                        <div className={HomeStyles.audienceIconContainer}>
-                            <LightbulbIcon className="w-8 h-8 text-yellow-500" />
+                        <div className={HomeStyles.cardGlow}></div>
+                        <div className={HomeStyles.audienceIconBox}>
+                            <LightbulbIcon className="w-8 h-8 text-indigo-600" />
                         </div>
                         <h3 className={HomeStyles.audienceTitle}>Startups & Founders</h3>
                         <p className={HomeStyles.audienceHook}>"Premium Branding on a Bootstrap."</p>
@@ -259,9 +259,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
                     {/* Creative Freelancers */}
                     <div className={HomeStyles.audienceCard}>
-                        <div className={HomeStyles.audienceCardAccent}></div>
-                        <div className={HomeStyles.audienceIconContainer}>
-                            <PaletteIcon className="w-8 h-8 text-purple-600" />
+                        <div className={HomeStyles.cardGlow}></div>
+                        <div className={HomeStyles.audienceIconBox}>
+                            <PaletteIcon className="w-8 h-8 text-indigo-600" />
                         </div>
                         <h3 className={HomeStyles.audienceTitle}>Creative Freelancers</h3>
                         <p className={HomeStyles.audienceHook}>"The 10x Content Machine."</p>
