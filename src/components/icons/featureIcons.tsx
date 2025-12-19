@@ -6,7 +6,7 @@ import { IconProps, BaseIcon } from './types';
 export const PhotoStudioIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g fill="none">
-            <path fill="url(#fluentColorCamera240)" d="M2 8.25A3.25 3.25 0 0 1 5.25 5H7l1.332-1.998A2.25 2.25 0 0 1 10.204 2h3.592a2.25 2.25 0 0 1 1.872 1.002L17 5h1.75A3.25 3.25 0 0 1 22 8.25v9.5A3.25 3.25 0 0 1 18.75 21H5.25A3.25 3.25 0 0 1 2 17.75z"/>
+            <path fill="url(#fluentColorCamera240)" d="M2 8.25A3.25 3.25 0 0 1 5.25 5H7l1.332-1.998A2.25 2.25 0 0 1 10.204 2h3.592a2.25 2.25 0 0 1 1.872 1.002L17 5h1.75A3.25 3.25 0 0 1 18.75 21H5.25A3.25 3.25 0 0 1 2 17.75z"/>
             <path fill="url(#fluentColorCamera241)" fillOpacity=".5" d="M2 8.25A3.25 3.25 0 0 1 5.25 5H7l1.332-1.998A2.25 2.25 0 0 1 10.204 2h3.592a2.25 2.25 0 0 1 1.872 1.002L17 5h1.75A3.25 3.25 0 0 1 22 8.25v9.5A3.25 3.25 0 0 1 18.75 21H5.25A3.25 3.25 0 0 1 2 17.75z"/>
             <path fill="url(#fluentColorCamera243)" fillRule="evenodd" d="M12 17a4.5 4.5 0 1 0 0-9a4.5 4.5 0 0 0 0 9" clipRule="evenodd"/>
             <path fill="url(#fluentColorCamera242)" d="M15 12.5a3 3 0 1 1-6 0a3 3 0 0 1 6 0"/>
@@ -337,7 +337,7 @@ export const PixaSupportIcon: React.FC<IconProps> = ({ className }) => (
 // Custom Pixa Billing Icon
 export const PixaBillingIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">
-        <path fill="#FFAC33" d="M4 5a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4-4V9s0-4-4-4H4z"/>
+        <path fill="#FFAC33" d="M4 5a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4 4h-4z"/>
         <path fill="#292F33" d="M0 10h36v5H0z"/>
         <path fill="#F4F7F9" d="M4 19h28v6H4z"/>
         <path fill="#8899A6" d="M19 24c-1.703 0-2.341-1.21-2.469-1.801c-.547.041-1.08.303-1.805.764C13.961 23.449 13.094 24 12 24c-1.197 0-1.924-.675-2-2c-.003-.056.038-.188.021-.188c-1.858 0-3.202 1.761-3.215 1.779a.997.997 0 0 1-1.397.215a1 1 0 0 1-.215-1.398C5.271 22.303 7.11 20 10 20c1.937 0 2.048 1.375 2.078 1.888l.007.109c.486-.034.991-.354 1.57-.723c.961-.61 2.153-1.371 3.75-.962c.871.223 1.007 1.031 1.059 1.336c.013.076.032.19.049.226c.007 0 .146.091.577.13c.82.075 1.721-.279 2.675-.653c.988-.388 2.01-.788 3.111-.788c3.389 0 4.767 1.635 4.913 1.821a1 1 0 1 1-1.575 1.232c-.024-.027-.93-1.054-3.337-1.054c-.723 0-1.528.315-2.381.649c-1.009.396-2.434.789-3.496.789z"/>
@@ -376,6 +376,21 @@ export const CampaignStudioIcon: React.FC<IconProps> = ({ className }) => (
                     <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_378174_9782"/>
                     <feBlend in="SourceGraphic" in2="effect1_dropShadow_378174_9782" result="shape"/>
                 </filter>
+            </defs>
+        </g>
+    </svg>
+);
+
+// Strategy Algorithm Star Icon
+export const StrategyStarIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} width="200" height="200" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none">
+            <path fill="url(#fluentColorStrategyStar)" d="M21.803 6.086c.899-1.821 3.495-1.821 4.394 0l4.852 9.832l10.85 1.576c2.01.293 2.813 2.762 1.358 4.18l-7.85 7.653l1.853 10.806c.343 2.001-1.758 3.528-3.555 2.583L24 37.614l-9.705 5.102c-1.797.945-3.898-.582-3.555-2.583l1.854-10.806l-7.851-7.654c-1.455-1.417-.652-3.886 1.357-4.178l10.85-1.577z"/>
+            <defs>
+                <linearGradient id="fluentColorStrategyStar" x1="43.995" x2="2.879" y1="43.856" y2="5.054" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FF6F47"/>
+                    <stop offset="1" stopColor="#FFCD0F"/>
+                </linearGradient>
             </defs>
         </g>
     </svg>
