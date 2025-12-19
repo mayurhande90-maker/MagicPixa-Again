@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaInteriorIcon as PixaInteriorIcon2, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 
@@ -206,6 +205,61 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         Start Creating for Free
                     </button>
                     <p className="text-sm text-gray-500 mt-4">Get 10 free credits on sign up!</p>
+                </div>
+            </div>
+        </section>
+
+        {/* Audience Section - Added as requested */}
+        <section className={`${HomeStyles.audienceSection} hidden lg:block`}>
+            <div className={HomeStyles.audienceContainer}>
+                <div className={HomeStyles.audienceHeader}>
+                    <h2 className={HomeStyles.sectionHeader}>One Powerful Engine. Tailored for Your Hustle.</h2>
+                    <p className={HomeStyles.sectionSubheader}>MagicPixa adapts to your professional workflow.</p>
+                </div>
+                <div className={HomeStyles.audienceGrid}>
+                    {/* For E-commerce Brands */}
+                    <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceIconContainer}>
+                            <PixaEcommerceIcon className="w-8 h-8" />
+                        </div>
+                        <h3 className={HomeStyles.audienceHook}>"Marketplace Ready in Seconds."</h3>
+                        <p className={HomeStyles.audienceDescription}>
+                            Transform raw product photos into high-converting Amazon, Shopify, or Instagram listings without expensive studio equipment.
+                        </p>
+                    </div>
+
+                    {/* For Creative Agencies */}
+                    <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceIconContainer}>
+                            <ShieldCheckIcon className="w-8 h-8 text-indigo-600" />
+                        </div>
+                        <h3 className={HomeStyles.audienceHook}>"Scale Your Output, Not Your Effort."</h3>
+                        <p className={HomeStyles.audienceDescription}>
+                            Manage multiple client Brand Kits, generate ad concepts in batches, and deliver professional results at 10x speed.
+                        </p>
+                    </div>
+
+                    {/* For Startups & Founders */}
+                    <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceIconContainer}>
+                            <LightbulbIcon className="w-8 h-8 text-yellow-500" />
+                        </div>
+                        <h3 className={HomeStyles.audienceHook}>"Premium Branding on a Bootstrap."</h3>
+                        <p className={HomeStyles.audienceDescription}>
+                            Create high-end marketing visuals, professional headshots, and social content without a dedicated design team.
+                        </p>
+                    </div>
+
+                    {/* For Creative Freelancers */}
+                    <div className={HomeStyles.audienceCard}>
+                        <div className={HomeStyles.audienceIconContainer}>
+                            <PaletteIcon className="w-8 h-8 text-purple-600" />
+                        </div>
+                        <h3 className={HomeStyles.audienceHook}>"The 10x Content Machine."</h3>
+                        <p className={HomeStyles.audienceDescription}>
+                            Deliver studio-grade product photos and social content for your clients at lightning speed, without the overhead.
+                        </p>
+                    </div>
                 </div>
             </div>
         </section>
