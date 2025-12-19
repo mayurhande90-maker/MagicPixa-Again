@@ -1,5 +1,4 @@
-
-import { Modality } from "@google/genai";
+import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -29,6 +28,60 @@ const optimizeImageForEditing = async (base64: string, mimeType: string): Promis
     } catch (e) {
         console.warn("Editing optimization failed, using original", e);
         return { data: base64, mimeType };
+    }
+};
+
+/**
+ * SMART SELECT: Detects the bounding box of an object at a specific point.
+ * Coordinates (x, y) are normalized 0-1000 for Gemini.
+ */
+export const detectObjectAtPoint = async (
+    base64: string,
+    mimeType: string,
+    x: number,
+    y: number
+): Promise<{ ymin: number; xmin: number; ymax: number; xmax: number } | null> => {
+    const ai = getAiClient();
+    try {
+        // Use a smaller image for detection to save latency (512px)
+        const { data, mimeType: optMime } = await optimizeImage(base64, mimeType);
+
+        const prompt = `Identify the distinct object at the normalized coordinates [${y}, ${x}] in this image.
+        Return the [ymin, xmin, ymax, xmax] bounding box for the entire object.
+        Return ONLY the coordinates as a JSON array of 4 integers.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash', // Fast reasoning model
+            contents: {
+                parts: [
+                    { inlineData: { data, mimeType: optMime } },
+                    { text: prompt }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.NUMBER }
+                }
+            }
+        });
+
+        const text = response.text || "[]";
+        const coords = JSON.parse(text);
+        
+        if (Array.isArray(coords) && coords.length === 4) {
+            return {
+                ymin: coords[0],
+                xmin: coords[1],
+                ymax: coords[2],
+                xmax: coords[3]
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("Object detection failed", e);
+        return null;
     }
 };
 
