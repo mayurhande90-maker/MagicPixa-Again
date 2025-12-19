@@ -36,6 +36,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [imageRedoStack, setImageRedoStack] = useState<string[]>([]);
     
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showDeductionAnim, setShowDeductionAnim] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
@@ -264,8 +265,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         
         if (maskCanvas && ctx) {
             const rect = maskCanvas.getBoundingClientRect();
-            // rect.width/height is the visual size on screen (affected by zoom)
-            // maskCanvas.width/height is the actual pixel size
             const scaleX = maskCanvas.width / rect.width;
             const scaleY = maskCanvas.height / rect.height;
             const x = (e.clientX - rect.left) * scaleX;
@@ -283,6 +282,16 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     const handleRemove = async () => {
         if (!imageCanvasRef.current || !maskCanvasRef.current) return;
+        
+        // PAY-PER-GENERATION: Deduct credits on trigger
+        setShowDeductionAnim(true);
+        try {
+            await deductCredit();
+        } catch (creditError) {
+            setShowDeductionAnim(false);
+            alert("Insufficient credits to perform this removal.");
+            return;
+        }
         
         // Fit to screen before processing
         resetView(imgDims.w, imgDims.h);
@@ -317,8 +326,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const resultBase64 = await removeElementFromImage(originalBase64, 'image/png', maskBase64);
             const resultUrl = `data:image/png;base64,${resultBase64}`;
             
-            await deductCredit();
-            
             setImageHistory(prev => [...prev, currentImageSrc]);
             setImageRedoStack([]);
             setCurrentImageSrc(resultUrl);
@@ -327,6 +334,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             alert("Failed to remove element. Please try again.");
         } finally {
             setIsProcessing(false);
+            // Hide deduction after 2 seconds
+            setTimeout(() => setShowDeductionAnim(false), 2000);
         }
     };
 
@@ -408,7 +417,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                         </div>
                         <p className="text-sm font-bold text-gray-800 tracking-[0.2em] uppercase animate-pulse">{loadingText}</p>
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 )}
             </div>
@@ -460,9 +468,14 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 <div className="flex items-center gap-6 w-full lg:w-auto justify-end">
                     <div className="flex flex-col items-center mr-4">
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">Usage Fee</span>
-                        <div className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-inner">
+                        <div className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-inner relative overflow-visible">
                             <CreditCoinIcon className="w-3.5 h-3.5 text-yellow-500" />
                             <span className="text-xs font-black text-gray-800">2 Credits</span>
+                            {showDeductionAnim && (
+                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-red-500 font-black text-sm animate-fade-up-out pointer-events-none">
+                                    -2
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -484,6 +497,16 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
             </div>
+            <style>{`
+                @keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }
+                @keyframes fade-up-out { 
+                    0% { opacity: 0; transform: translate(-50%, 0); }
+                    20% { opacity: 1; transform: translate(-50%, -10px); }
+                    80% { opacity: 1; transform: translate(-50%, -15px); }
+                    100% { opacity: 0; transform: translate(-50%, -25px); }
+                }
+                .animate-fade-up-out { animation: fade-up-out 1.5s ease-out forwards; }
+            `}</style>
         </div>,
         document.body
     );
