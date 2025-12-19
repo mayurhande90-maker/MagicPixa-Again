@@ -1,4 +1,3 @@
-
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -34,6 +33,9 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
     try {
         const parts: any[] = [];
         const isPodcast = inputs.category === 'Podcast';
+        
+        // Detect if any human subjects are provided
+        const hasHumanAssets = !!(inputs.subjectImage || inputs.hostImage || inputs.guestImage);
 
         if (inputs.referenceImage) {
             const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
@@ -77,6 +79,22 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         2. **Lighting Physics**: Use cinematic lighting (Rim Lighting, Volumetric Fog, High Contrast) to separate the subject from the background.
         3. **Compositing**: The subject must look grounded in the scene, not pasted on. Matching color temperature is critical.
         `;
+
+        // INJECT STRICT NO-MODEL RULE IF NO IMAGES PROVIDED
+        if (!hasHumanAssets) {
+            prompt += `
+            *** ABSOLUTE CONSTRAINT: NO HUMAN MODELS ***
+            - Since the user did NOT upload any subject photos, DO NOT generate any people, faces, human silhouettes, or imaginary models.
+            - The thumbnail should focus entirely on the ENVIRONMENT, OBJECTS, and TYPOGRAPHY.
+            - Create a powerful conceptual scene that represents the context "${inputs.title}" without using human figures.
+            `;
+        } else {
+            prompt += `
+            *** IDENTITY LOCK ***
+            - You MUST use the faces/bodies from the uploaded photos. DO NOT regenerate new people.
+            - Keep the identity 100% exact.
+            `;
+        }
 
         if (inputs.format === 'portrait') {
             prompt += `
@@ -136,10 +154,6 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
         }
 
         prompt += `
-        *** IDENTITY LOCK ***
-        - You MUST use the faces/bodies from the uploaded photos. DO NOT regenerate new people.
-        - Keep the identity 100% exact.
-        
         OUTPUT: A single high-resolution ${inputs.format === 'portrait' ? 'vertical (9:16)' : 'horizontal (16:9)'} thumbnail image.`;
 
         parts.push({ text: prompt });
