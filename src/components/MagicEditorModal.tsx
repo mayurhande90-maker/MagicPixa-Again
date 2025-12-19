@@ -17,6 +17,27 @@ const RedoIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+// New Fit Screen Icon (Expand arrows)
+const FitScreenIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+    </svg>
+);
+
+// Mouse Icon for "Scroll" instruction
+const MouseIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a6 6 0 01-6-6V9a6 6 0 0112 0v6a6 6 0 01-6 6zM12 7V9" />
+    </svg>
+);
+
+// Pan Icon for "Space to Pan" instruction
+const HandIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l.075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 013.15 0V15M6.9 7.575V12a1.5 1.5 0 003 0v-4.171a.625.625 0 011.25 0V16.5h.375m-5.75 4.5h10.5a2.25 2.25 0 002.25-2.25V16.5a9 9 0 00-9-9" />
+    </svg>
+);
+
 export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, onClose, onSave, deductCredit }) => {
     const imageCanvasRef = useRef<HTMLCanvasElement>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -216,6 +237,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             if (maskCanvas && ctx) {
                 ctx.putImageData(stateToRestore, 0, 0);
             }
+            // FIX: Changed 'imageHistoryRedoStack' to 'imageRedoStack' to resolve TypeScript error.
         } else if (imageRedoStack.length > 0) {
             const newRedoStack = [...imageRedoStack];
             const nextImage = newRedoStack.pop()!;
@@ -283,7 +305,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const handleRemove = async () => {
         if (!imageCanvasRef.current || !maskCanvasRef.current) return;
         
-        // PAY-PER-GENERATION: Deduct credits on trigger
         setShowDeductionAnim(true);
         try {
             await deductCredit();
@@ -293,7 +314,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             return;
         }
         
-        // Fit to screen before processing
         resetView(imgDims.w, imgDims.h);
         setIsProcessing(true);
         
@@ -334,7 +354,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             alert("Failed to remove element. Please try again.");
         } finally {
             setIsProcessing(false);
-            // Hide deduction after 2 seconds
             setTimeout(() => setShowDeductionAnim(false), 2000);
         }
     };
@@ -442,26 +461,48 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
 
-                {/* Center: Instructions & Zoom Status (Grouped together) */}
-                <div className="flex items-center gap-4 bg-gray-50 px-6 py-2.5 rounded-full border border-gray-100 shadow-inner">
-                    {/* Integrated Instructions */}
-                    <div className="hidden xl:flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
-                        <span className="flex items-center gap-1.5 text-indigo-500"><PencilIcon className="w-3.5 h-3.5" /> Paint</span>
-                        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                        <span className="text-gray-700">Space to Pan</span>
+                {/* Center: Instructions & Zoom Status (Combined) */}
+                <div className="flex items-center gap-6 bg-gray-50 px-8 py-2.5 rounded-full border border-gray-100 shadow-inner overflow-x-auto no-scrollbar">
+                    
+                    {/* Unified Instruction Group */}
+                    <div className="flex items-center gap-5 text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-indigo-500">
+                            <PencilIcon className="w-3.5 h-3.5" /> 
+                            <span>Paint</span>
+                        </div>
+                        <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
+                        <div className="flex items-center gap-2 text-gray-700">
+                            <HandIcon className="w-3.5 h-3.5" />
+                            <span>Space to Pan</span>
+                        </div>
+                        <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <MouseIcon className="w-3.5 h-3.5" />
+                            <span>Scroll to Zoom</span>
+                        </div>
                     </div>
 
-                    <div className="hidden xl:block w-px h-4 bg-gray-200 mx-2"></div>
+                    {/* Divider */}
+                    <div className="w-px h-4 bg-gray-200 shrink-0"></div>
 
-                    <div className="flex items-center gap-4">
+                    {/* Zoom Bar Group */}
+                    <div className="flex items-center gap-4 shrink-0">
                         <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom Out"><ZoomOutIcon className="w-4 h-4"/></button>
                         <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
                         <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom In"><ZoomInIcon className="w-4 h-4"/></button>
-                        <button onClick={() => resetView(imgDims.w, imgDims.h)} className="text-gray-400 hover:text-indigo-600 transition-colors ml-1" title="Fit to Screen"><EyeIcon className="w-4 h-4"/></button>
                     </div>
-                    
-                    <div className="w-px h-4 bg-gray-200 mx-2 hidden sm:block"></div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase hidden sm:block">Scroll to Zoom</span>
+
+                    {/* Divider */}
+                    <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+
+                    {/* Fit to Screen Action */}
+                    <button 
+                        onClick={() => resetView(imgDims.w, imgDims.h)} 
+                        className="text-gray-400 hover:text-indigo-600 transition-all hover:scale-110 shrink-0" 
+                        title="Fit to Screen"
+                    >
+                        <FitScreenIcon className="w-5 h-5" />
+                    </button>
                 </div>
 
                 {/* Right: Actions */}
@@ -506,6 +547,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     100% { opacity: 0; transform: translate(-50%, -25px); }
                 }
                 .animate-fade-up-out { animation: fade-up-out 1.5s ease-out forwards; }
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>,
         document.body
