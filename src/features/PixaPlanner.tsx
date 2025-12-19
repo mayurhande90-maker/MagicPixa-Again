@@ -247,15 +247,24 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (!file || !activeBrand) return;
 
         setIsGenerating(true);
-        setLogs(["Parsing provided document structure...", "Mapping data to product catalog..."]);
+        setLogs([]);
+        setProgress(10);
+        addLog("Initializing High-Precision Document Scanner...");
+        addLog("Syncing with Brand Kit Product Catalog...");
         
         try {
             const raw = await rawFileToBase64(file);
+            addLog("Executing Deep Reasoning Engine (Gemini 3 Pro)...");
+            addLog("Normalizing date structures and extracting topics...");
+            addLog("Intelligently mapping calendar items to specific products...");
+            
             const importedPlan = await extractPlanFromDocument(activeBrand, raw.base64, raw.mimeType);
             setPlan(importedPlan);
+            setProgress(100);
             setStep('review');
-            setToast({ msg: `Imported ${importedPlan.length} posts successfully!`, type: 'success' });
+            setToast({ msg: `Successfully imported ${importedPlan.length} posts from document!`, type: 'success' });
         } catch (error: any) {
+            console.error(error);
             setToast({ msg: error.message, type: 'error' });
         } finally {
             setIsGenerating(false);

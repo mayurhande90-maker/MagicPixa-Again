@@ -29,7 +29,7 @@ export interface CalendarPost {
     archetype: 'Value' | 'Hard Sell' | 'Seasonal';
     reasoning: string; 
     analysisSnippet?: string; 
-    visualBrief?: string; // New: Technical art direction notes
+    visualBrief?: string; // Technical art direction notes
 }
 
 const FREQUENCY_MAP: Record<string, number> = {
@@ -254,21 +254,94 @@ export const generatePostImage = async (
     }
 };
 
+/**
+ * PHASE 3: STRATEGIC EXTRACTION (Deep Document Analysis)
+ * Reads PDFs/CSVs and intelligently maps them to the brand catalog with date normalization.
+ */
 export const extractPlanFromDocument = async (
     brand: BrandKit,
     fileBase64: string,
     mimeType: string
 ): Promise<CalendarPost[]> => {
     const ai = getAiClient();
-    const prompt = `Extract the content schedule from this document. Format as JSON array. Link to products: ${brand.products?.map(p => p.name).join(', ')}. Use DD/MM/YYYY for dates.`;
+    
+    // Provide explicit product context for matching
+    const productCatalog = brand.products?.map(p => 
+        `- [ID: ${p.id}] Name: "${p.name}"`
+    ).join('\n') || "No products in catalog.";
+
+    const extractionPrompt = `You are a Senior Content Strategist & Document Intelligence AI.
+    
+    *** GOAL ***
+    Perform a Deep Strategic Extraction from the uploaded Content Calendar document.
+    
+    *** BRAND CATALOG (FOR PRODUCT MATCHING) ***
+    ${productCatalog}
+    
+    *** EXTRACTION RULES ***
+    1. **DATE NORMALIZATION**:
+       - Scan the document for dates. They might be in any format (e.g., "Jan 1st", "01-01-2024", "1/1", "Monday Week 1").
+       - Convert EVERY date into the strict standard format: **DD/MM/YYYY**.
+       - If only the day is mentioned, assume the current year and current or next month.
+    2. **TOPIC & FREQUENCY**:
+       - Extract the primary topic/hook for each post.
+       - Identify how many posts are planned.
+    3. **INTELLIGENT PRODUCT MAPPING**:
+       - For each post, smartly decide which product from the BRAND CATALOG fits the topic best.
+       - If a topic is "New Arrivals", pick a recently added product.
+       - If a topic is "Morning Coffee", pick a coffee-related product.
+       - "selectedProductId" MUST be a valid ID from the catalog provided above.
+    4. **CONTENT GENERATION**:
+       - Even though the document is a reference, you must generate a full "imagePrompt" and "caption" that matches the extracted topic and the mapped product.
+       - Ensure the style is premium and high-end commercial.
+    
+    *** OUTPUT SCHEMA ***
+    Return strictly a JSON array of objects.
+    [
+        {
+            "date": "DD/MM/YYYY",
+            "dayLabel": "Monday | Tuesday | etc",
+            "topic": "Extracted topic name",
+            "postType": "Ad | Photo | Greeting",
+            "archetype": "Value | Hard Sell | Seasonal",
+            "selectedProductId": "Matching ID from catalog",
+            "analysisSnippet": "Brief note on why this document item was mapped this way",
+            "headline": "Short punchy headline",
+            "visualIdea": "Scene description",
+            "visualBrief": "Technical lighting/camera instructions",
+            "caption": "Smart engagement caption",
+            "hashtags": "#brand #hashtags",
+            "imagePrompt": "Detailed prompt for AI rendering",
+            "reasoning": "Strategy note"
+        }
+    ]
+    
+    Execute extraction now.`;
+
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3-pro-preview', // Pro model for document reasoning
             contents: {
-                parts: [{ inlineData: { data: fileBase64, mimeType } }, { text: prompt }]
+                parts: [
+                    { inlineData: { data: fileBase64, mimeType } }, 
+                    { text: extractionPrompt }
+                ]
             },
-            config: { responseMimeType: "application/json" }
+            config: { 
+                responseMimeType: "application/json" 
+            }
         });
-        return JSON.parse(response.text || "[]");
-    } catch (e) { throw new Error("Parsing failed."); }
+
+        const jsonText = response.text || "[]";
+        let plan: CalendarPost[] = JSON.parse(jsonText);
+        
+        // Ensure unique IDs for state management
+        return plan.map((p, idx) => ({ 
+            ...p, 
+            id: `imported_${Date.now()}_${idx}` 
+        }));
+    } catch (e) { 
+        console.error("Document extraction failed", e);
+        throw new Error("Pixa couldn't parse the document structure. Ensure it is a clear PDF or CSV with recognizable dates and topics."); 
+    }
 };
