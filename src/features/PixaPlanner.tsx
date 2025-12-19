@@ -57,12 +57,25 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
                 <h4 className={PlannerStyles.logTitle}>Deep Strategy Intelligence</h4>
             </div>
             <div className="space-y-3">
-                {logs.map((log, idx) => (
-                    <div key={idx} className={PlannerStyles.logItem}>
-                        <div className={`${PlannerStyles.logDot} ${idx === logs.length - 1 ? 'bg-indigo-50 animate-ping' : 'bg-green-50'}`}></div>
-                        <p className={PlannerStyles.logText}>{log}</p>
-                    </div>
-                ))}
+                {logs.map((log, idx) => {
+                    const isLast = idx === logs.length - 1;
+                    return (
+                        <div key={idx} className={`${PlannerStyles.logItem} ${!isLast ? 'opacity-60' : 'animate-fadeIn'}`}>
+                            <div className="shrink-0 mt-1">
+                                {!isLast ? (
+                                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm animate-scaleIn">
+                                        <CheckIcon className="w-2.5 h-2.5 text-white stroke-[3px]" />
+                                    </div>
+                                ) : (
+                                    <div className={`${PlannerStyles.logDot} bg-indigo-500 animate-pulse ring-4 ring-indigo-500/20`}></div>
+                                )}
+                            </div>
+                            <p className={`${PlannerStyles.logText} ${isLast ? 'text-white font-bold' : 'text-gray-400'}`}>
+                                {log}
+                            </p>
+                        </div>
+                    );
+                })}
                 <div ref={logEndRef} />
             </div>
         </div>
