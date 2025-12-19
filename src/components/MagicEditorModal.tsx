@@ -22,7 +22,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-    const [history, setHistory] = useState<ImageData[]>([]);
+    const [maskHistory, setMaskHistory] = useState<ImageData[]>([]);
+    const [imageHistory, setImageHistory] = useState<string[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -104,11 +105,14 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 if (imgCtx && maskCtx) {
                     imgCtx.drawImage(img, 0, 0);
                     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-                    setHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
+                    setMaskHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
                 
-                // Reset view fit initially and after processing
-                resetView(img.width, img.height);
+                // Only fit view if it's the very first load or if triggered manually (e.g. by handleRemove)
+                // We handle fitting in handleRemove explicitly
+                if (imageHistory.length === 0) {
+                    resetView(img.width, img.height);
+                }
             }
         };
     }, [currentImageSrc, resetView]);
@@ -137,14 +141,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [history]);
+    }, [maskHistory, imageHistory]);
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            // Zoom directly with mouse scroll, no Ctrl needed
             e.preventDefault();
             if (isProcessing) return;
             
@@ -157,25 +160,37 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         return () => container.removeEventListener('wheel', handleWheel);
     }, [isProcessing]);
 
-    const saveHistory = () => {
+    const saveMaskHistory = () => {
         const maskCanvas = maskCanvasRef.current;
         const ctx = maskCanvas?.getContext('2d');
         if (maskCanvas && ctx) {
-            setHistory(prev => [...prev, ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
+            setMaskHistory(prev => [...prev, ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
         }
     };
 
     const handleUndo = () => {
-        if (history.length > 1) {
-            const newHistory = [...history];
+        if (isProcessing) return;
+
+        // 1. Check if there is a drawn mask to undo
+        if (maskHistory.length > 1) {
+            const newHistory = [...maskHistory];
             newHistory.pop();
             const previousState = newHistory[newHistory.length - 1];
-            setHistory(newHistory);
+            setMaskHistory(newHistory);
             
             const maskCanvas = maskCanvasRef.current;
             const ctx = maskCanvas?.getContext('2d', { willReadFrequently: true });
             if (maskCanvas && ctx && previousState) {
                 ctx.putImageData(previousState, 0, 0);
+            }
+        } 
+        // 2. If no mask strokes left, undo the last image generation
+        else if (imageHistory.length > 0) {
+            const newImgHistory = [...imageHistory];
+            const previousImage = newImgHistory.pop();
+            setImageHistory(newImgHistory);
+            if (previousImage) {
+                setCurrentImageSrc(previousImage);
             }
         }
     };
@@ -209,7 +224,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         if (isProcessing) return;
         if (isDrawing) {
             setIsDrawing(false);
-            saveHistory();
+            saveMaskHistory();
         }
         setIsPanning(false);
     };
@@ -273,6 +288,9 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const resultUrl = `data:image/png;base64,${resultBase64}`;
             
             await deductCredit();
+            
+            // Push current image to history before updating
+            setImageHistory(prev => [...prev, currentImageSrc]);
             setCurrentImageSrc(resultUrl);
         } catch (error) {
             console.error("Magic Eraser failed", error);
@@ -287,7 +305,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         onClose();
     };
 
-    const hasDrawn = history.length > 1;
+    const canUndo = maskHistory.length > 1 || imageHistory.length > 0;
+    const hasDrawn = maskHistory.length > 1;
 
     return createPortal(
         <div className="fixed inset-0 z-[300] bg-white/95 backdrop-blur-xl flex flex-col overflow-hidden animate-fadeIn">
@@ -306,7 +325,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={handleUndo} 
-                        disabled={!hasDrawn || isProcessing}
+                        disabled={!canUndo || isProcessing}
                         className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-gray-700 transition-all disabled:opacity-20 flex items-center gap-2 text-xs font-bold shadow-sm"
                         title="Undo (Ctrl+Z)"
                     >
@@ -355,7 +374,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             </div>
 
             {/* Unified Bottom Control Bar */}
-            <div className="bg-white border-t border-gray-100 px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-8 shrink-0 z-50">
+            <div className="bg-white border-t border-gray-100 px-10 py-6 flex flex-col lg:flex-row items-center justify-between gap-8 shrink-0 z-50 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
                 
                 {/* Left: Brush Settings */}
                 <div className="flex items-center gap-10 w-full md:w-auto">
@@ -375,11 +394,22 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
 
-                {/* Center: Zoom Status */}
-                <div className="hidden lg:flex items-center gap-4 bg-gray-50 px-5 py-2.5 rounded-full border border-gray-100 shadow-inner">
-                    <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomOutIcon className="w-4 h-4"/></button>
-                    <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                    <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomInIcon className="w-4 h-4"/></button>
+                {/* Center: Instructions & Zoom Status */}
+                <div className="flex items-center gap-6">
+                    {/* Integrated Instructions */}
+                    <div className="hidden xl:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gray-50 border border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
+                        <span className="flex items-center gap-1.5 text-indigo-500"><PencilIcon className="w-3.5 h-3.5" /> Paint</span>
+                        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                        <span>Space + Drag to Pan</span>
+                        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                        <span>Scroll to Zoom</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 bg-gray-50 px-5 py-2.5 rounded-full border border-gray-100 shadow-inner">
+                        <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomOutIcon className="w-4 h-4"/></button>
+                        <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                        <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomInIcon className="w-4 h-4"/></button>
+                    </div>
                 </div>
 
                 {/* Right: Actions */}
@@ -409,15 +439,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         </button>
                     </div>
                 </div>
-            </div>
-            
-            {/* Guide Overlay */}
-            <div className="absolute bottom-36 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 shadow-xl text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none animate-fadeIn">
-                <span className="flex items-center gap-2"><PencilIcon className="w-3.5 h-3.5" /> Paint to select</span>
-                <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span className="text-indigo-600">Hold Spacebar to Pan</span>
-                <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span>Scroll to Zoom</span>
             </div>
         </div>,
         document.body
