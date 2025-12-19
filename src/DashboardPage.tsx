@@ -43,7 +43,7 @@ const SupportCenter = lazy(() => import('./features/SupportCenter').then(module 
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
 const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
 const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro').then(module => ({ default: module.PixaHeadshotPro })));
-const PixaPlanner = lazy(() => import('./features/PixaPlanner').then(module => ({ default: module.PixaPlanner })));
+const CampaignStudio = lazy(() => import('./features/PixaPlanner').then(module => ({ default: module.PixaPlanner })));
 
 // Loading Spinner for Suspense Fallback
 const PageLoader = () => (
@@ -155,8 +155,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 return <Creations auth={auth} navigateTo={navigateTo} />;
             case 'brand_manager':
                 return <BrandKitManager auth={auth} navigateTo={navigateTo} />;
-            case 'pixa_planner':
-                return <PixaPlanner auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+            case 'campaign_studio':
+                return <CampaignStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'studio':
                  return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
             case 'brand_kit':

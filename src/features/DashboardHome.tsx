@@ -34,7 +34,8 @@ import {
     PixaInteriorIcon,
     PixaTryOnIcon,
     PixaMockupIcon,
-    PixaHeadshotIcon
+    PixaHeadshotIcon,
+    CalendarIcon
 } from '../components/icons';
 import { DashboardStyles } from '../styles/Dashboard.styles';
 
@@ -80,7 +81,7 @@ const DailyQuest: React.FC<{
                     <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
                         isLocked 
                         ? 'bg-green-200 text-green-800' 
-                        : 'bg-red-500 text-white border border-white/10 animate-pulse'
+                        : 'bg-red-50 text-white border border-white/10 animate-pulse'
                     }`}>
                         <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
                     </span>
@@ -202,7 +203,9 @@ export const DashboardHome: React.FC<{
             'Magic Mockup': 'mockup',
             'Pixa Mockups': 'mockup',
             'Pixa Headshot Pro': 'headshot',
-            'Headshot': 'headshot'
+            'Headshot': 'headshot',
+            'Campaign Studio': 'campaign_studio',
+            'Planner': 'campaign_studio'
         };
         if (map[featureName]) return map[featureName];
         const key = Object.keys(map).find(k => featureName.includes(k));
@@ -212,6 +215,7 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
+        { id: 'campaign_studio', label: 'Campaign Studio', icon: CalendarIcon, color: '' }, // RENAMED
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: '' },
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },

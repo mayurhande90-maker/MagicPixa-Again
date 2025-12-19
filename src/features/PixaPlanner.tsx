@@ -91,7 +91,7 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
 };
 
 /**
- * NEW: Multi-image Full-screen Gallery Viewer
+ * Multi-image Full-screen Gallery Viewer
  */
 const MultiGalleryViewer: React.FC<{ 
     posts: CalendarPost[]; 
@@ -138,7 +138,7 @@ const MultiGalleryViewer: React.FC<{
                     </div>
                     <div className="flex items-center gap-3">
                         <button 
-                            onClick={() => downloadImage(imageUrl, `PixaPlanner_${post.date.replace(/\//g, '-')}.jpg`)}
+                            onClick={() => downloadImage(imageUrl, `CampaignStudio_${post.date.replace(/\//g, '-')}.jpg`)}
                             className="bg-white/10 hover:bg-white text-white hover:text-black p-3 rounded-full transition-all border border-white/10 shadow-xl"
                             title="Download Image"
                         >
@@ -335,7 +335,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     results[post.id] = blobUrl;
                     
                     const storageUri = await resizeImage(`data:image/png;base64,${b64}`, 1024, 0.7);
-                    await saveCreation(auth.user.uid, storageUri, `Planner: ${post.topic}`);
+                    await saveCreation(auth.user.uid, storageUri, `Campaign Studio: ${post.topic}`);
                 } catch (err) {
                     console.error(err);
                 }
@@ -392,7 +392,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <LockIcon className="w-10 h-10 text-gray-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Agency Setup Required</h2>
-                <p className="text-gray-500 mb-8 max-w-md">Planner acts as your dedicated AI agency. You must have a Brand Kit with products to start.</p>
+                <p className="text-gray-500 mb-8 max-w-md">Studio acts as your dedicated AI agency. You must have a Brand Kit with products to start.</p>
                 <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="bg-[#1A1A1E] text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors">Setup Brand Kit</button>
             </div>
         );
@@ -405,7 +405,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarIcon className="w-8 h-8" /></div>
                     <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Pixa Planner</h1>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Studio</h1>
                         <p className="text-sm text-gray-500">Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
                     </div>
                 </div>
@@ -633,7 +633,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        downloadImage(generatedImages[p.id], `PixaPlanner_${p.date.replace(/\//g, '-')}.jpg`);
+                                                        downloadImage(generatedImages[p.id], `CampaignStudio_${p.date.replace(/\//g, '-')}.jpg`);
                                                     }}
                                                     className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-gray-800 shadow-lg border border-white/20 hover:bg-white hover:scale-110 transition-all z-20 opacity-0 group-hover:opacity-100"
                                                     title="Quick Download"
@@ -672,7 +672,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <h4 className="font-bold text-gray-900 text-sm truncate">{p.topic}</h4>
                                         </div>
                                         
-                                        {/* NEW: Finalized Caption Section */}
+                                        {/* Finalized Caption Section */}
                                         <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm relative group-hover:border-indigo-100 transition-colors">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">

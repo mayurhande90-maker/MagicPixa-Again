@@ -53,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
-    { id: 'pixa_planner', label: 'Pixa Planner', icon: CalendarIcon, disabled: false, badge: 'NEW' }, // NEW ITEM
+    { id: 'campaign_studio', label: 'Campaign Studio', icon: CalendarIcon, disabled: false, badge: 'NEW' }, // RENAMED
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     setIsClaiming(true);
     try {
         const updatedUser = await claimDailyAttendance(user.uid);
-        setUser(prev => prev ? { ...prev, ...updatedUser } as User : null);
+        setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     } catch (e) {
         console.error("Claim failed", e);
         alert("Failed to claim credit. Please check if 24 hours have passed.");
@@ -123,7 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
                 <p className="text-2xl font-bold mb-1">Free Credit</p>
                 <p className="text-xs text-indigo-100 mb-3">Claim +1 credit every 24 hours.</p>
                 <button 
-                    onClick={handleClaim}
+                    onClick={handleClaim} 
                     disabled={hasClaimedToday() || isClaiming}
                     className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${
                         hasClaimedToday() 
