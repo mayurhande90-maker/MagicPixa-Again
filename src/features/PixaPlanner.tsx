@@ -51,7 +51,7 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
     }, [logs]);
 
     return (
-        <div className={PlannerStyles.logContainer + " max-h-40 overflow-y-auto custom-scrollbar scroll-smooth"}>
+        <div className={PlannerStyles.logContainer}>
             <div className={PlannerStyles.logHeader}>
                 <LightningIcon className="w-3 h-3 text-indigo-400 animate-pulse" />
                 <h4 className={PlannerStyles.logTitle}>Deep Strategy Intelligence</h4>
@@ -470,7 +470,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     key={f.label} 
                                     title={f.label} 
                                     description={f.desc} 
-                                    icon={<CampaignStudioIcon className="w-5 h-5"/>} 
+                                    icon={<CampaignStudioIcon className="w-8 h-8"/>} 
                                     selected={config.frequency === f.label} 
                                     onClick={() => setConfig({...config, frequency: f.label})} 
                                 />
@@ -490,7 +490,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     key={m.label} 
                                     title={m.label} 
                                     description={m.desc} 
-                                    icon={<StrategyStarIcon className="w-8 h-8"/>} 
+                                    icon={<StrategyStarIcon className="w-10 h-10"/>} 
                                     selected={config.mixType === m.label} 
                                     onClick={() => setConfig({...config, mixType: m.label as any})} 
                                 />

@@ -5,12 +5,12 @@ export const PlannerStyles = {
     optionCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20",
     optionCardInactive: "border-gray-100 bg-white hover:border-indigo-200",
     
-    optionIcon: "w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-colors",
-    optionIconSelected: "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30",
-    optionIconInactive: "bg-gray-100 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-600",
+    optionIcon: "w-10 h-10 flex items-center justify-center mb-2 transition-all duration-300",
+    optionIconSelected: "scale-110",
+    optionIconInactive: "opacity-60 group-hover:opacity-100 group-hover:scale-105",
     
     // Thinking Log
-    logContainer: "w-full max-w-md bg-[#0F172A] rounded-2xl p-6 border border-white/10 shadow-2xl overflow-hidden mt-8",
+    logContainer: "w-full max-h-40 overflow-y-auto custom-scrollbar scroll-smooth bg-[#0F172A] rounded-2xl p-6 border border-white/10 shadow-2xl mt-8",
     logHeader: "flex items-center gap-2 mb-4 border-b border-white/10 pb-3",
     logTitle: "text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]",
     logItem: "flex items-start gap-3 mb-3 animate-fadeIn",
