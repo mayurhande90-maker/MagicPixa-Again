@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
-    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon
+    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon, InformationCircleIcon
 } from '../components/icons';
 import { 
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone 
@@ -241,7 +240,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </>
                                 <div className={PhotoStudioStyles.analysisBadge}>
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Pixa is Thinking...' : 'Pixa Vision Scanning...'}</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Generating AI Suggestions...' : 'Pixa Vision Scanning...'}</span>
                                 </div>
                             </div>
                         )}
@@ -285,24 +284,18 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
                                 <div className={PhotoStudioStyles.modeGrid}>
-                                    <button onClick={() => handleModeSelect('product')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardProduct}`}>
-                                        <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbProduct}`}></div>
-                                        <div className={PhotoStudioStyles.iconGlass}><CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/></div>
-                                        <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Product Shot</h3><p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p></div>
-                                        <div className={PhotoStudioStyles.actionBtn}>
-                                            {/* FIX: Changed AdMakerStyles to PhotoStudioStyles to resolve compilation error */}
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
-                                        </div>
-                                    </button>
-                                    <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardModel}`}>
-                                        <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbModel}`}></div>
-                                        <div className={PhotoStudioStyles.iconGlass}><UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/></div>
-                                        <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Model Shot</h3><p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p></div>
-                                        <div className={PhotoStudioStyles.actionBtn}>
-                                            {/* FIX: Changed AdMakerStyles to PhotoStudioStyles to resolve compilation error */}
-                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
-                                        </div>
-                                    </button>
+                                    <IndustryCard 
+                                        title="Product Shot" desc="Studio lighting, 3D podiums, and pure environments." 
+                                        icon={<CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/>} 
+                                        onClick={() => handleModeSelect('product')}
+                                        styles={{ card: PhotoStudioStyles.modeCardProduct, orb: PhotoStudioStyles.orbProduct, icon: PhotoStudioStyles.iconProduct }}
+                                    />
+                                    <IndustryCard 
+                                        title="Model Shot" desc="AI Humans holding, wearing, or interacting with it." 
+                                        icon={<UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/>} 
+                                        onClick={() => handleModeSelect('model')}
+                                        styles={{ card: PhotoStudioStyles.modeCardModel, orb: PhotoStudioStyles.orbModel, icon: PhotoStudioStyles.iconModel }}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -329,10 +322,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             <div className={PhotoStudioStyles.promptContainer}>
                                                 <div className={PhotoStudioStyles.promptHeader}>
                                                     <label className={PhotoStudioStyles.promptLabel}>
-                                                        {studioMode === 'product' ? '1. AI Blueprints' : '1. Model Concepts'}
+                                                        {studioMode === 'product' ? '1. AI Suggestions (Blueprints)' : '1. AI Suggestions (Model Concepts)'}
                                                     </label>
                                                     {selectedPrompt && <button onClick={() => setSelectedPrompt(null)} className={PhotoStudioStyles.promptClearBtn}>Reset</button>}
                                                 </div>
+                                                <p className="text-[10px] text-gray-400 mb-3 italic px-1">
+                                                    <InformationCircleIcon className="w-3 h-3 inline mr-1" />
+                                                    Pixa has analyzed your image to provide these custom AI recommendations.
+                                                </p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {studioMode === 'product' ? suggestedPrompts.map((p, i) => (
                                                         <button 
@@ -421,3 +418,23 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         </>
     );
 };
+
+const IndustryCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    onClick: () => void;
+    styles: { card: string; orb: string; icon: string; };
+}> = ({ title, desc, icon, onClick, styles }) => (
+    <button onClick={onClick} className={`${PhotoStudioStyles.modeCard} ${styles.card}`}>
+        <div className={`${PhotoStudioStyles.orb} ${styles.orb}`}></div>
+        <div className={`${PhotoStudioStyles.iconGlass} ${styles.icon}`}>{icon}</div>
+        <div className={PhotoStudioStyles.contentWrapper}>
+            <h3 className={PhotoStudioStyles.title}>{title}</h3>
+            <p className={PhotoStudioStyles.desc}>{desc}</p>
+        </div>
+        <div className={PhotoStudioStyles.actionBtn}>
+            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
+        </div>
+    </button>
+);
