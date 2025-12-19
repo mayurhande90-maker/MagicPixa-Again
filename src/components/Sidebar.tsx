@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
 import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon, CampaignStudioIcon } from './icons';
@@ -53,8 +52,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
-    { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false, badge: 'NEW' }, // UPDATED ICON
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
+    { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false, badge: 'NEW' },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
