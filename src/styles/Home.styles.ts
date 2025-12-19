@@ -15,13 +15,14 @@ export const HomeStyles = {
   heroButton: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.shapes.button} py-3 px-8 hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/30 ${Theme.colors.primaryHover}`,
   
   // Audience Section
-  audienceSection: "py-16 px-4 bg-white",
+  audienceSection: "py-24 px-4 bg-white",
   audienceContainer: "max-w-7xl mx-auto",
-  audienceHeader: "text-center mb-12",
-  audienceGrid: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
-  audienceCard: "bg-[#F6F7FA] p-8 rounded-[2rem] border border-gray-100 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 flex flex-col items-start text-left group",
-  audienceIconContainer: "w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-gray-50",
-  audienceHook: "text-lg font-black text-gray-900 mb-2 tracking-tight",
+  audienceHeader: "text-center mb-16",
+  audienceGrid: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+  audienceCard: "bg-[#F6F7FA] p-8 rounded-[2.5rem] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-2 flex flex-col items-start text-left group",
+  audienceIconContainer: "w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 border border-gray-50",
+  audienceTitle: "text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-3",
+  audienceHook: "text-xl font-bold text-gray-900 mb-3 tracking-tight leading-tight",
   audienceDescription: "text-sm text-gray-500 font-medium leading-relaxed",
 
   // Features Section
