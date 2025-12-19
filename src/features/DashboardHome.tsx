@@ -34,8 +34,7 @@ import {
     PixaTryOnIcon,
     PixaMockupIcon,
     PixaHeadshotIcon,
-    CalendarIcon,
-    CampaignStudioIcon
+    CalendarIcon
 } from '../components/icons';
 import { DashboardStyles } from '../styles/Dashboard.styles';
 
@@ -216,7 +215,6 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
-        { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, color: '' }, 
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: '' },
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
