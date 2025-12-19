@@ -10,6 +10,13 @@ interface MagicEditorModalProps {
     deductCredit: () => Promise<void>;
 }
 
+// Simple Redo Icon (mirrored Undo)
+const RedoIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+    </svg>
+);
+
 export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, onClose, onSave, deductCredit }) => {
     const imageCanvasRef = useRef<HTMLCanvasElement>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,7 +30,10 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
     const [maskHistory, setMaskHistory] = useState<ImageData[]>([]);
+    const [maskRedoStack, setMaskRedoStack] = useState<ImageData[]>([]);
     const [imageHistory, setImageHistory] = useState<string[]>([]);
+    const [imageRedoStack, setImageRedoStack] = useState<string[]>([]);
+    
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -105,12 +115,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 if (imgCtx && maskCtx) {
                     imgCtx.drawImage(img, 0, 0);
                     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-                    setMaskHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
+                    const initialMask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                    setMaskHistory([initialMask]);
+                    setMaskRedoStack([]);
                 }
                 
-                // Only fit view if it's the very first load or if triggered manually (e.g. by handleRemove)
-                // We handle fitting in handleRemove explicitly
-                if (imageHistory.length === 0) {
+                // Only fit view if it's the very first load or manually triggered
+                if (imageHistory.length === 0 && imageRedoStack.length === 0) {
                     resetView(img.width, img.height);
                 }
             }
@@ -125,8 +136,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     setIsSpacePanning(true);
                 }
             }
-            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
-                handleUndo();
+            if ((e.ctrlKey || e.metaKey)) {
+                if (e.code === 'KeyZ') {
+                    if (e.shiftKey) handleRedo();
+                    else handleUndo();
+                } else if (e.code === 'KeyY') {
+                    handleRedo();
+                }
             }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -141,7 +157,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [maskHistory, imageHistory]);
+    }, [maskHistory, imageHistory, maskRedoStack, imageRedoStack]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -150,7 +166,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
             if (isProcessing) return;
-            
             const zoomSensitivity = 0.0012; 
             const delta = -e.deltaY * zoomSensitivity;
             setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
@@ -164,17 +179,20 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         const maskCanvas = maskCanvasRef.current;
         const ctx = maskCanvas?.getContext('2d');
         if (maskCanvas && ctx) {
-            setMaskHistory(prev => [...prev, ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
+            const currentData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            setMaskHistory(prev => [...prev, currentData]);
+            setMaskRedoStack([]); // Clear redo on new action
         }
     };
 
     const handleUndo = () => {
         if (isProcessing) return;
 
-        // 1. Check if there is a drawn mask to undo
         if (maskHistory.length > 1) {
             const newHistory = [...maskHistory];
-            newHistory.pop();
+            const currentState = newHistory.pop()!;
+            setMaskRedoStack(prev => [...prev, currentState]);
+            
             const previousState = newHistory[newHistory.length - 1];
             setMaskHistory(newHistory);
             
@@ -183,15 +201,38 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             if (maskCanvas && ctx && previousState) {
                 ctx.putImageData(previousState, 0, 0);
             }
-        } 
-        // 2. If no mask strokes left, undo the last image generation
-        else if (imageHistory.length > 0) {
+        } else if (imageHistory.length > 0) {
             const newImgHistory = [...imageHistory];
-            const previousImage = newImgHistory.pop();
+            const previousImage = newImgHistory.pop()!;
+            
+            setImageRedoStack(prev => [...prev, currentImageSrc]);
             setImageHistory(newImgHistory);
-            if (previousImage) {
-                setCurrentImageSrc(previousImage);
+            setCurrentImageSrc(previousImage);
+        }
+    };
+
+    const handleRedo = () => {
+        if (isProcessing) return;
+
+        if (maskRedoStack.length > 0) {
+            const newRedoStack = [...maskRedoStack];
+            const stateToRestore = newRedoStack.pop()!;
+            setMaskRedoStack(newRedoStack);
+            
+            setMaskHistory(prev => [...prev, stateToRestore]);
+            
+            const maskCanvas = maskCanvasRef.current;
+            const ctx = maskCanvas?.getContext('2d', { willReadFrequently: true });
+            if (maskCanvas && ctx) {
+                ctx.putImageData(stateToRestore, 0, 0);
             }
+        } else if (imageRedoStack.length > 0) {
+            const newRedoStack = [...imageRedoStack];
+            const nextImage = newRedoStack.pop()!;
+            
+            setImageHistory(prev => [...prev, currentImageSrc]);
+            setImageRedoStack(newRedoStack);
+            setCurrentImageSrc(nextImage);
         }
     };
 
@@ -289,8 +330,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             
             await deductCredit();
             
-            // Push current image to history before updating
             setImageHistory(prev => [...prev, currentImageSrc]);
+            setImageRedoStack([]);
             setCurrentImageSrc(resultUrl);
         } catch (error) {
             console.error("Magic Eraser failed", error);
@@ -306,6 +347,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const canUndo = maskHistory.length > 1 || imageHistory.length > 0;
+    const canRedo = maskRedoStack.length > 0 || imageRedoStack.length > 0;
     const hasDrawn = maskHistory.length > 1;
 
     return createPortal(
@@ -322,15 +364,25 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={handleUndo} 
-                        disabled={!canUndo || isProcessing}
-                        className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-gray-700 transition-all disabled:opacity-20 flex items-center gap-2 text-xs font-bold shadow-sm"
-                        title="Undo (Ctrl+Z)"
-                    >
-                        <UndoIcon className="w-4 h-4" /> Undo
-                    </button>
+                <div className="flex items-center gap-2">
+                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 mr-2">
+                        <button 
+                            onClick={handleUndo} 
+                            disabled={!canUndo || isProcessing}
+                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm"
+                            title="Undo (Ctrl+Z)"
+                        >
+                            <UndoIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                            onClick={handleRedo} 
+                            disabled={!canRedo || isProcessing}
+                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm"
+                            title="Redo (Ctrl+Y)"
+                        >
+                            <RedoIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                     <div className="h-8 w-px bg-gray-100"></div>
                     <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
                         <XIcon className="w-8 h-8" />
@@ -377,7 +429,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             <div className="bg-white border-t border-gray-100 px-10 py-6 flex flex-col lg:flex-row items-center justify-between gap-8 shrink-0 z-50 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
                 
                 {/* Left: Brush Settings */}
-                <div className="flex items-center gap-10 w-full md:w-auto">
+                <div className="flex items-center gap-10 w-full lg:w-auto">
                     <div className="flex flex-col gap-2 w-full sm:w-80">
                         <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                             <span>Brush Size</span>
@@ -394,26 +446,29 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     </div>
                 </div>
 
-                {/* Center: Instructions & Zoom Status */}
-                <div className="flex items-center gap-6">
+                {/* Center: Instructions & Zoom Status (Grouped together) */}
+                <div className="flex items-center gap-4 bg-gray-50 px-6 py-2.5 rounded-full border border-gray-100 shadow-inner">
                     {/* Integrated Instructions */}
-                    <div className="hidden xl:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gray-50 border border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
+                    <div className="hidden xl:flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
                         <span className="flex items-center gap-1.5 text-indigo-500"><PencilIcon className="w-3.5 h-3.5" /> Paint</span>
                         <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                        <span>Space + Drag to Pan</span>
-                        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                        <span>Scroll to Zoom</span>
+                        <span className="text-gray-700">Space to Pan</span>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-gray-50 px-5 py-2.5 rounded-full border border-gray-100 shadow-inner">
+                    <div className="hidden xl:block w-px h-4 bg-gray-200 mx-2"></div>
+
+                    <div className="flex items-center gap-4">
                         <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomOutIcon className="w-4 h-4"/></button>
                         <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
                         <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors"><ZoomInIcon className="w-4 h-4"/></button>
                     </div>
+                    
+                    <div className="w-px h-4 bg-gray-200 mx-2 hidden sm:block"></div>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase hidden sm:block">Scroll to Zoom</span>
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex items-center gap-6 w-full md:w-auto">
+                <div className="flex items-center gap-6 w-full lg:w-auto justify-end">
                     <div className="flex flex-col items-center mr-4">
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">Usage Fee</span>
                         <div className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-inner">
@@ -422,18 +477,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         </div>
                     </div>
 
-                    <div className="flex gap-3 flex-1 md:flex-none">
+                    <div className="flex gap-3 flex-1 lg:flex-none">
                         <button 
                             onClick={handleApply}
                             disabled={isProcessing}
-                            className="flex-1 md:flex-none px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-20"
+                            className="flex-1 lg:flex-none px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-20"
                         >
                             Apply Changes
                         </button>
                         <button 
                             onClick={handleRemove}
                             disabled={isProcessing || !hasDrawn}
-                            className="flex-1 md:flex-none px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-[#1A1A1E] bg-[#F9D230] hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 disabled:bg-gray-50 disabled:text-gray-300 disabled:shadow-none"
+                            className="flex-1 lg:flex-none px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-[#1A1A1E] bg-[#F9D230] hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 disabled:bg-gray-50 disabled:text-gray-300 disabled:shadow-none"
                         >
                             Remove Selected
                         </button>
