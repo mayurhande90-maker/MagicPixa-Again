@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon } from '../components/icons';
+import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { MagicEditorModal } from '../components/MagicEditorModal';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -119,7 +118,41 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button></div>) : (
-                        <div className="space-y-8 p-1 animate-fadeIn"><FormatSelector selected={format} onSelect={handleFormatSelect} />{format && (<div className="animate-fadeIn space-y-8"><SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />{category && (<div className="animate-fadeIn space-y-6"><div className="h-px w-full bg-gray-200"></div><div><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>{isPodcast ? (<div className="space-y-4"><div className="grid grid-cols-2 gap-4"><CompactUpload label="Host Photo" image={hostImage} onUpload={handleUpload(setHostImage)} onClear={() => setHostImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>} /><CompactUpload label="Guest Photo" image={guestImage} onUpload={handleUpload(setGuestImage)} onClear={() => setGuestImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>} /></div><CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} /></div>) : (<div className="space-y-4"><div className="grid grid-cols-2 gap-4"><CompactUpload label="Your Photo" image={subjectImage} onUpload={handleUpload(setSubjectImage)} onClear={() => setSubjectImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} optional={true} /><CompactUpload label="Element / Prop" image={elementImage} onUpload={handleUpload(setElementImage)} onClear={() => setElementImage(null)} icon={<CubeIcon className="w-6 h-6 text-green-400"/>} optional={true} /></div><CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} /></div>)}</div><div className="animate-fadeIn"><InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div><div className="animate-fadeIn"><InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div></div>)}</div>)}</div>
+                        <div className={`space-y-8 p-1 animate-fadeIn transition-all duration-300 ${loading ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+                            <FormatSelector selected={format} onSelect={handleFormatSelect} />
+                            {format && (
+                                <div className="animate-fadeIn space-y-8">
+                                    <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                                    {category && (
+                                        <div className="animate-fadeIn space-y-6">
+                                            <div className="h-px w-full bg-gray-200"></div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
+                                                {isPodcast ? (
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <CompactUpload label="Host Photo" image={hostImage} onUpload={handleUpload(setHostImage)} onClear={() => setHostImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-purple-400"/>} />
+                                                            <CompactUpload label="Guest Photo" image={guestImage} onUpload={handleUpload(setGuestImage)} onClear={() => setGuestImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-400"/>} />
+                                                        </div>
+                                                        <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <CompactUpload label="Your Photo" image={subjectImage} onUpload={handleUpload(setSubjectImage)} onClear={() => setSubjectImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-blue-400"/>} optional={true} />
+                                                            <CompactUpload label="Element / Prop" image={elementImage} onUpload={handleUpload(setElementImage)} onClear={() => setElementImage(null)} icon={<CubeIcon className="w-6 h-6 text-green-400"/>} optional={true} />
+                                                        </div>
+                                                        <CompactUpload label="Reference Thumbnail" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-yellow-400"/>} heightClass="h-40" optional={true} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="animate-fadeIn"><InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
+                                            <div className="animate-fadeIn"><InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )
                 }
             />
