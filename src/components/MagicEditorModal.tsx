@@ -31,10 +31,10 @@ const MouseIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
-// Pan Icon for "Space to Pan" instruction
+// User-provided Hand Icon for "Space bar to Pan" instruction
 const HandIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l.075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 013.15 0V15M6.9 7.575V12a1.5 1.5 0 003 0v-4.171a.625.625 0 011.25 0V16.5h.375m-5.75 4.5h10.5a2.25 2.25 0 002.25-2.25V16.5a9 9 0 00-9-9" />
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M13.5 2.4c-.4-.4-1-.5-1.5-.3c0-.3-.1-.6-.4-.9c-.2-.2-.6-.4-1.1-.4c-.3 0-.5.1-.7.1c0-.2-.1-.3-.2-.5c-.5-.6-1.5-.6-2 0c-.2.2-.4.4-.4.6C7 1 6.8.9 6.6.9c-.5 0-.8.2-1.1.5C5 1.9 5 2.7 5 2.7v3.8c-.3-.3-.8-.8-1.5-.8c-.2 0-.5.1-.7.2c-.4.2-.6.5-.7.9c-.3 1 .6 2.4.6 2.5c.1.1 1.2 2.7 2.2 3.8C5.9 14.3 7 15 9.8 15c2.9 0 4.2-1.6 4.2-5.1V4.4c0-.1.1-1.3-.5-2zM8 2c0-.3-.1-1 .5-1c.5 0 .5.5.5 1v4c0 .3.2.5.5.5s.5-.2.5-.5V2.2s0-.4.5-.4c.6 0 .5.9.5.9V6c0 .3.2.5.5.5s.5-.2.5-.5V3.6c0-.1 0-.6.5-.6s.5 1 .5 1v5.9c0 3.4-1.3 4.1-3.2 4.1c-2.4 0-3.3-.5-4.1-1.6c-.9-1-2.1-3.6-2.1-3.7c-.3-.3-.7-1.2-.6-1.6c0-.1.1-.2.2-.3c.1 0 .2-.1.2-.1c.4 0 .8.5.9.7l.6.9c.1.2.4.3.6.2c.4 0 .5-.2.5-.4V2.9c0-.4 0-1 .5-1c.4 0 .5.3.5.8V6c0 .3.2.5.5.5S8 6.3 8 6z"/>
     </svg>
 );
 
@@ -237,7 +237,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             if (maskCanvas && ctx) {
                 ctx.putImageData(stateToRestore, 0, 0);
             }
-            // FIX: Changed 'imageHistoryRedoStack' to 'imageRedoStack' to resolve TypeScript error.
         } else if (imageRedoStack.length > 0) {
             const newRedoStack = [...imageRedoStack];
             const nextImage = newRedoStack.pop()!;
@@ -473,7 +472,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
                         <div className="flex items-center gap-2 text-gray-700">
                             <HandIcon className="w-3.5 h-3.5" />
-                            <span>Space to Pan</span>
+                            <span>Space bar to Pan</span>
                         </div>
                         <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
                         <div className="flex items-center gap-2 text-gray-500">
