@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
@@ -12,7 +11,8 @@ import {
     ArrowLeftIcon,
     ChevronRightIcon,
     ThumbUpIcon,
-    ThumbDownIcon
+    ThumbDownIcon,
+    MagicWandIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 import { submitFeedback, auth } from '../firebase';
@@ -250,6 +250,7 @@ export const FeatureLayout: React.FC<{
     creationId?: string | null;
     onResetResult?: () => void;
     onNewSession?: () => void;
+    onEdit?: () => void;
     description?: string;
     generateButtonStyle?: {
         className?: string;
@@ -265,7 +266,7 @@ export const FeatureLayout: React.FC<{
     rawIcon?: boolean; 
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
-    creditCost, resultImage, creationId, onResetResult, onNewSession, description,
+    creditCost, resultImage, creationId, onResetResult, onNewSession, onEdit, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon
 }) => {
@@ -388,7 +389,7 @@ export const FeatureLayout: React.FC<{
                                                 onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
                                                 className={`relative p-2 rounded-full transition-all duration-200 ${
                                                     animatingFeedback === 'up' 
-                                                    ? 'bg-green-500 text-white scale-110 shadow-lg' 
+                                                    ? 'bg-green-50 text-white scale-110 shadow-lg' 
                                                     : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                                 }`}
                                                 title="Good Result"
@@ -403,7 +404,7 @@ export const FeatureLayout: React.FC<{
                                                 onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
                                                 className={`relative p-2 rounded-full transition-all duration-200 ${
                                                     animatingFeedback === 'down' 
-                                                    ? 'bg-red-500 text-white scale-110 shadow-lg' 
+                                                    ? 'bg-red-50 text-white scale-110 shadow-lg' 
                                                     : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
                                                 }`}
                                                 title="Bad Result"
@@ -420,6 +421,16 @@ export const FeatureLayout: React.FC<{
                              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
                                 <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
                                     {customActionButtons}
+
+                                    {onEdit && (
+                                        <button 
+                                            onClick={onEdit} 
+                                            className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
+                                        >
+                                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/>
+                                            <span className="hidden sm:inline">Magic Editor</span>
+                                        </button>
+                                    )}
 
                                     {onNewSession && (
                                          <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">

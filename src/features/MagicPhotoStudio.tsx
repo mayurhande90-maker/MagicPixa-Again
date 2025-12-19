@@ -199,6 +199,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             creationId={lastCreationId}
             onResetResult={result ? undefined : () => setResult(null)}
             onNewSession={result ? undefined : handleNewSession}
+            onEdit={() => setShowMagicEditor(true)}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
@@ -275,13 +276,17 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                         <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbProduct}`}></div>
                                         <div className={PhotoStudioStyles.iconGlass}><CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/></div>
                                         <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Product Shot</h3><p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p></div>
-                                        <div className={PhotoStudioStyles.actionBtn}><ArrowRightIcon className={PhotoStudioStyles.actionIcon}/></div>
+                                        <div className={PhotoStudioStyles.actionBtn}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
+                                        </div>
                                     </button>
                                     <button onClick={() => handleModeSelect('model')} className={`${PhotoStudioStyles.modeCard} ${PhotoStudioStyles.modeCardModel}`}>
                                         <div className={`${PhotoStudioStyles.orb} ${PhotoStudioStyles.orbModel}`}></div>
                                         <div className={PhotoStudioStyles.iconGlass}><UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/></div>
                                         <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Model Shot</h3><p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p></div>
-                                        <div className={PhotoStudioStyles.actionBtn}><ArrowRightIcon className={PhotoStudioStyles.actionIcon}/></div>
+                                        <div className={PhotoStudioStyles.actionBtn}>
+                                            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
@@ -296,138 +301,4 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
                                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                                     {(isAnalyzing || isAnalyzingModel) ? (
-                                        <div className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4 border border-gray-100 bg-gray-50/50 h-64 opacity-50">
-                                            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">Pixa is Thinking...</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* BOX 1: AI BLUEPRINTS (Hidden if manual controls started) */}
-                                            {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && !selectedPrompt && (
-                                                <div className="bg-indigo-50/40 rounded-2xl p-5 border border-indigo-100 mb-6 transition-all hover:border-indigo-200 hover:shadow-sm">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <label className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                                                            <SparklesIcon className="w-3.5 h-3.5 text-indigo-500" />
-                                                            AI Blueprints
-                                                        </label>
-                                                        <span className="text-[10px] bg-white text-indigo-600 px-2 py-1 rounded-full font-bold shadow-sm border border-indigo-100">Pixa Recommends</span>
-                                                    </div>
-                                                    
-                                                    <div className="flex flex-col gap-2.5">
-                                                        {(studioMode === 'model' ? suggestedModelPrompts : suggestedPrompts).map((promptItem, idx) => {
-                                                            const isModel = studioMode === 'model';
-                                                            const displayText = isModel ? (promptItem as any).display : promptItem;
-                                                            const promptValue = isModel ? (promptItem as any).prompt : promptItem;
-                                                            const isSelected = selectedPrompt === promptValue;
-
-                                                            return (
-                                                                <div 
-                                                                    key={idx} 
-                                                                    style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }} 
-                                                                    className="group relative rounded-full p-[1px] bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 animate-[fadeInUp_0.5s_ease-out] hover:shadow-md cursor-pointer"
-                                                                    onClick={() => handlePromptSelect(promptValue)}
-                                                                >
-                                                                    <div className={`w-full h-full rounded-full bg-white/40 hover:bg-white/60 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between transition-all duration-200`}>
-                                                                        <span className={`text-xs font-medium italic ${isSelected ? 'text-indigo-700 font-bold' : 'text-slate-700'}`}>
-                                                                            "{displayText}"
-                                                                        </span>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'bg-white/50 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
-                                                                            <ArrowRightIcon className="w-2.5 h-2.5" />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* DIVIDER (Hidden if manual controls started) */}
-                                            {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && !selectedPrompt && (
-                                                <div className="relative flex items-center py-2 mb-6 opacity-70">
-                                                    <div className="flex-grow border-t border-gray-300"></div>
-                                                    <span className="flex-shrink-0 mx-3 text-[9px] font-black text-gray-400 uppercase tracking-widest px-2 py-1 bg-gray-100 rounded-full">OR BUILD YOUR OWN</span>
-                                                    <div className="flex-grow border-t border-gray-300"></div>
-                                                </div>
-                                            )}
-
-                                            {/* SELECTED PROMPT VIEW */}
-                                            {selectedPrompt && (
-                                                <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-200 mb-6 flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Selected Blueprint</p>
-                                                        <p className="text-sm font-medium text-indigo-900 line-clamp-2">
-                                                            {studioMode === 'model' 
-                                                                ? suggestedModelPrompts.find(p => (p as any).prompt === selectedPrompt)?.display 
-                                                                : selectedPrompt}
-                                                        </p>
-                                                    </div>
-                                                    <button onClick={() => setSelectedPrompt(null)} className="p-2 hover:bg-indigo-100 rounded-full text-indigo-500 transition-colors">
-                                                        <XIcon className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* BOX 2: MANUAL CONTROLS */}
-                                            {!selectedPrompt && (
-                                                <div className={`transition-all duration-500 ${((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) ? 'bg-white rounded-2xl p-5 border border-gray-200 shadow-sm' : ''}`}>
-                                                    
-                                                    {/* Header for Box 2 */}
-                                                    {((studioMode === 'product' && !category) || (studioMode === 'model' && !modelType)) && (
-                                                        <div className="mb-5 flex items-center gap-2 border-b border-gray-100 pb-3">
-                                                            <div className="p-1.5 bg-gray-100 rounded-lg">
-                                                                <CubeIcon className="w-3.5 h-3.5 text-gray-500" />
-                                                            </div>
-                                                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">
-                                                                Custom Studio Config
-                                                            </label>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="space-y-6 animate-fadeIn">
-                                                        {studioMode === 'product' ? (
-                                                            <>
-                                                                 <div>
-                                                                     <div className={PhotoStudioStyles.promptHeader}>
-                                                                        <label className={PhotoStudioStyles.promptLabel}>1. Product Category</label>
-                                                                        {category && <button onClick={() => { setCategory(''); setBrandStyle(''); setVisualType(''); }} className={PhotoStudioStyles.promptClearBtn}>Clear</button>}
-                                                                     </div>
-                                                                     <div className="flex flex-wrap gap-2">
-                                                                        {categories.map(opt => (
-                                                                            <button key={opt} onClick={() => { setCategory(opt); setBrandStyle(''); setVisualType(''); autoScroll(); }} className={`${PhotoStudioStyles.categoryBtn} ${category === opt ? PhotoStudioStyles.categoryBtnActive : PhotoStudioStyles.categoryBtnInactive}`}>{opt}</button>
-                                                                        ))}
-                                                                     </div>
-                                                                </div>
-                                                                {category && <SelectionGrid label="2. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); setVisualType(''); autoScroll(); }} />}
-                                                                {category && brandStyle && <SelectionGrid label="3. Visual Type" options={visualTypes} value={visualType} onChange={(val) => { setVisualType(val); autoScroll(); }} />}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <SelectionGrid label="1. Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />
-                                                                {modelComposition && <SelectionGrid label="2. Model Type" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
-                                                                {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); setSkinTone(''); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
-                                                                {modelRegion && <SelectionGrid label="4. Skin Tone" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); setBodyType(''); setModelFraming(''); autoScroll(); }} />}
-                                                                {skinTone && <SelectionGrid label="5. Body Type" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); setModelFraming(''); autoScroll(); }} />}
-                                                                {bodyType && <SelectionGrid label="6. Shot Type" options={shotTypes} value={modelFraming} onChange={(val) => { setModelFraming(val); autoScroll(); }} />}
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )
-            }
-        />
-        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-        {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-        {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-        {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Generation" />}
-        {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
-        </>
-    );
-};
+                                        <div

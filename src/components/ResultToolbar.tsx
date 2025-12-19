@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { PlusIcon, RegenerateIcon, MagicWandIcon, FlagIcon } from './icons';
+import { PlusIcon, RegenerateIcon, FlagIcon } from './icons';
 
 interface ResultToolbarProps {
     onNew: () => void;
@@ -9,11 +8,10 @@ interface ResultToolbarProps {
     onReport: () => void;
 }
 
-export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onEdit, onReport }) => {
+export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onReport }) => {
     const buttons = [
         { label: 'New Project', icon: PlusIcon, onClick: onNew, color: 'text-gray-700', bg: 'hover:bg-gray-100' },
         { label: 'Regenerate', icon: RegenerateIcon, onClick: onRegen, color: 'text-blue-600', bg: 'hover:bg-blue-50' },
-        { label: 'Magic Editor', icon: MagicWandIcon, onClick: onEdit, color: 'text-purple-600', bg: 'hover:bg-purple-50' },
         { label: 'Report Issue', icon: FlagIcon, onClick: onReport, color: 'text-red-500', bg: 'hover:bg-red-50' },
     ];
 
