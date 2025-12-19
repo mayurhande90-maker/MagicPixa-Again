@@ -13,7 +13,7 @@ interface MagicEditorModalProps {
 // Simple Redo Icon (mirrored Undo)
 const RedoIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 0 000 12h3" />
     </svg>
 );
 
@@ -387,7 +387,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     <div>
                         <h2 className="text-gray-900 font-black text-xl tracking-tight leading-none">Magic Editor</h2>
                         <p className="text-gray-500 text-[11px] font-medium mt-1.5">
-                            Erase unwanted objects and reconstruct the background perfectly.
+                            High-precision object removal and intelligent scene healing for studio-quality, distraction-free photos.
                         </p>
                     </div>
                 </div>
