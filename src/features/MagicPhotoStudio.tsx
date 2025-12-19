@@ -301,4 +301,105 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
                                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                                     {(isAnalyzing || isAnalyzingModel) ? (
-                                        <div
+                                        <div className="space-y-6">
+                                             <div className="bg-gray-100/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4 animate-pulse">
+                                                 <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pixa Vision is Analyzing Identity...</p>
+                                             </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                        {/* Suggested AI Prompts Section */}
+                                        {(suggestedPrompts.length > 0 || suggestedModelPrompts.length > 0) && (
+                                            <div className={PhotoStudioStyles.promptContainer}>
+                                                <div className={PhotoStudioStyles.promptHeader}>
+                                                    <label className={PhotoStudioStyles.promptLabel}>
+                                                        {studioMode === 'product' ? '1. AI Blueprints' : '1. Model Concepts'}
+                                                    </label>
+                                                    {selectedPrompt && <button onClick={() => setSelectedPrompt(null)} className={PhotoStudioStyles.promptClearBtn}>Reset</button>}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {studioMode === 'product' ? suggestedPrompts.map((p, i) => (
+                                                        <button 
+                                                            key={i} 
+                                                            onClick={() => handlePromptSelect(p)}
+                                                            className={`${PhotoStudioStyles.promptButton} ${selectedPrompt === p ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive}`}
+                                                        >
+                                                            <div className={`${PhotoStudioStyles.promptBorder} ${selectedPrompt === p ? 'opacity-100' : 'opacity-0'}`}></div>
+                                                            <div className={`${PhotoStudioStyles.promptContent} ${selectedPrompt === p ? 'bg-transparent' : 'bg-white border border-gray-100 group-hover:border-indigo-200'}`}>
+                                                                <span className={`${PhotoStudioStyles.promptText} ${selectedPrompt === p ? PhotoStudioStyles.promptTextActive : PhotoStudioStyles.promptTextInactive}`}>"{p}"</span>
+                                                            </div>
+                                                        </button>
+                                                    )) : suggestedModelPrompts.map((p, i) => (
+                                                        <button 
+                                                            key={i} 
+                                                            onClick={() => handlePromptSelect(p.prompt)}
+                                                            className={`${PhotoStudioStyles.promptButton} ${selectedPrompt === p.prompt ? PhotoStudioStyles.promptButtonActive : PhotoStudioStyles.promptButtonInactive}`}
+                                                        >
+                                                            <div className={`${PhotoStudioStyles.promptBorder} ${selectedPrompt === p.prompt ? 'opacity-100' : 'opacity-0'}`}></div>
+                                                            <div className={`${PhotoStudioStyles.promptContent} ${selectedPrompt === p.prompt ? 'bg-transparent' : 'bg-white border border-gray-100 group-hover:border-indigo-200'}`}>
+                                                                <span className={`${PhotoStudioStyles.promptText} ${selectedPrompt === p.prompt ? PhotoStudioStyles.promptTextActive : PhotoStudioStyles.promptTextInactive}`}>{p.display}</span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-3 py-4">
+                                            <div className="h-px bg-gray-200 flex-1"></div>
+                                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Or Manual Refinement</span>
+                                            <div className="h-px bg-gray-200 flex-1"></div>
+                                        </div>
+
+                                        {/* Manual Configuration based on mode */}
+                                        <div className={`space-y-6 ${selectedPrompt ? 'opacity-30 pointer-events-none blur-[1px] grayscale' : ''}`}>
+                                            {studioMode === 'product' ? (
+                                                <>
+                                                    <SelectionGrid label="2. Product Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                                                    {category && <SelectionGrid label="3. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); autoScroll(); }} />}
+                                                    {brandStyle && <SelectionGrid label="4. Visual Theme" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
+                                                    {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
+                                                    {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
+                                                    {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); autoScroll(); }} />}
+                                                    {bodyType && <SelectionGrid label="6. Shot Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />}
+                                                    {modelComposition && <SelectionGrid label="7. Camera Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
+                                                </>
+                                            )}
+                                        </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        {!image && (
+                            <div className="h-full flex items-center justify-center gap-3 text-xs text-gray-400 font-bold uppercase tracking-widest opacity-60">
+                                <ArrowUpCircleIcon className="w-5 h-5 animate-bounce" />
+                                <span>Upload a photo to begin</span>
+                            </div>
+                        )}
+                    </div>
+                )
+            }
+        />
+        
+        {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+        
+        {showMagicEditor && result && (
+            <MagicEditorModal 
+                imageUrl={result} 
+                onClose={() => setShowMagicEditor(false)} 
+                onSave={handleEditorSave} 
+                deductCredit={handleDeductEditCredit} 
+            />
+        )}
+        
+        {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
+        {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+        </>
+    );
+};
