@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -74,7 +75,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Mockups (Edited)');
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Mockups');
             setLastCreationId(id);
         }
     };

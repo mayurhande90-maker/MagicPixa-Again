@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -73,7 +74,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Photo Restore (Edited)'); 
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Photo Restore'); 
             setLastCreationId(id);
         }
     };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -213,6 +214,7 @@ export const DashboardHome: React.FC<{
     };
 
     const latestCreation = creations.length > 0 ? creations[0] : null;
+    const latestFeatureLabel = latestCreation?.lastEditedAt ? `(Edited) ${latestCreation.feature}` : latestCreation?.feature;
 
     const tools = [
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
@@ -258,7 +260,7 @@ export const DashboardHome: React.FC<{
                             <img src={(latestCreation as any).mediumUrl || latestCreation.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Latest creation" loading="lazy" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end pointer-events-none">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-2 border border-white/10">Latest Creation</span>
-                                <h3 className="text-white text-2xl font-bold mb-4">{latestCreation.feature}</h3>
+                                <h3 className="text-white text-2xl font-bold mb-4">{latestFeatureLabel}</h3>
                                 <div className="flex gap-3 pointer-events-auto">
                                     <button 
                                         onClick={(e) => {

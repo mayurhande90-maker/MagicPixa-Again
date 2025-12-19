@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
 import { getCreations, deleteCreation } from '../firebase';
@@ -334,6 +335,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                     const daysOld = getDaysOld(c);
                                     const daysRemaining = 15 - daysOld;
                                     const isExpiringSoon = daysRemaining <= 5;
+                                    const featureLabel = c.lastEditedAt ? `(Edited) ${c.feature}` : c.feature;
 
                                     return (
                                         <div 
@@ -397,7 +399,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                             
                                             <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
                                                 <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
-                                                    <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
+                                                    <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{featureLabel}</p>
                                                 </div>
                                             </div>
                                         </div>

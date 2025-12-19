@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon } from '../components/icons';
@@ -67,7 +68,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa TryOn (Edited)');
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa TryOn');
             setLastCreationId(id);
         }
     };

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -178,7 +179,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Headshot Pro (Edited)'); 
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Headshot Pro'); 
             setLastCreationId(id);
         }
     };

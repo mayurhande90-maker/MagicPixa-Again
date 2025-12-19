@@ -199,6 +199,7 @@ export interface Creation {
     storagePath: string;
     feature: string;
     createdAt: Timestamp;
+    lastEditedAt?: Timestamp; // Added for editor tracking
 }
 
 export interface CreditPack {

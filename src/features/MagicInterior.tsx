@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
@@ -98,7 +99,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Interior Design (Edited)'); 
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Interior Design'); 
             setLastCreationId(id); 
         }
     };

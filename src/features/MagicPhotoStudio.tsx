@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -156,9 +157,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
-            const creationId = await saveCreation(auth.user.uid, dataUri, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
+            const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
+            const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
             setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots');
+            const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert('Generation failed. Please try again.'); } finally { setLoading(false); }
@@ -185,7 +187,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             // Update existing instead of creating new
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Product Shots (Edited)'); 
+            const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
+            const id = await saveCreation(auth.user.uid, newUrl, featureName); 
             setLastCreationId(id); 
         }
     };
@@ -287,6 +290,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                         <div className={PhotoStudioStyles.iconGlass}><CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/></div>
                                         <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Product Shot</h3><p className={PhotoStudioStyles.desc}>Studio lighting, 3D podiums, and pure environments.</p></div>
                                         <div className={PhotoStudioStyles.actionBtn}>
+                                            {/* FIX: Changed AdMakerStyles to PhotoStudioStyles to resolve compilation error */}
                                             <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
                                         </div>
                                     </button>
@@ -295,6 +299,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                         <div className={PhotoStudioStyles.iconGlass}><UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/></div>
                                         <div className={PhotoStudioStyles.contentWrapper}><h3 className={PhotoStudioStyles.title}>Model Shot</h3><p className={PhotoStudioStyles.desc}>AI Humans holding, wearing, or interacting with it.</p></div>
                                         <div className={PhotoStudioStyles.actionBtn}>
+                                            {/* FIX: Changed AdMakerStyles to PhotoStudioStyles to resolve compilation error */}
                                             <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
                                         </div>
                                     </button>
