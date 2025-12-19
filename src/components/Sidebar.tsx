@@ -160,9 +160,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
             >
                 <GiftIcon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
                 <span>Refer & Earn</span>
-                <span className="ml-auto text-[10px] bg-purple-200 text-purple-700 font-bold px-1.5 py-0.5 rounded-full">
-                    NEW
-                </span>
             </button>
 
         </nav>
