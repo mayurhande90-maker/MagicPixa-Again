@@ -188,8 +188,9 @@ export const DashboardHome: React.FC<{
             'Brand Stylist': 'brand_stylist',
             'Thumbnail Studio': 'thumbnail_studio',
             'Pixa Thumbnail Pro': 'thumbnail_studio',
-            'Magic Realty': 'magic_realty',
-            'Pixa Realty Ads': 'magic_realty',
+            // Map legacy Realty names to the merged AdMaker view
+            'Magic Realty': 'brand_stylist',
+            'Pixa Realty Ads': 'brand_stylist',
             'Magic Soul': 'soul',
             'Pixa Together': 'soul',
             'Magic Photo Colour': 'colour',
@@ -215,13 +216,12 @@ export const DashboardHome: React.FC<{
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
     const tools = [
-        { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, color: '' }, // UPDATED ICON
+        { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, color: '' }, 
         { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: '' }, 
         { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: '' },
         { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, color: '' },
         { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: '' },
         { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: '' }, 
-        { id: 'magic_realty', label: 'Pixa Realty Ads', icon: BuildingIcon, color: '' }, 
         { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, color: '' },
         { id: 'colour', label: 'Pixa Photo Restore', icon: PixaRestoreIcon, color: '' },
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
