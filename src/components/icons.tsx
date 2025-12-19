@@ -11,4 +11,6 @@ export * from './icons/headshotIcons';
 
 // Add specific exports if missing from sub-files or alias them here
 import { CalendarIcon } from './icons/uiIcons';
-export { CalendarIcon }; 
+export { CalendarIcon };
+import { CampaignStudioIcon } from './icons/featureIcons';
+export { CampaignStudioIcon };

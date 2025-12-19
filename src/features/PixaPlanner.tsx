@@ -9,7 +9,7 @@ import {
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
-    CopyIcon, ChevronRightIcon
+    CopyIcon, ChevronRightIcon, CampaignStudioIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -403,7 +403,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarIcon className="w-8 h-8" /></div>
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CampaignStudioIcon className="w-8 h-8" /></div>
                     <div>
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Studio</h1>
                         <p className="text-sm text-gray-500">Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
@@ -448,7 +448,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     key={f.label} 
                                     title={f.label} 
                                     description={f.desc} 
-                                    icon={<CalendarIcon className="w-5 h-5"/>} 
+                                    icon={<CampaignStudioIcon className="w-5 h-5"/>} 
                                     selected={config.frequency === f.label} 
                                     onClick={() => setConfig({...config, frequency: f.label})} 
                                 />

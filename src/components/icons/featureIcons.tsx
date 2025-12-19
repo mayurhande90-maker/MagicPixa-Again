@@ -343,3 +343,40 @@ export const PixaBillingIcon: React.FC<IconProps> = ({ className }) => (
         <path fill="#8899A6" d="M19 24c-1.703 0-2.341-1.21-2.469-1.801c-.547.041-1.08.303-1.805.764C13.961 23.449 13.094 24 12 24c-1.197 0-1.924-.675-2-2c-.003-.056.038-.188.021-.188c-1.858 0-3.202 1.761-3.215 1.779a.997.997 0 0 1-1.397.215a1 1 0 0 1-.215-1.398C5.271 22.303 7.11 20 10 20c1.937 0 2.048 1.375 2.078 1.888l.007.109c.486-.034.991-.354 1.57-.723c.961-.61 2.153-1.371 3.75-.962c.871.223 1.007 1.031 1.059 1.336c.013.076.032.19.049.226c.007 0 .146.091.577.13c.82.075 1.721-.279 2.675-.653c.988-.388 2.01-.788 3.111-.788c3.389 0 4.767 1.635 4.913 1.821a1 1 0 1 1-1.575 1.232c-.024-.027-.93-1.054-3.337-1.054c-.723 0-1.528.315-2.381.649c-1.009.396-2.434.789-3.496.789z"/>
     </svg>
 );
+
+// New CampaignStudioIcon with high-fidelity provided SVG
+export const CampaignStudioIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none">
+            <path fill="url(#fluentColorCalendar160)" d="M14 11.5v-6l-6-1l-6 1v6A2.5 2.5 0 0 0 4.5 14h7a2.5 2.5 0 0 0 2.5-2.5"/>
+            <path fill="url(#fluentColorCalendar161)" d="M14 11.5v-6l-6-1l-6 1v6A2.5 2.5 0 0 0 4.5 14h7a2.5 2.5 0 0 0 2.5-2.5"/>
+            <g filter="url(#fluentColorCalendar164)">
+                <path fill="url(#fluentColorCalendar162)" d="M5.248 8.997a.748.748 0 1 0 0-1.497a.748.748 0 0 0 0 1.497m.749 1.752a.748.748 0 1 1-1.497 0a.748.748 0 0 1 1.497 0M8 8.997A.748.748 0 1 0 8 7.5a.748.748 0 0 0 0 1.497m.749 1.752a.748.748 0 1 1-1.497 0a.748.748 0 0 1 1.497 0m2-1.752a.748.748 0 1 0 0-1.497a.748.748 0 0 0 0 1.497"/>
+            </g>
+            <path fill="url(#fluentColorCalendar163)" d="M14 4.5A2.5 2.5 0 0 0 11.5 2h-7A2.5 2.5 0 0 0 2 4.5V6h12z"/>
+            <defs>
+                <linearGradient id="fluentColorCalendar160" x1="10.167" x2="6.667" y1="15.167" y2="5" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#B3E0FF"/><stop offset="1" stopColor="#B3E0FF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorCalendar161" x1="9.286" x2="11.025" y1="8.386" y2="16.154" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#DCF8FF" stopOpacity="0"/><stop offset="1" stopColor="#FF6CE8" stopOpacity=".7"/>
+                </linearGradient>
+                <linearGradient id="fluentColorCalendar162" x1="7.362" x2="8.566" y1="7.039" y2="15.043" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#0078D4"/><stop offset="1" stopColor="#0067BF"/>
+                </linearGradient>
+                <linearGradient id="fluentColorCalendar163" x1="2" x2="12.552" y1="2" y2="-.839" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#0094F0"/><stop offset="1" stopColor="#2764E7"/>
+                </linearGradient>
+                <filter id="fluentColorCalendar164" width="9.664" height="6.664" x="3.167" y="6.833" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                    <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                    <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+                    <feOffset dy=".667"/>
+                    <feGaussianBlur stdDeviation=".667"/>
+                    <feColorMatrix values="0 0 0 0 0.1242 0 0 0 0 0.323337 0 0 0 0 0.7958 0 0 0 0.32 0"/>
+                    <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_378174_9782"/>
+                    <feBlend in="SourceGraphic" in2="effect1_dropShadow_378174_9782" result="shape"/>
+                </filter>
+            </defs>
+        </g>
+    </svg>
+);
