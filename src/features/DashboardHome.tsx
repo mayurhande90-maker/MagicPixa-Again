@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Page, View, AppConfig, Creation } from '../types';
 import { 
@@ -79,12 +78,12 @@ const DailyQuest: React.FC<{
             
             <div>
                 <div className="flex items-center justify-between mb-2 relative z-10">
-                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1 ${
+                    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-sm border ${
                         isLocked 
-                        ? 'bg-green-200 text-green-800' 
-                        : 'bg-red-50 text-white border border-white/10 animate-pulse'
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                        : 'bg-red-600 text-white border-red-500 animate-pulse shadow-red-500/20'
                     }`}>
-                        <FlagIcon className="w-3 h-3" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
+                        <FlagIcon className="w-3.5 h-3.5" /> {isLocked ? 'Mission Complete' : 'Daily Challenge'}
                     </span>
                     {!isLocked && <div className="w-2 h-2 bg-[#F9D230] rounded-full animate-pulse"></div>}
                 </div>
