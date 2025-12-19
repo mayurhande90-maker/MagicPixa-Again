@@ -42,12 +42,14 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const imageCanvasRef = useRef<HTMLCanvasElement>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const scrollTimeoutRef = useRef<number | null>(null);
     
     const [brushSize, setBrushSize] = useState(40);
     const [isSpacePanning, setIsSpacePanning] = useState(false);
     
     const [isDrawing, setIsDrawing] = useState(false);
     const [isPanning, setIsPanning] = useState(false);
+    const [isScrolling, setIsScrolling] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
@@ -65,6 +67,11 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     const MIN_ZOOM = 0.1;
     const MAX_ZOOM = 10.0;
+
+    // Computed tool highlights
+    const isPanActive = isSpacePanning || isPanning;
+    const isZoomActive = isScrolling;
+    const isPaintActive = !isPanActive && !isZoomActive;
 
     // Loading Animation Cycle
     useEffect(() => {
@@ -177,6 +184,11 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             e.preventDefault();
             if (isProcessing) return;
             
+            // Highlight zoom instruction
+            if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+            setIsScrolling(true);
+            scrollTimeoutRef.current = window.setTimeout(() => setIsScrolling(false), 1000);
+
             const zoomSensitivity = 0.002; 
             const delta = -e.deltaY * zoomSensitivity;
             setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
@@ -409,7 +421,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             {/* Canvas Workspace */}
             <div 
                 ref={containerRef}
-                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-hidden ${isProcessing ? 'cursor-wait' : isSpacePanning || isPanning ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
+                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-hidden ${isProcessing ? 'cursor-wait' : isPanActive ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -463,19 +475,19 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 {/* Center: Instructions & Zoom Status (Combined) */}
                 <div className="flex items-center gap-6 bg-gray-50 px-8 py-2.5 rounded-full border border-gray-100 shadow-inner overflow-x-auto no-scrollbar">
                     
-                    {/* Unified Instruction Group */}
-                    <div className="flex items-center gap-5 text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-indigo-500">
+                    {/* Unified Instruction Group with Dynamic Highlighting */}
+                    <div className="flex items-center gap-5 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                        <div className={`flex items-center gap-2 transition-all duration-300 ${isPaintActive ? 'text-indigo-500 scale-110' : 'text-gray-400 opacity-60'}`}>
                             <PencilIcon className="w-3.5 h-3.5" /> 
                             <span>Paint</span>
                         </div>
                         <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
-                        <div className="flex items-center gap-2 text-gray-700">
+                        <div className={`flex items-center gap-2 transition-all duration-300 ${isPanActive ? 'text-indigo-500 scale-110' : 'text-gray-400 opacity-60'}`}>
                             <HandIcon className="w-3.5 h-3.5" />
                             <span>Space bar to Pan</span>
                         </div>
                         <div className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></div>
-                        <div className="flex items-center gap-2 text-gray-500">
+                        <div className={`flex items-center gap-2 transition-all duration-300 ${isZoomActive ? 'text-indigo-500 scale-110' : 'text-gray-400 opacity-60'}`}>
                             <MouseIcon className="w-3.5 h-3.5" />
                             <span>Scroll to Zoom</span>
                         </div>
