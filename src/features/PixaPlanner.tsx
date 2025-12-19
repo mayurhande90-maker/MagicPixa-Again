@@ -425,7 +425,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CampaignStudioIcon className="w-8 h-8" /></div>
+                    <div className="text-indigo-600"><CampaignStudioIcon className="w-8 h-8" /></div>
                     <div>
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Studio</h1>
                         <p className="text-sm text-gray-500">Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
