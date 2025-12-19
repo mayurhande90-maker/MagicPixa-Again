@@ -4,7 +4,7 @@ import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, In
 import { MockupIcon, UploadIcon, XIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, TrashIcon, PaletteIcon, ArrowUpCircleIcon, PixaMockupIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -68,7 +68,17 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Mockup Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setDesignImage(null); setResultImage(null); setTargetObject(''); setCustomObject(''); setMaterial(''); setSceneVibe(''); setObjectColor(''); setLastCreationId(null); };
-    const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Mockups (Edited)'); };
+    
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) {
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Mockups (Edited)');
+            setLastCreationId(id);
+        }
+    };
+    
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
     const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
@@ -76,7 +86,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     return (
         <>
             <FeatureLayout 
-                title="Pixa Mockups" description="The Reality Engine. Turn flat designs into photorealistic physical objects with accurate material physics." icon={<PixaMockupIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage}
+                title="Pixa Mockups" description="The Reality Engine. Turn flat designs into photorealistic physical objects with accurate material physics." icon={<PixaMockupIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}

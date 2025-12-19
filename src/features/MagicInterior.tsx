@@ -4,7 +4,7 @@ import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, Sparkle
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -92,7 +92,17 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Interior Design", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); };
-    const handleEditorSave = async (newUrl: string) => { setResult(newUrl); const id = await saveCreation(auth.user!.uid, newUrl, 'Pixa Interior Design (Edited)'); setLastCreationId(id); };
+    
+    const handleEditorSave = async (newUrl: string) => { 
+        setResult(newUrl); 
+        if (lastCreationId && auth.user) {
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Interior Design (Edited)'); 
+            setLastCreationId(id); 
+        }
+    };
+    
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const canGenerate = !!image && !isLowCredits && !!roomType && !!style;
 

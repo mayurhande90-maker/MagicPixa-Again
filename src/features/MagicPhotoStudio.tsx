@@ -8,7 +8,7 @@ import {
 } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -179,7 +179,17 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setImage(null); setResult(null); setStudioMode(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null);
     };
 
-    const handleEditorSave = async (newUrl: string) => { setResult(newUrl); const id = await saveCreation(auth.user!.uid, newUrl, 'Pixa Product Shots (Edited)'); setLastCreationId(id); };
+    const handleEditorSave = async (newUrl: string) => { 
+        setResult(newUrl); 
+        if (lastCreationId && auth.user) {
+            // Update existing instead of creating new
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Product Shots (Edited)'); 
+            setLastCreationId(id); 
+        }
+    };
+    
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
 
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (studioMode === 'product' ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType)) : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming)));
@@ -365,7 +375,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                     <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
                                                     {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
                                                     {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
-                                                    {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); autoFocus: false }} />}
+                                                    {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); }} />}
                                                     {bodyType && <SelectionGrid label="6. Shot Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />}
                                                     {modelComposition && <SelectionGrid label="7. Camera Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
                                                 </>

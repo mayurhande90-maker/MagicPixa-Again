@@ -4,7 +4,7 @@ import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../compone
 import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
@@ -226,7 +226,17 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
     
     const handleNewSession = () => { setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); setLastCreationId(null); setCustomDescription(''); };
-    const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Together (Edited)'); };
+    
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) {
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Together (Edited)');
+            setLastCreationId(id);
+        }
+    };
+    
     const handleDeductEditCredit = async () => { if(auth.user) { const deduct = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...deduct } : null); } };
     
     const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits && (mode === 'creative' ? !!relationship : true);

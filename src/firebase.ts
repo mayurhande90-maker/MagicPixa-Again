@@ -1,4 +1,3 @@
-
 // ... existing imports
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -269,6 +268,30 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
         storagePath: ''
     });
     return docRef.id;
+};
+
+/**
+ * Updates an existing creation with a new image.
+ * Primarily used by the Magic Editor to avoid duplicate entries in the gallery.
+ */
+export const updateCreation = async (uid: string, creationId: string, imageUrl: string): Promise<void> => {
+    if (!db) throw new Error("DB not initialized");
+    
+    let finalImage = imageUrl;
+    
+    // Firestore limit is 1MB. Safety check: Compress if > 800KB
+    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
+        try {
+            finalImage = await resizeImage(finalImage, 1024, 0.7);
+        } catch (e) {
+            console.warn("Image compression failed, using original for update...", e);
+        }
+    }
+
+    await db.collection('users').doc(uid).collection('creations').doc(creationId).update({
+        imageUrl: finalImage,
+        lastEditedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
 };
 
 export const getCreations = async (uid: string) => {

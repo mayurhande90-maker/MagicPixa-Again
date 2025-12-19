@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -28,7 +27,7 @@ import {
 } from '../components/icons/headshotIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
@@ -174,7 +173,16 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setCustomDesc(''); 
     };
     
-    const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Headshot Pro (Edited)'); };
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) {
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Headshot Pro (Edited)'); 
+            setLastCreationId(id);
+        }
+    };
+    
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
     const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !!background && !isLowCredits;
