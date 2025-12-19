@@ -72,7 +72,11 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 if (containerRef.current) {
                     const scrollX = (width * fitZoom - containerRef.current.clientWidth) / 2;
                     const scrollY = (height * fitZoom - containerRef.current.clientHeight) / 2;
-                    containerRef.current.scrollTo(Math.max(0, scrollX), Math.max(0, scrollY));
+                    containerRef.current.scrollTo({
+                        left: Math.max(0, scrollX),
+                        top: Math.max(0, scrollY),
+                        behavior: 'smooth'
+                    });
                 }
             }, 50);
         }
@@ -140,13 +144,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                if (isProcessing) return;
-                const zoomSensitivity = 0.0015; 
-                const delta = -e.deltaY * zoomSensitivity;
-                setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
-            }
+            // Zoom directly with mouse scroll, no Ctrl needed
+            e.preventDefault();
+            if (isProcessing) return;
+            
+            const zoomSensitivity = 0.0012; 
+            const delta = -e.deltaY * zoomSensitivity;
+            setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
         };
 
         container.addEventListener('wheel', handleWheel, { passive: false });
@@ -234,7 +238,11 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     const handleRemove = async () => {
         if (!imageCanvasRef.current || !maskCanvasRef.current) return;
+        
+        // Fit to screen before showing the loading overlay
+        resetView(imgDims.w, imgDims.h);
         setIsProcessing(true);
+        
         try {
             const maskCanvas = maskCanvasRef.current;
             const imgCanvas = imageCanvasRef.current;
@@ -266,7 +274,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             
             await deductCredit();
             setCurrentImageSrc(resultUrl);
-            // resetView will be triggered by useEffect[currentImageSrc]
         } catch (error) {
             console.error("Magic Eraser failed", error);
             alert("Failed to remove element. Please try again.");
@@ -410,7 +417,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
                 <span className="text-indigo-600">Hold Spacebar to Pan</span>
                 <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span>Ctrl + Scroll to Zoom</span>
+                <span>Scroll to Zoom</span>
             </div>
         </div>,
         document.body
