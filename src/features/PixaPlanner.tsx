@@ -495,9 +495,9 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <button 
                             onClick={handleGeneratePlan} 
                             disabled={!isConfigValid}
-                            className={`bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-black hover:scale-105 shadow-indigo-500/20'}`}
+                            className={`bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-[#dfbc2b] hover:scale-105 shadow-yellow-500/20'}`}
                         >
-                            <MagicWandIcon className="w-6 h-6 text-yellow-400" />
+                            <MagicWandIcon className="w-6 h-6 text-[#1A1A1E]" />
                             Engineer Pro Strategy
                         </button>
                     </div>
