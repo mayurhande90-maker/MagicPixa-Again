@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -203,7 +202,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
-            generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }}
+            generateButtonStyle={{ 
+                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", 
+                hideIcon: true,
+                label: studioMode === 'model' ? "Generate Model Shots" : "Generate Product Shots"
+            }}
             scrollRef={scrollRef}
             leftContent={
                 image ? (
