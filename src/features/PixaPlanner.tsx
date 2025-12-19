@@ -504,7 +504,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             disabled={!isConfigValid}
                             className={`bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-[#dfbc2b] hover:scale-105 shadow-yellow-500/20'}`}
                         >
-                            <StrategyStarIcon className="w-6 h-6" />
                             Engineer Pro Strategy
                         </button>
                     </div>
@@ -624,7 +623,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
                         <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-all border-4 border-white active:scale-95">
-                            <StrategyStarIcon className="w-7 h-7" />
                             Render HD Campaign ({totalCost} CR)
                         </button>
                     </div>
