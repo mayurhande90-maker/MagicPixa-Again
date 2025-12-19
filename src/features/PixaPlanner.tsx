@@ -504,7 +504,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             disabled={!isConfigValid}
                             className={`bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-[#dfbc2b] hover:scale-105 shadow-yellow-500/20'}`}
                         >
-                            Engineer Pro Strategy
+                            Generate Strategy
                         </button>
                     </div>
                 </div>
