@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, UndoIcon, MagicWandIcon, ZoomInIcon, ZoomOutIcon, PencilIcon, CreditCoinIcon, EyeIcon } from './icons';
+import { XIcon, UndoIcon, MagicWandIcon, ZoomInIcon, ZoomOutIcon, PencilIcon, CreditCoinIcon } from './icons';
 import { removeElementFromImage } from '../services/imageToolsService';
 
 interface MagicEditorModalProps {
@@ -95,7 +95,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     }, [isProcessing]);
 
     const resetView = useCallback((width: number, height: number) => {
-        if (!width || !height) return;
+        if (!width || !height || isProcessing) return;
         
         const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
         const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
@@ -108,7 +108,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         
         setZoomLevel(Math.max(fitZoom, 0.1));
         setPanOffset({ x: 0, y: 0 });
-    }, []);
+    }, [isProcessing]);
 
     useEffect(() => {
         const img = new Image();
@@ -147,6 +147,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (isProcessing) return;
             if (e.code === 'Space' && !e.repeat) {
                 if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
                     e.preventDefault();
@@ -174,7 +175,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [maskHistory, imageHistory, maskRedoStack, imageRedoStack]);
+    }, [isProcessing, maskHistory, imageHistory, maskRedoStack, imageRedoStack]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -249,7 +250,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             if (maskCanvas && ctx) {
                 ctx.putImageData(stateToRestore, 0, 0);
             }
-        } else if (imageRedoStack.length > 0) {
+        } else if (imageHistory.length > 0) {
             const newRedoStack = [...imageRedoStack];
             const nextImage = newRedoStack.pop()!;
             
@@ -292,7 +293,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const draw = (e: React.MouseEvent) => {
-        if (!isDrawing) return;
+        if (!isDrawing || isProcessing) return;
         const maskCanvas = maskCanvasRef.current;
         const ctx = maskCanvas?.getContext('2d');
         
@@ -314,7 +315,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleRemove = async () => {
-        if (!imageCanvasRef.current || !maskCanvasRef.current) return;
+        if (!imageCanvasRef.current || !maskCanvasRef.current || isProcessing) return;
         
         setShowDeductionAnim(true);
         try {
@@ -325,7 +326,13 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             return;
         }
         
-        resetView(imgDims.w, imgDims.h);
+        // Reset view instantly to avoid visual glitch during processing overlay
+        const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+        const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
+        const fitZoom = Math.min((containerWidth * 0.8) / imgDims.w, (containerHeight * 0.7) / imgDims.h, 1);
+        setZoomLevel(fitZoom);
+        setPanOffset({ x: 0, y: 0 });
+
         setIsProcessing(true);
         
         try {
@@ -397,7 +404,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         <button 
                             onClick={handleUndo} 
                             disabled={!canUndo || isProcessing}
-                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm"
+                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm disabled:cursor-not-allowed"
                             title="Undo (Ctrl+Z)"
                         >
                             <UndoIcon className="w-5 h-5" />
@@ -405,14 +412,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         <button 
                             onClick={handleRedo} 
                             disabled={!canRedo || isProcessing}
-                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm"
+                            className="p-2.5 hover:bg-white rounded-lg text-gray-700 transition-all disabled:opacity-20 shadow-sm disabled:cursor-not-allowed"
                             title="Redo (Ctrl+Y)"
                         >
                             <RedoIcon className="w-5 h-5" />
                         </button>
                     </div>
                     <div className="h-8 w-px bg-gray-100"></div>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                    <button 
+                        onClick={onClose} 
+                        disabled={isProcessing}
+                        className={`p-2 transition-all ${isProcessing ? 'text-gray-200 cursor-not-allowed opacity-30' : 'text-gray-400 hover:text-red-500'}`}
+                    >
                         <XIcon className="w-8 h-8" />
                     </button>
                 </div>
@@ -456,7 +467,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 
                 {/* Left: Brush Settings */}
                 <div className="flex items-center gap-10 w-full lg:w-auto">
-                    <div className="flex flex-col gap-2 w-full sm:w-80">
+                    <div className={`flex flex-col gap-2 w-full sm:w-80 transition-opacity ${isProcessing ? 'opacity-30 cursor-not-allowed' : 'opacity-100'}`}>
                         <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                             <span>Brush Size</span>
                             <span>{brushSize}px</span>
@@ -466,14 +477,15 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                             min="5" 
                             max="200" 
                             value={brushSize} 
+                            disabled={isProcessing}
                             onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                            className="w-full h-1.5 bg-gray-100 rounded-full appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-400 transition-all"
+                            className="w-full h-1.5 bg-gray-100 rounded-full appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                 </div>
 
                 {/* Center: Instructions & Zoom Status (Combined) */}
-                <div className="flex items-center gap-6 bg-gray-50 px-8 py-2.5 rounded-full border border-gray-100 shadow-inner overflow-x-auto no-scrollbar">
+                <div className={`flex items-center gap-6 bg-gray-50 px-8 py-2.5 rounded-full border border-gray-100 shadow-inner overflow-x-auto no-scrollbar transition-opacity ${isProcessing ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'opacity-100'}`}>
                     
                     {/* Unified Instruction Group with Dynamic Highlighting */}
                     <div className="flex items-center gap-5 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
@@ -498,9 +510,23 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
                     {/* Zoom Bar Group */}
                     <div className="flex items-center gap-4 shrink-0">
-                        <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom Out"><ZoomOutIcon className="w-4 h-4"/></button>
+                        <button 
+                            onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, MIN_ZOOM))} 
+                            disabled={isProcessing}
+                            className="text-gray-400 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" 
+                            title="Zoom Out"
+                        >
+                            <ZoomOutIcon className="w-4 h-4"/>
+                        </button>
                         <span className="text-[10px] font-mono font-bold text-indigo-600 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                        <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} className="text-gray-400 hover:text-gray-900 transition-colors" title="Zoom In"><ZoomInIcon className="w-4 h-4"/></button>
+                        <button 
+                            onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, MAX_ZOOM))} 
+                            disabled={isProcessing}
+                            className="text-gray-400 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" 
+                            title="Zoom In"
+                        >
+                            <ZoomInIcon className="w-4 h-4"/>
+                        </button>
                     </div>
 
                     {/* Divider */}
@@ -509,7 +535,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     {/* Fit to Screen Action */}
                     <button 
                         onClick={() => resetView(imgDims.w, imgDims.h)} 
-                        className="text-gray-400 hover:text-indigo-600 transition-all hover:scale-110 shrink-0" 
+                        disabled={isProcessing}
+                        className="text-gray-400 hover:text-indigo-600 transition-all hover:scale-110 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed" 
                         title="Fit to Screen"
                     >
                         <FitScreenIcon className="w-5 h-5" />
@@ -535,14 +562,14 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                         <button 
                             onClick={handleApply}
                             disabled={isProcessing}
-                            className="flex-1 lg:flex-none px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-20"
+                            className="flex-1 lg:flex-none px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed"
                         >
                             Apply Changes
                         </button>
                         <button 
                             onClick={handleRemove}
                             disabled={isProcessing || !hasDrawn}
-                            className="flex-1 lg:flex-none px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-[#1A1A1E] bg-[#F9D230] hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 disabled:bg-gray-50 disabled:text-gray-300 disabled:shadow-none"
+                            className="flex-1 lg:flex-none px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-[#1A1A1E] bg-[#F9D230] hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 disabled:bg-gray-50 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
                         >
                             Remove Selected
                         </button>
