@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, UndoIcon, MagicWandIcon, CheckIcon, ZoomInIcon, ZoomOutIcon, PencilIcon, HandRaisedIcon, CreditCoinIcon, SparklesIcon, EyeIcon } from './icons';
-import { removeElementFromImage, detectObjectAtPoint } from '../services/imageToolsService';
+import { XIcon, UndoIcon, MagicWandIcon, ZoomInIcon, ZoomOutIcon, PencilIcon, CreditCoinIcon, EyeIcon } from './icons';
+import { removeElementFromImage } from '../services/imageToolsService';
 
 interface MagicEditorModalProps {
     imageUrl: string;
@@ -16,7 +16,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const containerRef = useRef<HTMLDivElement>(null);
     
     const [brushSize, setBrushSize] = useState(40);
-    const [editMode, setEditMode] = useState<'brush' | 'smart'>('smart'); // Smart is default
     const [isSpacePanning, setIsSpacePanning] = useState(false);
     
     const [isDrawing, setIsDrawing] = useState(false);
@@ -25,25 +24,24 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
 
     const [history, setHistory] = useState<ImageData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isDetecting, setIsDetecting] = useState(false);
     const [currentImageSrc, setCurrentImageSrc] = useState(imageUrl);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
     const [loadingText, setLoadingText] = useState("Initializing...");
 
-    const MIN_ZOOM = 0.5;
-    const MAX_ZOOM = 4.0;
+    const MIN_ZOOM = 0.25;
+    const MAX_ZOOM = 5.0;
 
-    // Loading Animation Cycle (Consistent with Studio)
+    // Loading Animation Cycle
     useEffect(() => {
         let interval: any;
         if (isProcessing) {
             const steps = [
-                "Pixa is identifying objects...",
-                "Synthesizing background textures...",
-                "Harmonizing light and shadows...",
-                "Polishing pixels for realism...",
-                "Finalizing high-res output..."
+                "Identifying objects...",
+                "Synthesizing background...",
+                "Harmonizing light...",
+                "Polishing pixels...",
+                "Finalizing output..."
             ];
             let step = 0;
             setLoadingText(steps[0]);
@@ -56,11 +54,17 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     }, [isProcessing]);
 
     const resetView = useCallback((width: number, height: number) => {
+        if (!width || !height) return;
+        
+        const containerWidth = containerRef.current?.clientWidth || window.innerWidth * 0.9;
+        const containerHeight = containerRef.current?.clientHeight || window.innerHeight * 0.6;
+
         const fitZoom = Math.min(
-            (window.innerWidth * 0.9) / width,
-            (window.innerHeight * 0.7) / height,
+            (containerWidth * 0.85) / width,
+            (containerHeight * 0.85) / height,
             1
         );
+        
         setZoomLevel(Math.max(fitZoom, MIN_ZOOM));
         
         if (containerRef.current) {
@@ -70,7 +74,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     const scrollY = (height * fitZoom - containerRef.current.clientHeight) / 2;
                     containerRef.current.scrollTo(Math.max(0, scrollX), Math.max(0, scrollY));
                 }
-            }, 10);
+            }, 50);
         }
     }, []);
 
@@ -99,9 +103,8 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     setHistory([maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]);
                 }
                 
-                if (zoomLevel === 1) {
-                    resetView(img.width, img.height);
-                }
+                // Reset view fit initially and after processing
+                resetView(img.width, img.height);
             }
         };
     }, [currentImageSrc, resetView]);
@@ -109,16 +112,17 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === 'Space' && !e.repeat) {
-                e.preventDefault();
-                setIsSpacePanning(true);
+                if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    setIsSpacePanning(true);
+                }
             }
-            if (e.ctrlKey && e.code === 'KeyZ') {
+            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
                 handleUndo();
             }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             if (e.code === 'Space') {
-                e.preventDefault();
                 setIsSpacePanning(false);
                 setIsPanning(false);
             }
@@ -136,16 +140,18 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
         if (!container) return;
 
         const handleWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            if (isProcessing || isDetecting) return;
-            const zoomSensitivity = 0.001; 
-            const delta = -e.deltaY * zoomSensitivity;
-            setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (isProcessing) return;
+                const zoomSensitivity = 0.0015; 
+                const delta = -e.deltaY * zoomSensitivity;
+                setZoomLevel(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
+            }
         };
 
         container.addEventListener('wheel', handleWheel, { passive: false });
         return () => container.removeEventListener('wheel', handleWheel);
-    }, [isProcessing, isDetecting]);
+    }, [isProcessing]);
 
     const saveHistory = () => {
         const maskCanvas = maskCanvasRef.current;
@@ -171,66 +177,19 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (isProcessing || isDetecting) return;
+        if (isProcessing) return;
         if (isSpacePanning || e.button === 1) {
             e.preventDefault();
             setIsPanning(true);
             setPanStart({ x: e.clientX, y: e.clientY });
         } else if (e.button === 0) {
-            if (editMode === 'smart') {
-                handleSmartSelect(e);
-            } else {
-                setIsDrawing(true);
-                draw(e);
-            }
-        }
-    };
-
-    const handleSmartSelect = async (e: React.MouseEvent) => {
-        const maskCanvas = maskCanvasRef.current;
-        const imgCanvas = imageCanvasRef.current;
-        if (!maskCanvas || !imgCanvas) return;
-
-        const rect = maskCanvas.getBoundingClientRect();
-        const scaleX = maskCanvas.width / rect.width;
-        const scaleY = maskCanvas.height / rect.height;
-
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-
-        // Normalize to 0-1000 for Gemini
-        const normalizedX = Math.round((x / maskCanvas.width) * 1000);
-        const normalizedY = Math.round((y / maskCanvas.height) * 1000);
-
-        setIsDetecting(true);
-        try {
-            const base64 = imgCanvas.toDataURL('image/png').split(',')[1];
-            const box = await detectObjectAtPoint(base64, 'image/png', normalizedX, normalizedY);
-            
-            if (box) {
-                const ctx = maskCanvas.getContext('2d');
-                if (ctx) {
-                    // Convert normalized box back to pixels
-                    const xmin = (box.xmin / 1000) * maskCanvas.width;
-                    const ymin = (box.ymin / 1000) * maskCanvas.height;
-                    const xmax = (box.xmax / 1000) * maskCanvas.width;
-                    const ymax = (box.ymax / 1000) * maskCanvas.height;
-                    
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
-                    ctx.fillRect(xmin, ymin, xmax - xmin, ymax - ymin);
-                    saveHistory();
-                }
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsDetecting(false);
+            setIsDrawing(true);
+            draw(e);
         }
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (isProcessing || isDetecting) return;
+        if (isProcessing) return;
         if (isPanning && containerRef.current) {
             const dx = e.clientX - panStart.x;
             const dy = e.clientY - panStart.y;
@@ -243,7 +202,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     };
 
     const handleMouseUp = () => {
-        if (isProcessing || isDetecting) return;
+        if (isProcessing) return;
         if (isDrawing) {
             setIsDrawing(false);
             saveHistory();
@@ -307,6 +266,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             
             await deductCredit();
             setCurrentImageSrc(resultUrl);
+            // resetView will be triggered by useEffect[currentImageSrc]
         } catch (error) {
             console.error("Magic Eraser failed", error);
             alert("Failed to remove element. Please try again.");
@@ -323,18 +283,15 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
     const hasDrawn = history.length > 1;
 
     return createPortal(
-        <div className="fixed inset-0 z-[300] bg-white/90 backdrop-blur-xl flex flex-col overflow-hidden animate-fadeIn">
-            {/* Light Theme Header */}
-            <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100 shrink-0 z-50 shadow-sm">
+        <div className="fixed inset-0 z-[300] bg-white/95 backdrop-blur-xl flex flex-col overflow-hidden animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100 shrink-0 z-50">
                 <div className="flex items-center gap-4">
-                    <div className="p-2 bg-indigo-50 rounded-2xl">
-                        <MagicWandIcon className="w-8 h-8"/>
-                    </div>
+                    <MagicWandIcon className="w-8 h-8 text-indigo-600"/>
                     <div>
-                        <h2 className="text-gray-900 font-black text-xl tracking-tight">Magic Editor</h2>
-                        <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
-                             <SparklesIcon className="w-3 h-3 text-indigo-500" />
-                             Powered by Gemini 3 Pro
+                        <h2 className="text-gray-900 font-black text-xl tracking-tight leading-none">Magic Editor</h2>
+                        <p className="text-gray-500 text-[11px] font-medium mt-1.5">
+                            Erase unwanted objects and reconstruct the background perfectly.
                         </p>
                     </div>
                 </div>
@@ -342,7 +299,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={handleUndo} 
-                        disabled={!hasDrawn || isProcessing || isDetecting}
+                        disabled={!hasDrawn || isProcessing}
                         className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-gray-700 transition-all disabled:opacity-20 flex items-center gap-2 text-xs font-bold shadow-sm"
                         title="Undo (Ctrl+Z)"
                     >
@@ -358,7 +315,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             {/* Canvas Workspace */}
             <div 
                 ref={containerRef}
-                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-auto custom-scrollbar ${isProcessing || isDetecting ? 'cursor-wait' : isSpacePanning || isPanning ? 'cursor-grab active:cursor-grabbing' : editMode === 'smart' ? 'cursor-crosshair' : 'cursor-crosshair'}`}
+                className={`flex-1 relative bg-[#F8FAFC] flex items-center justify-center select-none overflow-auto custom-scrollbar ${isProcessing ? 'cursor-wait' : isSpacePanning || isPanning ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -375,16 +332,9 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 >
                     <canvas ref={imageCanvasRef} className="absolute inset-0 z-10" />
                     <canvas ref={maskCanvasRef} className="absolute inset-0 z-20 pointer-events-none opacity-60" />
-                    
-                    {/* Visual Cues for Smart Detection */}
-                    {isDetecting && (
-                        <div className="absolute inset-0 z-30 flex items-center justify-center">
-                            <div className="w-20 h-20 bg-indigo-500/20 rounded-full animate-ping border-4 border-indigo-500/50"></div>
-                        </div>
-                    )}
                 </div>
 
-                {/* Processing Overlay (Standard Animation) */}
+                {/* Processing Overlay */}
                 {isProcessing && (
                     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/70 backdrop-blur-md animate-fadeIn">
                         <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
@@ -397,43 +347,20 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 )}
             </div>
 
-            {/* Unified Bottom Control Bar - Light Theme */}
-            <div className="bg-white border-t border-gray-100 px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-8 shrink-0 z-50 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
+            {/* Unified Bottom Control Bar */}
+            <div className="bg-white border-t border-gray-100 px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-8 shrink-0 z-50">
                 
-                {/* Left: Modes & Brush */}
+                {/* Left: Brush Settings */}
                 <div className="flex items-center gap-10 w-full md:w-auto">
-                    {/* Mode Switcher */}
-                    <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] border border-gray-100 shadow-inner">
-                        <button 
-                            onClick={() => { setEditMode('smart'); setIsSpacePanning(false); }}
-                            className={`px-5 py-3 rounded-2xl transition-all flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest ${editMode === 'smart' && !isSpacePanning ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-400 hover:text-gray-900'}`}
-                        >
-                            <SparklesIcon className="w-4 h-4"/> Smart Select
-                        </button>
-                        <button 
-                            onClick={() => { setEditMode('brush'); setIsSpacePanning(false); }}
-                            className={`px-5 py-3 rounded-2xl transition-all flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest ${editMode === 'brush' && !isSpacePanning ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-400 hover:text-gray-900'}`}
-                        >
-                            <PencilIcon className="w-4 h-4"/> Brush
-                        </button>
-                        <button 
-                            onClick={() => setIsSpacePanning(true)}
-                            className={`px-5 py-3 rounded-2xl transition-all flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest ${isSpacePanning ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-400 hover:text-gray-900'}`}
-                        >
-                            <HandRaisedIcon className="w-4 h-4"/> Pan
-                        </button>
-                    </div>
-
-                    {/* Brush Size (Only if in brush mode) */}
-                    <div className={`flex flex-col gap-2 w-full sm:w-64 transition-all duration-300 ${editMode === 'brush' ? 'opacity-100' : 'opacity-20 pointer-events-none'}`}>
+                    <div className="flex flex-col gap-2 w-full sm:w-80">
                         <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                             <span>Brush Size</span>
                             <span>{brushSize}px</span>
                         </div>
                         <input 
                             type="range" 
-                            min="10" 
-                            max="150" 
+                            min="5" 
+                            max="200" 
                             value={brushSize} 
                             onChange={(e) => setBrushSize(parseInt(e.target.value))}
                             className="w-full h-1.5 bg-gray-100 rounded-full appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-400 transition-all"
@@ -461,14 +388,14 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                     <div className="flex gap-3 flex-1 md:flex-none">
                         <button 
                             onClick={handleApply}
-                            disabled={isProcessing || isDetecting}
+                            disabled={isProcessing}
                             className="flex-1 md:flex-none px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-20"
                         >
                             Apply Changes
                         </button>
                         <button 
                             onClick={handleRemove}
-                            disabled={isProcessing || isDetecting || !hasDrawn}
+                            disabled={isProcessing || !hasDrawn}
                             className="flex-1 md:flex-none px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-[#1A1A1E] bg-[#F9D230] hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 disabled:bg-gray-50 disabled:text-gray-300 disabled:shadow-none"
                         >
                             Remove Selected
@@ -478,12 +405,12 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             </div>
             
             {/* Guide Overlay */}
-            <div className="absolute bottom-36 left-1/2 -translate-x-1/2 flex items-center gap-4 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md border border-gray-200 shadow-xl text-[9px] font-black text-gray-400 uppercase tracking-widest pointer-events-none animate-fadeIn">
-                <span className="flex items-center gap-1.5"><EyeIcon className="w-3.5 h-3.5" /> {editMode === 'smart' ? 'Click object to select' : 'Paint to select'}</span>
+            <div className="absolute bottom-36 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 shadow-xl text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none animate-fadeIn">
+                <span className="flex items-center gap-2"><PencilIcon className="w-3.5 h-3.5" /> Paint to select</span>
                 <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span>Space + Drag to Pan</span>
+                <span className="text-indigo-600">Hold Spacebar to Pan</span>
                 <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span>Scroll to Zoom</span>
+                <span>Ctrl + Scroll to Zoom</span>
             </div>
         </div>,
         document.body
