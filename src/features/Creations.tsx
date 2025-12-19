@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
 import { getCreations, deleteCreation } from '../firebase';
@@ -15,6 +14,22 @@ import {
     InformationCircleIcon,
     CreditCardIcon
 } from '../components/icons';
+
+const FILTER_CATEGORIES = [
+    { label: 'Pixa Product Shots', key: 'Product' },
+    { label: 'Pixa Thumbnail Pro', key: 'Thumbnail' },
+    { label: 'Pixa Headshot Pro', key: 'Headshot' },
+    { label: 'Pixa AdMaker', key: 'AdMaker' },
+    { label: 'Pixa Ecommerce Kit', key: 'Ecommerce' },
+    { label: 'Pixa Together', key: 'Together' },
+    { label: 'Pixa Photo Restore', key: 'Restore' },
+    { label: 'Pixa Caption Pro', key: 'Caption' },
+    { label: 'Pixa Interior Design', key: 'Interior' },
+    { label: 'Pixa TryOn', key: 'TryOn' },
+    { label: 'Pixa Mockups', key: 'Mockup' },
+    { label: 'Campaign Studio', key: 'Campaign' },
+    { label: 'Daily Missions', key: 'Mission' },
+];
 
 export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navigateTo }) => {
     const [creations, setCreations] = useState<Creation[]>([]);
@@ -46,7 +61,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 const allCreations = data as Creation[];
                 
                 // --- LAZY CLEANUP LOGIC ---
-                // Policy Update: 15 Days Retention for ALL users to improve performance.
                 if (!cleanupRan.current) {
                     cleanupRan.current = true;
                     
@@ -59,7 +73,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         const diffTime = Math.abs(now.getTime() - cDate.getTime());
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                         
-                        // Limit lowered to 15 days for everyone
                         if (diffDays > 15) {
                             expiredCreations.push(c);
                         } else {
@@ -68,26 +81,18 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     });
 
                     if (expiredCreations.length > 0) {
-                        console.log(`Auto-cleaning ${expiredCreations.length} expired images...`);
-                        
-                        // Execute deletions in background
                         Promise.all(expiredCreations.map(c => deleteCreation(auth.user!.uid, c)))
-                            .then(() => {
-                                console.log("Auto-cleanup complete");
-                            })
                             .catch(err => console.error("Auto-cleanup error", err));
 
-                        // Show notification
                         setToastMsg(`Cleaned up ${expiredCreations.length} expired images (older than 15 days).`);
                         
                         if (isMounted) {
                             setCreations(validCreations);
                             setLoading(false);
                         }
-                        return; // Exit early as we set state above
+                        return;
                     }
                 }
-                // ---------------------------
 
                 if (isMounted) {
                     setCreations(allCreations);
@@ -104,13 +109,15 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         return () => { isMounted = false; };
     }, [auth.user]);
 
-    const uniqueFeatures = useMemo(() => Array.from(new Set(creations.map(c => c.feature))).sort(), [creations]);
-
     const filteredCreations = useMemo(() => {
         return creations.filter(c => {
-            if (selectedFeature && c.feature !== selectedFeature) return false;
+            // Updated filtering logic to use category search key
+            if (selectedFeature && !c.feature.toLowerCase().includes(selectedFeature.toLowerCase())) {
+                // Special check for legacy or slightly different naming conventions
+                if (selectedFeature === 'Product' && c.feature.toLowerCase().includes('model')) return true;
+                return false;
+            }
             if (selectedDate) {
-                // Handle Firebase Timestamp or Date object
                 const cDate = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt as any);
                 const dateString = cDate.toISOString().split('T')[0];
                 if (dateString !== selectedDate) return false;
@@ -174,15 +181,11 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         downloadImage(url, 'creation.png');
     };
 
-    // --- Bulk Selection Logic ---
-
     const toggleSelectMode = () => {
         if (isSelectMode) {
-            // Exit select mode: clear selections
             setIsSelectMode(false);
             setSelectedIds(new Set());
         } else {
-            // Enter select mode
             setIsSelectMode(true);
         }
     };
@@ -201,22 +204,15 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         const total = selectedIds.size;
         if (total === 0) return;
 
-        // Convert Set to Array to iterate
         const idsToDownload = Array.from(selectedIds);
-        
-        console.log(`Downloading ${total} files...`);
-
         for (let i = 0; i < idsToDownload.length; i++) {
             const id = idsToDownload[i];
             const creation = creations.find(c => c.id === id);
             if (creation) {
-                // Add index to filename to avoid conflicts
                 downloadImage(creation.imageUrl, `magicpixa-${creation.feature.replace(/\s+/g, '-').toLowerCase()}-${i + 1}.png`);
-                // Small delay to prevent browser from blocking multiple popups
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
-        
         setIsSelectMode(false);
         setSelectedIds(new Set());
     };
@@ -250,10 +246,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     <p className="text-gray-500 mt-1">Manage and view your generated masterpieces.</p>
                 </div>
                 
-                {/* Toolbar */}
                 <div className="flex flex-wrap items-center gap-3">
-                    
-                    {/* Select Toggle */}
                     <button
                         onClick={toggleSelectMode}
                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
@@ -275,7 +268,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
 
                     <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-                    {/* Filters */}
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                              <AdjustmentsVerticalIcon className="w-4 h-4 text-gray-400" />
@@ -283,11 +275,11 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         <select 
                             value={selectedFeature}
                             onChange={(e) => setSelectedFeature(e.target.value)}
-                            className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] appearance-none hover:bg-gray-50 transition-colors cursor-pointer min-w-[160px]"
+                            className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] appearance-none hover:bg-gray-50 transition-colors cursor-pointer min-w-[180px]"
                         >
                             <option value="">All Features</option>
-                            {uniqueFeatures.map(f => (
-                                <option key={f} value={f}>{f}</option>
+                            {FILTER_CATEGORIES.map(cat => (
+                                <option key={cat.key} value={cat.key}>{cat.label}</option>
                             ))}
                         </select>
                     </div>
@@ -297,7 +289,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                             type="date" 
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] hover:bg-gray-50 transition-colors cursor-pointer"
+                            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] hover:bg-gray-50 transition-colors cursor-pointer"
                          />
                     </div>
 
@@ -312,7 +304,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             </div>
 
-            {/* Storage Policy Banner - VISIBLE TO ALL */}
             <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-full text-blue-500 shadow-sm">
@@ -341,7 +332,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                 {group.items.map(c => {
                                     const isSelected = selectedIds.has(c.id);
                                     const daysOld = getDaysOld(c);
-                                    // Retention is now 15 days for everyone
                                     const daysRemaining = 15 - daysOld;
                                     const isExpiringSoon = daysRemaining <= 5;
 
@@ -372,14 +362,12 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                 loading="lazy"
                                             />
                                             
-                                            {/* Expiration Badge */}
                                             {isExpiringSoon && (
                                                 <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-[9px] font-bold text-center py-1 z-20">
                                                     EXPIRES IN {daysRemaining} DAYS
                                                 </div>
                                             )}
 
-                                            {/* SELECT MODE: Checkbox Overlay */}
                                             {isSelectMode && (
                                                 <div className="absolute top-3 right-3 z-20">
                                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -392,7 +380,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                 </div>
                                             )}
 
-                                            {/* NORMAL MODE: Download Button Overlay */}
                                             {!isSelectMode && (
                                                 <div className="absolute top-2 right-2 z-10 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                     <button 
@@ -408,7 +395,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                 </div>
                                             )}
                                             
-                                            {/* Bottom Info Tag */}
                                             <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
                                                 <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
                                                     <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{c.feature}</p>
@@ -431,7 +417,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             )}
             
-            {/* Floating Action Bar for Bulk Actions */}
             {isSelectMode && selectedIds.size > 0 && (
                 <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-[fadeInUp_0.3s_ease-out]">
                     <div className="bg-[#1A1A1E] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-gray-800">
@@ -456,7 +441,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             )}
 
-            {/* Full Screen View Modal */}
             {viewCreation && (
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl} 
