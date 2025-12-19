@@ -9,10 +9,10 @@ interface CreatorRanksModalProps {
 
 export const CreatorRanksModal: React.FC<CreatorRanksModalProps> = ({ onClose, currentGens }) => {
     const ranks = [
-        { name: 'Novice', min: 0, icon: BadgeNoviceIcon, color: 'text-gray-500', bg: 'bg-gray-100' },
-        { name: 'Copper Creator', min: 10, icon: BadgeCopperIcon, color: 'text-orange-600', bg: 'bg-orange-100' },
-        { name: 'Silver Artist', min: 30, icon: BadgeSilverIcon, color: 'text-slate-600', bg: 'bg-slate-100' },
-        { name: 'Gold Visionary', min: 100, icon: BadgeGoldIcon, color: 'text-yellow-600', bg: 'bg-yellow-100' },
+        { name: 'Rising Creator', min: 0, icon: BadgeNoviceIcon, color: 'text-gray-500', bg: 'bg-gray-100' },
+        { name: 'Professional Creator', min: 10, icon: BadgeCopperIcon, color: 'text-orange-600', bg: 'bg-orange-100' },
+        { name: 'Silver Creator', min: 30, icon: BadgeSilverIcon, color: 'text-slate-600', bg: 'bg-slate-100' },
+        { name: 'Gold Creator', min: 100, icon: BadgeGoldIcon, color: 'text-yellow-600', bg: 'bg-yellow-100' },
     ];
 
     return createPortal(

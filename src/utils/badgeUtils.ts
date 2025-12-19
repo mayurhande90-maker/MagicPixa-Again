@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { BadgeNoviceIcon, BadgeCopperIcon, BadgeSilverIcon, BadgeGoldIcon } from '../components/icons';
 
-export type BadgeRank = 'Novice' | 'Copper Creator' | 'Silver Artist' | 'Gold Visionary';
+export type BadgeRank = 'Rising Creator' | 'Professional Creator' | 'Silver Creator' | 'Gold Creator';
 
 export interface BadgeInfo {
     rank: BadgeRank;
@@ -17,7 +16,7 @@ export interface BadgeInfo {
 export const getBadgeInfo = (generations: number = 0): BadgeInfo => {
     if (generations >= 100) {
         return { 
-            rank: 'Gold Visionary', 
+            rank: 'Gold Creator', 
             color: 'text-yellow-700', 
             bgColor: 'bg-yellow-50', 
             borderColor: 'border-yellow-200',
@@ -28,7 +27,7 @@ export const getBadgeInfo = (generations: number = 0): BadgeInfo => {
     }
     if (generations >= 30) {
         return { 
-            rank: 'Silver Artist', 
+            rank: 'Silver Creator', 
             color: 'text-slate-600', 
             bgColor: 'bg-slate-50', 
             borderColor: 'border-slate-200',
@@ -39,7 +38,7 @@ export const getBadgeInfo = (generations: number = 0): BadgeInfo => {
     }
     if (generations >= 10) {
         return { 
-            rank: 'Copper Creator', 
+            rank: 'Professional Creator', 
             color: 'text-orange-700', 
             bgColor: 'bg-orange-50', 
             borderColor: 'border-orange-200',
@@ -49,7 +48,7 @@ export const getBadgeInfo = (generations: number = 0): BadgeInfo => {
         };
     }
     return { 
-        rank: 'Novice', 
+        rank: 'Rising Creator', 
         color: 'text-gray-500', 
         bgColor: 'bg-gray-50', 
         borderColor: 'border-gray-200',
