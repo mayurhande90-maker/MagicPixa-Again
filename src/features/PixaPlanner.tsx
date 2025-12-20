@@ -112,12 +112,26 @@ const SettingsModal: React.FC<{
     config: PlanConfig; 
     onApply: (newConfig: PlanConfig) => void;
 }> = ({ isOpen, onClose, config, onApply }) => {
-    const [localConfig, setLocalConfig] = useState<PlanConfig>(config);
+    // Prefill Month/Country, clear Frequency/MixType as requested
+    const [localConfig, setLocalConfig] = useState<PlanConfig>({
+        ...config,
+        frequency: '',
+        mixType: '' as any
+    });
     
-    // Check if any changes were actually made
-    const hasChanges = useMemo(() => {
-        return JSON.stringify(localConfig) !== JSON.stringify(config);
-    }, [localConfig, config]);
+    // Reset local state when modal opens to ensure Frequency/MixType are cleared every time it pops up
+    useEffect(() => {
+        if (isOpen) {
+            setLocalConfig({
+                ...config,
+                frequency: '',
+                mixType: '' as any
+            });
+        }
+    }, [isOpen, config]);
+
+    // Button is disabled until ALL fields are entered
+    const isFormComplete = !!(localConfig.month && localConfig.country && localConfig.frequency && localConfig.mixType);
 
     if (!isOpen) return null;
 
@@ -138,6 +152,7 @@ const SettingsModal: React.FC<{
                         <div>
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Month</label>
                             <select value={localConfig.month} onChange={e => setLocalConfig({...localConfig, month: e.target.value})} className="w-full p-3.5 bg-gray-50 border-none rounded-xl font-bold focus:ring-2 focus:ring-indigo-500 appearance-none">
+                                <option value="" disabled>Select Month</option>
                                 {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
@@ -197,15 +212,15 @@ const SettingsModal: React.FC<{
                         Cancel
                     </button>
                     <button 
-                        onClick={() => hasChanges && onApply(localConfig)} 
-                        disabled={!hasChanges}
+                        onClick={() => isFormComplete && onApply(localConfig)} 
+                        disabled={!isFormComplete}
                         className={`flex-[2] py-4 rounded-2xl font-black text-sm transition-all shadow-xl flex items-center justify-center gap-2 ${
-                            !hasChanges 
+                            !isFormComplete 
                             ? 'bg-gray-100 text-gray-400 cursor-default grayscale' 
                             : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] hover:scale-[1.02] shadow-yellow-500/10'
                         }`}
                     >
-                        {hasChanges ? 'Apply Strategy' : 'No Changes'}
+                        Apply Strategy
                     </button>
                 </div>
             </div>
