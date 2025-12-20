@@ -667,7 +667,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center justify-between mb-0.5">
                                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Industry</p>
-                                                            <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1">
                                                                 <span>Switch</span> <ArrowRightIcon className="w-2 h-2" />
                                                             </div>
                                                         </div>
@@ -694,7 +694,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                                                                 <LockIcon className="w-2.5 h-2.5" /> Strategy
                                                             </span>
-                                                            <span className="text-[9px] font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                                            <span className="text-[9px] font-bold text-indigo-300">Edit</span>
                                                         </div>
                                                         <h3 className="text-xs font-black text-indigo-900 truncate leading-tight">
                                                             {auth.user.brandKit.companyName || auth.user.brandKit.name || 'Active Brand'}
