@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
@@ -468,50 +468,61 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className={AdMakerStyles.formContainer}>
                                     {/* COMPACT HEADER GRID */}
                                     <div className="mb-6 animate-fadeIn">
-                                        <button onClick={() => setIndustry(null)} className="flex items-center gap-2 text-[10px] font-bold text-gray-400 hover:text-gray-700 transition-colors mb-3 group uppercase tracking-widest">
-                                            <ArrowLeftIcon className="w-3 h-3 transition-transform group-hover:-translate-x-1" /> Change Industry
-                                        </button>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {/* 1. Industry Box */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* 1. Industry Box (Click to Change) */}
                                             {activeConfig && (
-                                                <div className={`relative overflow-hidden p-3 rounded-xl border transition-all group hover:shadow-md ${activeConfig.bg} ${activeConfig.border} flex items-center gap-3`}>
+                                                <button 
+                                                    onClick={() => setIndustry(null)}
+                                                    className={`relative overflow-hidden p-3 rounded-xl border transition-all group hover:shadow-md hover:scale-[1.02] active:scale-95 text-left ${activeConfig.bg} ${activeConfig.border} flex items-center gap-3`}
+                                                >
                                                     <div className={`p-2 rounded-lg bg-white shadow-sm ${activeConfig.color}`}>
-                                                        <activeConfig.icon className="w-4 h-4" />
+                                                        <activeConfig.icon className="w-5 h-5" />
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Mode</p>
-                                                        <h2 className={`text-xs font-black ${activeConfig.color} truncate leading-tight`}>{activeConfig.label}</h2>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Industry</p>
+                                                            <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <span>Switch</span> <ArrowRightIcon className="w-2 h-2" />
+                                                            </div>
+                                                        </div>
+                                                        <h2 className={`text-sm font-black ${activeConfig.color} truncate leading-tight`}>{activeConfig.label}</h2>
                                                     </div>
-                                                </div>
+                                                </button>
                                             )}
 
-                                            {/* 2. Brand Box (Conditional) */}
+                                            {/* 2. Brand Box (Status Indicator) */}
                                             {auth.user?.brandKit ? (
-                                                <div className="relative overflow-hidden p-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white hover:shadow-md transition-all flex items-center gap-3 group">
-                                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm overflow-hidden shrink-0">
+                                                <button 
+                                                    onClick={() => navigateTo('dashboard', 'brand_manager')}
+                                                    className="relative overflow-hidden p-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/30 to-white hover:shadow-md hover:border-indigo-200 transition-all flex items-center gap-3 group text-left"
+                                                >
+                                                    <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm overflow-hidden shrink-0 p-0.5">
                                                         {auth.user.brandKit.logos.primary ? (
-                                                            <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" alt="Brand" />
+                                                            <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-contain" alt="Brand" />
                                                         ) : (
-                                                            <BrandKitIcon className="w-4 h-4 text-indigo-500" />
+                                                            <BrandKitIcon className="w-5 h-5 text-indigo-500" />
                                                         )}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-1 mb-0.5">
-                                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Brand Kit</span>
-                                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                                        <div className="flex items-center justify-between mb-0.5">
+                                                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                                                                <LockIcon className="w-2.5 h-2.5" /> Strategy
+                                                            </span>
+                                                            <span className="text-[9px] font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
                                                         </div>
                                                         <h3 className="text-xs font-black text-indigo-900 truncate leading-tight">
-                                                            {auth.user.brandKit.companyName || auth.user.brandKit.name || 'Active'}
+                                                            {auth.user.brandKit.companyName || auth.user.brandKit.name || 'Active Brand'}
                                                         </h3>
                                                     </div>
                                                     {/* Expensive sheen effect */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:animate-shine pointer-events-none"></div>
-                                                </div>
+                                                </button>
                                             ) : (
-                                                <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="p-3 rounded-xl border border-dashed border-gray-300 hover:border-indigo-300 bg-gray-50 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2 group">
-                                                    <PlusCircleIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
-                                                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wide">Add Brand</span>
+                                                <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 transition-all flex items-center justify-center gap-2 group hover:shadow-sm">
+                                                    <div className="p-1 bg-white rounded-full shadow-sm">
+                                                         <PlusCircleIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wide">Add Brand Kit</span>
                                                 </button>
                                             )}
                                         </div>
