@@ -84,80 +84,109 @@ const BrandSelectionModal: React.FC<{
 
     return createPortal(
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <div>
-                        <h3 className="text-lg font-black text-gray-900">Select Brand Strategy</h3>
-                        <p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p>
+            <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                
+                {/* Header */}
+                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                    <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100">
+                            <BrandKitIcon className="w-6 h-6 text-indigo-600" />
+                         </div>
+                         <div>
+                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Select Brand Identity</h3>
+                            <p className="text-sm text-gray-500 font-medium">Choose a brand kit to apply visual assets automatically.</p>
+                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-400 transition-colors">
-                        <XIcon className="w-5 h-5" />
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                        <XIcon className="w-6 h-6" />
                     </button>
                 </div>
                 
-                <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3">
-                    {loading ? (
-                        <div className="flex justify-center py-8"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
+                {/* Grid Content */}
+                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
+                     {loading ? (
+                        <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                     ) : brands.length === 0 ? (
-                        <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 mb-4">No brand kits found.</p>
-                            <button onClick={onCreateNew} className="text-xs font-bold text-indigo-600 hover:underline">Create your first brand</button>
+                        <div className="text-center py-12 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <BrandKitIcon className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 font-medium mb-6">No brand kits found.</p>
+                            <button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
                         </div>
                     ) : (
-                        brands.map(brand => {
-                            const isActive = currentBrandId === brand.id;
-                            const isActivating = activatingId === brand.id;
-                            return (
-                                <button
-                                    key={brand.id}
-                                    onClick={() => handleSelect(brand)}
-                                    disabled={isActivating || isActive}
-                                    className={`w-full flex items-center gap-4 p-3 rounded-2xl border-2 transition-all text-left group ${
-                                        isActive 
-                                        ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20' 
-                                        : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                        {brand.logos.primary ? (
-                                            <img src={brand.logos.primary} className="w-full h-full object-contain" alt="Logo" />
-                                        ) : (
-                                            <BrandKitIcon className="w-6 h-6 text-gray-300" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`text-sm font-bold truncate ${isActive ? 'text-indigo-900' : 'text-gray-800'}`}>
-                                            {brand.companyName || brand.name || 'Untitled'}
-                                        </h4>
-                                        <p className="text-[10px] text-gray-500 font-medium truncate">
-                                            {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'Brand'} • {brand.toneOfVoice}
-                                        </p>
-                                    </div>
-                                    <div className="shrink-0">
-                                        {isActivating ? (
-                                            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                        ) : isActive ? (
-                                            <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                                                <CheckIcon className="w-3.5 h-3.5" />
-                                            </div>
-                                        ) : (
-                                            <div className="w-6 h-6 rounded-full border-2 border-gray-200 group-hover:border-indigo-300"></div>
-                                        )}
-                                    </div>
-                                </button>
-                            );
-                        })
-                    )}
-                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {brands.map(brand => {
+                                const isActive = currentBrandId === brand.id;
+                                const isActivating = activatingId === brand.id;
+                                return (
+                                    <button
+                                        key={brand.id}
+                                        onClick={() => handleSelect(brand)}
+                                        disabled={isActivating || isActive}
+                                        className={`group relative flex flex-col h-60 rounded-3xl border transition-all duration-300 overflow-hidden text-left ${
+                                            isActive 
+                                            ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-xl scale-[1.02]' 
+                                            : 'border-gray-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-1 bg-white'
+                                        }`}
+                                    >
+                                        {/* Header / Logo Area */}
+                                        <div className={`h-32 flex items-center justify-center p-6 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/50 border-gray-100 group-hover:bg-gray-50'}`}>
+                                            {brand.logos.primary ? (
+                                                <img src={brand.logos.primary} className="max-w-full max-h-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform" alt="Logo" />
+                                            ) : (
+                                                <span className="text-3xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
+                                            )}
+                                            
+                                            {/* Active Badge */}
+                                            {isActive && (
+                                                <div className="absolute top-3 right-3 bg-indigo-600 text-white p-1.5 rounded-full shadow-sm animate-scaleIn">
+                                                    <CheckIcon className="w-3 h-3" />
+                                                </div>
+                                            )}
+                                            
+                                            {/* Loading Spinner */}
+                                            {isActivating && (
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                                                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                        </div>
 
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Managed in Brand Kit</span>
-                    <button 
-                        onClick={onCreateNew}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm hover:shadow-md"
-                    >
-                        <PlusCircleIcon className="w-4 h-4" /> Create New
-                    </button>
+                                        {/* Body */}
+                                        <div className={`p-5 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
+                                            <div>
+                                                <h4 className={`font-bold text-base truncate ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                                    {brand.companyName || brand.name || 'Untitled'}
+                                                </h4>
+                                                <p className="text-[10px] text-gray-500 font-medium mt-1">
+                                                    {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'} • {brand.toneOfVoice}
+                                                </p>
+                                            </div>
+                                            
+                                            {/* Color Palette Preview */}
+                                            <div className="flex gap-2 mt-3">
+                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.primary }}></div>
+                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.secondary }}></div>
+                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.accent }}></div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                            
+                            {/* "Add New" Card injected into grid */}
+                            <button 
+                                onClick={onCreateNew}
+                                className="group relative flex flex-col h-60 rounded-3xl border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-3 bg-white hover:shadow-md"
+                            >
+                                <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
+                                    <PlusCircleIcon className="w-6 h-6" />
+                                </div>
+                                <span className="text-sm font-bold text-gray-500 group-hover:text-indigo-700 transition-colors">Create New Brand</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>,
@@ -844,7 +873,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     userId={auth.user.uid}
                     currentBrandId={auth.user.brandKit?.id}
                     onSelect={handleBrandSelect}
-                    onCreateNew={() => navigateTo('dashboard', 'brand_manager')}
+                    onCreateNew={() => {
+                        setShowBrandModal(false);
+                        navigateTo('dashboard', 'brand_manager');
+                    }}
                 />
             )}
         </>
