@@ -250,6 +250,9 @@ const BrandCreationWizard: React.FC<{
     const [magicDesc, setMagicDesc] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Local Upload State for Wizard
+    const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
 
     // Manual Flow Steps:
     // 0: Fork (Magic vs Manual)
@@ -257,9 +260,14 @@ const BrandCreationWizard: React.FC<{
     // 2: Strategy (Web & Tone)
     // 3: Audience (Target & Negative)
     // 4: Visuals (Colors & Fonts)
-    // 5: Assets (Logo)
-    // 6: Success
-    const TOTAL_STEPS = 6;
+    // 5: Products
+    // 6: Mood Board
+    // 7: Competitor
+    // 8: Assets (Logo)
+    // 9: Success
+    const TOTAL_STEPS = 9;
+    
+    const industryConf = INDUSTRY_CONFIG[kit.industry || 'physical'] || INDUSTRY_CONFIG['physical'];
 
     const handleMagicGenerate = async () => {
         if (!magicUrl && !magicDesc) return;
@@ -267,7 +275,7 @@ const BrandCreationWizard: React.FC<{
         try {
             const generated = await generateBrandIdentity(magicUrl, magicDesc);
             setKit(prev => ({ ...prev, ...generated }));
-            // Skip to final step or review? Let's go to step 4 (Visuals) so they can tweak colors/fonts
+            // Skip to Step 4 (Visuals) to allow refinement
             setStep(4);
         } catch (e) {
             console.error(e);
@@ -284,6 +292,10 @@ const BrandCreationWizard: React.FC<{
     const handleBack = () => {
         if (step > 0) setStep(step - 1);
     };
+    
+    const handleSkip = () => {
+        if (step < TOTAL_STEPS) setStep(step + 1);
+    };
 
     const handleFinish = async () => {
         setIsSaving(true);
@@ -296,72 +308,146 @@ const BrandCreationWizard: React.FC<{
         setIsSaving(false);
     };
     
+    // --- File Upload Handlers for Wizard ---
+    const wizardProductRef = useRef<HTMLInputElement>(null);
+    const wizardMoodRef = useRef<HTMLInputElement>(null);
+    const wizardCompRef = useRef<HTMLInputElement>(null);
+
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             try {
                 const base64Data = await fileToBase64(file);
-                // Process (remove bg if jpg)
                 const processedUri = await processLogoAsset(base64Data.base64, base64Data.mimeType);
-                // Upload
                 const url = await uploadBrandAsset(userId, processedUri, 'primary');
                 setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: url } }));
-            } catch (err) {
-                console.error(err);
-                alert("Logo upload failed.");
-            }
+            } catch (err) { console.error(err); alert("Logo upload failed."); }
         }
     };
+    
+    const handleProductUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
+        setUploadingState(prev => ({ ...prev, products: true }));
+        try {
+            const newProducts = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(userId, processedUri, `product_${tempId}`);
+                return { id: tempId, name: file.name.split('.')[0] || `New ${industryConf.itemLabel}`, imageUrl: url };
+            }));
+            setKit(prev => ({ ...prev, products: [...(prev.products || []), ...newProducts] }));
+        } catch (error) { console.error(error); alert("Upload failed."); } 
+        finally { setUploadingState(prev => ({ ...prev, products: false })); e.target.value = ''; }
+    };
+    
+    const handleMoodUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
+        setUploadingState(prev => ({ ...prev, mood: true }));
+        try {
+            const newItems = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(userId, processedUri, `mood_${tempId}`);
+                return { id: tempId, imageUrl: url };
+            }));
+            setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), ...newItems] }));
+        } catch (error) { console.error(error); alert("Upload failed."); } 
+        finally { setUploadingState(prev => ({ ...prev, mood: false })); e.target.value = ''; }
+    };
+
+    const handleCompUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
+        setUploadingState(prev => ({ ...prev, competitor: true }));
+        try {
+            const newItems = await Promise.all(files.map(async (file) => {
+                const base64Data = await fileToBase64(file);
+                const processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
+                const tempId = Math.random().toString(36).substring(7);
+                const url = await uploadBrandAsset(userId, processedUri, `comp_ad_${tempId}`);
+                return { id: tempId, imageUrl: url };
+            }));
+            setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { website: '', adScreenshots: [] }, adScreenshots: [...(prev.competitor?.adScreenshots || []), ...newItems] } }));
+        } catch (error) { console.error(error); alert("Upload failed."); } 
+        finally { setUploadingState(prev => ({ ...prev, competitor: false })); e.target.value = ''; }
+    };
+
+    const deleteProduct = (id: string) => setKit(prev => ({ ...prev, products: prev.products?.filter(p => p.id !== id) || [] }));
+    const updateProductName = (id: string, newName: string) => setKit(prev => ({ ...prev, products: prev.products?.map(p => p.id === id ? { ...p, name: newName } : p) || [] }));
+    const deleteMoodItem = (id: string) => setKit(prev => ({ ...prev, moodBoard: prev.moodBoard?.filter(m => m.id !== id) || [] }));
+    const deleteCompItem = (id: string) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { website: '', adScreenshots: [] }, adScreenshots: prev.competitor?.adScreenshots.filter(i => i.id !== id) || [] } }));
 
     // Render Steps
     const renderStepContent = () => {
         switch (step) {
-            case 0: // FORK
+            case 0: // PREMIUM SPLIT
                 return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full items-stretch">
-                        {/* Option A: Magic */}
-                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100 flex flex-col items-center text-center relative overflow-hidden group hover:shadow-xl transition-all duration-300">
-                            <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-6 text-indigo-600 group-hover:scale-110 transition-transform">
-                                <SparklesIcon className="w-10 h-10" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Magic Auto-Pilot</h3>
-                            <p className="text-sm text-gray-600 mb-6">Enter a URL or description. AI will analyze your niche and generate the full kit instantly.</p>
-                            
-                            <div className="w-full space-y-3 mt-auto relative z-10">
-                                <input 
-                                    className="w-full p-3 bg-white border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="Website (e.g. nike.com)"
-                                    value={magicUrl}
-                                    onChange={e => setMagicUrl(e.target.value)}
-                                />
-                                <textarea 
-                                    className="w-full p-3 bg-white border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-20"
-                                    placeholder="Or describe your brand..."
-                                    value={magicDesc}
-                                    onChange={e => setMagicDesc(e.target.value)}
-                                />
-                                <button 
-                                    onClick={handleMagicGenerate}
-                                    disabled={isGenerating || (!magicUrl && !magicDesc)}
-                                    className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <><LightningIcon className="w-4 h-4"/> Auto-Generate</>}
-                                </button>
-                            </div>
+                    <div className="h-full flex flex-col items-center justify-center p-4">
+                        <div className="text-center mb-10">
+                            <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Setup Your Brand Kit</h1>
+                            <p className="text-gray-500 font-medium">How would you like to build your brand profile today?</p>
                         </div>
-
-                        {/* Option B: Manual */}
-                        <button 
-                            onClick={() => setStep(1)}
-                            className="bg-white p-8 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 group"
-                        >
-                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-gray-400 group-hover:text-gray-600 group-hover:scale-110 transition-transform">
-                                <PaletteIcon className="w-10 h-10" />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+                            {/* Option A: Magic */}
+                            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-[2rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 text-white relative overflow-hidden group cursor-default">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/20 transition-colors"></div>
+                                <div className="relative z-10 flex flex-col h-full">
+                                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white/20">
+                                        <SparklesIcon className="w-8 h-8 text-yellow-300" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-2">Magic Auto-Pilot</h3>
+                                    <p className="text-indigo-100 text-sm mb-8 leading-relaxed opacity-90">
+                                        Enter a website or description. Our AI Agent will research your niche, scrape visual cues, and build a complete brand identity in seconds.
+                                    </p>
+                                    
+                                    <div className="mt-auto space-y-3">
+                                        <input 
+                                            className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 outline-none backdrop-blur-sm"
+                                            placeholder="Website (e.g. nike.com)"
+                                            value={magicUrl}
+                                            onChange={e => setMagicUrl(e.target.value)}
+                                        />
+                                        <textarea 
+                                            className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 outline-none resize-none h-20 backdrop-blur-sm"
+                                            placeholder="Or describe your brand..."
+                                            value={magicDesc}
+                                            onChange={e => setMagicDesc(e.target.value)}
+                                        />
+                                        <button 
+                                            onClick={handleMagicGenerate}
+                                            disabled={isGenerating || (!magicUrl && !magicDesc)}
+                                            className="w-full py-4 bg-white text-indigo-700 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                                        >
+                                            {isGenerating ? <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"/> : <><LightningIcon className="w-5 h-5"/> Generate Identity</>}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Manual Crafting</h3>
-                            <p className="text-sm text-gray-500 max-w-xs">Build your brand step-by-step. Perfect for granular control over colors, fonts, and assets.</p>
-                            <span className="mt-8 px-6 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-bold group-hover:bg-gray-200 transition-colors">Start Wizard &rarr;</span>
-                        </button>
+
+                            {/* Option B: Manual */}
+                            <button 
+                                onClick={() => setStep(1)}
+                                className="bg-white border-2 border-gray-100 p-8 rounded-[2rem] hover:border-gray-300 hover:shadow-xl transition-all duration-300 flex flex-col text-left group"
+                            >
+                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-800 transition-colors">
+                                    <PaletteIcon className="w-8 h-8" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2">Manual Studio</h3>
+                                <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                    Build your brand kit step-by-step. Perfect for detailed control over every asset, color, font, and strategic constraint.
+                                </p>
+                                <div className="mt-auto w-full">
+                                    <span className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 group-hover:text-black transition-colors">
+                                        Start Wizard <ArrowRightIcon className="w-4 h-4" />
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 );
 
@@ -376,7 +462,7 @@ const BrandCreationWizard: React.FC<{
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Brand Name</label>
                                 <input 
-                                    className="w-full text-2xl font-black p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 placeholder-gray-300"
+                                    className="w-full text-3xl font-black p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 placeholder-gray-300 text-center"
                                     placeholder="e.g. Acme Corp"
                                     value={kit.companyName}
                                     onChange={e => setKit({...kit, companyName: e.target.value})}
@@ -384,13 +470,13 @@ const BrandCreationWizard: React.FC<{
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-4">Industry / Niche</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-4 text-center">Industry / Niche</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {Object.entries(INDUSTRY_CONFIG).map(([k, conf]) => (
                                         <button
                                             key={k}
                                             onClick={() => setKit({...kit, industry: k as IndustryType})}
-                                            className={`p-4 rounded-xl border-2 text-left transition-all ${kit.industry === k ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20' : 'border-gray-100 bg-white hover:border-gray-300'}`}
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${kit.industry === k ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20' : 'border-gray-100 bg-white hover:border-gray-300'}`}
                                         >
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${kit.industry === k ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
                                                 <conf.icon className="w-4 h-4" />
@@ -516,12 +602,119 @@ const BrandCreationWizard: React.FC<{
                         </div>
                     </div>
                 );
-
-            case 5: // ASSETS
+            
+            case 5: // PRODUCTS
                 return (
                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
                         <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Brand Assets</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">{industryConf.catalogTitle}</h2>
+                            <p className="text-gray-500">{industryConf.catalogDesc}</p>
+                        </div>
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex justify-between items-center mb-4">
+                                <button onClick={() => wizardProductRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
+                                    {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Item</>}
+                                </button>
+                                <span className="text-xs text-gray-400 font-medium">{kit.products?.length || 0} items added</span>
+                                <input ref={wizardProductRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} />
+                            </div>
+                            
+                            {(!kit.products || kit.products.length === 0) ? (
+                                <div onClick={() => wizardProductRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                                        <UploadIcon className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-500">Upload Inventory</p>
+                                    <p className="text-xs text-gray-400 mt-1">Supports multiple files</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                    {kit.products.map(product => (
+                                        <ProductItem key={product.id} item={product} placeholder={industryConf.itemLabel} onDelete={() => deleteProduct(product.id)} onNameChange={(name) => updateProductName(product.id, name)} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            
+            case 6: // MOOD BOARD
+                return (
+                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
+                         <div className="text-center mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900">Inspiration Board</h2>
+                            <p className="text-gray-500">Upload images that define your aesthetic.</p>
+                        </div>
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex justify-between items-center mb-4">
+                                <button onClick={() => wizardMoodRef.current?.click()} className="bg-pink-50 text-pink-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-pink-100 transition-colors flex items-center gap-2">
+                                    {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Image</>}
+                                </button>
+                                <input ref={wizardMoodRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} />
+                            </div>
+                            
+                            {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
+                                <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-pink-300 hover:bg-gray-50 transition-all">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                                        <LightbulbIcon className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-500">Upload Inspiration</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                    {kit.moodBoard.map(item => (
+                                        <MoodItem key={item.id} item={item} onDelete={() => deleteMoodItem(item.id)} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            case 7: // COMPETITOR
+                return (
+                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900">Competitor Intel</h2>
+                            <p className="text-gray-500">Who are you up against?</p>
+                        </div>
+                        <div className="max-w-xl mx-auto space-y-6">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Competitor Website</label>
+                                <input 
+                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-500 outline-none"
+                                    placeholder="e.g. www.competitor.com"
+                                    value={kit.competitor?.website || ''}
+                                    onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Ad Screenshots</label>
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {kit.competitor?.adScreenshots.map(ad => (
+                                        <div key={ad.id} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src={ad.imageUrl} className="w-full h-full object-cover" />
+                                            <button onClick={() => deleteCompItem(ad.id)} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                                <XIcon className="w-4 h-4"/>
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => wizardCompRef.current?.click()} className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all">
+                                        <PlusIcon className="w-6 h-6"/>
+                                    </button>
+                                </div>
+                                <input ref={wizardCompRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompUpload} />
+                                <p className="text-xs text-gray-400">Upload screenshots of their ads or social posts for AI analysis.</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 8: // ASSETS (LOGO)
+                return (
+                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900">Final Asset</h2>
                             <p className="text-gray-500">Upload your logo to finalize the identity.</p>
                         </div>
                         <div className="max-w-md mx-auto">
@@ -549,37 +742,41 @@ const BrandCreationWizard: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 z-[300] bg-white/90 backdrop-blur-xl flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-5xl h-[85vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
+        <div className="fixed inset-0 z-[300] bg-white/95 backdrop-blur-xl flex items-center justify-center p-4 animate-fadeIn">
+            <div className="w-full max-w-5xl h-[90vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
                 
                 {/* Header / Progress */}
-                <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-                            <BrandKitIcon className="w-6 h-6" />
+                {step > 0 && (
+                    <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                                <BrandKitIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-lg font-black text-gray-900 leading-none">Brand Wizard</h1>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                     <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                         <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-500 ease-out" style={{ width: `${(step / 8) * 100}%` }}></div>
+                                     </div>
+                                     <p className="text-[10px] text-gray-500 font-bold">Step {step} of 8</p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-lg font-black text-gray-900 leading-none">Brand Wizard</h1>
-                            <p className="text-xs text-gray-500 mt-1 font-medium">Step {step} of {TOTAL_STEPS}</p>
-                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                            <XIcon className="w-6 h-6" />
+                        </button>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                )}
+                
+                {/* Close button for Step 0 (Hero) */}
+                {step === 0 && (
+                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
                         <XIcon className="w-6 h-6" />
                     </button>
-                </div>
-
-                {/* Progress Bar */}
-                {step > 0 && (
-                    <div className="w-full h-1 bg-gray-100">
-                        <div 
-                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-500 ease-out" 
-                            style={{ width: `${(step / 5) * 100}%` }}
-                        ></div>
-                    </div>
                 )}
 
                 {/* Content Body */}
-                <div className="flex-1 overflow-y-auto p-8 md:p-12 relative">
+                <div className={`flex-1 overflow-y-auto relative ${step === 0 ? 'p-0' : 'p-8 md:p-12'}`}>
                     {renderStepContent()}
                 </div>
 
@@ -593,23 +790,30 @@ const BrandCreationWizard: React.FC<{
                             <ArrowLeftIcon className="w-4 h-4" /> Back
                         </button>
                         
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-4">
+                             {/* Skip Button for optional steps (Products, Mood, Comp) */}
+                             {[5, 6, 7].includes(step) && (
+                                 <button onClick={handleSkip} className="text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors">
+                                     Skip for now
+                                 </button>
+                             )}
+
                              <button 
                                 onClick={handleFinish}
                                 disabled={isSaving}
                                 className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
-                                    step === 5 
+                                    step === 8 
                                     ? 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-105' 
-                                    : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' // Only show finish on last step or maybe allow early finish?
+                                    : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' 
                                 }`}
                             >
                                 {isSaving ? 'Saving...' : <><CheckIcon className="w-4 h-4" /> Finish & Save</>}
                             </button>
 
-                            {step < 5 && (
+                            {step < 8 && (
                                 <button 
                                     onClick={handleNext}
-                                    disabled={!kit.companyName && step === 1} // Basic validation example
+                                    disabled={!kit.companyName && step === 1} 
                                     className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Next Step <ArrowRightIcon className="w-4 h-4" />
