@@ -217,7 +217,7 @@ export const sendSupportMessage = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Flash is perfect for high-speed logic/chat
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash for smarter reasoning
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
@@ -286,7 +286,7 @@ export const analyzeSupportImage = async (base64: string, mimeType: string): Pro
     try {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview', // Upgraded for better multimodal analysis
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },

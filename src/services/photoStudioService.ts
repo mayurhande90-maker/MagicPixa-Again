@@ -40,7 +40,7 @@ export const analyzeProductImage = async (
         Return ONLY a JSON array of strings.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Switched to Flash for instant analysis
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash for better reasoning
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },
@@ -103,7 +103,7 @@ export const analyzeProductForModelPrompts = async (
         Return ONLY the JSON array.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Switched to Flash for instant analysis
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },

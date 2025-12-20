@@ -1,3 +1,4 @@
+
 import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -51,7 +52,7 @@ export const detectObjectAtPoint = async (
         Return ONLY the coordinates as a JSON array of 4 integers.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Fast reasoning model
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash for fast spatial reasoning
             contents: {
                 parts: [
                     { inlineData: { data, mimeType: optMime } },
@@ -193,7 +194,7 @@ const analyzeReferenceTechSpecs = async (ai: any, base64: string, mimeType: stri
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType: mimeType } },
@@ -313,7 +314,7 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Fast and capable vision model for analysis
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash for nuanced facial analysis
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType: mimeType } },

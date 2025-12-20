@@ -34,7 +34,7 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', 
+            model: 'gemini-3-flash-preview', // Upgraded to Gemini 3 Flash for highly detailed face analysis
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType: mimeType } },
