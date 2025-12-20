@@ -320,6 +320,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return "h-[750px]";
     };
 
+    // Helper to get labels based on industry
+    const getImageLabels = (ind: typeof industry) => {
+        switch(ind) {
+            case 'ecommerce': return { label: 'Product Image', uploadText: 'Upload Product Image' };
+            case 'realty': return { label: 'Property Image', uploadText: 'Upload Property Photo' };
+            case 'food': return { label: 'Dish Image', uploadText: 'Upload Dish Photo' };
+            case 'fashion': return { label: 'Apparel Image', uploadText: 'Upload Clothing/Model' };
+            case 'saas': return { label: 'Software Interface', uploadText: 'Upload Screenshot' };
+            case 'fmcg': return { label: 'Product Package', uploadText: 'Upload Package' };
+            case 'education': return { label: 'Institution/Class', uploadText: 'Upload Image' };
+            case 'services': return { label: 'Service Context', uploadText: 'Upload Image' };
+            default: return { label: 'Main Image', uploadText: 'Upload Hero' };
+        }
+    };
+
+    const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
+
     return (
         <>
             <FeatureLayout
@@ -432,7 +449,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
                                         <div className={AdMakerStyles.grid2}>
-                                            <CompactUpload label="Main Image" uploadText="Upload Hero" image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
+                                            <CompactUpload label={mainLabel} uploadText={mainText} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
                                             <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<BuildingIcon className="w-5 h-5 text-gray-400"/>} optional={true} />
                                         </div>
                                     </div>
@@ -447,8 +464,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {/* Reference Upload */}
                                         <div className="mb-4">
                                             <CompactUpload 
-                                                label="Upload Reference (Scanner)" 
-                                                uploadText="Scan a Layout" 
+                                                label="Style Reference" 
+                                                uploadText="Upload Reference Image" 
                                                 image={referenceImage} 
                                                 onUpload={handleRefUpload} 
                                                 onClear={handleClearRef} 
