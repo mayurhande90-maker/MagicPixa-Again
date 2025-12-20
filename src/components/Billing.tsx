@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, purchaseCreditRefill, getCreditHistory } from '../firebase';
@@ -5,7 +6,7 @@ import {
     SparklesIcon, CheckIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ApparelIcon, ThumbnailIcon, BuildingIcon,
     PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon,
-    CreditCoinIcon, PixaHeadshotIcon, LightningIcon, MagicWandIcon
+    CreditCoinIcon, PixaHeadshotIcon, LightningIcon, MagicWandIcon, CampaignStudioIcon
 } from './icons';
 import { BillingStyles } from '../styles/Billing.styles';
 
@@ -102,6 +103,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Mockup')) return <PixaMockupIcon className="w-10 h-10" />;
     if (feature.includes('Headshot')) return <PixaHeadshotIcon className="w-10 h-10" />;
     if (feature.includes('Magic Eraser') || feature.includes('Magic Editor')) return <MagicWandIcon className="w-10 h-10" />;
+    if (feature.includes('Campaign') || feature.includes('Planner')) return <CampaignStudioIcon className="w-10 h-10" />;
     
     return <div className="p-2 bg-gray-100 rounded-full"><TicketIcon className={`${iconClass} text-gray-500`} /></div>;
   };
