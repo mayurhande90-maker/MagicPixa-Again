@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View } from '../types';
 import { 
@@ -728,7 +727,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                     ) : null}
 
                     <button onClick={() => setShowMagicModal(true)} className={BrandKitManagerStyles.magicBtn}>
-                        <MagicWandIcon className="w-4 h-4 text-white"/> Auto-Fill with AI
+                        Auto-Fill with AI
                     </button>
                     
                     <button onClick={handleSave} disabled={isSaving} className={BrandKitManagerStyles.saveBtn}>
