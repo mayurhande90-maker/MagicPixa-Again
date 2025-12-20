@@ -774,14 +774,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {/* Blueprints (Only show if NO reference uploaded) */}
                                         {!referenceImage && (
                                             <div className="animate-fadeIn">
-                                                <div className="flex items-center gap-2 mb-2 px-1">
+                                                <div className="flex items-center justify-between mb-2 px-1">
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Choose a Blueprint</label>
+                                                     {selectedBlueprint && (
+                                                         <button 
+                                                             onClick={() => setSelectedBlueprint(null)} 
+                                                             className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors"
+                                                         >
+                                                             Clear
+                                                         </button>
+                                                     )}
                                                 </div>
                                                 <div className={AdMakerStyles.blueprintGrid}>
                                                     {currentBlueprints.map(bp => (
                                                         <button 
                                                             key={bp.id}
-                                                            onClick={() => setSelectedBlueprint(selectedBlueprint === bp.id ? null : bp.id)}
+                                                            onClick={() => setSelectedBlueprint(bp.id)}
                                                             className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}
                                                         >
                                                             <div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center">
