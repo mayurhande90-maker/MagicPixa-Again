@@ -1,3 +1,4 @@
+
 import { Type, Modality, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
@@ -68,7 +69,7 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
 
 /**
  * GENERATE FULL BRAND IDENTITY & COMPETITOR STRATEGY (UNIFIED)
- * Researches both the user brand and the rival to find the strategic gap.
+ * Uses Gemini 3 Pro for advanced strategic reasoning and Google Search for real-time trends.
  */
 export const generateBrandIdentity = async (
     url: string, 
@@ -96,15 +97,19 @@ export const generateBrandIdentity = async (
     
     OUTPUT FORMAT:
     Return strictly a valid JSON object wrapped in a markdown code block.
+    
+    CRITICAL: Citations (like [1], [2]) added by search tools will break JSON parsing. 
+    Ensure you ONLY output the valid JSON inside the code block.
+    
     Example:
     \`\`\`json
     {
         "companyName": "User Brand Name",
-        "website": "...",
-        "toneOfVoice": "...",
-        "targetAudience": "...",
-        "negativePrompts": "avoidance tags for brand strategy...",
-        "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
+        "website": "${url}",
+        "toneOfVoice": "Professional/Luxury/etc",
+        "targetAudience": "Description of core customer...",
+        "negativePrompts": "Avoidance tags for brand strategy...",
+        "colors": { "primary": "#HEX", "secondary": "#HEX", "accent": "#HEX" },
         "fonts": { "heading": "Modern Sans", "body": "Clean Sans" },
         "competitor": {
             "website": "${competitorUrl || ''}",
@@ -120,9 +125,8 @@ export const generateBrandIdentity = async (
     \`\`\``;
 
     try {
-        // Using callWithRetry for robustness
         const response: GenerateContentResponse = await callWithRetry(() => ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Switch to flash for search stability
+            model: 'gemini-3-pro-preview', // Pro model for strategic reasoning
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -130,17 +134,23 @@ export const generateBrandIdentity = async (
         }));
 
         let text = response.text || "";
+        
+        // --- ROBUST CLEANING ---
+        // 1. Extract content from code block
         const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/) || text.match(/(\{[\s\S]*\})/);
         if (jsonMatch) {
             text = jsonMatch[1];
         }
         
-        // Final cleaning
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // 2. Aggressively strip citations like [1], [2], etc. that common search tool output injects
+        text = text.replace(/\[\d+\]/g, ''); 
+        
+        // 3. Clean up any trailing text or symbols
+        text = text.trim();
 
         const result = JSON.parse(text);
 
-        // Extract Search Grounding Links if available
+        // 4. Extract Mandatory Grounding Metadata
         const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (groundingChunks) {
             const links: { uri: string; title: string }[] = [];
@@ -155,8 +165,7 @@ export const generateBrandIdentity = async (
         return result;
     } catch (e) {
         console.error("Auto-Brand Generation Failed:", e);
-        // Throwing error so the manager's catch block can handle it
-        throw new Error("Failed to research brand data. Please check your inputs or try again.");
+        throw new Error("Pixa couldn't finalize the research. This usually happens if the websites provided are blocking AI access or have no data. Try describing your brand more in the input box.");
     }
 };
 
@@ -195,7 +204,7 @@ export const analyzeCompetitorStrategy = async (
     4. **Negative Prompts (Avoid Tags)**: List specific visual elements seen in THEIR ads that we must AVOID.
     
     *** OUTPUT FORMAT ***
-    Return strictly a valid JSON object inside a markdown code block.
+    Return strictly a valid JSON object inside a markdown code block. Do NOT include citations in the JSON.
     Example:
     \`\`\`json
     {
@@ -222,7 +231,8 @@ export const analyzeCompetitorStrategy = async (
         if (jsonMatch) {
             text = jsonMatch[1];
         }
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        text = text.replace(/\[\d+\]/g, '').trim();
 
         return JSON.parse(text);
     } catch (e) {

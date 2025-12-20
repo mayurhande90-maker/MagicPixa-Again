@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View } from '../types';
 import { 
@@ -367,7 +368,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             setToast({ msg: "Upload failed.", type: "error" });
         } finally {
             setProcessingState(prev => ({ ...prev, [key]: false }));
-            setUploadingState(prev => ({ ...prev, [key]: false }));
+            setUploadingState(prev => ({ ...prev, [key]: true }));
         }
     };
 
@@ -441,7 +442,18 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         setIsMagicGen(true);
         try {
             const generatedData = await generateBrandIdentity(url, desc, compUrl);
-            setKit(prev => ({ ...prev, ...generatedData }));
+            
+            // PERFORM DEEP MERGE: Keep existing data (like logo) if AI missed it
+            setKit(prev => ({ 
+                ...prev, 
+                ...generatedData,
+                // Ensure nested objects are merged carefully
+                colors: generatedData.colors || prev.colors,
+                fonts: generatedData.fonts || prev.fonts,
+                logos: { ...prev.logos, ...(generatedData.logos || {}) },
+                competitor: { ...prev.competitor, ...(generatedData.competitor || {}) }
+            }));
+            
             setToast({ msg: "Unified strategy generated!", type: "success" });
             setShowMagicModal(false);
         } catch (e: any) {
@@ -538,7 +550,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         <div className={BrandKitManagerStyles.card}>
                             <div className={BrandKitManagerStyles.cardHeader}><CaptionIcon className="w-5 h-5 text-green-600"/><h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2></div>
                             <div className="p-6 space-y-5">
-                                {/* FIX: Import InputField from FeatureLayout to resolve "Cannot find name 'InputField'" error */}
                                 <InputField label="Company Legal Name" value={kit.companyName} onChange={(e: any) => handleTextChange('companyName', e.target.value)} />
                                 <InputField label="Main Website" value={kit.website} onChange={(e: any) => handleTextChange('website', e.target.value)} />
                                 <div><label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label><select value={kit.toneOfVoice} onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)} className={BrandKitManagerStyles.selectField}><option>Professional</option><option>Luxury</option><option>Playful</option><option>Urgent</option><option>Casual</option></select></div>
@@ -591,7 +602,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         <div className="flex-1 p-8 space-y-6 overflow-y-auto custom-scrollbar">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
-                                    {/* FIX: Import InputField from FeatureLayout to resolve "Cannot find name 'InputField'" error */}
                                     <InputField label="Competitor Website" value={kit.competitor?.website || ''} onChange={(e: any) => updateDeepLocal('competitor', 'website', e.target.value)} />
                                     <div>
                                         <label className={BrandKitManagerStyles.inputLabel}>Ad Gallery</label>
