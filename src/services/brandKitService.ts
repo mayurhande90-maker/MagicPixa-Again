@@ -95,13 +95,24 @@ export const generateBrandIdentity = async (
     4. 'fashion': Apparel, clothing lines, accessories that need models.
     5. 'service': Personal brands, coaching, consulting, finance, law, or agencies.
 
+    **CRITICAL: TONE OF VOICE ANALYSIS**
+    Deeply analyze the copywriting style on the website or description. Select EXACTLY ONE of the following values for 'toneOfVoice':
+    ['Professional', 'Luxury', 'Playful', 'Friendly', 'Urgent', 'Technical', 'Minimal']
+    
+    - 'Professional': Corporate, trustworthy, serious.
+    - 'Luxury': Elegant, exclusive, expensive.
+    - 'Playful': Fun, energetic, colorful, uses emojis.
+    - 'Friendly': Warm, community-focused, casual.
+    - 'Urgent': Sales-driven, discount-heavy.
+    - 'Technical': Data-driven, complex, expert.
+    - 'Minimal': Simple, understated, clean.
+
     **OTHER GENERATION TASKS:**
     1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
-    2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
-    3. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
-    4. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
-    5. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
-    6. **Website**: Extract or infer the main website URL.
+    2. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
+    3. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
+    4. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
+    5. **Website**: Extract or infer the main website URL.
     
     OUTPUT FORMAT:
     Return strictly a valid JSON object wrapped in a markdown code block.
@@ -111,7 +122,7 @@ export const generateBrandIdentity = async (
         "companyName": "Inferred Name",
         "industry": "physical", 
         "website": "https://...",
-        "toneOfVoice": "...",
+        "toneOfVoice": "Professional",
         "targetAudience": "...",
         "negativePrompts": "...",
         "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
@@ -141,6 +152,12 @@ export const generateBrandIdentity = async (
         const validIndustries = ['physical', 'digital', 'realty', 'fashion', 'service'];
         if (!validIndustries.includes(parsed.industry)) {
             parsed.industry = 'physical'; // Fallback
+        }
+
+        // Safety check for tone enum (fallback to Professional)
+        const validTones = ['Professional', 'Luxury', 'Playful', 'Friendly', 'Urgent', 'Technical', 'Minimal'];
+        if (!validTones.includes(parsed.toneOfVoice)) {
+            parsed.toneOfVoice = 'Professional';
         }
 
         return parsed;
