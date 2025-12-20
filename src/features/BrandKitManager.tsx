@@ -270,7 +270,10 @@ const BrandCreationWizard: React.FC<{
     const industryConf = INDUSTRY_CONFIG[kit.industry || 'physical'] || INDUSTRY_CONFIG['physical'];
 
     const handleMagicGenerate = async () => {
-        if (!magicUrl && !magicDesc) return;
+        if (!magicUrl) {
+            alert("Website URL is required for Auto-fill.");
+            return;
+        }
         setIsGenerating(true);
         try {
             const generated = await generateBrandIdentity(magicUrl, magicDesc);
@@ -387,16 +390,12 @@ const BrandCreationWizard: React.FC<{
             case 0: // SETUP CARD (AI + Manual Option)
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-8 relative">
-                         {/* Manual Toggle */}
-                        <button 
-                            onClick={() => setStep(1)}
-                            className="absolute top-6 right-6 md:top-8 md:right-8 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-500 hover:text-gray-900 px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                        >
-                            <PaletteIcon className="w-4 h-4" />
-                            Or Enter Manually
+                        {/* Close button for Step 0 (Hero) */}
+                        <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
+                            <XIcon className="w-6 h-6" />
                         </button>
 
-                        <div className="w-full max-w-lg text-center animate-fadeInUp">
+                        <div className="w-full max-w-lg text-center animate-fadeInUp relative z-10">
                             {/* Brand Kit Icon */}
                             <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                                 <BrandKitIcon className="w-10 h-10 text-indigo-600" />
@@ -405,15 +404,14 @@ const BrandCreationWizard: React.FC<{
                             {/* Headings */}
                             <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 tracking-tight">Setup Your Brand Kit</h1>
                             <p className="text-gray-500 mb-10 text-sm md:text-base leading-relaxed max-w-md mx-auto">
-                                Enter your website or describe your business. <br/>
-                                <span className="text-indigo-600 font-bold">Pixa AI</span> will research and build your visual identity instantly.
+                                Auto-fill with <span className="text-indigo-600 font-bold">Pixa AI</span>. Our agents will scan your website and build your visual identity instantly.
                             </p>
 
                             {/* Main Input Card */}
-                            <div className="bg-white p-2 rounded-3xl">
+                            <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 relative z-20">
                                 <div className="space-y-5 text-left">
                                     <div className="group">
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">Website URL (Optional)</label>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">Website URL (Required)</label>
                                         <div className="relative">
                                             <div className="absolute left-4 top-4 text-gray-400">
                                                 <GlobeIcon className="w-5 h-5"/>
@@ -429,10 +427,10 @@ const BrandCreationWizard: React.FC<{
                                     </div>
                                     
                                     <div className="group">
-                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">About the Brand</label>
+                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">About the Brand (Optional)</label>
                                          <textarea 
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400 resize-none h-32 leading-relaxed"
-                                            placeholder="Describe your products, industry, vibe, and target audience..."
+                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400 resize-none h-24 leading-relaxed"
+                                            placeholder="Describe your products, vibe, and audience..."
                                             value={magicDesc}
                                             onChange={e => setMagicDesc(e.target.value)}
                                         />
@@ -440,14 +438,25 @@ const BrandCreationWizard: React.FC<{
 
                                     <button 
                                         onClick={handleMagicGenerate}
-                                        disabled={isGenerating || (!magicUrl && !magicDesc)}
-                                        className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2"
+                                        disabled={isGenerating || !magicUrl}
+                                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 transition-all shadow-lg"
                                     >
-                                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <><SparklesIcon className="w-5 h-5 text-yellow-300 animate-pulse"/> Generate Identity</>}
+                                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Generate Identity"}
                                     </button>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Manual Toggle - Bottom Right */}
+                        <button 
+                            onClick={() => setStep(1)}
+                            className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-xs font-bold transition-all flex items-center gap-3 group"
+                        >
+                            Build from Scratch
+                            <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
+                                <ArrowRightIcon className="w-3 h-3" />
+                            </div>
+                        </button>
                     </div>
                 );
 
@@ -766,13 +775,6 @@ const BrandCreationWizard: React.FC<{
                             <XIcon className="w-6 h-6" />
                         </button>
                     </div>
-                )}
-                
-                {/* Close button for Step 0 (Hero) */}
-                {step === 0 && (
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
-                        <XIcon className="w-6 h-6" />
-                    </button>
                 )}
 
                 {/* Content Body */}
