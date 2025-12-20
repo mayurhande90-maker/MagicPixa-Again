@@ -379,21 +379,86 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    // AUTO-FILL FROM BRAND KIT
+    // Helper to get labels based on industry
+    const getImageLabels = (ind: typeof industry) => {
+        switch(ind) {
+            case 'ecommerce': return { label: 'Product Image', uploadText: 'Upload Product Image' };
+            case 'realty': return { label: 'Property Image', uploadText: 'Upload Property Photo' };
+            case 'food': return { label: 'Dish Image', uploadText: 'Upload Dish Photo' };
+            case 'fashion': return { label: 'Apparel Image', uploadText: 'Upload Clothing/Model' };
+            case 'saas': return { label: 'Software Interface', uploadText: 'Upload Screenshot' };
+            case 'fmcg': return { label: 'Product Package', uploadText: 'Upload Package' };
+            case 'education': return { label: 'Institution/Class', uploadText: 'Upload Image' };
+            case 'services': return { label: 'Service Context', uploadText: 'Upload Image' };
+            default: return { label: 'Main Image', uploadText: 'Upload Hero' };
+        }
+    };
+
+    // Dynamic Tone Options based on Industry
+    const getToneOptions = (ind: string | null) => {
+        switch(ind) {
+            case 'fashion': return ['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage'];
+            case 'food': return ['Spicy', 'Fresh', 'Sweet', 'Comfort', 'Gourmet'];
+            case 'realty': return ['Luxury', 'Modern', 'Cozy', 'Classic', 'Rustic'];
+            case 'saas':
+            case 'education':
+            case 'services': return ['Modern', 'Trustworthy', 'Creative', 'Clean', 'Corporate'];
+            default: return ['Modern', 'Bold', 'Minimalist', 'Playful', 'Luxury']; // Default for E-com/FMCG
+        }
+    };
+
+    // AUTO-FILL FROM BRAND KIT & INDUSTRY CHANGE
     useEffect(() => {
         if (auth.user?.brandKit) {
             const kit = auth.user.brandKit;
+            
+            // 1. Assets (Logo/Website) - Only need to load once or if kit changes
             if (kit.logos.primary) {
                 urlToBase64(kit.logos.primary).then(base64 => {
                     setLogoImage({ url: kit.logos.primary!, base64 });
                 }).catch(console.warn);
             }
             if (kit.website) setCta(`Visit ${kit.website}`);
-            if (kit.toneOfVoice) setTone(kit.toneOfVoice);
-        } else {
-            setLogoImage(null);
+
+            // 2. Smart Tone Mapping based on Industry
+            // Only run this if industry is selected (not null)
+            if (industry) {
+                const options = getToneOptions(industry);
+                const kitTone = kit.toneOfVoice || 'Professional';
+                
+                // A. Exact Match
+                if (options.includes(kitTone)) {
+                    setTone(kitTone);
+                } 
+                // B. Smart Fallbacks based on Brand Identity
+                else {
+                    // Map "Professional" Brand -> Industry equivalents
+                    if (kitTone === 'Professional') {
+                        if (industry === 'fashion') setTone('Minimal');
+                        else if (industry === 'food') setTone('Gourmet');
+                        else if (industry === 'realty') setTone('Modern');
+                        else setTone('Clean'); // Default
+                    }
+                    // Map "Luxury" Brand
+                    else if (kitTone === 'Luxury') {
+                        if (industry === 'fashion') setTone('Luxury');
+                        else if (industry === 'food') setTone('Gourmet');
+                        else setTone('Luxury');
+                    }
+                    // Map "Playful" Brand
+                    else if (kitTone === 'Playful') {
+                        if (industry === 'fashion') setTone('Street');
+                        else if (industry === 'food') setTone('Sweet');
+                        else setTone('Playful');
+                    }
+                    // Default to first option if no smart map found
+                    else {
+                        setTone(options[0]);
+                    }
+                }
+            }
         }
-    }, [auth.user?.brandKit]);
+    }, [auth.user?.brandKit, industry]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
@@ -533,34 +598,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (aspectRatio === '9:16') return "h-[950px]";
         if (aspectRatio === '4:5') return "h-[850px]";
         return "h-[750px]";
-    };
-
-    // Helper to get labels based on industry
-    const getImageLabels = (ind: typeof industry) => {
-        switch(ind) {
-            case 'ecommerce': return { label: 'Product Image', uploadText: 'Upload Product Image' };
-            case 'realty': return { label: 'Property Image', uploadText: 'Upload Property Photo' };
-            case 'food': return { label: 'Dish Image', uploadText: 'Upload Dish Photo' };
-            case 'fashion': return { label: 'Apparel Image', uploadText: 'Upload Clothing/Model' };
-            case 'saas': return { label: 'Software Interface', uploadText: 'Upload Screenshot' };
-            case 'fmcg': return { label: 'Product Package', uploadText: 'Upload Package' };
-            case 'education': return { label: 'Institution/Class', uploadText: 'Upload Image' };
-            case 'services': return { label: 'Service Context', uploadText: 'Upload Image' };
-            default: return { label: 'Main Image', uploadText: 'Upload Hero' };
-        }
-    };
-
-    // Dynamic Tone Options based on Industry
-    const getToneOptions = (ind: string | null) => {
-        switch(ind) {
-            case 'fashion': return ['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage'];
-            case 'food': return ['Spicy', 'Fresh', 'Sweet', 'Comfort', 'Gourmet'];
-            case 'realty': return ['Luxury', 'Modern', 'Cozy', 'Classic', 'Rustic'];
-            case 'saas':
-            case 'education':
-            case 'services': return ['Modern', 'Trustworthy', 'Creative', 'Clean', 'Corporate'];
-            default: return ['Modern', 'Bold', 'Minimalist', 'Playful', 'Luxury']; // Default for E-com/FMCG
-        }
     };
 
     const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
@@ -794,7 +831,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {/* VISUAL STYLE SELECTOR (Moved from bottom) */}
                                         <div className="mt-6 pt-4 border-t border-gray-100">
                                              <SelectionGrid
-                                                label={industry === 'food' ? "Taste Vibe" : "Visual Style"}
+                                                label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"}
                                                 options={activeToneOptions}
                                                 value={tone}
                                                 onChange={setTone}
