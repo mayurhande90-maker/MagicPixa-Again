@@ -8,7 +8,7 @@ import {
     CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon,
     GlobeIcon, CameraIcon, EyeIcon, FlagIcon, DocumentTextIcon
 } from '../components/icons';
-import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, urlToBase64, resizeImage } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
 import { generateBrandIdentity, processLogoAsset, analyzeCompetitorStrategy } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
@@ -516,18 +516,23 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
         setIsAnalyzingCompetitor(true);
         try {
-            // Fetch images as base64 for analysis
+            // Fetch images and optimize them before analysis to prevent payload limit errors
             const screenshots = await Promise.all(kit.competitor.adScreenshots.map(async (item) => {
                 const response = await fetch(item.imageUrl);
                 const blob = await response.blob();
-                return new Promise<{data: string, mimeType: string}>((resolve) => {
+                const dataUrl = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
-                    reader.onloadend = () => resolve({
-                        data: (reader.result as string).split(',')[1],
-                        mimeType: blob.type
-                    });
+                    reader.onloadend = () => resolve(reader.result as string);
                     reader.readAsDataURL(blob);
                 });
+                
+                // Optimize to 512px for reliable analysis payload
+                const optimizedDataUrl = await resizeImage(dataUrl, 512, 0.7);
+                
+                return {
+                    data: optimizedDataUrl.split(',')[1],
+                    mimeType: 'image/jpeg'
+                };
             }));
 
             const result = await analyzeCompetitorStrategy(kit.competitor.website, screenshots);
@@ -545,7 +550,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             setToast({ msg: "Analysis Complete!", type: "success" });
         } catch (e: any) {
             console.error(e);
-            setToast({ msg: "Analysis failed. Try fewer images.", type: "error" });
+            setToast({ msg: "Analysis failed. Try fewer images or check connection.", type: "error" });
         } finally {
             setIsAnalyzingCompetitor(false);
         }
