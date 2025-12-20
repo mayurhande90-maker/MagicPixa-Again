@@ -266,8 +266,8 @@ const BrandCreationWizard: React.FC<{
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
-    // Local Upload State for Wizard
-    const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
+    // Local Upload State for Wizard (Tracks count of uploading files)
+    const [uploadingState, setUploadingState] = useState<{ [key: string]: number }>({});
 
     // Manual Flow Steps:
     // 0: Fork (Magic vs Manual)
@@ -346,6 +346,7 @@ const BrandCreationWizard: React.FC<{
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
+            setUploadingState(prev => ({ ...prev, primary: 1 }));
             const file = e.target.files[0];
             try {
                 const base64Data = await fileToBase64(file);
@@ -353,13 +354,14 @@ const BrandCreationWizard: React.FC<{
                 const url = await uploadBrandAsset(userId, processedUri, 'primary');
                 setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: url } }));
             } catch (err) { console.error(err); alert("Logo upload failed."); }
+            finally { setUploadingState(prev => ({ ...prev, primary: 0 })); }
         }
     };
     
     const handleProductUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, products: true }));
+        setUploadingState(prev => ({ ...prev, products: files.length }));
         try {
             const newProducts = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -370,13 +372,13 @@ const BrandCreationWizard: React.FC<{
             }));
             setKit(prev => ({ ...prev, products: [...(prev.products || []), ...newProducts] }));
         } catch (error) { console.error(error); alert("Upload failed."); } 
-        finally { setUploadingState(prev => ({ ...prev, products: false })); e.target.value = ''; }
+        finally { setUploadingState(prev => ({ ...prev, products: 0 })); e.target.value = ''; }
     };
     
     const handleMoodUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, mood: true }));
+        setUploadingState(prev => ({ ...prev, mood: files.length }));
         try {
             const newItems = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -387,13 +389,13 @@ const BrandCreationWizard: React.FC<{
             }));
             setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), ...newItems] }));
         } catch (error) { console.error(error); alert("Upload failed."); } 
-        finally { setUploadingState(prev => ({ ...prev, mood: false })); e.target.value = ''; }
+        finally { setUploadingState(prev => ({ ...prev, mood: 0 })); e.target.value = ''; }
     };
 
     const handleCompUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, competitor: true }));
+        setUploadingState(prev => ({ ...prev, competitor: files.length }));
         try {
             const newItems = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -404,7 +406,7 @@ const BrandCreationWizard: React.FC<{
             }));
             setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { website: '', adScreenshots: [] }, adScreenshots: [...(prev.competitor?.adScreenshots || []), ...newItems] } }));
         } catch (error) { console.error(error); alert("Upload failed."); } 
-        finally { setUploadingState(prev => ({ ...prev, competitor: false })); e.target.value = ''; }
+        finally { setUploadingState(prev => ({ ...prev, competitor: 0 })); e.target.value = ''; }
     };
 
     const deleteProduct = (id: string) => setKit(prev => ({ ...prev, products: prev.products?.filter(p => p.id !== id) || [] }));
@@ -644,6 +646,7 @@ const BrandCreationWizard: React.FC<{
                 );
             
             case 5: // PRODUCTS
+                const uploadingProductsCount = uploadingState['products'] || 0;
                 return (
                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
                         <div className="text-center mb-8">
@@ -653,16 +656,16 @@ const BrandCreationWizard: React.FC<{
                         <div className="max-w-3xl mx-auto">
                             <div className="flex justify-between items-center mb-4">
                                 <button onClick={() => wizardProductRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
-                                    {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Item</>}
+                                    {uploadingProductsCount > 0 ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Item</>}
                                 </button>
                                 <span className="text-xs text-gray-400 font-medium">{kit.products?.length || 0} items added</span>
                                 <input ref={wizardProductRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} />
                             </div>
                             
                             {(!kit.products || kit.products.length === 0) ? (
-                                uploadingState['products'] ? (
+                                uploadingProductsCount > 0 ? (
                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
-                                        {[1, 2, 3].map(i => <UploadSkeleton key={i} />)}
+                                        {Array.from({ length: uploadingProductsCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                      </div>
                                 ) : (
                                     <div onClick={() => wizardProductRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
@@ -678,7 +681,7 @@ const BrandCreationWizard: React.FC<{
                                     {kit.products.map(product => (
                                         <ProductItem key={product.id} item={product} placeholder={industryConf.itemLabel} onDelete={() => deleteProduct(product.id)} onNameChange={(name) => updateProductName(product.id, name)} />
                                     ))}
-                                    {uploadingState['products'] && <UploadSkeleton />}
+                                    {uploadingProductsCount > 0 && Array.from({ length: uploadingProductsCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                 </div>
                             )}
                         </div>
@@ -686,6 +689,7 @@ const BrandCreationWizard: React.FC<{
                 );
             
             case 6: // MOOD BOARD
+                const uploadingMoodCount = uploadingState['mood'] || 0;
                 return (
                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
                          <div className="text-center mb-8">
@@ -695,15 +699,15 @@ const BrandCreationWizard: React.FC<{
                         <div className="max-w-3xl mx-auto">
                             <div className="flex justify-between items-center mb-4">
                                 <button onClick={() => wizardMoodRef.current?.click()} className="bg-pink-50 text-pink-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-pink-100 transition-colors flex items-center gap-2">
-                                    {uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Image</>}
+                                    {uploadingMoodCount > 0 ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Image</>}
                                 </button>
                                 <input ref={wizardMoodRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} />
                             </div>
                             
                             {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
-                                uploadingState['mood'] ? (
+                                uploadingMoodCount > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
-                                        {[1, 2, 3].map(i => <UploadSkeleton key={i} />)}
+                                        {Array.from({ length: uploadingMoodCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                     </div>
                                 ) : (
                                     <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-pink-300 hover:bg-gray-50 transition-all">
@@ -718,7 +722,7 @@ const BrandCreationWizard: React.FC<{
                                     {kit.moodBoard.map(item => (
                                         <MoodItem key={item.id} item={item} onDelete={() => deleteMoodItem(item.id)} />
                                     ))}
-                                    {uploadingState['mood'] && <UploadSkeleton />}
+                                    {uploadingMoodCount > 0 && Array.from({ length: uploadingMoodCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                 </div>
                             )}
                         </div>
@@ -726,6 +730,7 @@ const BrandCreationWizard: React.FC<{
                 );
 
             case 7: // COMPETITOR
+                const uploadingCompCount = uploadingState['competitor'] || 0;
                 return (
                      <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
                         <div className="text-center mb-8">
@@ -741,6 +746,9 @@ const BrandCreationWizard: React.FC<{
                                     value={kit.competitor?.website || ''}
                                     onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))}
                                 />
+                                {kit.competitor?.website && !isValidUrl(kit.competitor.website) && (
+                                    <p className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g. example.com)</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Ad Screenshots</label>
@@ -753,11 +761,11 @@ const BrandCreationWizard: React.FC<{
                                             </button>
                                         </div>
                                     ))}
-                                    {uploadingState['competitor'] && (
-                                        <div className="w-20 h-20 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center animate-pulse">
+                                    {uploadingCompCount > 0 && Array.from({ length: uploadingCompCount }).map((_, i) => (
+                                        <div key={i} className="w-20 h-20 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center animate-pulse">
                                             <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
                                         </div>
-                                    )}
+                                    ))}
                                     <button onClick={() => wizardCompRef.current?.click()} className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all">
                                         <PlusIcon className="w-6 h-6"/>
                                     </button>
@@ -793,6 +801,7 @@ const BrandCreationWizard: React.FC<{
                                     </div>
                                 )}
                                 <input id="wizard-logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                                {uploadingState['primary'] > 0 && <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}
                             </div>
                         </div>
                     </div>
@@ -885,6 +894,7 @@ const BrandCreationWizard: React.FC<{
 };
 
 export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Page, view?: View) => void }> = ({ auth, navigateTo }) => {
+    // ... (rest of BrandKitManager component remains unchanged)
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [detailTab, setDetailTab] = useState<'identity' | 'competitor'>('identity');
 
@@ -910,7 +920,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     
     const [isAutoDetected, setIsAutoDetected] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
+    // Updated uploadingState to number count
+    const [uploadingState, setUploadingState] = useState<{ [key: string]: number }>({});
     const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -1023,7 +1034,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             let processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             if (key === 'primary') processedUri = await processLogoAsset(base64Data.base64, base64Data.mimeType);
             setProcessingState(prev => ({ ...prev, [key]: false }));
-            setUploadingState(prev => ({ ...prev, [key]: true }));
+            // Set count to 1 for single upload
+            setUploadingState(prev => ({ ...prev, [key]: 1 }));
             const url = await uploadBrandAsset(auth.user.uid, processedUri, key);
             setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
             setToast({ msg: "Asset processed & uploaded.", type: "success" });
@@ -1032,14 +1044,14 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             setToast({ msg: "Failed to upload asset.", type: "error" });
         } finally {
             setProcessingState(prev => ({ ...prev, [key]: false }));
-            setUploadingState(prev => ({ ...prev, [key]: false }));
+            setUploadingState(prev => ({ ...prev, [key]: 0 }));
         }
     };
 
     const handleProductUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!auth.user || !e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, products: true }));
+        setUploadingState(prev => ({ ...prev, products: files.length }));
         try {
             const newProducts = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -1050,7 +1062,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             }));
             setKit(prev => ({ ...prev, products: [...(prev.products || []), ...newProducts] }));
             setToast({ msg: `${newProducts.length} items added.`, type: "success" });
-        } catch (error: any) { console.error("Product upload failed", error); setToast({ msg: "Failed to upload items.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, products: false })); e.target.value = ''; }
+        } catch (error: any) { console.error("Product upload failed", error); setToast({ msg: "Failed to upload items.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, products: 0 })); e.target.value = ''; }
     };
     const deleteProduct = (id: string) => setKit(prev => ({ ...prev, products: prev.products?.filter(p => p.id !== id) || [] }));
     const updateProductName = (id: string, newName: string) => setKit(prev => ({ ...prev, products: prev.products?.map(p => p.id === id ? { ...p, name: newName } : p) || [] }));
@@ -1058,7 +1070,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const handleMoodUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!auth.user || !e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, mood: true }));
+        setUploadingState(prev => ({ ...prev, mood: files.length }));
         try {
             const newItems = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -1069,14 +1081,14 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             }));
             setKit(prev => ({ ...prev, moodBoard: [...(prev.moodBoard || []), ...newItems] }));
             setToast({ msg: `${newItems.length} images added.`, type: "success" });
-        } catch (error: any) { console.error("Mood upload failed", error); setToast({ msg: "Failed to upload images.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, mood: false })); e.target.value = ''; }
+        } catch (error: any) { console.error("Mood upload failed", error); setToast({ msg: "Failed to upload images.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, mood: 0 })); e.target.value = ''; }
     };
     const deleteMoodItem = (id: string) => setKit(prev => ({ ...prev, moodBoard: prev.moodBoard?.filter(m => m.id !== id) || [] }));
 
     const handleCompetitorAdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!auth.user || !e.target.files || e.target.files.length === 0) return;
         const files = Array.from(e.target.files);
-        setUploadingState(prev => ({ ...prev, competitor: true }));
+        setUploadingState(prev => ({ ...prev, competitor: files.length }));
         try {
             const newItems = await Promise.all(files.map(async (file) => {
                 const base64Data = await fileToBase64(file);
@@ -1087,7 +1099,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             }));
             setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { website: '', adScreenshots: [] }, adScreenshots: [...(prev.competitor?.adScreenshots || []), ...newItems] } }));
             setToast({ msg: `${newItems.length} screenshots added.`, type: "success" });
-        } catch (error: any) { console.error(error); setToast({ msg: "Upload failed.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, competitor: false })); e.target.value = ''; }
+        } catch (error: any) { console.error(error); setToast({ msg: "Upload failed.", type: "error" }); } finally { setUploadingState(prev => ({ ...prev, competitor: 0 })); e.target.value = ''; }
     };
     const deleteCompetitorAd = (id: string) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { website: '', adScreenshots: [] }, adScreenshots: prev.competitor?.adScreenshots.filter(i => i.id !== id) || [] } }));
     
@@ -1121,6 +1133,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
+            {/* ... List View Content ... (Unchanged) */}
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className={BrandKitManagerStyles.sectionTitle}>My Brands</h1>
@@ -1177,8 +1190,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
                 <div className={BrandKitManagerStyles.actionGroup}>
                     {isSaving ? (<div className={BrandKitManagerStyles.savingBadge}><div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>Saving...</div>) : lastSaved ? (<div className={BrandKitManagerStyles.savedBadge}><CheckIcon className="w-4 h-4" /> Saved</div>) : null}
-                    {/* Re-trigger Wizard for edits? Maybe simpler to just let them edit manually here. Wizard is for creation flow primarily. */}
-                    {/* <button onClick={() => setShowCreationWizard(true)} className={BrandKitManagerStyles.magicBtn}>Restart Wizard</button> */}
                     <button onClick={handleSave} disabled={isSaving} className={BrandKitManagerStyles.saveBtn}>Save Changes</button>
                 </div>
             </div>
@@ -1233,7 +1244,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         
                             <div className={BrandKitManagerStyles.card}>
                                 <div className={BrandKitManagerStyles.cardHeader}><div className={`bg-blue-100 text-blue-600 ${BrandKitManagerStyles.cardIconBox}`}><ShieldCheckIcon className="w-5 h-5" /></div><div><h2 className={BrandKitManagerStyles.cardTitle}>Identity Assets</h2><p className={BrandKitManagerStyles.cardDesc}>We'll auto-remove backgrounds for you.</p></div></div>
-                                <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}><AssetUploader label="Main Logo" subLabel="Auto-Processed" currentUrl={kit.logos.primary} onUpload={(f) => handleUpload('primary', f)} onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))} isLoading={uploadingState['primary']} isProcessing={processingState['primary']} /></div>
+                                <div className={`grid grid-cols-1 gap-6 ${BrandKitManagerStyles.cardContent}`}><AssetUploader label="Main Logo" subLabel="Auto-Processed" currentUrl={kit.logos.primary} onUpload={(f) => handleUpload('primary', f)} onRemove={() => setKit(prev => ({ ...prev, logos: { ...prev.logos, primary: null } }))} isLoading={uploadingState['primary'] > 0} isProcessing={processingState['primary']} /></div>
                             </div>
 
                             <div className={BrandKitManagerStyles.card}>
@@ -1245,12 +1256,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                             </div>
 
                             <div className={BrandKitManagerStyles.card}>
-                                <div className={BrandKitManagerStyles.cardHeader}><div className={`bg-${industryConf.color}-100 text-${industryConf.color}-600 ${BrandKitManagerStyles.cardIconBox}`}><industryConf.icon className="w-5 h-5" /></div><div className="flex-1"><h2 className={BrandKitManagerStyles.cardTitle}>{industryConf.catalogTitle}</h2><p className={BrandKitManagerStyles.cardDesc}>{industryConf.catalogDesc}</p></div><button onClick={() => productInputRef.current?.click()} disabled={uploadingState['products']} className={`bg-${industryConf.color}-50 text-${industryConf.color}-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-${industryConf.color}-100 transition-colors flex items-center gap-1.5`}>{uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> {industryConf.btn}</>}</button><input ref={productInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} /></div>
+                                <div className={BrandKitManagerStyles.cardHeader}><div className={`bg-${industryConf.color}-100 text-${industryConf.color}-600 ${BrandKitManagerStyles.cardIconBox}`}><industryConf.icon className="w-5 h-5" /></div><div className="flex-1"><h2 className={BrandKitManagerStyles.cardTitle}>{industryConf.catalogTitle}</h2><p className={BrandKitManagerStyles.cardDesc}>{industryConf.catalogDesc}</p></div><button onClick={() => productInputRef.current?.click()} disabled={uploadingState['products'] > 0} className={`bg-${industryConf.color}-50 text-${industryConf.color}-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-${industryConf.color}-100 transition-colors flex items-center gap-1.5`}>{uploadingState['products'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> {industryConf.btn}</>}</button><input ref={productInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} /></div>
                                 <div className={`${BrandKitManagerStyles.cardContent}`}>{(!kit.products || kit.products.length === 0) ? (<div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200"><p className="text-sm text-gray-400 font-medium">No items added yet.</p></div>) : (<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">{kit.products.map(product => (<ProductItem key={product.id} item={product} placeholder={industryConf.itemLabel} onDelete={() => deleteProduct(product.id)} onNameChange={(name) => updateProductName(product.id, name)} />))}</div>)}</div>
                             </div>
 
                             <div className={BrandKitManagerStyles.card}>
-                                <div className={BrandKitManagerStyles.cardHeader}><div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}><LightbulbIcon className="w-5 h-5" /></div><div className="flex-1"><h2 className={BrandKitManagerStyles.cardTitle}>Mood Board</h2><p className={BrandKitManagerStyles.cardDesc}>Upload inspiration for AI style matching.</p></div><button onClick={() => moodInputRef.current?.click()} disabled={uploadingState['mood']} className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1.5">{uploadingState['mood'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}</button><input ref={moodInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} /></div>
+                                <div className={BrandKitManagerStyles.cardHeader}><div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}><LightbulbIcon className="w-5 h-5" /></div><div className="flex-1"><h2 className={BrandKitManagerStyles.cardTitle}>Mood Board</h2><p className={BrandKitManagerStyles.cardDesc}>Upload inspiration for AI style matching.</p></div><button onClick={() => moodInputRef.current?.click()} disabled={uploadingState['mood'] > 0} className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-100 transition-colors flex items-center gap-1.5">{uploadingState['mood'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Image</>}</button><input ref={moodInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} /></div>
                                 <div className={`${BrandKitManagerStyles.cardContent}`}>{(!kit.moodBoard || kit.moodBoard.length === 0) ? (<div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200"><p className="text-sm text-gray-400 font-medium">No inspiration images added.</p></div>) : (<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">{kit.moodBoard.map(item => (<MoodItem key={item.id} item={item} onDelete={() => deleteMoodItem(item.id)} />))}</div>)}</div>
                             </div>
                         </>
@@ -1264,7 +1275,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                     <div className="space-y-6">
                                         <div><label className={BrandKitManagerStyles.inputLabel}>Competitor Website</label><input type="text" placeholder="e.g. www.competitor.com" className={BrandKitManagerStyles.inputField} value={kit.competitor?.website || ''} onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))} /></div>
                                         <div>
-                                            <div className="flex justify-between items-center mb-2"><label className={BrandKitManagerStyles.inputLabel}>Competitor Ad Screenshots</label><button onClick={() => competitorAdRef.current?.click()} disabled={uploadingState['competitor']} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">{uploadingState['competitor'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}</button><input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} /></div>
+                                            <div className="flex justify-between items-center mb-2"><label className={BrandKitManagerStyles.inputLabel}>Competitor Ad Screenshots</label><button onClick={() => competitorAdRef.current?.click()} disabled={uploadingState['competitor'] > 0} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">{uploadingState['competitor'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}</button><input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} /></div>
                                             {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (<div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/50"><p className="text-xs text-gray-400">Upload screenshots of their ads or social posts.</p></div>) : (<div className="grid grid-cols-3 gap-2">{kit.competitor.adScreenshots.map(ad => (<div key={ad.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-100"><img src={ad.imageUrl} className="w-full h-full object-cover" /><button onClick={() => deleteCompetitorAd(ad.id)} className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50"><XIcon className="w-3 h-3" /></button></div>))}</div>)}
                                         </div>
                                         <button onClick={runCompetitorAnalysis} disabled={isAnalyzingCompetitor || !kit.competitor?.website} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none">{isAnalyzingCompetitor ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Analyzing Strategy...</>) : (<><LightningIcon className="w-4 h-4 text-white" /> Analyze & Outsmart</>)}</button>
