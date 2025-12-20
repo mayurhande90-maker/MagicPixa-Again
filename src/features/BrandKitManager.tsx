@@ -223,6 +223,14 @@ const MoodItem: React.FC<{
     );
 };
 
+// Skeleton Loader for Grid Items
+const UploadSkeleton: React.FC = () => (
+    <div className="aspect-square rounded-xl bg-gray-50 border border-gray-100 animate-pulse flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-2"></div>
+        <span className="text-[10px] font-bold text-gray-400">Uploading...</span>
+    </div>
+);
+
 // --- BRAND CREATION WIZARD ---
 const BrandCreationWizard: React.FC<{ 
     onClose: () => void; 
@@ -555,7 +563,7 @@ const BrandCreationWizard: React.FC<{
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Negative Constraints</label>
                                 <p className="text-xs text-gray-400 mb-2">Things AI should NEVER generate (e.g. cartoons, neon colors)</p>
                                 <input 
-                                    className="w-full p-4 bg-red-50/50 border border-red-100 rounded-xl focus:border-red-300 outline-none text-red-800 placeholder-red-300"
+                                    className="w-full p-4 bg-white border border-red-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-500/10 outline-none text-gray-800 placeholder-red-300 transition-all shadow-sm"
                                     placeholder="e.g. blurry, distorted, low quality, cartoon"
                                     value={kit.negativePrompts}
                                     onChange={e => setKit({...kit, negativePrompts: e.target.value})}
@@ -629,18 +637,25 @@ const BrandCreationWizard: React.FC<{
                             </div>
                             
                             {(!kit.products || kit.products.length === 0) ? (
-                                <div onClick={() => wizardProductRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
-                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
-                                        <UploadIcon className="w-6 h-6" />
+                                uploadingState['products'] ? (
+                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
+                                        {[1, 2, 3].map(i => <UploadSkeleton key={i} />)}
+                                     </div>
+                                ) : (
+                                    <div onClick={() => wizardProductRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                                            <UploadIcon className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-500">Upload Inventory</p>
+                                        <p className="text-xs text-gray-400 mt-1">Supports multiple files</p>
                                     </div>
-                                    <p className="text-sm font-bold text-gray-500">Upload Inventory</p>
-                                    <p className="text-xs text-gray-400 mt-1">Supports multiple files</p>
-                                </div>
+                                )
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                                     {kit.products.map(product => (
                                         <ProductItem key={product.id} item={product} placeholder={industryConf.itemLabel} onDelete={() => deleteProduct(product.id)} onNameChange={(name) => updateProductName(product.id, name)} />
                                     ))}
+                                    {uploadingState['products'] && <UploadSkeleton />}
                                 </div>
                             )}
                         </div>
@@ -663,17 +678,24 @@ const BrandCreationWizard: React.FC<{
                             </div>
                             
                             {(!kit.moodBoard || kit.moodBoard.length === 0) ? (
-                                <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-pink-300 hover:bg-gray-50 transition-all">
-                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
-                                        <LightbulbIcon className="w-6 h-6" />
+                                uploadingState['mood'] ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
+                                        {[1, 2, 3].map(i => <UploadSkeleton key={i} />)}
                                     </div>
-                                    <p className="text-sm font-bold text-gray-500">Upload Inspiration</p>
-                                </div>
+                                ) : (
+                                    <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-pink-300 hover:bg-gray-50 transition-all">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                                            <LightbulbIcon className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-500">Upload Inspiration</p>
+                                    </div>
+                                )
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                                     {kit.moodBoard.map(item => (
                                         <MoodItem key={item.id} item={item} onDelete={() => deleteMoodItem(item.id)} />
                                     ))}
+                                    {uploadingState['mood'] && <UploadSkeleton />}
                                 </div>
                             )}
                         </div>
@@ -708,6 +730,11 @@ const BrandCreationWizard: React.FC<{
                                             </button>
                                         </div>
                                     ))}
+                                    {uploadingState['competitor'] && (
+                                        <div className="w-20 h-20 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center animate-pulse">
+                                            <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
                                     <button onClick={() => wizardCompRef.current?.click()} className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all">
                                         <PlusIcon className="w-6 h-6"/>
                                     </button>
@@ -793,8 +820,8 @@ const BrandCreationWizard: React.FC<{
                         </button>
                         
                         <div className="flex items-center gap-4">
-                             {/* Skip Button for optional steps (Products, Mood, Comp) */}
-                             {[5, 6, 7].includes(step) && (
+                             {/* Skip Button: Starts appearing from Step 3 (Target Audience) onwards */}
+                             {step >= 3 && step < 8 && (
                                  <button onClick={handleSkip} className="text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors">
                                      Skip for now
                                  </button>
@@ -805,7 +832,7 @@ const BrandCreationWizard: React.FC<{
                                 disabled={isSaving}
                                 className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
                                     step === 8 
-                                    ? 'bg-[#1A1A1E] text-white hover:bg-black hover:scale-105' 
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 hover:shadow-indigo-500/20' 
                                     : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' 
                                 }`}
                             >
