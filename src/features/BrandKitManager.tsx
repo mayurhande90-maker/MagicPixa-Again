@@ -1,17 +1,73 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, BrandKit, BRAND_LIMITS, Page, View } from '../types';
+import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
     ShieldCheckIcon, UploadIcon, XIcon, PaletteIcon, 
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
     SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon,
-    CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon
+    CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon,
+    BuildingIcon, ApparelIcon, UserIcon, MockupIcon
 } from '../components/icons';
 import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
 import { generateBrandIdentity, processLogoAsset, analyzeCompetitorStrategy } from '../services/brandKitService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
+
+// --- INDUSTRY CONFIGURATION ---
+const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; catalogDesc: string; itemLabel: string; itemPlaceholder: string; btn: string; icon: any; color: string }> = {
+    'physical': { 
+        label: 'Physical Product', 
+        catalogTitle: 'Product Catalog', 
+        catalogDesc: 'Upload your core products.', 
+        itemLabel: 'Product', 
+        itemPlaceholder: 'e.g. Serum Bottle',
+        btn: 'Add Product',
+        icon: CubeIcon,
+        color: 'orange'
+    },
+    'digital': { 
+        label: 'SaaS / Digital', 
+        catalogTitle: 'Interface Assets', 
+        catalogDesc: 'Upload screenshots, mockups, or UI elements.', 
+        itemLabel: 'Screen', 
+        itemPlaceholder: 'e.g. Dashboard Home',
+        btn: 'Add Asset',
+        icon: MockupIcon,
+        color: 'blue'
+    },
+    'realty': { 
+        label: 'Real Estate', 
+        catalogTitle: 'Property Portfolio', 
+        catalogDesc: 'Upload key listings, rooms, or building exteriors.', 
+        itemLabel: 'Property', 
+        itemPlaceholder: 'e.g. Penthouse Listing',
+        btn: 'Add Property',
+        icon: BuildingIcon,
+        color: 'purple'
+    },
+    'fashion': { 
+        label: 'Apparel', 
+        catalogTitle: 'Collection & Looks', 
+        catalogDesc: 'Upload garments, flat lays, or model shots.', 
+        itemLabel: 'Look', 
+        itemPlaceholder: 'e.g. Summer Dress',
+        btn: 'Add Look',
+        icon: ApparelIcon,
+        color: 'pink'
+    },
+    'service': { 
+        label: 'Service / Personal', 
+        catalogTitle: 'Key Personas', 
+        catalogDesc: 'Upload headshots of team members or experts.', 
+        itemLabel: 'Persona', 
+        itemPlaceholder: 'e.g. CEO Headshot',
+        btn: 'Add Persona',
+        icon: UserIcon,
+        color: 'indigo'
+    }
+};
 
 const ColorInput: React.FC<{ 
     label: string; 
@@ -113,9 +169,10 @@ const AssetUploader: React.FC<{
 // --- NEW COMPONENT: PRODUCT CATALOG ITEM ---
 const ProductItem: React.FC<{
     item: { id: string, name: string, imageUrl: string };
+    placeholder: string;
     onDelete: () => void;
     onNameChange: (name: string) => void;
-}> = ({ item, onDelete, onNameChange }) => {
+}> = ({ item, placeholder, onDelete, onNameChange }) => {
     return (
         <div className="relative group bg-gray-50 rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all">
             <div className="aspect-square relative bg-white">
@@ -135,7 +192,7 @@ const ProductItem: React.FC<{
                     value={item.name} 
                     onChange={(e) => onNameChange(e.target.value)}
                     className="w-full text-xs font-bold text-gray-700 bg-transparent outline-none focus:text-indigo-600 placeholder-gray-400"
-                    placeholder="Product Name"
+                    placeholder={placeholder}
                 />
             </div>
         </div>
@@ -207,6 +264,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const [isLoadingBrands, setIsLoadingBrands] = useState(true);
     
     const [kit, setKit] = useState<BrandKit>({
+        industry: 'physical',
         companyName: '',
         website: '',
         toneOfVoice: 'Professional',
@@ -242,6 +300,10 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const usage = brands.length;
     const isLimitReached = usage >= limit;
 
+    // Derived State for Industry
+    const currentIndustry = kit.industry || 'physical';
+    const industryConf = INDUSTRY_CONFIG[currentIndustry] || INDUSTRY_CONFIG['physical'];
+
     useEffect(() => {
         if (auth.user) {
             setIsLoadingBrands(true);
@@ -255,6 +317,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     const createEmptyBrand = (name: string): BrandKit => ({
         name,
+        industry: 'physical', // Default
         companyName: '',
         website: '',
         toneOfVoice: 'Professional',
@@ -284,6 +347,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         // Ensure arrays exist for old data
         setKit({
             ...brand,
+            industry: brand.industry || 'physical', // Backfill
             products: brand.products || [],
             moodBoard: brand.moodBoard || [],
             competitor: brand.competitor || { website: '', adScreenshots: [] }
@@ -397,16 +461,16 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                 
                 return {
                     id: tempId,
-                    name: file.name.split('.')[0] || 'New Product',
+                    name: file.name.split('.')[0] || `New ${industryConf.itemLabel}`,
                     imageUrl: url
                 };
             }));
             
             setKit(prev => ({ ...prev, products: [...(prev.products || []), ...newProducts] }));
-            setToast({ msg: `${newProducts.length} product(s) added.`, type: "success" });
+            setToast({ msg: `${newProducts.length} items added to ${industryConf.catalogTitle}.`, type: "success" });
         } catch (error: any) {
             console.error("Product upload failed", error);
-            setToast({ msg: "Failed to upload products.", type: "error" });
+            setToast({ msg: "Failed to upload items.", type: "error" });
         } finally {
             setUploadingState(prev => ({ ...prev, products: false }));
             e.target.value = '';
@@ -679,7 +743,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                             <div className={BrandKitManagerStyles.brandCardBody}>
                                 <div>
                                     <h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3>
-                                    <p className={BrandKitManagerStyles.brandCardMeta}>{brand.toneOfVoice || 'Professional'} • {brand.website ? 'Web Linked' : 'No URL'}</p>
+                                    <p className={BrandKitManagerStyles.brandCardMeta}>{brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'Physical'} • {brand.toneOfVoice || 'Professional'}</p>
                                 </div>
                                 
                                 <div className={BrandKitManagerStyles.brandCardPalette}>
@@ -756,6 +820,104 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                     {/* --- TAB CONTENT: BRAND IDENTITY (EXISTING) --- */}
                     {detailTab === 'identity' && (
                         <>
+                            {/* 5. Brand Strategy (Moved Up) */}
+                            <div className={BrandKitManagerStyles.card}>
+                                <div className={BrandKitManagerStyles.cardHeader}>
+                                    <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <CaptionIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>Defining your voice and audience.</p>
+                                    </div>
+                                </div>
+
+                                <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
+                                    {/* INDUSTRY SELECTOR */}
+                                    <div className="mb-2">
+                                        <label className={BrandKitManagerStyles.inputLabel}>Business Type (Industry)</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                            {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => setKit(prev => ({ ...prev, industry: key as IndustryType }))}
+                                                    className={`p-2 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1 ${
+                                                        (kit.industry || 'physical') === key 
+                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                                                        : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:border-gray-200'
+                                                    }`}
+                                                >
+                                                    <conf.icon className={`w-4 h-4 ${(kit.industry || 'physical') === key ? 'text-white' : 'text-gray-400'}`} />
+                                                    {conf.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Company Legal Name</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.companyName}
+                                                onChange={(e) => handleTextChange('companyName', e.target.value)}
+                                                placeholder="e.g. Skyline Realty LLC"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Website</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.website}
+                                                onChange={(e) => handleTextChange('website', e.target.value)}
+                                                placeholder="e.g. www.skyline.com"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label>
+                                            <select 
+                                                value={kit.toneOfVoice}
+                                                onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
+                                                className={BrandKitManagerStyles.selectField}
+                                            >
+                                                <option>Professional</option>
+                                                <option>Luxury</option>
+                                                <option>Playful</option>
+                                                <option>Urgent / Sales</option>
+                                                <option>Friendly / Casual</option>
+                                                <option>Technical</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={BrandKitManagerStyles.inputLabel}>Target Audience</label>
+                                            <input 
+                                                type="text" 
+                                                value={kit.targetAudience || ''}
+                                                onChange={(e) => handleTextChange('targetAudience', e.target.value)}
+                                                placeholder="e.g. Tech-savvy millennials"
+                                                className={BrandKitManagerStyles.inputField}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={BrandKitManagerStyles.inputLabel}>Negative Prompts (What to Avoid)</label>
+                                        <input 
+                                            type="text" 
+                                            value={kit.negativePrompts || ''}
+                                            onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
+                                            placeholder="e.g. No cartoons, no neon colors, no clutter"
+                                            className={BrandKitManagerStyles.inputField}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        
                             {/* 1. Identity Assets Card */}
                             <div className={BrandKitManagerStyles.card}>
                                 <div className={BrandKitManagerStyles.cardHeader}>
@@ -856,29 +1018,29 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 </div>
                             </div>
 
-                            {/* 3. Product Catalog (NEW) */}
+                            {/* 3. Dynamic Catalog (Renamed based on Industry) */}
                             <div className={BrandKitManagerStyles.card}>
                                 <div className={BrandKitManagerStyles.cardHeader}>
-                                    <div className={`bg-orange-100 text-orange-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                        <CubeIcon className="w-5 h-5" />
+                                    <div className={`bg-${industryConf.color}-100 text-${industryConf.color}-600 ${BrandKitManagerStyles.cardIconBox}`}>
+                                        <industryConf.icon className="w-5 h-5" />
                                     </div>
                                     <div className="flex-1">
-                                        <h2 className={BrandKitManagerStyles.cardTitle}>Product Catalog</h2>
-                                        <p className={BrandKitManagerStyles.cardDesc}>Upload core products once, use everywhere.</p>
+                                        <h2 className={BrandKitManagerStyles.cardTitle}>{industryConf.catalogTitle}</h2>
+                                        <p className={BrandKitManagerStyles.cardDesc}>{industryConf.catalogDesc}</p>
                                     </div>
                                     <button 
                                         onClick={() => productInputRef.current?.click()}
                                         disabled={uploadingState['products']}
-                                        className="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors flex items-center gap-1.5"
+                                        className={`bg-${industryConf.color}-50 text-${industryConf.color}-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-${industryConf.color}-100 transition-colors flex items-center gap-1.5`}
                                     >
-                                        {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> Add Product</>}
+                                        {uploadingState['products'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3" /> {industryConf.btn}</>}
                                     </button>
                                     <input ref={productInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} />
                                 </div>
                                 <div className={`${BrandKitManagerStyles.cardContent}`}>
                                     {(!kit.products || kit.products.length === 0) ? (
                                         <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                            <p className="text-sm text-gray-400 font-medium">No products added yet.</p>
+                                            <p className="text-sm text-gray-400 font-medium">No items added yet.</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -886,6 +1048,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                                 <ProductItem 
                                                     key={product.id} 
                                                     item={product} 
+                                                    placeholder={industryConf.itemLabel}
                                                     onDelete={() => deleteProduct(product.id)}
                                                     onNameChange={(name) => updateProductName(product.id, name)}
                                                 />
@@ -895,7 +1058,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 </div>
                             </div>
 
-                            {/* 4. Mood Board (NEW) */}
+                            {/* 4. Mood Board */}
                             <div className={BrandKitManagerStyles.card}>
                                 <div className={BrandKitManagerStyles.cardHeader}>
                                     <div className={`bg-pink-100 text-pink-600 ${BrandKitManagerStyles.cardIconBox}`}>
@@ -930,83 +1093,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                             ))}
                                         </div>
                                     )}
-                                </div>
-                            </div>
-
-                            {/* 5. Brand Strategy (Expanded) */}
-                            <div className={BrandKitManagerStyles.card}>
-                                <div className={BrandKitManagerStyles.cardHeader}>
-                                    <div className={`bg-green-100 text-green-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                        <CaptionIcon className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h2 className={BrandKitManagerStyles.cardTitle}>Brand Strategy</h2>
-                                        <p className={BrandKitManagerStyles.cardDesc}>Defining your voice and audience.</p>
-                                    </div>
-                                </div>
-
-                                <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div>
-                                            <label className={BrandKitManagerStyles.inputLabel}>Company Legal Name</label>
-                                            <input 
-                                                type="text" 
-                                                value={kit.companyName}
-                                                onChange={(e) => handleTextChange('companyName', e.target.value)}
-                                                placeholder="e.g. Skyline Realty LLC"
-                                                className={BrandKitManagerStyles.inputField}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className={BrandKitManagerStyles.inputLabel}>Website</label>
-                                            <input 
-                                                type="text" 
-                                                value={kit.website}
-                                                onChange={(e) => handleTextChange('website', e.target.value)}
-                                                placeholder="e.g. www.skyline.com"
-                                                className={BrandKitManagerStyles.inputField}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div>
-                                            <label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label>
-                                            <select 
-                                                value={kit.toneOfVoice}
-                                                onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)}
-                                                className={BrandKitManagerStyles.selectField}
-                                            >
-                                                <option>Professional</option>
-                                                <option>Luxury</option>
-                                                <option>Playful</option>
-                                                <option>Urgent / Sales</option>
-                                                <option>Friendly / Casual</option>
-                                                <option>Technical</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className={BrandKitManagerStyles.inputLabel}>Target Audience</label>
-                                            <input 
-                                                type="text" 
-                                                value={kit.targetAudience || ''}
-                                                onChange={(e) => handleTextChange('targetAudience', e.target.value)}
-                                                placeholder="e.g. Tech-savvy millennials"
-                                                className={BrandKitManagerStyles.inputField}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className={BrandKitManagerStyles.inputLabel}>Negative Prompts (What to Avoid)</label>
-                                        <input 
-                                            type="text" 
-                                            value={kit.negativePrompts || ''}
-                                            onChange={(e) => handleTextChange('negativePrompts', e.target.value)}
-                                            placeholder="e.g. No cartoons, no neon colors, no clutter"
-                                            className={BrandKitManagerStyles.inputField}
-                                        />
-                                    </div>
                                 </div>
                             </div>
                         </>
@@ -1173,7 +1259,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                             <div className={BrandKitManagerStyles.previewInner}>
                                 <div className={BrandKitManagerStyles.previewHeader}>
                                     <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Brand Card</h3>
-                                    <div className={BrandKitManagerStyles.previewTag}>{kit.toneOfVoice}</div>
+                                    <div className={BrandKitManagerStyles.previewTag}>{kit.industry?.toUpperCase() || 'PHYSICAL'}</div>
                                 </div>
 
                                 {/* Logo Area */}

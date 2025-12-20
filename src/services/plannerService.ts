@@ -1,3 +1,4 @@
+
 import { Modality, Type, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { BrandKit, ProductAnalysis } from "../types";
@@ -48,23 +49,23 @@ export const analyzeProductPhysically = async (
     mimeType: string
 ): Promise<ProductAnalysis> => {
     const ai = getAiClient();
-    const prompt = `Perform an Exhaustive Technical Forensic Audit of this product image.
+    const prompt = `Perform an Exhaustive Technical Forensic Audit of this product/asset image.
     
-    1. **OCR & Text Identity**: Transcribe EVERY piece of text visible on the packaging (brand name, variant, ingredients, volume, labels).
-    2. **Logo & Graphics**: Describe all logos, icons, and graphic patterns found on the object.
-    3. **Material Science**: Is the surface high-gloss, matte, metallic, or textured? Describe the reflectivity.
-    4. **Physics Categorization**: Is it Edible, Topical (Skincare), a Hard Good, or Tech?
-    5. **Scale & Volume**: Estimate height, mass, and volume based on labels (e.g., "15cm tall bottle", "50ml liquid volume").
-    6. **Art Direction Constraints**: Identify where this product looks 'premium' vs 'cheap'. Note any specific orientation (standing vs lying).
+    1. **OCR & Text Identity**: Transcribe EVERY piece of text visible (brand name, variant, labels).
+    2. **Logo & Graphics**: Describe all logos, icons, and graphic patterns found.
+    3. **Material/Asset Type**: Is it a physical object (bottle, box, clothing), a digital screenshot (dashboard, app), or a place (room, building)?
+    4. **Physics Categorization**: Solid, Liquid, Digital Interface, Architectural Space, or Human Subject.
+    5. **Scale**: Estimate size or context.
+    6. **Art Direction Constraints**: How should this be photographed or presented?
     
     RETURN JSON:
     {
-        "detectedName": "string (The official name found on packaging)",
-        "category": "Edible | Topical | Wearable | Tech | Home | Other",
-        "state": "Liquid | Solid | Granular | Powder | Digital",
-        "physicalScale": "string (Extracted size/weight)",
-        "sceneConstraints": "string (Lighting/Surface advice)",
-        "visualCues": "string (Logos and text markers)"
+        "detectedName": "string",
+        "category": "Edible | Topical | Wearable | Tech | Home | Property | Software | Other",
+        "state": "Liquid | Solid | Granular | Digital | Architectural",
+        "physicalScale": "string",
+        "sceneConstraints": "string",
+        "visualCues": "string"
     }`;
 
     try {
@@ -120,7 +121,15 @@ export const generateContentPlan = async (
 
     const strategyPrompt = `You are a World-Class CMO and Senior Art Director for ${brand.companyName}.
     
-    *** PRODUCT INVENTORY (YOU MUST SELECT FROM THESE IDs) ***
+    *** INDUSTRY CONTEXT ***
+    Industry: ${brand.industry || 'physical'} Business.
+    - If 'physical': "Products" are tangible items to be photographed.
+    - If 'digital': "Products" are software screens/assets to be mocked up on devices.
+    - If 'realty': "Products" are properties/rooms to be showcased.
+    - If 'fashion': "Products" are looks to be worn by models.
+    - If 'service': "Products" are people/experts to be featured.
+    
+    *** ASSET INVENTORY (YOU MUST SELECT FROM THESE IDs) ***
     ${auditData}
     
     *** TARGET MARKET RESEARCH ***
@@ -128,18 +137,25 @@ export const generateContentPlan = async (
     - Current Month: ${config.month}
     - **TASK**: Use Google Search to perform a Deep Cultural & Market Analysis for "${config.country}". 
     - Identify specific local holidays, seasonal aesthetics, consumer behaviors, and visual trends unique to this exact city/region/country for the month of ${config.month}.
-    - Ensure the visual ideas and topics feel "local" and highly relevant to someone living in ${config.country}.
     
     *** THE STRATEGIC MANDATE ***
-    1. **INVENTORY DIVERSIFICATION**: You MUST distribute the ${postCount} posts across ALL available products listed in the inventory. Do NOT focus on just one product. Every product provided must be featured at least once in the month.
-    2. **TOPIC MATCHING**: Intelligently pair each post's topic with the most relevant product from the inventory. (e.g., Use skincare for a "Self-care Sunday" post, but use food for "Healthy Brunch" post).
+    1. **INVENTORY DIVERSIFICATION**: Distribute the ${postCount} posts across ALL available assets listed above.
+    2. **TOPIC MATCHING**: Intelligently pair each post's topic with the most relevant asset.
+       - e.g. For Realty: "New Listing" -> Use a Property asset.
+       - e.g. For SaaS: "New Feature" -> Use a Dashboard Screen asset.
     3. **CONTENT MIX**: Follow the user's request for a "${config.mixType}" mix.
-    4. **DATE FORMAT**: You MUST return dates in the format **DD/MM/YYYY** strictly.
+    4. **DATE FORMAT**: Return dates in the format **DD/MM/YYYY** strictly.
+    
+    *** VISUAL BRIEF INSTRUCTIONS ***
+    - The "visualBrief" and "imagePrompt" must be tailored to the INDUSTRY.
+    - Physical: "Studio shot of bottle..."
+    - Digital: "MacBook Pro mockup displaying the dashboard..."
+    - Realty: "Wide angle architectural shot of the living room..."
+    - Fashion: "Model walking in street wearing..."
     
     *** OUTPUT REQUIREMENTS ***
     - Generate exactly ${postCount} posts.
     - "selectedProductId" MUST strictly match one of the "USE_ID" strings provided in the inventory above.
-    - "visualBrief" must describe a unique high-end photography setting for THAT specific product, grounded in your local research of ${config.country}.
     
     RETURN JSON ARRAY.`;
 
@@ -200,36 +216,39 @@ export const generatePostImage = async (
     const parts: any[] = [];
     
     if (productAsset) {
-        parts.push({ text: "HERO PRODUCT (The Subject - Analyze Material and Scale):" });
+        parts.push({ text: "HERO ASSET (The Subject):" });
         parts.push({ inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
     }
     
     if (moodBoardAssets.length > 0) {
-        parts.push({ text: "BRAND VISUAL DNA (Style Anchor - Copy this Lighting, Color Grading, and Vibe):" });
+        parts.push({ text: "BRAND VISUAL DNA (Style Anchor):" });
         moodBoardAssets.slice(0, 3).forEach(m => {
             parts.push({ inlineData: { data: m.data, mimeType: m.mimeType } });
         });
     }
 
-    const productionPrompt = `You are an Elite Commercial Photographer commissioned by ${brand.companyName}.
+    const productionPrompt = `You are an Elite Commercial Visualizer commissioned by ${brand.companyName}.
     
     *** THE PRODUCTION BRIEF ***
-    Object: ${productAudit?.detectedName} (${productAudit?.category})
-    Product Details: ${productAudit?.visualCues}
+    Industry Context: ${brand.industry || 'physical'}
+    Object/Subject: ${productAudit?.detectedName} (${productAudit?.category})
     Post Focus: ${post.topic}
     Art Direction: ${post.visualBrief}
     Visual Concept: ${post.visualIdea}
     Primary Color: ${brand.colors.primary}
     
     *** COMMERCIAL QUALITY PROTOCOL ***
-    1. **Optics**: Render as if shot on a Phase One XF IQ4, 100MP, 80mm Schneider lens, f/4 for maximum clarity and realistic fall-off.
-    2. **Lighting Physics**: Match the lighting structure found in the BRAND VISUAL DNA images. Use high-dynamic range (HDR).
-    3. **Physics & Contact**: Ensure the product has realistic weight. Add deep contact shadows (ambient occlusion) where it meets surfaces. 
-    4. **Material Fidelity**: Preserve the product identity EXACTLY. Captures all text and logos from the reference image. If it is a ${productAudit?.state}, ensure the physics of the material (reflections, translucency) are 100% realistic.
-    5. **Typography**: Integrate "${post.headline}" using ${brand.fonts.heading}. Text must be clean, legible, and premium.
+    1. **Optics**: Render as if shot on a high-end camera (Phase One XF IQ4) or designed in high-end 3D (Cinema 4D) depending on the subject type.
+    2. **Physics**:
+       - If Physical Product: Realistic weight, contact shadows, material fidelity.
+       - If Digital Interface: Screen glow, clean device frame (mockup style), anti-aliased pixels.
+       - If Real Estate: Straight vertical lines (architectural lens), HDR lighting.
+       - If Fashion: Fabric drape, natural skin texture.
+    3. **Material Fidelity**: Preserve the identity EXACTLY. Capture all text and logos from the reference image.
+    4. **Typography**: Integrate "${post.headline}" using ${brand.fonts.heading} IF appropriate for an ad.
     
     *** COMPOSITION ***
-    Apply the "Rule of Thirds" and "Leading Lines" to ensure the product is the hero. Use negative space effectively for the headline.
+    Apply the "Rule of Thirds".
     
     OUTPUT: A single, photorealistic 4:5 vertical masterpiece. Zero AI artifacts. Magazine quality.`;
 
@@ -267,14 +286,14 @@ export const extractPlanFromDocument = async (
     // Provide explicit product context for matching
     const productCatalog = brand.products?.map(p => 
         `- [ID: ${p.id}] Name: "${p.name}"`
-    ).join('\n') || "No products in catalog.";
+    ).join('\n') || "No items in catalog.";
 
     const extractionPrompt = `You are a Senior Content Strategist & Document Intelligence AI.
     
     *** GOAL ***
     Perform a Deep Strategic Extraction from the uploaded Content Calendar document.
     
-    *** BRAND CATALOG (FOR PRODUCT MATCHING) ***
+    *** BRAND CATALOG (${brand.industry || 'Physical'} Inventory) ***
     ${productCatalog}
     
     *** EXTRACTION RULES ***
@@ -285,14 +304,11 @@ export const extractPlanFromDocument = async (
     2. **TOPIC & FREQUENCY**:
        - Extract the primary topic/hook for each post.
        - Identify how many posts are planned.
-    3. **INTELLIGENT PRODUCT MAPPING**:
-       - For each post, smartly decide which product from the BRAND CATALOG fits the topic best.
-       - If a topic is "New Arrivals", pick a recently added product.
-       - If a topic is "Morning Coffee", pick a coffee-related product.
+    3. **INTELLIGENT ASSET MAPPING**:
+       - For each post, smartly decide which item from the BRAND CATALOG fits the topic best.
        - "selectedProductId" MUST be a valid ID from the catalog provided above.
     4. **CONTENT GENERATION**:
-       - Even though the document is a reference, you must generate a full "imagePrompt" and "caption" that matches the extracted topic and the mapped product.
-       - Ensure the style is premium and high-end commercial.
+       - Generate "imagePrompt" and "caption" that matches the extracted topic and the mapped asset, respecting the brand industry (${brand.industry}).
     
     *** OUTPUT SCHEMA ***
     Return strictly a JSON array of objects.

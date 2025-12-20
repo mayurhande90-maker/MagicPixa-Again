@@ -37,9 +37,12 @@ export interface ProductAnalysis {
     visualCues: string; // OCR text and visual markers
 }
 
+export type IndustryType = 'physical' | 'digital' | 'realty' | 'service' | 'fashion';
+
 export interface BrandKit {
     id?: string; // Unique ID for the brand profile
     name?: string; // Display name for the brand profile (e.g. "Nike Summer")
+    industry?: IndustryType; // The business category
     companyName: string;
     website: string;
     toneOfVoice: string;
