@@ -384,69 +384,69 @@ const BrandCreationWizard: React.FC<{
     // Render Steps
     const renderStepContent = () => {
         switch (step) {
-            case 0: // PREMIUM SPLIT
+            case 0: // SETUP CARD (AI + Manual Option)
                 return (
-                    <div className="h-full flex flex-col items-center justify-center p-4">
-                        <div className="text-center mb-10">
-                            <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Setup Your Brand Kit</h1>
-                            <p className="text-gray-500 font-medium">How would you like to build your brand profile today?</p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-                            {/* Option A: Magic */}
-                            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-[2rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 text-white relative overflow-hidden group cursor-default">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/20 transition-colors"></div>
-                                <div className="relative z-10 flex flex-col h-full">
-                                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white/20">
-                                        <SparklesIcon className="w-8 h-8 text-yellow-300" />
+                    <div className="h-full flex flex-col items-center justify-center p-8 relative">
+                         {/* Manual Toggle */}
+                        <button 
+                            onClick={() => setStep(1)}
+                            className="absolute top-6 right-6 md:top-8 md:right-8 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-500 hover:text-gray-900 px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                        >
+                            <PaletteIcon className="w-4 h-4" />
+                            Or Enter Manually
+                        </button>
+
+                        <div className="w-full max-w-lg text-center animate-fadeInUp">
+                            {/* Brand Kit Icon */}
+                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                                <BrandKitIcon className="w-10 h-10 text-indigo-600" />
+                            </div>
+                            
+                            {/* Headings */}
+                            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 tracking-tight">Setup Your Brand Kit</h1>
+                            <p className="text-gray-500 mb-10 text-sm md:text-base leading-relaxed max-w-md mx-auto">
+                                Enter your website or describe your business. <br/>
+                                <span className="text-indigo-600 font-bold">Pixa AI</span> will research and build your visual identity instantly.
+                            </p>
+
+                            {/* Main Input Card */}
+                            <div className="bg-white p-2 rounded-3xl">
+                                <div className="space-y-5 text-left">
+                                    <div className="group">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">Website URL (Optional)</label>
+                                        <div className="relative">
+                                            <div className="absolute left-4 top-4 text-gray-400">
+                                                <GlobeIcon className="w-5 h-5"/>
+                                            </div>
+                                            <input 
+                                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400"
+                                                placeholder="e.g. www.yourbrand.com"
+                                                value={magicUrl}
+                                                onChange={e => setMagicUrl(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
                                     </div>
-                                    <h3 className="text-2xl font-bold mb-2">Magic Auto-Pilot</h3>
-                                    <p className="text-indigo-100 text-sm mb-8 leading-relaxed opacity-90">
-                                        Enter a website or description. Our AI Agent will research your niche, scrape visual cues, and build a complete brand identity in seconds.
-                                    </p>
                                     
-                                    <div className="mt-auto space-y-3">
-                                        <input 
-                                            className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 outline-none backdrop-blur-sm"
-                                            placeholder="Website (e.g. nike.com)"
-                                            value={magicUrl}
-                                            onChange={e => setMagicUrl(e.target.value)}
-                                        />
-                                        <textarea 
-                                            className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 outline-none resize-none h-20 backdrop-blur-sm"
-                                            placeholder="Or describe your brand..."
+                                    <div className="group">
+                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">About the Brand</label>
+                                         <textarea 
+                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400 resize-none h-32 leading-relaxed"
+                                            placeholder="Describe your products, industry, vibe, and target audience..."
                                             value={magicDesc}
                                             onChange={e => setMagicDesc(e.target.value)}
                                         />
-                                        <button 
-                                            onClick={handleMagicGenerate}
-                                            disabled={isGenerating || (!magicUrl && !magicDesc)}
-                                            className="w-full py-4 bg-white text-indigo-700 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-                                        >
-                                            {isGenerating ? <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"/> : <><LightningIcon className="w-5 h-5"/> Generate Identity</>}
-                                        </button>
                                     </div>
+
+                                    <button 
+                                        onClick={handleMagicGenerate}
+                                        disabled={isGenerating || (!magicUrl && !magicDesc)}
+                                        className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2"
+                                    >
+                                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <><SparklesIcon className="w-5 h-5 text-yellow-300 animate-pulse"/> Generate Identity</>}
+                                    </button>
                                 </div>
                             </div>
-
-                            {/* Option B: Manual */}
-                            <button 
-                                onClick={() => setStep(1)}
-                                className="bg-white border-2 border-gray-100 p-8 rounded-[2rem] hover:border-gray-300 hover:shadow-xl transition-all duration-300 flex flex-col text-left group"
-                            >
-                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-800 transition-colors">
-                                    <PaletteIcon className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-2">Manual Studio</h3>
-                                <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                                    Build your brand kit step-by-step. Perfect for detailed control over every asset, color, font, and strategic constraint.
-                                </p>
-                                <div className="mt-auto w-full">
-                                    <span className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 group-hover:text-black transition-colors">
-                                        Start Wizard <ArrowRightIcon className="w-4 h-4" />
-                                    </span>
-                                </div>
-                            </button>
                         </div>
                     </div>
                 );
