@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import admin from 'firebase-admin';
 
@@ -80,11 +79,8 @@ export default async function handler(req: any, res: any) {
         });
 
         // 5. Call Google Gemini (Server-Side)
-        // Using the Environment Variable for the API Key
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) throw new Error("Server configuration error: Missing API Key");
-
-        const ai = new GoogleGenAI({ apiKey });
+        // FIX: Using process.env.API_KEY directly as per GenAI guidelines.
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         const response = await ai.models.generateContent({
             model: model,

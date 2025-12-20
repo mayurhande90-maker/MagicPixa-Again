@@ -5,7 +5,8 @@ import {
     CaptionIcon, BrandKitIcon, 
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
     SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon,
-    CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon
+    CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon,
+    GlobeIcon, CameraIcon, EyeIcon, FlagIcon, DocumentTextIcon
 } from '../components/icons';
 import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
 import { uploadBrandAsset, saveUserBrandKit, deleteBrandFromCollection, subscribeToUserBrands } from '../firebase';
@@ -1012,149 +1013,225 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                         </>
                     )}
 
-                    {/* --- TAB CONTENT: COMPETITOR INTELLIGENCE (NEW) --- */}
+                    {/* --- TAB CONTENT: COMPETITOR INTELLIGENCE (REVAMPED 2.0) --- */}
                     {detailTab === 'competitor' && (
-                        <div className={BrandKitManagerStyles.card}>
-                            <div className={BrandKitManagerStyles.cardHeader}>
-                                <div className={`bg-amber-100 text-amber-600 ${BrandKitManagerStyles.cardIconBox}`}>
-                                    <ChartBarIcon className="w-5 h-5" />
+                        <div className="animate-fadeIn space-y-8">
+                            {/* Dashboard Header */}
+                            <div className={BrandKitManagerStyles.intelHeader}>
+                                <div>
+                                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Competitor Intel</h2>
+                                    <p className="text-sm text-gray-500 font-medium">Map their strategy to find your winning angle.</p>
                                 </div>
-                                <div className="flex-1">
-                                    <h2 className={BrandKitManagerStyles.cardTitle}>Competitor Intelligence</h2>
-                                    <p className={BrandKitManagerStyles.cardDesc}>Analyze your rivals to outsmart them.</p>
+                                <div className={BrandKitManagerStyles.intelBadge}>
+                                    Strategic Analysis Active
                                 </div>
                             </div>
-                            
-                            <div className={BrandKitManagerStyles.cardContent}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {/* Left: Input */}
-                                    <div className="space-y-6">
-                                        <div>
-                                            <label className={BrandKitManagerStyles.inputLabel}>Competitor Website</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="e.g. www.competitor.com"
-                                                className={BrandKitManagerStyles.inputField}
-                                                value={kit.competitor?.website || ''}
-                                                onChange={(e) => setKit(prev => ({ 
-                                                    ...prev, 
-                                                    competitor: { 
-                                                        ...prev.competitor || { adScreenshots: [] }, 
-                                                        website: e.target.value 
-                                                    } 
-                                                }))}
-                                            />
-                                        </div>
 
-                                        <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className={BrandKitManagerStyles.inputLabel}>Competitor Ad Screenshots</label>
-                                                <button 
-                                                    onClick={() => competitorAdRef.current?.click()}
-                                                    disabled={uploadingState['competitor']}
-                                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
-                                                >
-                                                    {uploadingState['competitor'] ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}
-                                                </button>
-                                                <input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} />
-                                            </div>
-
-                                            {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (
-                                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/50">
-                                                    <p className="text-xs text-gray-400">Upload screenshots of their ads or social posts.</p>
+                            <div className={BrandKitManagerStyles.intelGrid}>
+                                {/* LEFT: DATA GATHERING */}
+                                <div className={BrandKitManagerStyles.intelInputArea}>
+                                    
+                                    {/* STEP 1: Rival Website */}
+                                    <div className={BrandKitManagerStyles.intelStep}>
+                                        <div className={BrandKitManagerStyles.intelStepNumber}>1</div>
+                                        <div className={BrandKitManagerStyles.intelStepContent}>
+                                            <h3 className={BrandKitManagerStyles.intelStepTitle}>Define Rival</h3>
+                                            <p className={BrandKitManagerStyles.intelStepDesc}>Which brand are we benchmarking against?</p>
+                                            <div className="mt-4 flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-gray-200 shadow-sm focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-indigo-500 transition-all">
+                                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                                                    <GlobeIcon className="w-5 h-5" />
                                                 </div>
-                                            ) : (
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {kit.competitor.adScreenshots.map(ad => (
-                                                        <div key={ad.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-100">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="e.g. www.competitor.com"
+                                                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-800 placeholder-gray-400"
+                                                    value={kit.competitor?.website || ''}
+                                                    onChange={(e) => setKit(prev => ({ 
+                                                        ...prev, 
+                                                        competitor: { 
+                                                            ...prev.competitor || { adScreenshots: [] }, 
+                                                            website: e.target.value 
+                                                        } 
+                                                    }))}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* STEP 2: Ad Content */}
+                                    <div className={BrandKitManagerStyles.intelStep}>
+                                        <div className={BrandKitManagerStyles.intelStepNumber}>2</div>
+                                        <div className={BrandKitManagerStyles.intelStepContent}>
+                                            <h3 className={BrandKitManagerStyles.intelStepTitle}>Capture Content</h3>
+                                            <p className={BrandKitManagerStyles.intelStepDesc}>Upload screenshots of their ads or social posts.</p>
+                                            
+                                            <div className="mt-4">
+                                                <div className={BrandKitManagerStyles.intelGallery}>
+                                                    {kit.competitor?.adScreenshots?.map(ad => (
+                                                        <div key={ad.id} className={BrandKitManagerStyles.intelGalleryImg}>
                                                             <img src={ad.imageUrl} className="w-full h-full object-cover" />
-                                                            <button 
-                                                                onClick={() => deleteCompetitorAd(ad.id)}
-                                                                className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50"
-                                                            >
-                                                                <XIcon className="w-3 h-3" />
-                                                            </button>
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center backdrop-blur-[1px]">
+                                                                <button 
+                                                                    onClick={() => deleteCompetitorAd(ad.id)}
+                                                                    className="p-2 bg-white text-red-500 rounded-xl shadow-lg hover:scale-110 transition-transform"
+                                                                >
+                                                                    <TrashIcon className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ))}
+                                                    
+                                                    {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length < 6) && (
+                                                        <button 
+                                                            onClick={() => competitorAdRef.current?.click()}
+                                                            disabled={uploadingState['competitor']}
+                                                            className={BrandKitManagerStyles.intelGalleryAdd}
+                                                        >
+                                                            {uploadingState['competitor'] ? (
+                                                                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                            ) : (
+                                                                <>
+                                                                    <PlusIcon className="w-6 h-6 text-gray-400 mb-1" />
+                                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Add Screenshot</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
+                                                <input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} />
+                                            </div>
                                         </div>
+                                    </div>
 
+                                    {/* Action Button */}
+                                    <div className="pt-4">
                                         <button 
                                             onClick={runCompetitorAnalysis}
-                                            disabled={isAnalyzingCompetitor || !kit.competitor?.website}
-                                            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none"
+                                            disabled={isAnalyzingCompetitor || !kit.competitor?.website || kit.competitor.adScreenshots.length === 0}
+                                            className="w-full py-4 bg-[#1A1A1E] hover:bg-black text-white rounded-2xl font-black text-sm shadow-2xl shadow-indigo-500/10 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:grayscale disabled:transform-none"
                                         >
                                             {isAnalyzingCompetitor ? (
                                                 <>
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    Analyzing Strategy...
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    Extracting Rival Strategy...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <LightningIcon className="w-4 h-4 text-white" />
+                                                    <LightningIcon className="w-5 h-5 text-indigo-400" />
                                                     Analyze & Outsmart
                                                 </>
                                             )}
                                         </button>
+                                        <p className="text-[10px] text-gray-400 font-bold text-center mt-4 uppercase tracking-[0.1em]">
+                                            AI-Powered Forensic Audit (Gemini 3 Pro)
+                                        </p>
                                     </div>
+                                </div>
 
-                                    {/* Right: Results */}
-                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 h-full">
-                                        {kit.competitor?.analysis ? (
-                                            <div className="space-y-6 animate-fadeIn">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">Strategic Report</h3>
-                                                    <span className="text-[10px] text-gray-400">
-                                                        Updated: {new Date(kit.competitor.analysis.lastUpdated).toLocaleDateString()}
-                                                    </span>
+                                {/* RIGHT: STRATEGIC REPORT */}
+                                <div className={BrandKitManagerStyles.intelResultArea}>
+                                    {kit.competitor?.analysis ? (
+                                        <div className="p-8 space-y-6 flex-1 flex flex-col overflow-y-auto">
+                                            <div className="flex items-center justify-between border-b border-gray-100 pb-5 mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                                        <DocumentTextIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-black text-gray-900 uppercase tracking-tight">Strategic Blueprint</h3>
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Updated {new Date(kit.competitor.analysis.lastUpdated).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                   onClick={() => setKit(prev => ({ ...prev, competitor: { ...prev.competitor!, analysis: undefined } }))}
+                                                   className="text-[10px] font-black text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition-colors uppercase tracking-widest"
+                                                >
+                                                    Clear Report
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-6">
+                                                {/* Card 1: Their Strategy */}
+                                                <div className={`${BrandKitManagerStyles.intelInsightCard} bg-gray-50/50 border-gray-100`}>
+                                                    <div className={`${BrandKitManagerStyles.intelInsightTitle} text-gray-400`}>
+                                                        <EyeIcon className="w-3.5 h-3.5" /> Their Current Playbook
+                                                    </div>
+                                                    <p className={BrandKitManagerStyles.intelInsightText}>{kit.competitor.analysis.theirStrategy}</p>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Their Strategy</p>
-                                                        <p className="text-sm text-gray-700 leading-relaxed">{kit.competitor.analysis.theirStrategy}</p>
+                                                {/* Card 2: Your Winning Angle */}
+                                                <div className={`${BrandKitManagerStyles.intelInsightCard} bg-indigo-50/50 border-indigo-100 relative overflow-hidden`}>
+                                                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500 opacity-[0.03] rounded-bl-full -mr-4 -mt-4"></div>
+                                                    <div className={`${BrandKitManagerStyles.intelInsightTitle} text-indigo-600`}>
+                                                        <LightningIcon className="w-3.5 h-3.5" /> Your Winning Angle
                                                     </div>
+                                                    <p className="text-sm font-black text-indigo-900 leading-relaxed italic">
+                                                        "{kit.competitor.analysis.winningAngle}"
+                                                    </p>
+                                                </div>
 
-                                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
-                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 opacity-10 rounded-bl-full -mr-4 -mt-4"></div>
-                                                        <p className="text-[10px] font-bold text-indigo-500 uppercase mb-1 flex items-center gap-1">
-                                                            <SparklesIcon className="w-3 h-3" /> Your Winning Angle
-                                                        </p>
-                                                        <p className="text-sm font-bold text-indigo-900 leading-relaxed">{kit.competitor.analysis.winningAngle}</p>
+                                                {/* Card 3: Visual Gap */}
+                                                <div className={`${BrandKitManagerStyles.intelInsightCard} bg-white border-gray-100 shadow-sm`}>
+                                                    <div className={`${BrandKitManagerStyles.intelInsightTitle} text-amber-600`}>
+                                                        <LightbulbIcon className="w-3.5 h-3.5" /> Aesthetic Opportunity
                                                     </div>
+                                                    <p className={BrandKitManagerStyles.intelInsightText}>{kit.competitor.analysis.visualGap}</p>
+                                                </div>
 
-                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Visual Gap (Opportunity)</p>
-                                                        <p className="text-sm text-gray-700 leading-relaxed">{kit.competitor.analysis.visualGap}</p>
+                                                {/* Card 4: Avoid Tags */}
+                                                <div className={`${BrandKitManagerStyles.intelInsightCard} bg-rose-50 border-rose-100`}>
+                                                    <div className={`${BrandKitManagerStyles.intelInsightTitle} text-rose-600`}>
+                                                        <XIcon className="w-3.5 h-3.5" /> Differentiation Rules (Avoid)
                                                     </div>
-
-                                                    {kit.competitor.analysis.avoidTags && (
-                                                        <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                                                            <p className="text-[10px] font-bold text-red-500 uppercase mb-2">Avoid (Differentiation)</p>
-                                                            <p className="text-xs text-red-800 italic mb-3">"{kit.competitor.analysis.avoidTags}"</p>
-                                                            <button 
-                                                                onClick={applyNegativePrompts}
-                                                                className="text-[10px] font-bold bg-white text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors shadow-sm w-full"
-                                                            >
-                                                                Apply to Negative Prompts
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                                    <p className="text-xs text-rose-800 font-mono mb-4 leading-relaxed">
+                                                        {kit.competitor.analysis.avoidTags}
+                                                    </p>
+                                                    <button 
+                                                        onClick={applyNegativePrompts}
+                                                        className="w-full py-3 bg-white text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] border border-rose-200 hover:bg-rose-100 transition-all shadow-sm active:scale-95"
+                                                    >
+                                                        Apply to Negative Prompts
+                                                    </button>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                                                    <ChartBarIcon className="w-8 h-8 text-gray-300" />
-                                                </div>
-                                                <h4 className="text-sm font-bold text-gray-500">No Intelligence Yet</h4>
-                                                <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
-                                                    Add a website and ad screenshots, then run analysis to reveal their strategy.
-                                                </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-gray-100 animate-pixa-float">
+                                                <ChartBarIcon className="w-10 h-10 text-gray-300" />
                                             </div>
-                                        )}
-                                    </div>
+                                            <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Intelligence Pending</h3>
+                                            <p className="text-sm text-gray-400 mt-2 max-w-[280px] leading-relaxed font-medium">
+                                                Add a competitor website and at least one screenshot to unlock your strategic report.
+                                            </p>
+                                            
+                                            <div className="mt-10 grid grid-cols-1 gap-4 w-full max-w-sm">
+                                                <div className="flex items-center gap-3 text-left bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                    <div className="w-6 h-6 rounded bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400">?</div>
+                                                    <p className="text-[10px] font-bold text-gray-500 leading-tight">Gemini analyzes rival visuals to find holes in their branding.</p>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-left bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                    <div className="w-6 h-6 rounded bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400">?</div>
+                                                    <p className="text-[10px] font-bold text-gray-500 leading-tight">We look for color gaps and emotional voids in their ads.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Interactive Scan Effect during analysis */}
+                                    {isAnalyzingCompetitor && (
+                                        <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex flex-col items-center justify-center">
+                                            <div className="relative">
+                                                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white animate-pulse">
+                                                        <LightningIcon className="w-5 h-5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mt-8 animate-pulse">Scanning Rival DNA...</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

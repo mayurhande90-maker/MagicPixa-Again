@@ -1,4 +1,3 @@
-
 export const BrandKitManagerStyles = {
   // Main Layout
   container: "p-6 lg:p-10 max-w-[1400px] mx-auto pb-32 animate-fadeIn",
@@ -82,4 +81,27 @@ export const BrandKitManagerStyles = {
   previewHeader: "flex justify-between items-center mb-6",
   previewTag: "px-2 py-1 bg-white/10 rounded text-[10px] font-mono",
   previewLogoBox: "aspect-square rounded-xl flex items-center justify-center p-6 relative",
+
+  // --- INTEL 2.0 STYLES ---
+  intelHeader: "flex items-center justify-between mb-8",
+  intelBadge: "px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest",
+  intelGrid: "grid grid-cols-1 lg:grid-cols-12 gap-8 items-start",
+  intelInputArea: "lg:col-span-5 space-y-6",
+  intelResultArea: "lg:col-span-7 bg-white rounded-3xl border border-gray-100 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col min-h-[600px]",
+  
+  intelStep: "flex items-start gap-4 mb-6 group",
+  intelStepNumber: "w-8 h-8 rounded-full bg-gray-100 text-gray-500 font-black text-xs flex items-center justify-center shrink-0 border border-gray-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all",
+  intelStepContent: "flex-1",
+  intelStepTitle: "text-sm font-black text-gray-800 uppercase tracking-wide mb-1",
+  intelStepDesc: "text-xs text-gray-500 font-medium",
+
+  intelWebsiteCard: "bg-white p-4 rounded-2xl border border-gray-200 shadow-sm focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/5 transition-all",
+  
+  intelGallery: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+  intelGalleryAdd: "aspect-square rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 hover:bg-indigo-50/30 hover:border-indigo-300 transition-all flex flex-col items-center justify-center cursor-pointer",
+  intelGalleryImg: "relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm group/img",
+
+  intelInsightCard: "p-6 rounded-2xl border transition-all hover:shadow-lg",
+  intelInsightTitle: "flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] mb-3",
+  intelInsightText: "text-sm text-gray-700 leading-relaxed font-medium",
 };
