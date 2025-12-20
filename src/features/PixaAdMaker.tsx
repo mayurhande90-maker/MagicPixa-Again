@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, AppConfig, Page, View } from '../types';
+import { createPortal } from 'react-dom';
+import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
-import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -46,6 +47,123 @@ const IndustryCard: React.FC<{
         </div>
     </button>
 );
+
+// --- COMPONENT: BRAND SELECTION MODAL ---
+const BrandSelectionModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    userId: string;
+    currentBrandId?: string;
+    onSelect: (brand: BrandKit) => void;
+    onCreateNew: () => void;
+}> = ({ isOpen, onClose, userId, currentBrandId, onSelect, onCreateNew }) => {
+    const [brands, setBrands] = useState<BrandKit[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activatingId, setActivatingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setLoading(true);
+            getUserBrands(userId).then(list => {
+                setBrands(list);
+                setLoading(false);
+            });
+        }
+    }, [isOpen, userId]);
+
+    const handleSelect = async (brand: BrandKit) => {
+        if (!brand.id) return;
+        setActivatingId(brand.id);
+        // Simulate slight delay for "activation" feel
+        await new Promise(r => setTimeout(r, 500));
+        onSelect(brand);
+        setActivatingId(null);
+    };
+
+    if (!isOpen) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div>
+                        <h3 className="text-lg font-black text-gray-900">Select Brand Strategy</h3>
+                        <p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-400 transition-colors">
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3">
+                    {loading ? (
+                        <div className="flex justify-center py-8"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
+                    ) : brands.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-sm text-gray-500 mb-4">No brand kits found.</p>
+                            <button onClick={onCreateNew} className="text-xs font-bold text-indigo-600 hover:underline">Create your first brand</button>
+                        </div>
+                    ) : (
+                        brands.map(brand => {
+                            const isActive = currentBrandId === brand.id;
+                            const isActivating = activatingId === brand.id;
+                            return (
+                                <button
+                                    key={brand.id}
+                                    onClick={() => handleSelect(brand)}
+                                    disabled={isActivating || isActive}
+                                    className={`w-full flex items-center gap-4 p-3 rounded-2xl border-2 transition-all text-left group ${
+                                        isActive 
+                                        ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20' 
+                                        : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                                        {brand.logos.primary ? (
+                                            <img src={brand.logos.primary} className="w-full h-full object-contain" alt="Logo" />
+                                        ) : (
+                                            <BrandKitIcon className="w-6 h-6 text-gray-300" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className={`text-sm font-bold truncate ${isActive ? 'text-indigo-900' : 'text-gray-800'}`}>
+                                            {brand.companyName || brand.name || 'Untitled'}
+                                        </h4>
+                                        <p className="text-[10px] text-gray-500 font-medium truncate">
+                                            {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'Brand'} • {brand.toneOfVoice}
+                                        </p>
+                                    </div>
+                                    <div className="shrink-0">
+                                        {isActivating ? (
+                                            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                        ) : isActive ? (
+                                            <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                                                <CheckIcon className="w-3.5 h-3.5" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-6 h-6 rounded-full border-2 border-gray-200 group-hover:border-indigo-300"></div>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Managed in Brand Kit</span>
+                    <button 
+                        onClick={onCreateNew}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm hover:shadow-md"
+                    >
+                        <PlusCircleIcon className="w-4 h-4" /> Create New
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
 
 // --- COMPONENT: VISUAL FOCUS CARD ---
 const FocusCard: React.FC<{ title: string; desc: string; icon: React.ReactNode; selected: boolean; onClick: () => void; colorClass: string }> = ({ title, desc, icon, selected, onClick, colorClass }) => (
@@ -198,6 +316,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    const [showBrandModal, setShowBrandModal] = useState(false);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     
@@ -256,6 +375,21 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (currentFeature.trim() && features.length < 4) {
             setFeatures([...features, currentFeature.trim()]);
             setCurrentFeature('');
+        }
+    };
+
+    const handleBrandSelect = async (brand: BrandKit) => {
+        if (auth.user && brand.id) {
+            try {
+                await activateBrand(auth.user.uid, brand.id);
+                // Manually update user state to reflect change instantly in UI
+                auth.setUser(prev => prev ? { ...prev, brandKit: brand } : null);
+                setNotification({ msg: `Switched to ${brand.companyName || brand.name}`, type: 'success' });
+                setShowBrandModal(false);
+            } catch (error) {
+                console.error("Brand switch failed", error);
+                setNotification({ msg: "Failed to switch brand", type: 'error' });
+            }
         }
     };
 
@@ -479,7 +613,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         <activeConfig.icon className="w-5 h-5" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center justify-between mb-0.5">
                                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Industry</p>
                                                             <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <span>Switch</span> <ArrowRightIcon className="w-2 h-2" />
@@ -490,10 +624,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </button>
                                             )}
 
-                                            {/* 2. Brand Box (Status Indicator) */}
+                                            {/* 2. Brand Box (Status Indicator + Edit Modal Trigger) */}
                                             {auth.user?.brandKit ? (
                                                 <button 
-                                                    onClick={() => navigateTo('dashboard', 'brand_manager')}
+                                                    onClick={() => setShowBrandModal(true)}
                                                     className="relative overflow-hidden p-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/30 to-white hover:shadow-md hover:border-indigo-200 transition-all flex items-center gap-3 group text-left"
                                                 >
                                                     <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm overflow-hidden shrink-0 p-0.5">
@@ -702,6 +836,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+            
+            {showBrandModal && auth.user && (
+                <BrandSelectionModal 
+                    isOpen={showBrandModal}
+                    onClose={() => setShowBrandModal(false)}
+                    userId={auth.user.uid}
+                    currentBrandId={auth.user.brandKit?.id}
+                    onSelect={handleBrandSelect}
+                    onCreateNew={() => navigateTo('dashboard', 'brand_manager')}
+                />
+            )}
         </>
     );
 };
