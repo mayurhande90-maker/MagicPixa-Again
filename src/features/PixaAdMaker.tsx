@@ -567,7 +567,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             onClick={() => setSelectedBlueprint(bp.id)}
                                                             className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}
                                                         >
-                                                            <div className="w-8 h-8 rounded-full bg-gray-100 mb-1 flex items-center justify-center">
+                                                            <div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center">
                                                                 <BlueprintStarIcon className="w-5 h-5" /> 
                                                             </div>
                                                             <span className={`${AdMakerStyles.blueprintLabel} ${selectedBlueprint === bp.id ? 'text-indigo-700' : 'text-gray-600'}`}>{bp.label}</span>
