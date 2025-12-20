@@ -1,4 +1,3 @@
-
 import { Modality, Type, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { BrandKit, ProductAnalysis } from "../types";
@@ -342,6 +341,6 @@ export const extractPlanFromDocument = async (
         }));
     } catch (e) { 
         console.error("Document extraction failed", e);
-        throw new Error("Pixa couldn't parse the document structure. Ensure it is a clear PDF or CSV with recognizable dates and topics."); 
+        throw new Error("Pixa couldn't parse the document structure. Ensure it is a clear PDF, CSV, or Excel file with recognizable dates and topics."); 
     }
 };

@@ -585,7 +585,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 </div>
                 {step === 'config' && (
                     <button onClick={() => documentInputRef.current?.click()} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white border-2 border-indigo-100 rounded-xl text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm group">
-                        <DocumentTextIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Import CSV / PDF
+                        <DocumentTextIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> Import CSV / PDF / Excel
                     </button>
                 )}
             </div>
@@ -923,7 +923,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             {isGenerating && <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />}
             
-            <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf" onChange={handleImportDocument} />
+            <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleImportDocument} />
             {toast && <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
