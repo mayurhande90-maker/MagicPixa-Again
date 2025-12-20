@@ -16,3 +16,17 @@ export const FoodIcon: React.FC<IconProps> = ({ className }) => (
 export const SaaSRequestIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-1.086-1.036" />} />
 );
+
+export const EcommerceAdIcon: React.FC<IconProps> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <mask id="ipSShopping0">
+            <g fill="none">
+                <path fill="#fff" d="M39 32H13L8 12h36l-5 20Z"/>
+                <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M3 6h3.5L8 12m0 0l5 20h26l5-20H8Z"/>
+                <circle cx="13" cy="39" r="3" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
+                <circle cx="39" cy="39" r="3" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
+            </g>
+        </mask>
+        <path fill="currentColor" d="M0 0h48v48H0z" mask="url(#ipSShopping0)"/>
+    </svg>
+);

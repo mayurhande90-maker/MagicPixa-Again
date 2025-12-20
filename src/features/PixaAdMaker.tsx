@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon } from '../components/icons';
-import { FoodIcon, SaaSRequestIcon, UtensilsIcon } from '../components/icons/adMakerIcons';
+import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -367,7 +368,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className={AdMakerStyles.modeGrid}>
                                     <IndustryCard 
                                         title="E-commerce" desc="Product ads, Sales" 
-                                        icon={<CubeIcon className={`w-8 h-8 ${AdMakerStyles.iconEcommerce}`}/>} 
+                                        icon={<EcommerceAdIcon className={`w-8 h-8 ${AdMakerStyles.iconEcommerce}`}/>} 
                                         onClick={() => setIndustry('ecommerce')}
                                         styles={{ card: AdMakerStyles.cardEcommerce, orb: AdMakerStyles.orbEcommerce, icon: AdMakerStyles.iconEcommerce }}
                                     />
