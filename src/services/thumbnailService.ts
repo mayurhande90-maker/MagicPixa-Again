@@ -1,4 +1,5 @@
-import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
+
+import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -28,9 +29,68 @@ interface ThumbnailInputs {
     elementImage?: { base64: string; mimeType: string } | null; 
 }
 
+/**
+ * PHASE 1: DEEP TREND RESEARCH
+ * Uses Google Search to find what is currently working for this niche.
+ */
+const performTrendResearch = async (category: string, title: string, format: string): Promise<any> => {
+    const ai = getAiClient();
+    const prompt = `You are a YouTube/Instagram Growth Strategist.
+    
+    TASK: Research the current VIRAL THUMBNAIL TRENDS for the category: "${category}" and topic: "${title}".
+    
+    Using Google Search, identify:
+    1. **Color Psychology**: What color combinations are driving the highest CTR right now for this niche? (e.g., "High contrast Yellow/Black", "Neon Green/Purple").
+    2. **Composition**: What layout is trending? (e.g., "Split screen", "Close-up reaction", "Floating object").
+    3. **Typography**: What font styles are popular? (e.g., "Big White Sans-Serif with Drop Shadow", "Distressed Grunge").
+    
+    OUTPUT: A JSON object describing the "Visual Blueprint".
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview', // Pro model for reasoning + search
+            contents: { parts: [{ text: prompt }] },
+            config: {
+                tools: [{ googleSearch: {} }],
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        colorPalette: { type: Type.STRING },
+                        compositionRule: { type: Type.STRING },
+                        emotionVibe: { type: Type.STRING },
+                        textStyle: { type: Type.STRING },
+                        lightingStyle: { type: Type.STRING }
+                    },
+                    required: ["colorPalette", "compositionRule", "emotionVibe", "textStyle", "lightingStyle"]
+                }
+            }
+        });
+
+        const text = response.text || "{}";
+        return JSON.parse(text);
+    } catch (e) {
+        console.warn("Trend research failed, using fallback.", e);
+        return {
+            colorPalette: "High Contrast (Yellow/Red/Black)",
+            compositionRule: "Rule of Thirds, Subject Focused",
+            emotionVibe: "High Energy, Excited",
+            textStyle: "Bold Sans-Serif, White with Shadow",
+            lightingStyle: "Dramatic Rim Lighting"
+        };
+    }
+};
+
+/**
+ * PHASE 2: HYPER-REALISTIC GENERATION
+ */
 export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string> => {
     const ai = getAiClient();
     try {
+        // 1. Get the Blueprint (Trends)
+        const blueprint = await performTrendResearch(inputs.category, inputs.title, inputs.format);
+
         const parts: any[] = [];
         const isPodcast = inputs.category === 'Podcast';
         
@@ -39,19 +99,19 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
 
         if (inputs.referenceImage) {
             const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-            parts.push({ text: "REFERENCE VISUAL HIERARCHY (Analyze contrast and composition):" });
+            parts.push({ text: "REFERENCE STYLE (Copy this Layout/Vibe):" });
             parts.push({ inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
         }
 
         if (isPodcast) {
             if (inputs.hostImage) {
                 const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
-                parts.push({ text: "HOST PHOTO (Main Subject):" });
+                parts.push({ text: "HOST PHOTO (Subject A):" });
                 parts.push({ inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
             }
             if (inputs.guestImage) {
                 const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
-                parts.push({ text: "GUEST PHOTO (Second Subject):" });
+                parts.push({ text: "GUEST PHOTO (Subject B):" });
                 parts.push({ inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
             }
         } else {
@@ -62,104 +122,96 @@ export const generateThumbnail = async (inputs: ThumbnailInputs): Promise<string
             }
             if (inputs.elementImage) {
                 const optElement = await optimizeImage(inputs.elementImage.base64, inputs.elementImage.mimeType);
-                parts.push({ text: "SECONDARY ELEMENT / PROP (Product, Car, etc.):" });
+                parts.push({ text: "SECONDARY OBJECT (Product/Prop):" });
                 parts.push({ inlineData: { data: optElement.data, mimeType: optElement.mimeType } });
             }
         }
 
-        // Construct Highly Specific System Prompt with Design Logic
-        let prompt = `You are an Elite Viral Content Designer specializing in high-CTR thumbnails.
+        // Construct Highly Specific System Prompt
+        let prompt = `You are an Elite Viral Content Designer (Top 0.1% CTR).
         
-        TASK: Transform the input raw photo(s) into a Hyper-Realistic, Click-Magnet Thumbnail.
+        *** TASK ***
+        Create a Hyper-Realistic ${inputs.format === 'portrait' ? 'Vertical (9:16)' : 'Horizontal (16:9)'} Thumbnail.
         CATEGORY: "${inputs.category}".
-        CONTEXT: "${inputs.title}".
+        TOPIC: "${inputs.title}".
+
+        *** TRENDING BLUEPRINT (APPLY STRICTLY) ***
+        - **Colors**: ${blueprint.colorPalette}
+        - **Composition**: ${blueprint.compositionRule}
+        - **Lighting**: ${blueprint.lightingStyle}
+        - **Vibe**: ${blueprint.emotionVibe}
+        - **Text Style**: ${blueprint.textStyle}
         
-        *** CORE VISUAL PHILOSOPHY: HYPER-REALISM ***
-        1. **Texture Fidelity**: Skin must have pores. Metal must have specular highlights. Fabric must have weave. No "smooth plastic" AI look.
-        2. **Lighting Physics**: Use cinematic lighting (Rim Lighting, Volumetric Fog, High Contrast) to separate the subject from the background.
-        3. **Compositing**: The subject must look grounded in the scene, not pasted on. Matching color temperature is critical.
+        *** CORE PHYSICS & REALISM RULES (NO CARTOONS) ***
+        1. **Skin Texture**: Must be high-fidelity (pores, imperfections, subsurface scattering). NO smooth "plastic" AI skin.
+        2. **Optical Physics**: Use realistic "Rim Lighting" to separate the subject from the background. 
+        3. **Camera Specs**: Render as if shot on a Sony A7R V with an 85mm f/1.2 lens. Razor sharp eyes.
+        4. **Compositing**: The subject must look *grounded* in the environment. Match color temperature. Shadows must fall correctly.
         `;
 
         // INJECT STRICT NO-MODEL RULE IF NO IMAGES PROVIDED
         if (!hasHumanAssets) {
             prompt += `
             *** ABSOLUTE CONSTRAINT: NO HUMAN MODELS ***
-            - Since the user did NOT upload any subject photos, DO NOT generate any people, faces, human silhouettes, or imaginary models.
-            - The thumbnail should focus entirely on the ENVIRONMENT, OBJECTS, and TYPOGRAPHY.
-            - Create a powerful conceptual scene that represents the context "${inputs.title}" without using human figures.
+            - Since no user photos were provided, DO NOT HALLUCINATE PEOPLE.
+            - Create a powerful, typographic or object-based composition.
+            - Focus on the *Concept* or *Environment*.
             `;
         } else {
             prompt += `
-            *** IDENTITY LOCK ***
-            - You MUST use the faces/bodies from the uploaded photos. DO NOT regenerate new people.
-            - Keep the identity 100% exact.
+            *** IDENTITY LOCK (CRITICAL) ***
+            - **Do NOT generate new people.** You must use the faces provided in the input images.
+            - **Expression Enhancement**: You may slightly exaggerate the expression (e.g., make a smile wider, or a shock face more intense) to match the "Viral Vibe", but the *identity* must remain 100% recognizable.
             `;
         }
 
         if (inputs.format === 'portrait') {
             prompt += `
-            *** VERTICAL FORMAT (9:16) - REELS/TIKTOK PROTOCOL ***
-            - **Dimensions**: 1080x1920 (Vertical).
-            - **Safe Zone (CRITICAL)**: Keep the top 15% clear (System UI) and the bottom 25% clear (Caption/Audio UI). Place the main subject and hook text in the **MIDDLE 60%**.
-            - **"The Grid Rule"**: Ensure the absolute most important visual element is centered so it looks perfect when cropped to a 1:1 square on a profile grid.
-            - **Immersive Depth**: Use a shallow depth of field (f/1.8). Keep the subject razor sharp, but blur the background (Bokeh) to reduce mobile visual clutter.
-            - **Typography**: Use TALL, CONDENSED, BOLD sans-serif fonts. Stack text vertically if needed. White text with heavy black drop-shadows for readability on any background.
+            *** VERTICAL FORMAT (9:16) ***
+            - **Safe Zone**: Keep top 15% and bottom 20% clear of crucial text.
+            - **Center Focus**: Main subject in the middle.
+            - **Depth**: High Bokeh (background blur) to reduce mobile clutter.
             `;
         } else {
             prompt += `
-            *** HORIZONTAL FORMAT (16:9) - YOUTUBE PROTOCOL ***
-            - **Dimensions**: 1920x1080 (Horizontal).
-            - **Rule of Thirds**: Place the main subject's eyes on a power point.
-            - **Visual Anchors**: Create a clear separation between the "Hook" (Text/Action) and the "Subject" (Emotion).
-            - **Cinema Style**: Wide cinematic framing. Anamorphic lens flare style if appropriate for the category.
-            `;
-        }
-
-        if (inputs.referenceImage) {
-            prompt += `
-            - **REFERENCE ANALYSIS**: Copy the visual hierarchy, color boldness, and font weight from the reference. IGNORE the text content, copy the VIBE.
+            *** HORIZONTAL FORMAT (16:9) ***
+            - **Cinematic Framing**: Wide angle or Mid-shot.
+            - **Separation**: Clear visual distinction between the "Hook" (Text) and the "Hero" (Image).
             `;
         }
 
         if (inputs.elementImage) {
             prompt += `
-            *** ELEMENT INTEGRATION (CRITICAL) ***
-            - A Secondary Element (Car, Product, Gadget) has been provided.
-            - **Composition**: Place this element prominently alongside the Main Subject.
-            - **Interaction**: The Main Subject should be interacting with it (holding it, pointing at it, leaning on it) or standing next to it to show ownership/context.
-            - **Blending**: Ensure the lighting matches. The element must look like it belongs in the scene, not pasted on.
-            - **Scale**: Make the element large enough to be instantly recognizable on a small screen.
+            *** ELEMENT INTEGRATION ***
+            - Place the SECONDARY OBJECT prominently.
+            - It should be interacting with the Subject (e.g., floating nearby, being held, or in the foreground).
+            - Add "Motion Blur" if the context implies speed/action.
             `;
         }
-        
-        prompt += `
-        *** EXECUTION ***
-        - **Retouching**: Relight the subjects to pop. Fix skin tones. Add rim lighting to separate from background.
-        - **Integration**: Perfect cutout and blending. No sticker look.
-        `;
 
         if (inputs.customText) {
              prompt += `
-             *** TEXT RENDERING ***
-             - Render exactly: "${inputs.customText}".
-             - Style: Big, Bold, Sans-Serif. Maximum legibility on small mobile screens.
-             - **Constraint**: Ensure text does not cover the subject's eyes.
+             *** TYPOGRAPHY RENDER ***
+             - Render Text: "${inputs.customText}".
+             - Style: Huge, Bold, High-Contrast.
+             - **Legibility**: Add a heavy drop shadow or outline (Stroke) to ensure readability against any background.
+             - **Kerning**: Tight and impactful.
              `;
         } else {
              prompt += `
              *** AI COPYWRITING ***
-             - Invent a short, punchy hook (2-4 words) like "IT'S OVER", "THE TRUTH", "CRAZY WIN".
-             - Style: Big, Bold, Sans-Serif. High contrast color (Yellow/White/Red).
+             - Create a 2-4 word "Clickbait Hook" (e.g., "IT'S OVER", "CRAZY WIN", "THE TRUTH").
+             - Render this text using the style defined in the Blueprint.
              `;
         }
 
         prompt += `
-        OUTPUT: A single high-resolution ${inputs.format === 'portrait' ? 'vertical (9:16)' : 'horizontal (16:9)'} thumbnail image.`;
+        OUTPUT: A single, high-resolution, photorealistic image. No artifacts.`;
 
         parts.push({ text: prompt });
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3-pro-image-preview', // Best model for pixels + text rendering
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
