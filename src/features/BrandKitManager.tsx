@@ -751,7 +751,7 @@ const BrandCreationWizard: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 z-[300] bg-white/95 backdrop-blur-xl flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
             <div className="w-full max-w-5xl h-[90vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
                 
                 {/* Header / Progress */}
@@ -775,13 +775,6 @@ const BrandCreationWizard: React.FC<{
                             <XIcon className="w-6 h-6" />
                         </button>
                     </div>
-                )}
-                
-                {/* Close button for Step 0 (Hero) */}
-                {step === 0 && (
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
-                        <XIcon className="w-6 h-6" />
-                    </button>
                 )}
 
                 {/* Content Body */}
