@@ -84,16 +84,27 @@ const BrandSelectionModal: React.FC<{
         }
     };
 
+    // LOCK: Prevent closing if processing
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        if (activatingId) return; // Locked
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+        <div 
+            className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn ${activatingId ? 'cursor-wait' : ''}`} 
+            onClick={handleBackdropClick}
+        >
+            <div 
+                className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100 relative" 
+                onClick={e => e.stopPropagation()}
+            >
                 
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                {/* Header (Fixed) */}
+                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-10 relative">
                     <div className="flex items-center gap-3">
-                         {/* Icon with transparent background */}
                          <div className="flex items-center justify-center">
                             <BrandKitIcon className="w-7 h-7 text-indigo-600" />
                          </div>
@@ -102,13 +113,17 @@ const BrandSelectionModal: React.FC<{
                             <p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p>
                          </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                    <button 
+                        onClick={onClose} 
+                        disabled={!!activatingId}
+                        className={`p-2 rounded-full transition-colors ${activatingId ? 'text-gray-200 cursor-not-allowed' : 'hover:bg-gray-100 text-gray-400'}`}
+                    >
                         <XIcon className="w-5 h-5" />
                     </button>
                 </div>
                 
-                {/* Grid Content */}
-                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
+                {/* Grid Content (Scrollable) */}
+                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1 relative">
                      {loading ? (
                         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                     ) : brands.length === 0 ? (
@@ -120,7 +135,7 @@ const BrandSelectionModal: React.FC<{
                             <button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className={`grid grid-cols-2 gap-4 ${activatingId ? 'pointer-events-none' : ''}`}>
                             {brands.map(brand => {
                                 const isActive = currentBrandId === brand.id;
                                 const isActivating = activatingId === brand.id;
@@ -128,12 +143,12 @@ const BrandSelectionModal: React.FC<{
                                     <button
                                         key={brand.id}
                                         onClick={(e) => { e.stopPropagation(); handleSelect(brand); }}
-                                        disabled={isActivating || isActive}
+                                        disabled={!!activatingId || isActive}
                                         className={`group relative flex flex-col h-40 rounded-2xl border transition-all duration-300 overflow-hidden text-left ${
                                             isActive 
                                             ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-md scale-[1.01]' 
                                             : 'border-gray-200 hover:border-indigo-400 hover:shadow-lg bg-white'
-                                        }`}
+                                        } ${isActivating ? 'ring-2 ring-indigo-600' : ''} ${activatingId && !isActivating ? 'opacity-50 grayscale' : ''}`}
                                     >
                                         {/* Header / Logo Area - Fixed height h-20 (5rem) to ensure body has space */}
                                         <div className={`h-20 shrink-0 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
@@ -144,7 +159,7 @@ const BrandSelectionModal: React.FC<{
                                             )}
                                             
                                             {/* Active Badge */}
-                                            {isActive && (
+                                            {isActive && !isActivating && (
                                                 <div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn">
                                                     <CheckIcon className="w-2.5 h-2.5" />
                                                 </div>
@@ -152,7 +167,7 @@ const BrandSelectionModal: React.FC<{
                                             
                                             {/* Loading Spinner */}
                                             {isActivating && (
-                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
                                                     <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                                                 </div>
                                             )}
@@ -185,7 +200,8 @@ const BrandSelectionModal: React.FC<{
                             {/* "Add New" Card injected into grid */}
                             <button 
                                 onClick={onCreateNew}
-                                className="group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md"
+                                disabled={!!activatingId}
+                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
                                     <PlusCircleIcon className="w-5 h-5" />
