@@ -6,7 +6,7 @@ import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, Selec
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
+import { generateAdCreative, AdMakerInputs, getBlueprintsForIndustry } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -572,6 +572,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
     const activeToneOptions = getToneOptions(industry);
 
+    // Dynamic Blueprints based on Industry
+    const currentBlueprints = industry ? getBlueprintsForIndustry(industry) : [];
+
     return (
         <>
             <FeatureLayout
@@ -775,7 +778,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Choose a Blueprint</label>
                                                 </div>
                                                 <div className={AdMakerStyles.blueprintGrid}>
-                                                    {STYLE_BLUEPRINTS.map(bp => (
+                                                    {currentBlueprints.map(bp => (
                                                         <button 
                                                             key={bp.id}
                                                             onClick={() => setSelectedBlueprint(selectedBlueprint === bp.id ? null : bp.id)}
