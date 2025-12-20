@@ -54,7 +54,7 @@ const BrandSelectionModal: React.FC<{
     onClose: () => void;
     userId: string;
     currentBrandId?: string;
-    onSelect: (brand: BrandKit) => void;
+    onSelect: (brand: BrandKit) => Promise<void>;
     onCreateNew: () => void;
 }> = ({ isOpen, onClose, userId, currentBrandId, onSelect, onCreateNew }) => {
     const [brands, setBrands] = useState<BrandKit[]>([]);
@@ -76,8 +76,12 @@ const BrandSelectionModal: React.FC<{
         setActivatingId(brand.id);
         // Simulate slight delay for "activation" feel
         await new Promise(r => setTimeout(r, 500));
-        onSelect(brand);
-        setActivatingId(null);
+        try {
+            await onSelect(brand);
+        } catch (e) {
+            console.error("Selection failed", e);
+            setActivatingId(null);
+        }
     };
 
     if (!isOpen) return null;
@@ -87,88 +91,89 @@ const BrandSelectionModal: React.FC<{
             <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
-                    <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
-                            <BrandKitIcon className="w-5 h-5 text-indigo-600" />
+                <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                    <div className="flex items-center gap-4">
+                         {/* Icon with transparent background and larger size */}
+                         <div className="flex items-center justify-center">
+                            <BrandKitIcon className="w-8 h-8 text-indigo-600" />
                          </div>
                          <div>
-                            <h3 className="text-lg font-black text-gray-900 tracking-tight">Select Identity</h3>
-                            <p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p>
+                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Select Identity</h3>
+                            <p className="text-sm text-gray-500 font-medium">Apply a brand kit to your ad.</p>
                          </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-                        <XIcon className="w-5 h-5" />
+                        <XIcon className="w-6 h-6" />
                     </button>
                 </div>
                 
                 {/* Grid Content */}
-                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
+                <div className="p-8 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
                      {loading ? (
-                        <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
+                        <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                     ) : brands.length === 0 ? (
                         <div className="text-center py-12 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                <BrandKitIcon className="w-8 h-8 text-gray-400" />
+                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                                <BrandKitIcon className="w-10 h-10 text-gray-400" />
                             </div>
-                            <p className="text-gray-500 font-medium mb-6">No brand kits found.</p>
-                            <button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
+                            <p className="text-gray-500 font-medium mb-8">No brand kits found.</p>
+                            <button onClick={onCreateNew} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-5">
                             {brands.map(brand => {
                                 const isActive = currentBrandId === brand.id;
                                 const isActivating = activatingId === brand.id;
                                 return (
                                     <button
                                         key={brand.id}
-                                        onClick={() => handleSelect(brand)}
+                                        onClick={(e) => { e.stopPropagation(); handleSelect(brand); }}
                                         disabled={isActivating || isActive}
-                                        className={`group relative flex flex-col h-44 rounded-2xl border transition-all duration-200 overflow-hidden text-left ${
+                                        className={`group relative flex flex-col h-48 rounded-[1.2rem] border transition-all duration-300 overflow-hidden text-left ${
                                             isActive 
                                             ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-md scale-[1.01]' 
-                                            : 'border-gray-200 hover:border-indigo-300 hover:shadow-lg bg-white'
+                                            : 'border-gray-200 hover:border-indigo-400 hover:shadow-xl bg-white'
                                         }`}
                                     >
                                         {/* Header / Logo Area */}
-                                        <div className={`h-24 flex items-center justify-center p-4 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
+                                        <div className={`h-28 flex items-center justify-center p-6 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
                                             {brand.logos.primary ? (
-                                                <img src={brand.logos.primary} className="max-w-full max-h-full object-contain drop-shadow-sm" alt="Logo" />
+                                                <img src={brand.logos.primary} className="max-w-full max-h-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" alt="Logo" />
                                             ) : (
-                                                <span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
+                                                <span className="text-3xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
                                             )}
                                             
                                             {/* Active Badge */}
                                             {isActive && (
-                                                <div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn">
-                                                    <CheckIcon className="w-2.5 h-2.5" />
+                                                <div className="absolute top-3 right-3 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn">
+                                                    <CheckIcon className="w-3 h-3" />
                                                 </div>
                                             )}
                                             
                                             {/* Loading Spinner */}
                                             {isActivating && (
                                                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Body */}
-                                        <div className={`p-3 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
+                                        <div className={`p-4 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
                                             <div>
-                                                <h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                                <h4 className={`font-bold text-sm truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
                                                     {brand.companyName || brand.name || 'Untitled'}
                                                 </h4>
-                                                <p className="text-[9px] text-gray-500 font-medium truncate opacity-80">
+                                                <p className="text-[10px] text-gray-500 font-medium truncate opacity-80 uppercase tracking-wide">
                                                     {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'}
                                                 </p>
                                             </div>
                                             
                                             {/* Color Palette Preview */}
                                             <div className="flex gap-1.5 mt-2">
-                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary }}></div>
-                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary }}></div>
-                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent }}></div>
+                                                 <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary }}></div>
+                                                 <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary }}></div>
+                                                 <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent }}></div>
                                             </div>
                                         </div>
                                     </button>
@@ -178,12 +183,12 @@ const BrandSelectionModal: React.FC<{
                             {/* "Add New" Card injected into grid */}
                             <button 
                                 onClick={onCreateNew}
-                                className="group relative flex flex-col h-44 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-200 items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md"
+                                className="group relative flex flex-col h-48 rounded-[1.2rem] border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-3 bg-gray-50/30 hover:shadow-md"
                             >
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
-                                    <PlusCircleIcon className="w-5 h-5" />
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
+                                    <PlusCircleIcon className="w-6 h-6" />
                                 </div>
-                                <span className="text-xs font-bold text-gray-500 group-hover:text-indigo-700 transition-colors">Create New</span>
+                                <span className="text-xs font-bold text-gray-500 group-hover:text-indigo-700 transition-colors uppercase tracking-wide">Create New</span>
                             </button>
                         </div>
                     )}
