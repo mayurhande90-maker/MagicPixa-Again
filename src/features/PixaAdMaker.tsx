@@ -66,9 +66,9 @@ const FocusCard: React.FC<{ title: string; desc: string; icon: React.ReactNode; 
 const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void }> = ({ label, ratio, sub, selected, onClick }) => {
     const getRatioStyle = () => {
         switch(ratio) {
-            case '9:16': return 'w-3 h-5';
-            case '4:5': return 'w-3.5 h-4.5';
-            default: return 'w-5 h-5';
+            case '9:16': return 'w-3.5 h-6'; // Taller, narrower for Story
+            case '4:5': return 'w-5 h-6';    // Wider vertical for Portrait (approx 0.83 ratio)
+            default: return 'w-6 h-6';       // Perfect square 1:1
         }
     };
     
