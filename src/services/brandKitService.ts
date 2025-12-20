@@ -1,4 +1,3 @@
-
 import { Type, Modality } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
@@ -68,50 +67,61 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
 };
 
 /**
- * GENERATE FULL BRAND IDENTITY (AUTO-PILOT)
- * Uses Google Search to infer brand details from a URL or Description.
+ * GENERATE FULL BRAND IDENTITY & COMPETITOR STRATEGY (UNIFIED)
+ * Researches both the user brand and the rival to find the strategic gap.
  */
 export const generateBrandIdentity = async (
     url: string, 
-    description: string
+    description: string,
+    competitorUrl?: string
 ): Promise<Partial<BrandKit>> => {
     const ai = getAiClient();
     
-    const prompt = `You are a Brand Identity Expert AI.
+    const prompt = `You are a World-Class Brand Strategist & Identity Architect.
     
-    USER INPUT:
+    USER BRAND:
     - URL: ${url}
     - Description: ${description}
     
-    TASK:
-    Analyze the available information to generate a complete "Brand DNA Kit".
-    Use Google Search to find the actual brand colors, style, website, and details if the URL is provided.
+    ${competitorUrl ? `PRIMARY COMPETITOR:
+    - URL: ${competitorUrl}` : ''}
     
-    1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
-    2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
-    3. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
-    4. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
-    5. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
-    6. **Website**: Extract or infer the main website URL.
+    TASK:
+    Perform deep research (Google Search) on these brands to build a Unified Strategic Kit.
+    
+    1. **Identity Extraction**: Find brand colors, tone, and audience for the USER brand.
+    2. **Strategic Audit**: If a competitor is provided, analyze their website for their Value Prop and Visual Style.
+    3. **The Winning Angle**: Identify the "Visual Gap"—what the competitor is missing that our brand should own.
+    4. **Forensic Constraints**: Define exactly what to AVOID in our AI generations to stay distinct from the rival.
     
     OUTPUT FORMAT:
     Return strictly a valid JSON object wrapped in a markdown code block.
     Example:
     \`\`\`json
     {
-        "companyName": "Inferred Name",
-        "website": "https://...",
+        "companyName": "User Brand Name",
+        "website": "...",
         "toneOfVoice": "...",
         "targetAudience": "...",
-        "negativePrompts": "...",
+        "negativePrompts": "avoidance tags for brand strategy...",
         "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
-        "fonts": { "heading": "Modern Sans", "body": "Clean Sans" }
+        "fonts": { "heading": "Modern Sans", "body": "Clean Sans" },
+        "competitor": {
+            "website": "${competitorUrl || ''}",
+            "analysis": {
+                "theirStrategy": "Short summary of their vibe...",
+                "winningAngle": "Strategic direction for us...",
+                "visualGap": "The aesthetic opportunity...",
+                "avoidTags": "specific visual tags to avoid...",
+                "lastUpdated": "${new Date().toISOString()}"
+            }
+        }
     }
     \`\`\``;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Optimized for speed
+            model: 'gemini-3-pro-preview', // Pro model for deep strategic research
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -141,8 +151,8 @@ export const generateBrandIdentity = async (
 };
 
 /**
- * COMPETITOR ANALYSIS STRATEGY
- * Uses Gemini 3 Pro with Vision + Google Search to analyze competitor strategy.
+ * COMPETITOR ANALYSIS STRATEGY (SCREENSHOT-BASED)
+ * Specifically for analyzing visual ad creatives.
  */
 export const analyzeCompetitorStrategy = async (
     competitorUrl: string,
@@ -152,7 +162,6 @@ export const analyzeCompetitorStrategy = async (
     
     const parts: any[] = [];
     
-    // Add Screenshots for Vision Analysis
     for (const img of screenshotBase64s) {
         parts.push({ inlineData: { data: img.data, mimeType: img.mimeType } });
     }
@@ -170,20 +179,20 @@ export const analyzeCompetitorStrategy = async (
     *** SYNTHESIS: THE WINNING STRATEGY ***
     Based on the audit, generate a strategy for MY brand to win.
     
-    1. **Their Strategy**: Describe what they are doing. (e.g., "They focus on speed and low cost with loud red graphics.")
-    2. **Winning Angle**: Propose a counter-strategy. (e.g., "We will focus on premium quality and calmness. Be the 'Apple' to their 'Android'.")
-    3. **Visual Gap**: What visual space is empty? (e.g., "They lack human emotion. We will use authentic lifestyle photography.")
-    4. **Negative Prompts (Avoid Tags)**: List specific visual elements seen in THEIR ads that we must AVOID to prevent looking like them. (e.g., "neon text, clutter, red background, cartoon characters").
+    1. **Their Strategy**: Describe what they are doing.
+    2. **Winning Angle**: Propose a counter-strategy.
+    3. **Visual Gap**: What visual space is empty?
+    4. **Negative Prompts (Avoid Tags)**: List specific visual elements seen in THEIR ads that we must AVOID.
     
     *** OUTPUT FORMAT ***
     Return strictly a valid JSON object inside a markdown code block.
     Example:
     \`\`\`json
     {
-        "theirStrategy": "Short summary of their vibe...",
-        "winningAngle": "Strategic direction for us...",
-        "visualGap": "The aesthetic opportunity...",
-        "avoidTags": "comma, separated, visual, tags, to, avoid"
+        "theirStrategy": "...",
+        "winningAngle": "...",
+        "visualGap": "...",
+        "avoidTags": "..."
     }
     \`\`\``;
 
@@ -191,10 +200,10 @@ export const analyzeCompetitorStrategy = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Pro model required for complex reasoning + search + vision
+            model: 'gemini-3-pro-preview', 
             contents: { parts },
             config: {
-                tools: [{ googleSearch: {} }] // Enabled for website analysis
+                tools: [{ googleSearch: {} }]
             }
         });
 
@@ -209,36 +218,23 @@ export const analyzeCompetitorStrategy = async (
     } catch (e) {
         console.error("Competitor Analysis Failed:", e);
         return {
-            theirStrategy: "Analysis failed. Please ensure the URL is valid.",
+            theirStrategy: "Analysis failed.",
             winningAngle: "Focus on your unique value proposition.",
-            visualGap: "Maintain a clean and consistent visual identity.",
-            avoidTags: "low quality, clutter"
+            visualGap: "Maintain a clean visual identity.",
+            avoidTags: "low quality"
         };
     }
 };
 
-/**
- * Process Logo Asset:
- * LOGIC UPDATE: We strictly DO NOT regenerate the logo using AI, as this alters the brand identity.
- * 1. If PNG: Return exactly as is.
- * 2. If JPEG (Background): Use client-side pixel manipulation to make white pixels transparent.
- */
 export const processLogoAsset = async (base64: string, mimeType: string): Promise<string> => {
     try {
-        // If it's a JPEG, assume it needs background removal (white -> transparent)
         if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
-            console.log("Processing JPEG logo: Removing white background client-side.");
             const transparentBase64 = await makeTransparent(base64);
             return `data:image/png;base64,${transparentBase64}`;
         }
-
-        // For PNG, WEBP, etc., preserve EXACTLY what the user uploaded.
-        // Do not resize unless absolutely necessary (fileToBase64 already handles max dimension safety).
         return `data:${mimeType};base64,${base64}`;
-
     } catch (e) {
         console.error("Logo processing error", e);
-        // Fallback: Return original
         return `data:${mimeType};base64,${base64}`;
     }
 };
