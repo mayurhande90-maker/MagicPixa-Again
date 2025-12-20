@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon } from '../components/icons';
-import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon } from '../components/icons/adMakerIcons';
+import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -386,7 +386,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     />
                                     <IndustryCard 
                                         title="Real Estate" desc="Property flyers" 
-                                        icon={<BuildingIcon className={`w-8 h-8 ${AdMakerStyles.iconRealty}`}/>} 
+                                        icon={<RealtyAdIcon className={`w-8 h-8 ${AdMakerStyles.iconRealty}`}/>} 
                                         onClick={() => setIndustry('realty')}
                                         styles={{ card: AdMakerStyles.cardRealty, orb: AdMakerStyles.orbRealty, icon: AdMakerStyles.iconRealty }}
                                     />
