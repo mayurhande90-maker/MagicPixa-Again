@@ -171,10 +171,7 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
             <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"><XIcon className="w-5 h-5"/></button>
                 
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/30">
-                        <MagicWandIcon className="w-8 h-8 text-white animate-pulse" />
-                    </div>
+                <div className="text-center mb-6 pt-4">
                     <h2 className="text-2xl font-bold text-gray-900">Auto-Generate Brand</h2>
                     <p className="text-sm text-gray-500 mt-2">Enter your details and let AI build your kit instantly.</p>
                 </div>
@@ -192,9 +189,9 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
                     <button 
                         onClick={() => onGenerate(url, desc)} 
                         disabled={isGenerating || !url}
-                        className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center"
                     >
-                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <><SparklesIcon className="w-5 h-5"/> Generate Magic Kit</>}
+                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"/> : "Generate Magic Kit"}
                     </button>
                 </div>
             </div>
