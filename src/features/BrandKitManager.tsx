@@ -452,7 +452,7 @@ const BrandCreationWizard: React.FC<{
                             onClick={() => setStep(1)}
                             className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-xs font-bold transition-all flex items-center gap-3 group"
                         >
-                            Build from Scratch
+                            Or Build from Scratch
                             <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
                                 <ArrowRightIcon className="w-3 h-3" />
                             </div>
@@ -775,6 +775,13 @@ const BrandCreationWizard: React.FC<{
                             <XIcon className="w-6 h-6" />
                         </button>
                     </div>
+                )}
+                
+                {/* Close button for Step 0 (Hero) */}
+                {step === 0 && (
+                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
+                        <XIcon className="w-6 h-6" />
+                    </button>
                 )}
 
                 {/* Content Body */}
