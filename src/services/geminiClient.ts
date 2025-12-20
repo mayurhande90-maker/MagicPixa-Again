@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { logApiError, auth } from '../firebase';
 
@@ -12,7 +13,12 @@ const USE_SECURE_BACKEND = false;
  * FIX: Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per GenAI guidelines.
  */
 export const getAiClient = (): GoogleGenAI => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const key = process.env.API_KEY;
+    if (!key) {
+        // This will be caught by the calling function or constructor
+        console.warn("Gemini API: No key found in process.env.API_KEY.");
+    }
+    return new GoogleGenAI({ apiKey: key });
 };
 
 /**
@@ -22,9 +28,16 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
     try {
         return await fn();
     } catch (error: any) {
-        // Classify Error Type
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
+
+        // Specific handling for mandatory key selection environments
+        if (message.includes('requested entity was not found')) {
+            console.error("Gemini API: Selected key is invalid or not found. Resetting gate...");
+            // Dispatch custom event to trigger the selection gate again
+            window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
+            throw new Error("Your AI session has expired. Please select your API key again.");
+        }
 
         const isTransientError = 
             status === 503 || 
@@ -82,21 +95,21 @@ export const secureGenerateContent = async (params: {
         }
 
         const data = await response.json();
-        
-        // The backend returns the raw Gemini response object.
-        // We pass it back as-is so the services don't need to change.
         return data;
 
     } else {
         // Fallback to Client-Side (Insecure but works for dev)
-        /**
-         * FIX: re-initializing AI client locally to ensure it picks up the latest environment values as per @google/genai guidelines.
-         */
+        // Ensure a key is provided
+        if (!process.env.API_KEY) {
+            window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
+            throw new Error("No API key provided. Please select a key to continue.");
+        }
+
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        return await ai.models.generateContent({
+        return await callWithRetry(() => ai.models.generateContent({
             model: params.model,
             contents: params.contents,
             config: params.config
-        });
+        }));
     }
 };

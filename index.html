@@ -10,6 +10,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+    <script>
+      // Shim process.env to prevent ReferenceErrors in browser environments
+      window.process = window.process || { env: {} };
+    </script>
     <script type="importmap">
 {
   "imports": {
