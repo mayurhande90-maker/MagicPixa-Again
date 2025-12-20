@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
@@ -9,16 +10,108 @@ import {
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
     CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon,
-    CogIcon
+    CogIcon, PlusIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
-import { deductCredits, saveCreation } from '../firebase';
+import { deductCredits, saveCreation, getUserBrands, activateBrand } from '../firebase';
 import { base64ToBlobUrl, urlToBase64, downloadImage, rawFileToBase64, resizeImage } from '../utils/imageUtils';
 import ToastNotification from '../components/ToastNotification';
 // @ts-ignore
 import JSZip from 'jszip';
 
 type Step = 'config' | 'review' | 'done';
+
+// --- COMPONENTS ---
+
+const BrandSelectionGate: React.FC<{
+    brands: BrandKit[];
+    onSelect: (brand: BrandKit) => void;
+    onCreate: () => void;
+    isLoading: boolean;
+}> = ({ brands, onSelect, onCreate, isLoading }) => {
+    return (
+        <div className="relative h-full w-full flex flex-col items-center justify-center p-6 overflow-hidden min-h-[600px]">
+            {/* Ambient Background */}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-50 to-white -z-20"></div>
+            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] -z-10 animate-pulse"></div>
+            <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] -z-10"></div>
+
+            <div className="relative z-10 max-w-4xl w-full text-center">
+                {isLoading ? (
+                    <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+                        <p className="text-sm font-bold text-gray-400 tracking-widest uppercase">Loading Agency Data...</p>
+                    </div>
+                ) : brands.length > 0 ? (
+                    <div className="animate-fadeIn">
+                        <div className="mb-10">
+                            <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mx-auto mb-6 border border-gray-100 transform rotate-6 hover:rotate-0 transition-transform duration-500">
+                                <BrandKitIcon className="w-8 h-8 text-indigo-600" />
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Select Brand Strategy</h2>
+                            <p className="text-gray-500 font-medium">Which brand campaign are we planning today?</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 max-w-3xl mx-auto">
+                            {brands.map(brand => (
+                                <button
+                                    key={brand.id}
+                                    onClick={() => onSelect(brand)}
+                                    className="group relative bg-white/60 backdrop-blur-md hover:bg-white p-6 rounded-3xl border border-gray-200 hover:border-indigo-500 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 text-left flex flex-col gap-4"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-12 h-12 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
+                                            {brand.logos.primary ? (
+                                                <img src={brand.logos.primary} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm font-black text-gray-300 uppercase">{brand.companyName ? brand.companyName.substring(0,2) : (brand.name || '??').substring(0,2)}</span>
+                                            )}
+                                        </div>
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-50 text-indigo-600 p-2 rounded-full">
+                                            <ArrowRightIcon className="w-4 h-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 leading-tight truncate">{brand.companyName || brand.name}</h3>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1 group-hover:text-indigo-500 transition-colors">Activate Context</p>
+                                    </div>
+                                </button>
+                            ))}
+                            
+                            {/* Create New Card */}
+                            <button
+                                onClick={onCreate}
+                                className="group relative border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center gap-3 min-h-[160px]"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-white group-hover:text-indigo-600 text-gray-400 flex items-center justify-center transition-colors shadow-sm">
+                                    <PlusIcon className="w-5 h-5" />
+                                </div>
+                                <span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wide">Create New Brand</span>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="animate-fadeIn bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-white/50 max-w-lg mx-auto">
+                        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <LockIcon className="w-10 h-10 text-indigo-400" />
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-900 mb-3">Agency Setup Required</h2>
+                        <p className="text-gray-500 mb-8 leading-relaxed">
+                            Campaign Studio needs a Brand Kit (Logo, Colors, Products) to generate high-fidelity posts. Let's set up your first client profile.
+                        </p>
+                        <button
+                            onClick={onCreate}
+                            className="bg-[#1A1A1E] text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 mx-auto w-full"
+                        >
+                            <PlusIcon className="w-5 h-5" />
+                            <span>Create Brand Kit</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 const OptionCard: React.FC<{ 
     title: string; 
@@ -368,9 +461,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
     const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+    
+    // Brand Gate States
+    const [userBrands, setUserBrands] = useState<BrandKit[]>([]);
+    const [isLoadingBrands, setIsLoadingBrands] = useState(false);
 
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
-    const hasBrand = !!activeBrand;
     const documentInputRef = useRef<HTMLInputElement>(null);
 
     const costPerImage = 10;
@@ -379,6 +475,30 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // Validation for enabling the generation button
     const isConfigValid = config.month && config.country && config.frequency && config.mixType;
+
+    // Fetch Brands if no active brand
+    useEffect(() => {
+        if (auth.user && !activeBrand) {
+            setIsLoadingBrands(true);
+            getUserBrands(auth.user.uid).then(brands => {
+                setUserBrands(brands);
+                setIsLoadingBrands(false);
+            }).catch(e => {
+                console.error("Failed to load brands", e);
+                setIsLoadingBrands(false);
+            });
+        }
+    }, [auth.user, activeBrand]);
+
+    const handleActivateBrand = async (brand: BrandKit) => {
+        if (!auth.user || !brand.id) return;
+        try {
+            await activateBrand(auth.user.uid, brand.id);
+        } catch (e) {
+            console.error("Activation failed", e);
+            setToast({ msg: "Failed to switch brand.", type: 'error' });
+        }
+    };
 
     const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
 
@@ -493,7 +613,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     results[post.id] = blobUrl;
                     
                     const storageUri = await resizeImage(`data:image/png;base64,${b64}`, 1024, 0.7);
-                    await saveCreation(auth.user.uid, storageUri, `Campaign Studio: ${post.topic}`);
+                    await saveCreation(auth.user.uid, storageUri, `CampaignStudio: ${post.topic}`);
                 } catch (err) {
                     console.error(err);
                 }
@@ -559,16 +679,15 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    if (!hasBrand) {
+    // --- BRAND SELECTION GATE ---
+    if (!activeBrand) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <LockIcon className="w-10 h-10 text-gray-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Agency Setup Required</h2>
-                <p className="text-gray-500 mb-8 max-w-md">Studio acts as your dedicated AI agency. You must have a Brand Kit with products to start.</p>
-                <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="bg-[#1A1A1E] text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors">Setup Brand Kit</button>
-            </div>
+            <BrandSelectionGate 
+                brands={userBrands} 
+                onSelect={handleActivateBrand} 
+                onCreate={() => navigateTo('dashboard', 'brand_manager')}
+                isLoading={isLoadingBrands}
+            />
         );
     }
 
@@ -605,7 +724,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Market</label>
-                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, Maharashtra or Bangalore" />
+                            <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, India or Bangalore" />
                         </div>
                     </div>
 
