@@ -231,6 +231,13 @@ const UploadSkeleton: React.FC = () => (
     </div>
 );
 
+// URL Validator
+const isValidUrl = (url: string) => {
+    if (!url) return false;
+    // Simple check: must have a dot and at least 4 chars
+    return url.includes('.') && url.length > 3;
+};
+
 // --- BRAND CREATION WIZARD ---
 const BrandCreationWizard: React.FC<{ 
     onClose: () => void; 
@@ -277,6 +284,19 @@ const BrandCreationWizard: React.FC<{
     
     const industryConf = INDUSTRY_CONFIG[kit.industry || 'physical'] || INDUSTRY_CONFIG['physical'];
 
+    // Validation Logic
+    const isStepValid = () => {
+        switch(step) {
+            case 1: return !!kit.companyName.trim();
+            case 2: return !!kit.website && isValidUrl(kit.website);
+            case 3: return !!kit.targetAudience?.trim();
+            case 5: return !!kit.products && kit.products.length > 0;
+            case 6: return !!kit.moodBoard && kit.moodBoard.length > 0;
+            case 7: return !!kit.competitor?.website && isValidUrl(kit.competitor.website);
+            default: return true;
+        }
+    };
+
     const handleMagicGenerate = async () => {
         if (!magicUrl) {
             alert("Website URL is required for Auto-fill.");
@@ -297,7 +317,7 @@ const BrandCreationWizard: React.FC<{
     };
 
     const handleNext = () => {
-        if (step < TOTAL_STEPS) setStep(step + 1);
+        if (step < TOTAL_STEPS && isStepValid()) setStep(step + 1);
     };
 
     const handleBack = () => {
@@ -477,7 +497,7 @@ const BrandCreationWizard: React.FC<{
                         </div>
                         <div className="space-y-6 max-w-2xl mx-auto">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Brand Name</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Brand Name <span className="text-red-500">*</span></label>
                                 <input 
                                     className="w-full text-3xl font-black p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 placeholder-gray-300 text-center"
                                     placeholder="e.g. Acme Corp"
@@ -516,13 +536,16 @@ const BrandCreationWizard: React.FC<{
                         </div>
                         <div className="max-w-xl mx-auto space-y-6">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Website URL</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Website URL <span className="text-red-500">*</span></label>
                                 <input 
-                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none"
+                                    className={`w-full p-4 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.website && !isValidUrl(kit.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'}`}
                                     placeholder="www.yourbrand.com"
                                     value={kit.website}
                                     onChange={e => setKit({...kit, website: e.target.value})}
                                 />
+                                {kit.website && !isValidUrl(kit.website) && (
+                                    <p className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g. example.com)</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Tone of Voice</label>
@@ -551,7 +574,7 @@ const BrandCreationWizard: React.FC<{
                         </div>
                         <div className="max-w-xl mx-auto space-y-6">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Primary Customer</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Primary Customer <span className="text-red-500">*</span></label>
                                 <input 
                                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none"
                                     placeholder="e.g. Gen-Z Gamers, Busy Moms, Tech CEOs"
@@ -563,7 +586,7 @@ const BrandCreationWizard: React.FC<{
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Negative Constraints</label>
                                 <p className="text-xs text-gray-400 mb-2">Things AI should NEVER generate (e.g. cartoons, neon colors)</p>
                                 <input 
-                                    className="w-full p-4 bg-white border border-red-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-500/10 outline-none text-gray-800 placeholder-red-300 transition-all shadow-sm"
+                                    className="w-full p-4 bg-white border border-red-300 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 outline-none text-gray-800 placeholder-gray-400 transition-all shadow-sm"
                                     placeholder="e.g. blurry, distorted, low quality, cartoon"
                                     value={kit.negativePrompts}
                                     onChange={e => setKit({...kit, negativePrompts: e.target.value})}
@@ -711,9 +734,9 @@ const BrandCreationWizard: React.FC<{
                         </div>
                         <div className="max-w-xl mx-auto space-y-6">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Competitor Website</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Competitor Website <span className="text-red-500">*</span></label>
                                 <input 
-                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-500 outline-none"
+                                    className={`w-full p-4 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.competitor?.website && !isValidUrl(kit.competitor.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'}`}
                                     placeholder="e.g. www.competitor.com"
                                     value={kit.competitor?.website || ''}
                                     onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))}
@@ -842,8 +865,12 @@ const BrandCreationWizard: React.FC<{
                             {step < 8 && (
                                 <button 
                                     onClick={handleNext}
-                                    disabled={!kit.companyName && step === 1} 
-                                    className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!isStepValid()} 
+                                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
+                                        isStepValid()
+                                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/20'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                    }`}
                                 >
                                     Next Step <ArrowRightIcon className="w-4 h-4" />
                                 </button>
