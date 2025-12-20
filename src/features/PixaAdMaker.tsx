@@ -333,7 +333,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [tone, setTone] = useState('Professional');
+    
+    // TONE: Initialized to empty string to ensure user selection
+    const [tone, setTone] = useState('');
+    
     const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
     
     // Scan State
@@ -419,45 +422,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }).catch(console.warn);
             }
             if (kit.website) setCta(`Visit ${kit.website}`);
-
-            // 2. Smart Tone Mapping based on Industry
-            // Only run this if industry is selected (not null)
-            if (industry) {
-                const options = getToneOptions(industry);
-                const kitTone = kit.toneOfVoice || 'Professional';
-                
-                // A. Exact Match
-                if (options.includes(kitTone)) {
-                    setTone(kitTone);
-                } 
-                // B. Smart Fallbacks based on Brand Identity
-                else {
-                    // Map "Professional" Brand -> Industry equivalents
-                    if (kitTone === 'Professional') {
-                        if (industry === 'fashion') setTone('Minimal');
-                        else if (industry === 'food') setTone('Gourmet');
-                        else if (industry === 'realty') setTone('Modern');
-                        else setTone('Clean'); // Default
-                    }
-                    // Map "Luxury" Brand
-                    else if (kitTone === 'Luxury') {
-                        if (industry === 'fashion') setTone('Luxury');
-                        else if (industry === 'food') setTone('Gourmet');
-                        else setTone('Luxury');
-                    }
-                    // Map "Playful" Brand
-                    else if (kitTone === 'Playful') {
-                        if (industry === 'fashion') setTone('Street');
-                        else if (industry === 'food') setTone('Sweet');
-                        else setTone('Playful');
-                    }
-                    // Default to first option if no smart map found
-                    else {
-                        setTone(options[0]);
-                    }
-                }
-            }
         }
+        // Removed automatic tone setting logic to ensure user selects it manually.
     }, [auth.user?.brandKit, industry]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -524,7 +490,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 aspectRatio,
                 mainImage: mainImage.base64,
                 logoImage: logoImage?.base64,
-                tone,
+                tone: selectedBlueprint ? '' : tone, // Enforce One Pilot Rule: Clear tone if blueprint is active
                 blueprintId: selectedBlueprint || undefined,
                 productName, offer, description: desc,
                 project, location, config, features,
@@ -812,7 +778,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     {STYLE_BLUEPRINTS.map(bp => (
                                                         <button 
                                                             key={bp.id}
-                                                            onClick={() => setSelectedBlueprint(bp.id)}
+                                                            onClick={() => setSelectedBlueprint(selectedBlueprint === bp.id ? null : bp.id)}
                                                             className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}
                                                         >
                                                             <div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center">
@@ -829,14 +795,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         )}
 
                                         {/* VISUAL STYLE SELECTOR (Moved from bottom) */}
-                                        <div className="mt-6 pt-4 border-t border-gray-100">
-                                             <SelectionGrid
-                                                label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"}
-                                                options={activeToneOptions}
-                                                value={tone}
-                                                onChange={setTone}
-                                             />
-                                        </div>
+                                        {!selectedBlueprint && (
+                                            <div className="mt-6 pt-4 border-t border-gray-100 animate-fadeIn">
+                                                 <SelectionGrid
+                                                    label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"}
+                                                    options={activeToneOptions}
+                                                    value={tone}
+                                                    onChange={setTone}
+                                                 />
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* 3. SMART DETAILS & STRATEGY */}
