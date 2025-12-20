@@ -135,8 +135,8 @@ const BrandSelectionModal: React.FC<{
                                             : 'border-gray-200 hover:border-indigo-400 hover:shadow-lg bg-white'
                                         }`}
                                     >
-                                        {/* Header / Logo Area */}
-                                        <div className={`h-22 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
+                                        {/* Header / Logo Area - Fixed height h-20 (5rem) to ensure body has space */}
+                                        <div className={`h-20 shrink-0 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
                                             {brand.logos.primary ? (
                                                 <img src={brand.logos.primary} className="max-w-[70%] max-h-[70%] object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" alt="Logo" />
                                             ) : (
@@ -158,8 +158,8 @@ const BrandSelectionModal: React.FC<{
                                             )}
                                         </div>
 
-                                        {/* Body */}
-                                        <div className={`px-4 py-3 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
+                                        {/* Body - Flex 1 to fill remaining space */}
+                                        <div className={`px-4 py-2 flex-1 min-h-0 flex flex-col justify-center ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
                                             <div>
                                                 <h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
                                                     {brand.companyName || brand.name || 'Untitled'}
@@ -169,12 +169,14 @@ const BrandSelectionModal: React.FC<{
                                                 </p>
                                             </div>
                                             
-                                            {/* Color Palette Preview */}
-                                            <div className="flex gap-1 mt-1.5">
-                                                 <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary }}></div>
-                                                 <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary }}></div>
-                                                 <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent }}></div>
-                                            </div>
+                                            {/* Color Palette Preview - Safe Check */}
+                                            {brand.colors && (
+                                                <div className="flex gap-1 mt-1.5">
+                                                     <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary || '#ccc' }}></div>
+                                                     <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary || '#eee' }}></div>
+                                                     <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent || '#999' }}></div>
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
                                 );
