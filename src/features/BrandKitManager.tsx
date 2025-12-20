@@ -150,7 +150,7 @@ const AssetUploader: React.FC<{
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                                className="bg-white text-red-500 p-2.5 rounded-xl shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all hover:bg-red-50"
+                                className="bg-gray-100 text-gray-600 p-2.5 rounded-xl shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all hover:bg-gray-200"
                                 title="Remove Image"
                             >
                                 <XIcon className="w-5 h-5" />
@@ -246,10 +246,10 @@ const BrandCreationWizard: React.FC<{
 }> = ({ onClose, onComplete, userId }) => {
     const [step, setStep] = useState(0);
     const [kit, setKit] = useState<BrandKit>({
-        industry: 'physical',
+        industry: null as any, // Start with no selection
         companyName: '',
         website: '',
-        toneOfVoice: 'Professional',
+        toneOfVoice: '', // Start with no selection
         targetAudience: '',
         negativePrompts: '',
         colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
@@ -282,17 +282,19 @@ const BrandCreationWizard: React.FC<{
     // 9: Success
     const TOTAL_STEPS = 9;
     
+    // Fallback for rendering content before industry is selected
     const industryConf = INDUSTRY_CONFIG[kit.industry || 'physical'] || INDUSTRY_CONFIG['physical'];
 
     // Validation Logic
     const isStepValid = () => {
         switch(step) {
-            case 1: return !!kit.companyName.trim();
-            case 2: return !!kit.website && isValidUrl(kit.website);
+            case 1: return !!kit.companyName.trim() && !!kit.industry;
+            case 2: return !!kit.website && isValidUrl(kit.website) && !!kit.toneOfVoice;
             case 3: return !!kit.targetAudience?.trim();
             case 5: return !!kit.products && kit.products.length > 0;
             case 6: return !!kit.moodBoard && kit.moodBoard.length > 0;
             case 7: return !!kit.competitor?.website && isValidUrl(kit.competitor.website);
+            case 8: return !!kit.logos.primary && !uploadingState['primary'];
             default: return true;
         }
     };
@@ -694,11 +696,11 @@ const BrandCreationWizard: React.FC<{
                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
                          <div className="text-center mb-8">
                             <h2 className="text-2xl font-bold text-gray-900">Inspiration Board</h2>
-                            <p className="text-gray-500">Upload images that define your aesthetic.</p>
+                            <p className="text-gray-500">Upload examples of the style you want.</p>
                         </div>
                         <div className="max-w-3xl mx-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <button onClick={() => wizardMoodRef.current?.click()} className="bg-pink-50 text-pink-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-pink-100 transition-colors flex items-center gap-2">
+                                <button onClick={() => wizardMoodRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                     {uploadingMoodCount > 0 ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Image</>}
                                 </button>
                                 <input ref={wizardMoodRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} />
@@ -710,7 +712,7 @@ const BrandCreationWizard: React.FC<{
                                         {Array.from({ length: uploadingMoodCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                     </div>
                                 ) : (
-                                    <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-pink-300 hover:bg-gray-50 transition-all">
+                                    <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
                                             <LightbulbIcon className="w-6 h-6" />
                                         </div>
@@ -789,7 +791,7 @@ const BrandCreationWizard: React.FC<{
                                 {kit.logos.primary ? (
                                     <div className="relative">
                                         <img src={kit.logos.primary} className="max-h-40 mx-auto object-contain" />
-                                        <button onClick={() => setKit({...kit, logos: {...kit.logos, primary: null}})} className="absolute -top-2 -right-2 bg-red-100 text-red-500 p-1.5 rounded-full hover:bg-red-200"><XIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => setKit({...kit, logos: {...kit.logos, primary: null}})} className="absolute -top-2 -right-2 bg-gray-100 text-gray-500 p-1.5 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"><XIcon className="w-4 h-4"/></button>
                                     </div>
                                 ) : (
                                     <div onClick={() => document.getElementById('wizard-logo-upload')?.click()} className="cursor-pointer py-10">
@@ -817,8 +819,8 @@ const BrandCreationWizard: React.FC<{
                 {step > 0 && (
                     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-                                <BrandKitIcon className="w-6 h-6" />
+                            <div className="flex items-center justify-center text-indigo-600">
+                                <BrandKitIcon className="w-10 h-10" />
                             </div>
                             <div>
                                 <h1 className="text-lg font-black text-gray-900 leading-none">Brand Wizard</h1>
@@ -861,10 +863,10 @@ const BrandCreationWizard: React.FC<{
 
                              <button 
                                 onClick={handleFinish}
-                                disabled={isSaving}
+                                disabled={isSaving || (step === 8 && !kit.logos.primary)}
                                 className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
                                     step === 8 
-                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 hover:shadow-indigo-500/20' 
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 hover:shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed' 
                                     : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' 
                                 }`}
                             >
